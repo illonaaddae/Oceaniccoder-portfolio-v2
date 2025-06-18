@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaSun, FaMoon, FaBars, FaTimes } from "react-icons/fa";
-import { usePortfolio } from "../Context"; // Fixed path
+import { usePortfolio } from "../Context";
 
 const Navbar = ({ theme, toggleTheme }) => {
   const {
@@ -52,86 +52,109 @@ const Navbar = ({ theme, toggleTheme }) => {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "glass-card backdrop-blur-md bg-opacity-90"
-          : "bg-transparent"
+          ? "glass-navbar-solid backdrop-blur-xl bg-black/40 border-b border-white/10"
+          : "glass-navbar-transparent backdrop-blur-sm bg-black/20"
       }`}
     >
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Enhanced Logo */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">O</span>
+            <div className="relative group">
+              {/* Enhanced Logo Container with Glass Effect */}
+              <div className="w-12 h-12 glass-card bg-gradient-to-r from-cyan-500/30 to-blue-500/30 backdrop-blur-md border border-cyan-400/40 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:from-cyan-500/40 group-hover:to-blue-500/40 transition-all duration-300 shadow-lg">
+                {/* Placeholder for Logo Image */}
+                <img
+                  src="/images/logo-icon.png"
+                  alt="Oceaniccoder Logo"
+                  className="w-8 h-8 object-contain filter brightness-0 invert"
+                  onError={(e) => {
+                    // Fallback to text if image doesn't exist
+                    e.target.style.display = "none";
+                    e.target.nextSibling.style.display = "block";
+                  }}
+                />
+                {/* Fallback Text Logo */}
+                <span className="text-white font-bold text-xl hidden">O</span>
+              </div>
+
+              {/* Glow Effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
             </div>
+
+            {/* Brand Name Only */}
             <div>
-              <h1 className="text-xl font-bold text-white">
-                <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold">
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent hover:from-cyan-300 hover:via-blue-300 hover:to-teal-300 transition-all duration-300">
                   Oceaniccoder
                 </span>
               </h1>
-              <p className="text-xs text-gray-400">Illona Addae</p>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.href, item.id)}
-                className={`nav-link text-sm font-medium transition-all duration-300 ${
+                className={`nav-link-enhanced px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 relative ${
                   activeSection === item.id
-                    ? "text-cyan-400"
-                    : "text-gray-300 hover:text-cyan-400"
+                    ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
+                    : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
                 }`}
               >
                 {item.label}
+                {/* Active Indicator */}
+                {activeSection === item.id && (
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
+                )}
               </button>
             ))}
           </div>
 
-          {/* Theme Toggle & Mobile Menu */}
-          <div className="flex items-center space-x-4">
-            {/* Theme Toggle */}
+          {/* Enhanced Controls */}
+          <div className="flex items-center space-x-3">
+            {/* Enhanced Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="theme-toggle"
+              className="glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (
-                <FaSun className="w-5 h-5 text-yellow-400" />
+                <FaSun className="w-4 h-4 text-yellow-400" />
               ) : (
-                <FaMoon className="w-5 h-5 text-blue-600" />
+                <FaMoon className="w-4 h-4 text-blue-600" />
               )}
             </button>
 
-            {/* Mobile Menu Button */}
+            {/* Enhanced Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden theme-toggle"
+              className="md:hidden glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
               aria-label="Toggle menu"
             >
               {isMenuOpen ? (
-                <FaTimes className="w-5 h-5 text-white" />
+                <FaTimes className="w-4 h-4 text-white" />
               ) : (
-                <FaBars className="w-5 h-5 text-white" />
+                <FaBars className="w-4 h-4 text-white" />
               )}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Enhanced Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 mobile-menu-open rounded-lg p-4">
-            <div className="flex flex-col space-y-4">
+          <div className="md:hidden mt-4 glass-card bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
+            <div className="flex flex-col space-y-2">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.href, item.id)}
-                  className={`nav-link text-left py-2 transition-all duration-300 ${
+                  className={`nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 ${
                     activeSection === item.id
-                      ? "text-cyan-400"
-                      : "text-gray-300 hover:text-cyan-400"
+                      ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
+                      : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
                   }`}
                 >
                   {item.label}

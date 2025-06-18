@@ -4,7 +4,7 @@
 @tailwind utilities;
 @import "./components.css";
 
-/* ✅ Enhanced CSS Variables with Oceanic Theme */
+/* ✅ Optimized CSS Variables */
 :root {
   --bg-primary: #0a1628;
   --bg-secondary: #0f2027;
@@ -17,12 +17,9 @@
   --text-primary: #f7fafc;
   --text-secondary: #e2e8f0;
   --text-accent: #cbd5e0;
-  --accent-cyan: #00d9ff;
-  --accent-teal: #14b8a6;
-  --accent-emerald: #10b981;
-  --glass-bg: rgba(20, 184, 166, 0.1);
-  --glass-border: rgba(20, 184, 166, 0.2);
-  --shadow-ocean: rgba(20, 184, 166, 0.3);
+  --glass-bg: rgba(20, 184, 166, 0.08);
+  --glass-border: rgba(20, 184, 166, 0.15);
+  --shadow-ocean: rgba(20, 184, 166, 0.2);
 }
 
 [data-theme="light"] {
@@ -33,12 +30,12 @@
   --text-primary: #0f2027;
   --text-secondary: #2d3748;
   --text-accent: #4a5568;
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(20, 184, 166, 0.3);
-  --shadow-ocean: rgba(20, 184, 166, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(20, 184, 166, 0.25);
+  --shadow-ocean: rgba(20, 184, 166, 0.15);
 }
 
-/* ✅ Reset & Base with Ocean Feel */
+/* ✅ Performance Optimized Base */
 * {
   margin: 0;
   padding: 0;
@@ -57,18 +54,17 @@ body {
     var(--bg-tertiary) 100%
   );
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
 }
 
-/* ✅ Enhanced Custom Scrollbar */
+/* ✅ Optimized Scrollbar */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--bg-secondary);
-  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -77,8 +73,7 @@ body {
     var(--brand-ocean-2),
     var(--brand-ocean-3)
   );
-  border-radius: 6px;
-  border: 2px solid var(--bg-secondary);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -94,7 +89,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* ✅ Enhanced Selection */
+/* ✅ Selection */
 ::selection {
   background: var(--shadow-ocean);
   color: var(--text-primary);
@@ -107,10 +102,9 @@ input:focus,
 textarea:focus {
   outline: 2px solid var(--brand-ocean-2);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--shadow-ocean);
 }
 
-/* ✅ Enhanced Glass Morphism Background */
+/* ✅ Optimized Hero Background */
 .hero-section {
   position: relative;
   background: linear-gradient(
@@ -121,10 +115,33 @@ textarea:focus {
     #2d3748 75%,
     #0a1628 100%
   );
-  background-size: 400% 400%;
-  animation: gradientShift 8s ease infinite;
+  background-size: 300% 300%;
+  animation: gradientShift 15s ease infinite;
 }
 
+/* ✅ Optimized Liquid Morphing */
+.liquid-morph {
+  position: absolute;
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  filter: blur(30px);
+  opacity: 0.4;
+  animation: liquid1 20s ease-in-out infinite;
+  will-change: transform, border-radius;
+}
+
+.liquid-morph:nth-child(2) {
+  animation: liquid2 25s ease-in-out infinite;
+  animation-delay: -5s;
+  border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
+}
+
+.liquid-morph:nth-child(3) {
+  animation: liquid3 30s ease-in-out infinite;
+  animation-delay: -10s;
+  border-radius: 70% 30% 60% 40% / 40% 70% 30% 60%;
+}
+
+/* ✅ Optimized Keyframes */
 @keyframes gradientShift {
   0%,
   100% {
@@ -135,49 +152,19 @@ textarea:focus {
   }
 }
 
-/* ✅ Liquid Morphing Animations */
-.liquid-morph {
-  position: absolute;
-  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  filter: blur(40px);
-  opacity: 0.6;
-  animation: liquid1 12s ease-in-out infinite;
-}
-
-.liquid-morph:nth-child(2) {
-  animation: liquid2 14s ease-in-out infinite;
-  animation-delay: -2s;
-  border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
-}
-
-.liquid-morph:nth-child(3) {
-  animation: liquid3 16s ease-in-out infinite;
-  animation-delay: -4s;
-  border-radius: 70% 30% 60% 40% / 40% 70% 30% 60%;
-}
-
-/* ✅ Enhanced Keyframes */
 @keyframes liquid1 {
   0%,
   100% {
     transform: translate(0px, 0px) scale(1) rotate(0deg);
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    filter: blur(40px) hue-rotate(0deg);
   }
-  25% {
-    transform: translate(30px, -30px) scale(1.1) rotate(90deg);
+  33% {
+    transform: translate(20px, -20px) scale(1.05) rotate(120deg);
     border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-    filter: blur(45px) hue-rotate(90deg);
   }
-  50% {
-    transform: translate(-20px, 20px) scale(0.9) rotate(180deg);
+  66% {
+    transform: translate(-15px, 15px) scale(0.95) rotate(240deg);
     border-radius: 70% 30% 40% 60% / 40% 50% 60% 50%;
-    filter: blur(50px) hue-rotate(180deg);
-  }
-  75% {
-    transform: translate(40px, 10px) scale(1.05) rotate(270deg);
-    border-radius: 40% 70% 50% 30% / 60% 40% 70% 30%;
-    filter: blur(42px) hue-rotate(270deg);
   }
 }
 
@@ -186,58 +173,53 @@ textarea:focus {
   100% {
     transform: translate(0px, 0px) scale(1) rotate(0deg);
     border-radius: 40% 60% 30% 70% / 60% 30% 70% 40%;
-    filter: blur(35px) hue-rotate(0deg);
   }
-  33% {
-    transform: translate(-30px, 30px) scale(0.8) rotate(-120deg);
+  50% {
+    transform: translate(-25px, 25px) scale(0.9) rotate(-180deg);
     border-radius: 60% 30% 70% 40% / 50% 60% 30% 60%;
-    filter: blur(40px) hue-rotate(120deg);
-  }
-  66% {
-    transform: translate(20px, -20px) scale(1.2) rotate(-240deg);
-    border-radius: 30% 70% 40% 60% / 40% 50% 60% 50%;
-    filter: blur(45px) hue-rotate(240deg);
   }
 }
 
 @keyframes liquid3 {
   0%,
   100% {
-    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    transform: translate(0px, 0px) scale(1);
     border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
-    filter: blur(30px) hue-rotate(0deg);
   }
   50% {
-    transform: translate(25px, 25px) scale(1.1) rotate(180deg);
+    transform: translate(15px, 15px) scale(1.1);
     border-radius: 30% 70% 60% 40% / 50% 60% 30% 70%;
-    filter: blur(38px) hue-rotate(180deg);
   }
 }
 
-/* ✅ Enhanced Responsive */
+/* ✅ Responsive Optimizations */
 @media (max-width: 768px) {
   .liquid-morph {
     transform: scale(0.7);
-    filter: blur(30px);
+    filter: blur(20px);
   }
 
   body {
     font-size: 14px;
+  }
+
+  .hero-section {
+    animation-duration: 20s;
   }
 }
 
 @media (max-width: 480px) {
   .liquid-morph {
     transform: scale(0.5);
-    filter: blur(25px);
+    filter: blur(15px);
   }
 }
 
-/* ✅ Enhanced Animations */
+/* ✅ Performance Utilities */
 .fade-in-up {
-  animation: fadeInUp 0.8s ease-out forwards;
+  animation: fadeInUp 0.6s ease-out forwards;
   opacity: 0;
-  transform: translateY(30px);
+  transform: translateY(20px);
 }
 
 @keyframes fadeInUp {
@@ -247,34 +229,19 @@ textarea:focus {
   }
 }
 
-.stagger-animation > * {
-  animation-delay: calc(var(--stagger) * 0.1s);
-}
-
-/* ✅ Ocean Wave Effect */
-.wave-bg::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    45deg,
-    transparent 30%,
-    var(--brand-ocean-2) 50%,
-    transparent 70%
-  );
-  opacity: 0.1;
-  animation: wave 3s ease-in-out infinite;
-}
-
-@keyframes wave {
-  0%,
-  100% {
-    transform: translateX(-100%);
+/* ✅ Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-morph {
+    animation: none;
   }
-  50% {
-    transform: translateX(100%);
+
+  .hero-section {
+    animation: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
