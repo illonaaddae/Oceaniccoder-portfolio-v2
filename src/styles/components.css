@@ -1,0 +1,414 @@
+/* ✅ Enhanced Glass Morphism Effects */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(20, 184, 166, 0.1),
+    0 16px 64px rgba(20, 184, 166, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--brand-ocean-3),
+    transparent
+  );
+}
+
+[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  box-shadow: 0 8px 32px rgba(20, 184, 166, 0.08),
+    0 16px 64px rgba(0, 0, 0, 0.02);
+}
+
+.glass-btn {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(20, 184, 166, 0.3),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.glass-btn:hover::before {
+  left: 100%;
+}
+
+.glass-btn:hover {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: var(--brand-ocean-3);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 48px var(--shadow-ocean),
+    0 24px 96px rgba(20, 184, 166, 0.1);
+}
+
+.glass-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+[data-theme="light"] .glass-btn:not(.bg-gradient-to-r) {
+  color: #0f2027 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(20, 184, 166, 0.3) !important;
+}
+
+[data-theme="light"] .glass-btn:not(.bg-gradient-to-r):hover {
+  color: #14b8a6 !important;
+  background: rgba(20, 184, 166, 0.1) !important;
+}
+
+/* ✅ Enhanced Glass Progress Bar */
+.glass-progress {
+  background: rgba(20, 184, 166, 0.1);
+  backdrop-filter: blur(8px);
+  height: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  position: relative;
+}
+
+.glass-progress::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+}
+
+.glass-progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3),
+    var(--brand-ocean-4)
+  );
+  border-radius: 8px;
+  transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* ✅ Enhanced Navigation Styles */
+.nav-link {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.nav-link:hover {
+  color: var(--brand-ocean-3) !important;
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.nav-link.active {
+  color: var(--brand-ocean-3) !important;
+  background: rgba(20, 184, 166, 0.15);
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3)
+  );
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 80%;
+}
+
+/* ✅ Enhanced Mobile Menu */
+.mobile-menu-open {
+  background: rgba(10, 22, 40, 0.98);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px var(--shadow-ocean);
+}
+
+/* ✅ Enhanced Theme Toggle */
+.theme-toggle {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    45deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.theme-toggle:hover::before {
+  opacity: 0.1;
+}
+
+.theme-toggle:hover {
+  background: rgba(20, 184, 166, 0.2);
+  border-color: var(--brand-ocean-3);
+  transform: scale(1.1);
+  box-shadow: 0 8px 24px var(--shadow-ocean);
+}
+
+/* ✅ Enhanced Button Animations */
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3),
+    var(--brand-ocean-4)
+  );
+  border: none;
+  color: white;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px var(--shadow-ocean);
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 32px var(--shadow-ocean),
+    0 24px 64px rgba(20, 184, 166, 0.2);
+}
+
+/* ✅ Enhanced Card Hover Effects */
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.card-hover:hover {
+  transform: translateY(-12px) rotateX(5deg);
+}
+
+.card-hover:hover .glass-card {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: var(--brand-ocean-3);
+  box-shadow: 0 24px 64px var(--shadow-ocean),
+    0 48px 128px rgba(20, 184, 166, 0.1);
+}
+
+/* ✅ Enhanced Text Animations */
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3),
+    var(--brand-ocean-4)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradientText 3s ease infinite;
+}
+
+@keyframes gradientText {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.text-glow {
+  text-shadow: 0 0 20px var(--brand-ocean-3), 0 0 40px var(--brand-ocean-2),
+    0 0 60px var(--brand-ocean-4);
+}
+
+/* ✅ Enhanced Form Styles */
+.glass-input {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.glass-input:focus {
+  background: rgba(20, 184, 166, 0.08);
+  border-color: var(--brand-ocean-3);
+  box-shadow: 0 0 0 4px var(--shadow-ocean), 0 8px 24px rgba(20, 184, 166, 0.1);
+  outline: none;
+  transform: scale(1.02);
+}
+
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="light"] .glass-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .glass-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* ✅ Enhanced Loading Animations */
+.loading-dots {
+  display: inline-block;
+}
+
+.loading-dots::after {
+  content: "";
+  display: inline-block;
+  animation: dots 1.8s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%,
+  20% {
+    content: "";
+  }
+  40% {
+    content: ".";
+  }
+  60% {
+    content: "..";
+  }
+  80%,
+  100% {
+    content: "...";
+  }
+}
+
+/* ✅ Enhanced Ocean Pulse Effect */
+.ocean-pulse {
+  animation: oceanPulse 4s ease-in-out infinite;
+}
+
+@keyframes oceanPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px var(--brand-ocean-2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--brand-ocean-3), 0 0 60px var(--brand-ocean-4);
+    transform: scale(1.05);
+  }
+}
