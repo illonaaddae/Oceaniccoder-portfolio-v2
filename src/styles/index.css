@@ -1,0 +1,319 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Ysabeau+Office:wght@300;400;500;600;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "./components.css";
+
+/* ✅ Optimized CSS Variables */
+:root {
+  --bg-primary: #0a1628;
+  --bg-secondary: #0f2027;
+  --bg-tertiary: #1a365d;
+  --bg-accent: #2d3748;
+  --brand-ocean-1: #0d253f;
+  --brand-ocean-2: #14b8a6;
+  --brand-ocean-3: #2dd4bf;
+  --brand-ocean-4: #5eead4;
+  --text-primary: #f7fafc;
+  --text-secondary: #e2e8f0;
+  --text-accent: #cbd5e0;
+  --glass-bg: rgba(20, 184, 166, 0.08);
+  --glass-border: rgba(20, 184, 166, 0.15);
+  --shadow-ocean: rgba(20, 184, 166, 0.2);
+}
+
+[data-theme="light"] {
+  /* Clear, higher-contrast light palette */
+  --bg-primary: #ffffff; /* page base */
+  --bg-secondary: #f6fffb; /* subtle teal tint */
+  --bg-tertiary: #eef8f6; /* gentle layered tone */
+  --bg-accent: #fbfffe;
+
+  --brand-ocean-1: #e6f7f5;
+  --brand-ocean-2: #06b6a4;
+  --brand-ocean-3: #0ea5a9;
+  --brand-ocean-4: #34d399;
+
+  --text-primary: #0f1724; /* dark slate for body text */
+  --text-secondary: #334155; /* secondary headings */
+  --text-accent: #475569; /* accents and muted text */
+
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(13, 148, 136, 0.12);
+  --shadow-ocean: rgba(13, 148, 136, 0.08);
+}
+
+/* Wider light-theme selectors so theme works when set on html or body */
+html[data-theme="light"],
+body[data-theme="light"],
+:root[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6fffb;
+  --bg-tertiary: #eef8f6;
+  --bg-accent: #fbfffe;
+
+  --brand-ocean-1: #e6f7f5;
+  --brand-ocean-2: #06b6a4;
+  --brand-ocean-3: #0ea5a9;
+  --brand-ocean-4: #34d399;
+
+  --text-primary: #0f1724;
+  --text-secondary: #334155;
+  --text-accent: #475569;
+
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(13, 148, 136, 0.12);
+  --shadow-ocean: rgba(16, 24, 32, 0.06);
+}
+
+/* Global light-mode overrides: force a white page background and dark text */
+[data-theme="light"] body,
+html[data-theme="light"] body {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Make default links and headings readable in light mode */
+[data-theme="light"] a,
+html[data-theme="light"] a {
+  color: var(--brand-ocean-2) !important;
+}
+
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4,
+[data-theme="light"] h5,
+[data-theme="light"] h6 {
+  color: var(--text-primary) !important;
+}
+
+/* Light-mode hero background: use variables and a subtle static look */
+[data-theme="light"] .hero-section,
+html[data-theme="light"] .hero-section,
+body[data-theme="light"] .hero-section {
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 100%
+  ) !important;
+  animation: none !important;
+}
+
+/* Convert utility class usages that assume dark backgrounds */
+[data-theme="light"] .text-white {
+  color: var(--text-primary) !important;
+}
+
+/* ✅ Performance Optimized Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Ysabeau Office", "Space Grotesk", -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 100%
+  );
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+/* ✅ Optimized Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    to bottom,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3)
+  );
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    to bottom,
+    var(--brand-ocean-3),
+    var(--brand-ocean-4)
+  );
+}
+
+/* ✅ Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ✅ Selection */
+::selection {
+  background: var(--shadow-ocean);
+  color: var(--text-primary);
+}
+
+/* ✅ Focus Styles */
+button:focus,
+a:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--brand-ocean-2);
+  outline-offset: 2px;
+}
+
+/* ✅ Optimized Hero Background */
+.hero-section {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    #0a1628 0%,
+    #0f2027 25%,
+    #1a365d 50%,
+    #2d3748 75%,
+    #0a1628 100%
+  );
+  background-size: 300% 300%;
+  animation: gradientShift 15s ease infinite;
+}
+
+/* ✅ Optimized Liquid Morphing */
+.liquid-morph {
+  position: absolute;
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  filter: blur(30px);
+  opacity: 0.4;
+  animation: liquid1 20s ease-in-out infinite;
+  will-change: transform, border-radius;
+}
+
+.liquid-morph:nth-child(2) {
+  animation: liquid2 25s ease-in-out infinite;
+  animation-delay: -5s;
+  border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
+}
+
+.liquid-morph:nth-child(3) {
+  animation: liquid3 30s ease-in-out infinite;
+  animation-delay: -10s;
+  border-radius: 70% 30% 60% 40% / 40% 70% 30% 60%;
+}
+
+/* ✅ Optimized Keyframes */
+@keyframes gradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes liquid1 {
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  33% {
+    transform: translate(20px, -20px) scale(1.05) rotate(120deg);
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  66% {
+    transform: translate(-15px, 15px) scale(0.95) rotate(240deg);
+    border-radius: 70% 30% 40% 60% / 40% 50% 60% 50%;
+  }
+}
+
+@keyframes liquid2 {
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    border-radius: 40% 60% 30% 70% / 60% 30% 70% 40%;
+  }
+  50% {
+    transform: translate(-25px, 25px) scale(0.9) rotate(-180deg);
+    border-radius: 60% 30% 70% 40% / 50% 60% 30% 60%;
+  }
+}
+
+@keyframes liquid3 {
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+    border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
+  }
+  50% {
+    transform: translate(15px, 15px) scale(1.1);
+    border-radius: 30% 70% 60% 40% / 50% 60% 30% 70%;
+  }
+}
+
+/* ✅ Responsive Optimizations */
+@media (max-width: 768px) {
+  .liquid-morph {
+    transform: scale(0.7);
+    filter: blur(20px);
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .hero-section {
+    animation-duration: 20s;
+  }
+}
+
+@media (max-width: 480px) {
+  .liquid-morph {
+    transform: scale(0.5);
+    filter: blur(15px);
+  }
+}
+
+/* ✅ Performance Utilities */
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ✅ Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-morph {
+    animation: none;
+  }
+
+  .hero-section {
+    animation: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

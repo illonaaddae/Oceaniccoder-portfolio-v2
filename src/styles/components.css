@@ -1,0 +1,737 @@
+/* ✅ Enhanced Glass Morphism Effects */
+/* Light-mode utility color overrides: ensure high contrast for body text and muted text */
+html[data-theme="light"] .text-white,
+body[data-theme="light"] .text-white,
+[data-theme="light"] .text-white {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="light"] .text-gray-300,
+body[data-theme="light"] .text-gray-300,
+[data-theme="light"] .text-gray-300 {
+  /* previously used as muted light text on dark backgrounds; map to readable secondary text */
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] .text-gray-200,
+body[data-theme="light"] .text-gray-200,
+[data-theme="light"] .text-gray-200 {
+  /* map very light utility to a readable muted body color in light mode */
+  color: var(--text-accent) !important;
+}
+
+html[data-theme="light"] .text-gray-100,
+body[data-theme="light"] .text-gray-100,
+[data-theme="light"] .text-gray-100,
+html[data-theme="light"] .text-gray-50,
+body[data-theme="light"] .text-gray-50,
+[data-theme="light"] .text-gray-50 {
+  /* ensure extra-light utility classes become readable in light mode */
+  color: var(--text-secondary) !important;
+}
+
+/* Make light-theme accent utility classes darker for readability (quotes, badges, accents) */
+[data-theme="light"] .text-cyan-300,
+html[data-theme="light"] .text-cyan-300,
+body[data-theme="light"] .text-cyan-300 {
+  color: var(--brand-ocean-2) !important; /* readable teal */
+}
+
+[data-theme="light"] .text-cyan-400,
+html[data-theme="light"] .text-cyan-400,
+body[data-theme="light"] .text-cyan-400 {
+  color: var(--brand-ocean-3) !important;
+}
+
+[data-theme="light"] .text-green-300,
+html[data-theme="light"] .text-green-300,
+body[data-theme="light"] .text-green-300,
+[data-theme="light"] .text-green-400,
+html[data-theme="light"] .text-green-400,
+body[data-theme="light"] .text-green-400 {
+  color: #0f766e !important; /* slightly darker green for contrast */
+}
+
+[data-theme="light"] .text-purple-300,
+html[data-theme="light"] .text-purple-300,
+body[data-theme="light"] .text-purple-300,
+[data-theme="light"] .text-purple-400,
+html[data-theme="light"] .text-purple-400,
+body[data-theme="light"] .text-purple-400 {
+  color: #6b21a8 !important; /* deeper purple for readability */
+}
+
+html[data-theme="light"] .text-gray-400,
+body[data-theme="light"] .text-gray-400,
+[data-theme="light"] .text-gray-400 {
+  color: var(--text-accent) !important; /* slightly muted but readable */
+}
+
+html[data-theme="light"] .text-gray-500,
+body[data-theme="light"] .text-gray-500,
+[data-theme="light"] .text-gray-500 {
+  color: var(--text-secondary) !important;
+}
+
+/* Ensure icons using text-white inherit readable color in light mode */
+html[data-theme="light"] svg.text-white,
+body[data-theme="light"] svg.text-white,
+[data-theme="light"] svg.text-white {
+  color: var(--text-primary) !important;
+  fill: currentColor !important;
+}
+
+/* ✅ Enhanced Glass Morphism Effects */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(20, 184, 166, 0.1),
+    0 16px 64px rgba(20, 184, 166, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--brand-ocean-3),
+    transparent
+  );
+}
+
+[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  box-shadow: 0 8px 32px rgba(20, 184, 166, 0.08),
+    0 16px 64px rgba(0, 0, 0, 0.02);
+}
+
+.glass-btn {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(20, 184, 166, 0.3),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.glass-btn:hover::before {
+  left: 100%;
+}
+
+.glass-btn:hover {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: var(--brand-ocean-3);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 48px var(--shadow-ocean),
+    0 24px 96px rgba(20, 184, 166, 0.1);
+}
+
+.glass-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+[data-theme="light"] .glass-btn:not(.bg-gradient-to-r) {
+  color: #0f2027 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(20, 184, 166, 0.3) !important;
+}
+
+[data-theme="light"] .glass-btn:not(.bg-gradient-to-r):hover {
+  color: #14b8a6 !important;
+  background: rgba(20, 184, 166, 0.1) !important;
+}
+
+/* ✅ Enhanced Glass Progress Bar */
+.glass-progress {
+  background: rgba(20, 184, 166, 0.1);
+  backdrop-filter: blur(8px);
+  height: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  position: relative;
+}
+
+.glass-progress::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+}
+
+.glass-progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3),
+    var(--brand-ocean-4)
+  );
+  border-radius: 8px;
+  transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* ✅ Enhanced Navigation Styles */
+.nav-link {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.nav-link:hover {
+  color: var(--brand-ocean-3) !important;
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.nav-link.active {
+  color: var(--brand-ocean-3) !important;
+  background: rgba(20, 184, 166, 0.15);
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3)
+  );
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 80%;
+}
+
+/* ✅ Enhanced Mobile Menu */
+.mobile-menu-open {
+  background: rgba(10, 22, 40, 0.98);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px var(--shadow-ocean);
+}
+
+/* ✅ Enhanced Theme Toggle */
+.theme-toggle {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    45deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.theme-toggle:hover::before {
+  opacity: 0.1;
+}
+
+.theme-toggle:hover {
+  background: rgba(20, 184, 166, 0.2);
+  border-color: var(--brand-ocean-3);
+  transform: scale(1.1);
+  box-shadow: 0 8px 24px var(--shadow-ocean);
+}
+
+/* ✅ Enhanced Button Animations */
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3),
+    var(--brand-ocean-4)
+  );
+  border: none;
+  color: white;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px var(--shadow-ocean);
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 32px var(--shadow-ocean),
+    0 24px 64px rgba(20, 184, 166, 0.2);
+}
+
+/* ✅ Enhanced Card Hover Effects */
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.card-hover:hover {
+  transform: translateY(-12px) rotateX(5deg);
+}
+
+.card-hover:hover .glass-card {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: var(--brand-ocean-3);
+  box-shadow: 0 24px 64px var(--shadow-ocean),
+    0 48px 128px rgba(20, 184, 166, 0.1);
+}
+
+/* Light-mode card hover should be subtle and keep contrast */
+[data-theme="light"] .card-hover:hover .glass-card {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-color: rgba(16, 24, 32, 0.06) !important;
+  box-shadow: 0 12px 36px rgba(16, 24, 32, 0.06) !important;
+}
+
+/* Buttons and interactive elements on light background */
+[data-theme="light"] .btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3)
+  ) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 24px rgba(16, 24, 32, 0.06) !important;
+}
+
+[data-theme="light"] .glass-btn {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(16, 24, 32, 0.06) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .text-glow {
+  text-shadow: none !important;
+}
+
+[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(16, 24, 32, 0.04);
+  box-shadow: 0 8px 24px rgba(16, 24, 32, 0.06);
+  color: var(--text-primary);
+}
+
+/* ✅ Enhanced Text Animations */
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--brand-ocean-2),
+    var(--brand-ocean-3),
+    var(--brand-ocean-4)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradientText 3s ease infinite;
+}
+
+@keyframes gradientText {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.text-glow {
+  text-shadow: 0 0 20px var(--brand-ocean-3), 0 0 40px var(--brand-ocean-2),
+    0 0 60px var(--brand-ocean-4);
+}
+
+/* ✅ Enhanced Form Styles */
+.glass-input {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.glass-input:focus {
+  background: rgba(20, 184, 166, 0.08);
+  border-color: var(--brand-ocean-3);
+  box-shadow: 0 0 0 4px var(--shadow-ocean), 0 8px 24px rgba(20, 184, 166, 0.1);
+  outline: none;
+  transform: scale(1.02);
+}
+
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="light"] .glass-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .glass-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* ✅ Enhanced Loading Animations */
+.loading-dots {
+  display: inline-block;
+}
+
+.loading-dots::after {
+  content: "";
+  display: inline-block;
+  animation: dots 1.8s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%,
+  20% {
+    content: "";
+  }
+  40% {
+    content: ".";
+  }
+  60% {
+    content: "..";
+  }
+  80%,
+  100% {
+    content: "...";
+  }
+}
+
+/* ✅ Enhanced Ocean Pulse Effect */
+.ocean-pulse {
+  animation: oceanPulse 4s ease-in-out infinite;
+}
+
+@keyframes oceanPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px var(--brand-ocean-2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--brand-ocean-3), 0 0 60px var(--brand-ocean-4);
+    transform: scale(1.05);
+  }
+}
+
+/* Enhanced Navbar Styles */
+.glass-navbar-solid {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.glass-navbar-transparent {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+}
+
+/* Light-mode navbar overrides: keep nav light and readable */
+[data-theme="light"] .glass-navbar-solid {
+  background: rgba(255, 255, 255, 0.95) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 6px 18px rgba(16, 24, 32, 0.06) !important;
+  border-bottom: 1px solid rgba(16, 24, 32, 0.04);
+}
+
+[data-theme="light"] .glass-navbar-transparent {
+  background: rgba(255, 255, 255, 0.6) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 4px 12px rgba(16, 24, 32, 0.04) !important;
+}
+
+/* Light-theme footer: make footer subtler on white pages and keep text readable */
+html[data-theme="light"] footer,
+body[data-theme="light"] footer,
+[data-theme="light"] footer {
+  /* subtle neutral tint to separate footer from page content */
+  background: linear-gradient(
+    to top,
+    rgba(16, 24, 32, 0.04),
+    rgba(16, 24, 32, 0)
+  ) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Ensure footer inner glass-cards keep readable backgrounds in light mode */
+[data-theme="light"] footer .glass-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(16, 24, 32, 0.04) !important;
+}
+
+/* Make nav links readable on light backgrounds */
+[data-theme="light"] .nav-link {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .nav-link:hover {
+  color: var(--brand-ocean-3) !important;
+  background: rgba(6, 182, 164, 0.06) !important;
+}
+
+.nav-link-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link-enhanced::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(20, 184, 166, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.nav-link-enhanced:hover::before {
+  left: 100%;
+}
+
+.nav-link-mobile {
+  position: relative;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.nav-link-mobile:hover {
+  border-color: rgba(20, 184, 166, 0.3);
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.05),
+    rgba(255, 255, 255, 0.02)
+  );
+}
+
+/* ✅ Enhanced Typography with Ysabeau Office */
+.text-story-lg {
+  font-family: "Ysabeau Office", sans-serif;
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.75; /* 28px */
+  font-weight: 400;
+  letter-spacing: 0.025em;
+}
+
+.text-story-base {
+  font-family: "Ysabeau Office", sans-serif;
+  font-size: 1rem; /* 16px */
+  line-height: 1.7; /* 27.2px */
+  font-weight: 400;
+  letter-spacing: 0.015em;
+}
+
+.text-heading-xl {
+  font-family: "Ysabeau Office", sans-serif;
+  font-size: 1.5rem; /* 24px */
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.text-heading-lg {
+  font-family: "Ysabeau Office", sans-serif;
+  font-size: 1.25rem; /* 20px */
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.text-caption {
+  font-family: "Ysabeau Office", sans-serif;
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.6;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.text-small {
+  font-family: "Ysabeau Office", sans-serif;
+  font-size: 0.75rem; /* 12px */
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Strong text enhancements */
+.text-strong {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Quote styling */
+.quote-text {
+  font-family: "Ysabeau Office", sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.7;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+/* Blog grid responsive override: 1 column on very small, 2 columns on small/tablet, 3 on desktop */
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+@media (min-width: 480px) {
+  .blog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .blog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Mobile performance optimizations: reduce expensive paints */
+@media (max-width: 768px) {
+  .glass-card,
+  .glass-btn,
+  .glass-navbar-solid,
+  .glass-navbar-transparent {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  /* Disable heavy hover transforms on touch devices */
+  .card-hover:hover {
+    transform: none !important;
+  }
+
+  /* Reduce blur sizes used by liquid morphs on small screens */
+  .liquid-morph {
+    filter: blur(12px) !important;
+  }
+}
