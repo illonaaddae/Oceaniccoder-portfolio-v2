@@ -30,19 +30,20 @@ const AboutSection = () => {
   // Image gallery data
   const galleryImages = [
     {
-      src: "/images/STEM.JPG",
-      alt: "Illona at STEM event",
-      caption: "Speaking at STEM conference in Accra",
+      src: "/images/profile.webp",
+      alt: "Illona at a coffe shop photoshoot",
+      caption: "Me at a Coffe shop",
     },
     {
-      src: "/images/tech-event.jpg",
-      alt: "Tech community event",
-      caption: "Leading tech community workshop",
+      src: "/images/Best-Female-Student-In-STEM.JPG",
+      alt: "Illona Best Student In STEM award",
+      caption:
+        "Awarded Best Student in STEM under ATU SRC IDEAL WOMAN AWARDS 2023",
     },
     {
-      src: "/images/mentoring.jpg",
-      alt: "Mentoring session",
-      caption: "Mentoring aspiring developers",
+      src: "/images/Campus-Random-pic.jpg",
+      alt: "Random picture of Illona on campus on a hot afternoon smiling",
+      caption: "A Random picture of me on campus during my early second year",
     },
     {
       src: "/images/conference.jpg",
@@ -117,29 +118,21 @@ const AboutSection = () => {
   const education = [
     {
       institution: "Accra Technical University",
-      degree: "Computer Science & Engineering",
-      period: "2018 - 2022",
-      achievement: "First Class Honours",
-      description: "Specialized in Software Engineering and Data Structures",
+      degree: "Bachelor of Technology (BTech) in Computer Science",
+      period: "2025 - Present",
+      achievement: "N/A",
+      description:
+        " Specializing in Software Engineering, Cloud Computing, Artificial Intelligence and Machine Learning ",
       icon: <FaGraduationCap className="text-blue-400" />,
     },
     {
-      institution: "Coursera - Meta",
-      degree: "Advanced React Development",
-      period: "2023",
-      achievement: "Professional Certificate",
+      institution: "Accra Technical University",
+      degree: "Higher National Diploma (HND) in Computer Science",
+      period: "2023 - 2025",
+      achievement: "First Class Honours",
       description:
-        "Advanced concepts in React, Redux, and modern web development",
-      icon: <FaCertificate className="text-green-400" />,
-    },
-    {
-      institution: "Coursera - Google",
-      degree: "Digital Marketing & Analytics",
-      period: "2022",
-      achievement: "Professional Certificate",
-      description:
-        "Data-driven marketing strategies and user behavior analysis",
-      icon: <FaCertificate className="text-purple-400" />,
+        "Specialized in Software Engineering, Data Structures & Algorithms, and Network Systems.",
+      icon: <FaGraduationCap className="text-blue-400" />,
     },
   ];
 
@@ -147,19 +140,19 @@ const AboutSection = () => {
     {
       role: "Executive Director",
       company: "Slint Tech",
-      period: "2023 - Present",
+      period: "2025 - Present",
       location: "Accra, Ghana",
       description:
         "Leading educational transformation through technology integration and community building.",
       achievements: [
-        "Increased community engagement by 300%",
+        "Increased community engagement by 30%",
         "Built partnerships with 5+ international tech organizations",
         "Launched scholarship program supporting 50+ students",
       ],
       color: "from-cyan-500 to-blue-500",
     },
     {
-      role: "Fullstack Developer",
+      role: "Frontend Developer",
       company: "Freelance & Contract Work",
       period: "2020 - Present",
       location: "Remote & Ghana",
@@ -190,23 +183,43 @@ const AboutSection = () => {
 
   const certifications = [
     {
-      title: "Meta Advanced React Developer",
-      issuer: "Meta (Facebook)",
-      date: "2023",
+      title: "Full-Stack Engineer Career Path",
+      issuer: "Codecademy",
+      date: "2025",
       credential: "Professional Certificate",
-      skills: ["React", "Redux", "JavaScript", "Web Performance"],
-      platform: "Coursera",
+      skills: [
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "Responsive Design",
+        "API",
+        "React",
+        "Redux",
+        "Web Performance",
+        "Node.JS",
+        "Express",
+        "Web Performance",
+        "Git / GitHub",
+      ],
+      platform: "Codecademy",
       downloadLink: "/files/certificates/meta-react-certificate.pdf",
       verifyLink: "https://coursera.org/verify/professional-cert/ABC123",
       platformColor: "text-blue-400",
     },
     {
-      title: "Google Digital Marketing",
-      issuer: "Google",
-      date: "2022",
+      title: "Front-End Developer Career Path",
+      issuer: "Scrimba",
+      date: "2025",
       credential: "Professional Certificate",
-      skills: ["Analytics", "SEO", "Social Media", "Content Strategy"],
-      platform: "Coursera",
+      skills: [
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "Responsive Design",
+        "API",
+        "React",
+      ],
+      platform: "Scrimba",
       downloadLink: "/files/certificates/google-marketing-certificate.pdf",
       verifyLink: "https://coursera.org/verify/professional-cert/DEF456",
       platformColor: "text-blue-400",
@@ -223,17 +236,12 @@ const AboutSection = () => {
       platformColor: "text-orange-400",
     },
     {
-      title: "JavaScript Algorithms and Data Structures",
-      issuer: "freeCodeCamp",
+      title: "Google Digital Marketing & Analytics Professional Certificate",
+      issuer: "Google",
       date: "2021",
       credential: "Full Stack Development Certificate",
-      skills: [
-        "JavaScript",
-        "Algorithms",
-        "Data Structures",
-        "Problem Solving",
-      ],
-      platform: "freeCodeCamp",
+      skills: ["SEO", "Analytics", "Content Strategy", "Social Media"],
+      platform: "Coursera",
       downloadLink: "/files/certificates/freecodecamp-js-certificate.pdf",
       verifyLink:
         "https://freecodecamp.org/certification/oceaniccoder/javascript-algorithms-and-data-structures",
@@ -361,31 +369,46 @@ const AboutSection = () => {
                   </h3>
                   <div className="space-y-6 text-gray-300 leading-relaxed">
                     <p className="text-story-lg">
-                      I'm the{" "}
+                      I was raised{" "}
                       <strong className="text-cyan-400 text-strong">
-                        Founder and Executive Director at Slint Tech
+                        by two remarkable women my mother and grandmother
                       </strong>{" "}
-                      🎖️ and a passionate software engineer focused on
-                      harnessing technology to make significant impacts in the
-                      tech industry and building communities that embrace
-                      everyone regardless of background or gender.
+                      who taught me that strength isn't loud, it's consistent.
+                      After losing my father early, I learned resilience not as
+                      a choice, but as a way of life. That spirit shaped how I
+                      see the world: every problem is just a puzzle waiting for
+                      a creative solution.
                     </p>
                     <p className="text-story-base">
-                      I am driven by a vision where{" "}
+                      At{" "}
                       <strong className="text-green-400 text-strong">
-                        women are recognized for their brilliance and impact in
-                        tech
+                        Accra Technical University,
                       </strong>{" "}
-                      💪. Growing up in Ghana, I witnessed how access to
-                      technology could transform lives and empower communities.
-                      This ignited my passion for breaking barriers in tech and
-                      advocating for a more inclusive, diverse tech world.
+                      I discovered technology, a language through which I could
+                      build, solve, and empower. I fell in love with the beauty
+                      of turning ideas into functional systems. From developing
+                      my first real project to leading teams and mentoring
+                      peers, I realized I wasn't just coding I was creating
+                      impact. That realization gave birth to{" "}
+                      <strong className="text-green-400 text-strong">
+                        SLINT Tech,
+                      </strong>{" "}
+                      a youth-led organization I founded to empower the next
+                      generation of African innovators. It's more than a tech
+                      community; it's a leadership movement where we learn,
+                      build, and give back.
                     </p>
                     <p className="text-story-base">
-                      Through my work at Slint Tech, I've had the privilege of
-                      mentoring over 100 students, organizing 20+ tech events,
-                      and building partnerships that create real opportunities
-                      for underrepresented groups in technology.
+                      Under my personal brand,{" "}
+                      <strong className="text-cyan-400 text-strong">
+                        Oceaniccoder,{" "}
+                      </strong>{" "}
+                      I'm a constantly evolving developer, designer, and leader
+                      driven by purpose and curiosity. Whether I'm coding,
+                      designing a user experience, or mentoring someone new to
+                      tech, I build with empathy, intention, and vision. My
+                      journey isn't just about writing code. It's about writing
+                      change, one project, one person, one purpose at a time.
                     </p>
                   </div>
 
@@ -394,11 +417,11 @@ const AboutSection = () => {
                     <blockquote className="text-cyan-300 quote-text">
                       "In a society where women are often underestimated, I am
                       determined to shift the conversation. Technology is for
-                      everyone—gender, wealth, or background should never limit
+                      everyone gender, wealth, or background should never limit
                       one's potential to innovate and succeed."
                     </blockquote>
                     <cite className="text-caption text-gray-400 mt-3 block">
-                      — 1 Timothy 4:12 NIV
+                      — Illona Addae
                     </cite>
                   </div>
                 </div>
@@ -573,14 +596,14 @@ const AboutSection = () => {
                       <div className="w-8 h-8 rounded-full bg-blue-400/20 flex items-center justify-center">
                         <FaCalendarAlt className="text-blue-400 text-xs" />
                       </div>
-                      <span className="text-gray-300">5+ Years in Tech</span>
+                      <span className="text-gray-300">2+ Years in Tech</span>
                     </div>
                     <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
                       <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center">
                         <FaUsers className="text-green-400 text-xs" />
                       </div>
                       <span className="text-gray-300">
-                        100+ Students Mentored
+                        40+ Students Mentored
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
