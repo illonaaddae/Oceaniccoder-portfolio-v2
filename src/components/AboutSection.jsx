@@ -752,9 +752,11 @@ const AboutSection = () => {
                     key={index}
                     className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300"
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    {/* Stack meta on small screens so long titles can use full width; align in a row on sm+ */}
+                    <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-3">
                       <div className="flex-1">
-                        <h4 className="text-lg font-bold text-white">
+                        {/* smaller title on mobile to avoid awkward wrapping */}
+                        <h4 className="text-base sm:text-lg font-bold text-white">
                           {cert.title}
                         </h4>
                         <p className="text-purple-400 font-medium">
@@ -773,8 +775,8 @@ const AboutSection = () => {
                           </span>
                         </div>
                       </div>
-                      <div className="text-right ml-4">
-                        <span className="inline-block text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 whitespace-nowrap">
+                      <div className="text-right ml-0 sm:ml-4 flex-shrink-0">
+                        <span className="inline-block text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 sm:whitespace-nowrap">
                           {cert.credential}
                         </span>
                       </div>
