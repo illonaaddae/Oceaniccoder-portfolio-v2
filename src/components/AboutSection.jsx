@@ -642,18 +642,18 @@ const AboutSection = () => {
                         {/* Timeline column: slightly narrower on very small screens (w-10) so cards get more width
                             dot aligned to the card padding (top-6) so it sits at the same visual height as before
                             connector starts just below the dot and stretches to the bottom of the item */}
-                        <div className="w-10 sm:w-12 flex-shrink-0 relative flex items-start justify-center self-stretch">
+                        <div className="w-8 sm:w-12 flex-shrink-0 relative flex items-start justify-center self-stretch">
                           <div
-                            className={`absolute left-1/2 -translate-x-1/2 top-6 w-4 h-4 bg-gradient-to-r ${item.color} rounded-full shadow-lg z-20`}
+                            className={`absolute left-1/2 -translate-x-1/2 top-5 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r ${item.color} rounded-full shadow-lg z-20`}
                           />
 
                           {index < journey.length - 1 && (
-                            <div className="absolute left-1/2 -translate-x-1/2 top-12 bottom-4 w-[2px] bg-gradient-to-b from-cyan-400/70 to-transparent opacity-95 z-10" />
+                            <div className="absolute left-1/2 -translate-x-1/2 top-11 bottom-4 w-[2px] bg-gradient-to-b from-cyan-400/70 to-transparent opacity-95 z-10" />
                           )}
                         </div>
 
                         {/* content column: add a small horizontal padding so content doesn't touch the timeline */}
-                        <div className="flex-1 glass-card p-4 sm:p-6 hover:scale-105 transition-all duration-300 min-w-0 sm:pl-4">
+                        <div className="flex-1 glass-card p-3 sm:p-6 hover:scale-105 transition-all duration-300 min-w-0 sm:pl-4">
                           <div className="flex flex-wrap items-start justify-between mb-3">
                             <div>
                               <h4 className="text-xl font-bold text-white">
