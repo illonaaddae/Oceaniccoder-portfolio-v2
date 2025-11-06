@@ -52,9 +52,9 @@ const AboutSection = () => {
         "Excellence recognized Outstanding Student Of the Year, ATU CPS Level 100.",
     },
     {
-      src: "/public/images/Akwaba-night.JPG",
-      alt: "Slint Tech team",
-      caption: "Building the future with Slint Tech team",
+      src: "/images/Akwaba-night.JPG",
+      alt: "Illona performing on stage at the university Aquaponite event, expressing confidence and artistic openness.",
+      caption: "The courage to show upn- even before I understood where I was headed",
     },
     {
       src: "/images/Pagentry.JPG",
@@ -247,10 +247,18 @@ const AboutSection = () => {
       issuer: "Frontend Masters",
       date: "2025",
       credential: "Professional Certificate",
-      skills: ["Callbacks", "Higher-Order Functions", "Closure", "asynchronous JavaScript", "Object-oriented JavaScript"],
+      skills: [
+        "Callbacks",
+        "Higher-Order Functions",
+        "Closure",
+        "asynchronous JavaScript",
+        "Object-oriented JavaScript",
+      ],
       platform: "Frontend Masters",
-      downloadLink: "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
-      verifyLink:"https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
+      downloadLink:
+        "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
+      verifyLink:
+        "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
       platformColor: "text-green-400",
     },
     {
@@ -260,8 +268,10 @@ const AboutSection = () => {
       credential: "Professional Certificate",
       skills: ["HTML5", "CSS3", "JavaScript"],
       platform: "Frontend Masters",
-      downloadLink: "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
-      verifyLink: "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
+      downloadLink:
+        "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
+      verifyLink:
+        "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
       platformColor: "text-red-400",
     },
   ];
@@ -711,7 +721,6 @@ const AboutSection = () => {
 
           {/* Education Tab */}
           {activeTab === "education" && (
-           
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
