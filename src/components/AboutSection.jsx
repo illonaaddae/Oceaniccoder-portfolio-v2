@@ -30,9 +30,9 @@ const AboutSection = () => {
   // Image gallery data
   const galleryImages = [
     {
-      src: "/images/profile.webp",
-      alt: "Illona at a coffe shop photoshoot",
-      caption: "Me at a Coffe shop",
+      src: "/images/Headshot.jpg",
+      alt: "Professional headshot of Illona, looking confident and composed, representing her current journey as a developer, leader, and creative thinker.",
+      caption: "Focused. Growing. Aligned with purpose.",
     },
     {
       src: "/images/Best-Female-Student-In-STEM.JPG",
@@ -41,19 +41,24 @@ const AboutSection = () => {
         "Awarded Best Student in STEM under ATU SRC IDEAL WOMAN AWARDS 2023",
     },
     {
-      src: "/images/Campus-Random-pic.jpg",
-      alt: "Random picture of Illona on campus on a hot afternoon smiling",
-      caption: "A Random picture of me on campus during my early second year",
+      src: "/images/Campus-Random-pic.JPG",
+      alt: "Candid photo of Illona standing casually on campus in front of an auditorium, relaxed and natural.",
+      caption: "Just me - grounded, present, becoming.",
     },
     {
-      src: "/images/conference.jpg",
+      src: "/images/Outstanding-student.JPG",
       alt: "Tech conference",
-      caption: "Keynote at Women in Tech Ghana",
+      caption: "Excellence recognized Outstanding Student Of the Year, ATU CPS Level 100.",
     },
     {
-      src: "/images/team.jpg",
+      src: "/public/images/Akwaba-night.JPG",
       alt: "Slint Tech team",
       caption: "Building the future with Slint Tech team",
+    },
+    {
+      src: "/public/images/Pagentry.JPG",
+      alt: "Illona in a pageantry gown, smiling confidently. A moment from her early journey before discovering her deeper calling in tech and leadership.",
+      caption: "Before I found my direction, I was still learning who I could become.",
     },
   ];
 
