@@ -127,11 +127,12 @@ const HeroSection = () => {
           </h2>
 
           <p className="text-base sm:text-lg lg:text-xl xl:text-2xl max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto leading-relaxed text-gray-200 dark:text-gray-300 font-light">
-            Building meaningful digital experiences and nurturing the next generation of African tech leaders {" "}
+            Building{" "}
             <span className="text-white font-medium">
-              through creativity, collaboration, and community.
-            </span>
-            .
+              meaningful digital experiences
+            </span>{" "}
+            and nurturing the next generation of African tech leaders through
+            creativity, collaboration, and community.
           </p>
         </div>
 

@@ -11,7 +11,7 @@ export const PROJECTS_DATA = [
     // Use the public path (files in `public/` are served from `/`) and match the actual filename
     image: "/images/projects/portfolio-v2.jpg.png",
     liveUrl: "https://oceaniccoder.dev",
-    githubUrl: "https://github.com/illona-addae/portfolio-v2",
+    githubUrl: "https://github.com/illonaaddae/Oceaniccoder-portfolio-v2",
     featured: true,
     status: "Completed",
     year: "2025",
