@@ -31,16 +31,21 @@ const ContactSection = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    const form = e.target;
+    const data = new FormData(form);
 
-    // Simulate form submission
-    setTimeout(() => {
-      setSubmitStatus("success");
-      setIsSubmitting(false);
-      setFormData({ name: "", email: "", subject: "", message: "" });
-
-      setTimeout(() => setSubmitStatus(""), 5000);
-    }, 2000);
+    fetch("/", {
+      method: "POST",
+      body: data,
+    })
+      .then(() => {
+        alert("Message sent successfully!");
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      })
+      .catch((error) => {
+        console.error("Netlify form submit error:", error);
+        alert("Something went wrong! Try again.");
+      });
   };
 
   const contactInfo = [
@@ -68,25 +73,25 @@ const ContactSection = () => {
     {
       icon: <FaLinkedin />,
       label: "LinkedIn",
-      href: "https://linkedin.com/in/illona-addae",
+      href: "https://www.linkedin.com/in/illonaaddae/",
       color: "hover:text-blue-400",
     },
     {
       icon: <FaGithub />,
       label: "GitHub",
-      href: "https://github.com/illona-addae",
+      href: "https://github.com/illonaaddae",
       color: "hover:text-gray-400",
     },
     {
       icon: <FaTwitter />,
       label: "Twitter",
-      href: "https://twitter.com/oceaniccoder",
+      href: "https://x.com/illonaaddae?s=21",
       color: "hover:text-blue-400",
     },
     {
       icon: <FaInstagram />,
       label: "Instagram",
-      href: "https://instagram.com/oceaniccoder",
+      href: "https://www.instagram.com/illonaaddae/",
       color: "hover:text-pink-400",
     },
   ];
@@ -211,7 +216,14 @@ const ContactSection = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form
+              name="contact"
+              method="POST"
+              data-netlify="true"
+              onSubmit={handleSubmit}
+              className="space-y-6"
+            >
+              <input type="hidden" name="form-name" value="contact" />
               {/* Name Input */}
               <div>
                 <label
@@ -345,7 +357,7 @@ const ContactSection = () => {
                 Email Me
               </a>
               <a
-                href="/path-to-your-cv.pdf"
+                href="https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
                 download
                 className="glass-btn border border-white/20 text-white px-6 py-3 font-medium hover:scale-105 transition-transform duration-300"
               >
