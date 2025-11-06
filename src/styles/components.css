@@ -665,7 +665,8 @@ body[data-theme="light"] footer,
 
 .text-caption {
   font-family: "Ysabeau Office", sans-serif;
-  font-size: 0.875rem; /* 14px */
+  /* slightly increased for better readability with chosen font */
+  font-size: 0.95rem; /* ~15px */
   line-height: 1.6;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -673,7 +674,8 @@ body[data-theme="light"] footer,
 
 .text-small {
   font-family: "Ysabeau Office", sans-serif;
-  font-size: 0.75rem; /* 12px */
+  /* make small text a little less tiny on small screens */
+  font-size: 0.8125rem; /* 13px */
   line-height: 1.5;
   font-weight: 400;
   letter-spacing: 0.02em;

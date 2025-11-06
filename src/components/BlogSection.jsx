@@ -53,39 +53,54 @@ const BlogSection = () => {
   return (
     <section
       id="blog"
-      className="min-h-screen py-20 relative"
+      // remove forced min-h-screen so the section height fits content and doesn't create large empty gaps
+      className="py-20 relative"
       style={{
         background:
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)",
       }}
     >
       <div className="container mx-auto px-6 relative z-10">
-        <div className="flex items-center justify-between mb-10">
+        {/* Header: stack on small screens so the button doesn't overflow
+            - make the heading a link to the blog so users can click the title
+            - button becomes full-width on mobile for better tap targets */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div>
             <h2 className="text-4xl md:text-5xl font-bold">
-              <span className="bg-gradient-to-r from-green-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">
-                Latest from the blog
-              </span>
+              <a
+                href={blogHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <span className="bg-gradient-to-r from-green-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                  Latest from the blog
+                </span>
+              </a>
             </h2>
             <p className="text-gray-400 mt-2">
-              Short previews — full posts live on the external blog.
+              Short previews — full posts live on the external blog. Click the
+              heading or the button to read more.
             </p>
           </div>
 
-          <div>
+          <div className="w-full sm:w-auto sm:ml-4 flex-shrink-0">
             <a
               href={blogHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 glass-btn bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-150"
+              className="block w-11/12 max-w-xs mx-auto sm:inline-flex sm:w-auto items-center justify-center gap-2 glass-btn bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-3 sm:px-5 sm:py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-150 text-sm sm:text-base text-center"
             >
-              Visit Blog
-              <FaExternalLinkAlt className="w-3 h-3" />
+              <span className="inline-flex items-center justify-center gap-2">
+                Visit Blog
+                <FaExternalLinkAlt className="w-3 h-3" />
+              </span>
             </a>
           </div>
         </div>
 
-        <div className="grid blog-grid gap-6">
+        {/* Responsive grid: 1 column on mobile, 2 on small screens, 3 on large */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {previews.map((post) => (
             <article
               key={post.id}

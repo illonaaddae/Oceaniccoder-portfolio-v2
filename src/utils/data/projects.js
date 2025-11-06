@@ -8,7 +8,8 @@ export const PROJECTS_DATA = [
       "This portfolio showcases my journey as a full-stack developer and community leader. Built with cutting-edge technologies including React 18, Tailwind CSS, and custom liquid morphing animations. Features include responsive design, accessibility compliance, and performance optimization.",
     category: "Web Apps",
     technologies: ["React", "Tailwind CSS", "JavaScript", "CSS3", "HTML5"],
-    image: "/public/images/projects/portfolio-v2.jpg.png",
+    // Use the public path (files in `public/` are served from `/`) and match the actual filename
+    image: "/images/projects/portfolio-v2.jpg.png",
     liveUrl: "https://oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/portfolio-v2",
     featured: true,
