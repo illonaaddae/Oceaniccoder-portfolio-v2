@@ -27,22 +27,22 @@ const Footer = () => {
   const socialLinks = [
     {
       icon: <FaLinkedin />,
-      href: "https://linkedin.com/in/illona-addae",
+      href: "https://www.linkedin.com/in/illonaaddae/",
       label: "LinkedIn",
     },
     {
       icon: <FaGithub />,
-      href: "https://github.com/illona-addae",
+      href: "https://github.com/illonaaddae",
       label: "GitHub",
     },
     {
       icon: <FaTwitter />,
-      href: "https://twitter.com/oceaniccoder",
+      href: "https://x.com/illonaaddae?s=21",
       label: "Twitter",
     },
     {
       icon: <FaInstagram />,
-      href: "https://instagram.com/oceaniccoder",
+      href: "https://www.instagram.com/illonaaddae/",
       label: "Instagram",
     },
     {
