@@ -271,8 +271,9 @@ textarea:focus {
     filter: blur(20px);
   }
 
+  /* Slightly larger mobile base font to improve legibility with Ysabeau Office */
   body {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .hero-section {

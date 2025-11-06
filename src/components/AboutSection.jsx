@@ -361,8 +361,10 @@ const AboutSection = () => {
           {/* My Story Tab */}
           {activeTab === "story" && (
             <div className="grid lg:grid-cols-2 gap-12 items-start">
-              <div className="space-y-8">
-                <div className="glass-card p-8">
+              <div className="space-y-8 px-2 sm:px-0">
+                {/* Make the story card full-width on small screens and remove any max-width
+                    so it feels less 'thin' on mobile. Use smaller padding on mobile. */}
+                <div className="glass-card w-full max-w-none p-6 sm:p-8">
                   <h3 className="text-heading-xl text-white mb-6 flex items-center gap-3">
                     <FaHeart className="text-red-400" />
                     My Story
@@ -379,7 +381,7 @@ const AboutSection = () => {
                       see the world: every problem is just a puzzle waiting for
                       a creative solution.
                     </p>
-                    <p className="text-story-base">
+                    <p className="text-story-lg">
                       At{" "}
                       <strong className="text-green-400 text-strong">
                         Accra Technical University,
@@ -398,7 +400,7 @@ const AboutSection = () => {
                       community; it's a leadership movement where we learn,
                       build, and give back.
                     </p>
-                    <p className="text-story-base">
+                    <p className="text-story-lg">
                       Under my personal brand,{" "}
                       <strong className="text-cyan-400 text-strong">
                         Oceaniccoder,{" "}
@@ -427,7 +429,7 @@ const AboutSection = () => {
                 </div>
 
                 {/* Mission Statement */}
-                <div className="glass-card p-8 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                <div className="glass-card w-full max-w-none p-6 sm:p-8 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
                   <h3 className="text-heading-lg text-white mb-4 flex items-center gap-3">
                     <FaRocket className="text-purple-400" />
                     Mission Statement
@@ -443,8 +445,9 @@ const AboutSection = () => {
               </div>
 
               {/* Image Gallery remains the same but with updated caption fonts */}
-              <div className="space-y-8">
-                <div className="glass-card p-6">
+              <div className="space-y-8 px-2 sm:px-0">
+                {/* Image gallery card also stretched a bit on mobile */}
+                <div className="glass-card w-full max-w-none p-6">
                   <h3 className="text-heading-lg text-white mb-6 flex items-center gap-3">
                     <FaPlay className="text-cyan-400" />
                     My Journey in Pictures
@@ -578,7 +581,7 @@ const AboutSection = () => {
                 </div>
 
                 {/* Enhanced Quick Facts with better fonts */}
-                <div className="glass-card p-6">
+                <div className="glass-card w-full max-w-none p-6">
                   <h4 className="text-heading-lg text-white mb-4 flex items-center gap-2">
                     <FaStar className="text-yellow-400" />
                     Quick Facts
@@ -623,7 +626,7 @@ const AboutSection = () => {
           {/* Career Journey Tab */}
           {activeTab === "journey" && (
             <div className="space-y-8">
-              <div className="glass-card p-8">
+              <div className="glass-card p-6 sm:p-8">
                 <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
                   <FaRocket className="text-cyan-400" />
                   Career Journey
@@ -631,16 +634,26 @@ const AboutSection = () => {
                 <div className="space-y-8">
                   {journey.map((item, index) => (
                     <div key={index} className="relative">
-                      <div className="flex gap-6">
-                        <div className="flex-shrink-0">
+                      {/* Stack on mobile and show row on small+ screens so the card fills available width */}
+                      {/* Ensure items align to the top so the timeline dot + line sit at the card top (not centered) */}
+                      {/* keep items in a left-aligned row (wrap if needed) so timeline stays to the left
+                          and doesn't stack above the card on very small screens */}
+                      <div className="flex flex-row flex-wrap gap-6 items-start">
+                        {/* Timeline column: slightly narrower on very small screens (w-10) so cards get more width
+                            dot aligned to the card padding (top-6) so it sits at the same visual height as before
+                            connector starts just below the dot and stretches to the bottom of the item */}
+                        <div className="w-10 sm:w-12 flex-shrink-0 relative flex items-start justify-center self-stretch">
                           <div
-                            className={`w-4 h-4 bg-gradient-to-r ${item.color} rounded-full mt-2`}
-                          ></div>
+                            className={`absolute left-1/2 -translate-x-1/2 top-6 w-4 h-4 bg-gradient-to-r ${item.color} rounded-full shadow-lg z-20`}
+                          />
+
                           {index < journey.length - 1 && (
-                            <div className="w-0.5 h-16 bg-gradient-to-b from-gray-600 to-transparent mx-auto mt-2"></div>
+                            <div className="absolute left-1/2 -translate-x-1/2 top-12 bottom-4 w-[2px] bg-gradient-to-b from-cyan-400/70 to-transparent opacity-95 z-10" />
                           )}
                         </div>
-                        <div className="flex-1 glass-card p-6 hover:scale-105 transition-all duration-300">
+
+                        {/* content column: add a small horizontal padding so content doesn't touch the timeline */}
+                        <div className="flex-1 glass-card p-4 sm:p-6 hover:scale-105 transition-all duration-300 min-w-0 sm:pl-4">
                           <div className="flex flex-wrap items-start justify-between mb-3">
                             <div>
                               <h4 className="text-xl font-bold text-white">
@@ -694,7 +707,7 @@ const AboutSection = () => {
 
           {/* Education Tab */}
           {activeTab === "education" && (
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                   <FaGraduationCap className="text-green-400" />
@@ -703,7 +716,7 @@ const AboutSection = () => {
                 {education.map((edu, index) => (
                   <div
                     key={index}
-                    className="glass-card p-6 hover:scale-105 transition-all duration-300"
+                    className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300"
                   >
                     <div className="flex items-start gap-4">
                       <div className="text-3xl">{edu.icon}</div>
@@ -737,7 +750,7 @@ const AboutSection = () => {
                 {certifications.map((cert, index) => (
                   <div
                     key={index}
-                    className="glass-card p-6 hover:scale-105 transition-all duration-300"
+                    className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -780,7 +793,8 @@ const AboutSection = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
+                    {/* Stack buttons on mobile, inline on small+ screens */}
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <a
                         href={cert.downloadLink}
                         download
