@@ -4,6 +4,7 @@ import {
   FaLinkedin,
   FaGithub,
   FaTwitter,
+  FaInstagram,
   FaEnvelope,
   FaArrowUp,
 } from "react-icons/fa";
@@ -38,6 +39,11 @@ const Footer = () => {
       icon: <FaTwitter />,
       href: "https://twitter.com/oceaniccoder",
       label: "Twitter",
+    },
+    {
+      icon: <FaInstagram />,
+      href: "https://instagram.com/oceaniccoder",
+      label: "Instagram",
     },
     {
       icon: <FaEnvelope />,
