@@ -17,6 +17,8 @@ const ContactSection = () => {
     subject: "",
     message: "",
   });
+  const [status, setStatus] = useState("idle"); // idle | sending | success | error
+  const [responseMessage, setResponseMessage] = useState("");
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -180,10 +182,66 @@ const ContactSection = () => {
             </h3>
 
             <form
+              /* Keep action as fallback when JS is disabled, but intercept submit to use AJAX */
               action="https://formsubmit.co/oceaniccodestech@gmail.com"
               method="POST"
               className="space-y-6"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                // Prevent double submits
+                if (status === "sending") return;
+                setStatus("sending");
+
+                try {
+                  const form = e.target;
+                  const formDataToSend = new FormData(form);
+                  // Ensure captcha is disabled server-side
+                  if (!formDataToSend.has("_captcha")) {
+                    formDataToSend.append("_captcha", "false");
+                  }
+
+                  const res = await fetch(
+                    "https://formsubmit.co/ajax/oceaniccodestech@gmail.com",
+                    {
+                      method: "POST",
+                      headers: {
+                        Accept: "application/json",
+                      },
+                      body: formDataToSend,
+                    }
+                  );
+
+                  if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || `Status ${res.status}`);
+                  }
+
+                  const json = await res.json().catch(() => null);
+                  setStatus("success");
+                  setResponseMessage(
+                    (json && json.message) ||
+                      "Message sent successfully. I'll get back to you soon!"
+                  );
+                  // reset local controlled form state
+                  setFormData({
+                    name: "",
+                    email: "",
+                    subject: "",
+                    message: "",
+                  });
+                } catch (err) {
+                  console.error("Form submit error:", err);
+                  setStatus("error");
+                  setResponseMessage(
+                    err && err.message
+                      ? err.message
+                      : "Something went wrong. Please try again later."
+                  );
+                }
+              }}
             >
+              {/* hidden input to support FormSubmit AJAX fallback values */}
+              <input type="hidden" name="_captcha" value="false" />
               {/* Name Input */}
               <div>
                 <label
@@ -265,12 +323,29 @@ const ContactSection = () => {
               </div>
 
               {/* Submit Button */}
+              {/* Show inline status messages (success / error) */}
+              {status === "success" && (
+                <div className="p-3 rounded bg-green-600/20 border border-green-500/30 text-green-200">
+                  {responseMessage}
+                </div>
+              )}
+              {status === "error" && (
+                <div className="p-3 rounded bg-red-600/10 border border-red-500/20 text-red-300">
+                  {responseMessage}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full glass-btn bg-gradient-to-r from-cyan-600 to-purple-600 text-white py-3 font-medium hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                disabled={status === "sending"}
+                className={`w-full glass-btn bg-gradient-to-r from-cyan-600 to-purple-600 text-white py-3 font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+                  status === "sending"
+                    ? "opacity-70 cursor-wait"
+                    : "hover:scale-105"
+                }`}
               >
                 <FaPaperPlane className="w-4 h-4" />
-                Send Message
+                {status === "sending" ? "Sending..." : "Send Message"}
               </button>
             </form>
 
