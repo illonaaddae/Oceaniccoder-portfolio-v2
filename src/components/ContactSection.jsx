@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaEnvelope,
   FaPhone,
@@ -19,6 +19,15 @@ const ContactSection = () => {
   });
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const [responseMessage, setResponseMessage] = useState("");
+  const timeoutRef = useRef(null);
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -220,8 +229,15 @@ const ContactSection = () => {
                   setStatus("success");
                   setResponseMessage(
                     (json && json.message) ||
-                      "✅ Thanks — I received your message. I'll get back to you within 24 hours!"
+                      "✅ Thanks — I received your message. I'll get back to you within 24 hours! ❤️"
                   );
+                  // auto-dismiss success message after 6 seconds
+                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                  timeoutRef.current = setTimeout(() => {
+                    setStatus("idle");
+                    setResponseMessage("");
+                    timeoutRef.current = null;
+                  }, 6000);
                   // reset local controlled form state
                   setFormData({
                     name: "",
