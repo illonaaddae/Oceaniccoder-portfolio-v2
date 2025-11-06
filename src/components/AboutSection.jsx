@@ -48,7 +48,8 @@ const AboutSection = () => {
     {
       src: "/images/Outstanding-student.JPG",
       alt: "Tech conference",
-      caption: "Excellence recognized Outstanding Student Of the Year, ATU CPS Level 100.",
+      caption:
+        "Excellence recognized Outstanding Student Of the Year, ATU CPS Level 100.",
     },
     {
       src: "/public/images/Akwaba-night.JPG",
@@ -56,9 +57,10 @@ const AboutSection = () => {
       caption: "Building the future with Slint Tech team",
     },
     {
-      src: "/public/images/Pagentry.JPG",
+      src: "/images/Pagentry.JPG",
       alt: "Illona in a pageantry gown, smiling confidently. A moment from her early journey before discovering her deeper calling in tech and leadership.",
-      caption: "Before I found my direction, I was still learning who I could become.",
+      caption:
+        "Before I found my direction, I was still learning who I could become.",
     },
   ];
 
@@ -241,26 +243,25 @@ const AboutSection = () => {
       platformColor: "text-orange-400",
     },
     {
-      title: "Google Digital Marketing & Analytics Professional Certificate",
-      issuer: "Google",
-      date: "2021",
-      credential: "Full Stack Development Certificate",
-      skills: ["SEO", "Analytics", "Content Strategy", "Social Media"],
-      platform: "Coursera",
-      downloadLink: "/files/certificates/freecodecamp-js-certificate.pdf",
-      verifyLink:
-        "https://freecodecamp.org/certification/oceaniccoder/javascript-algorithms-and-data-structures",
+      title: "The Hard Parts of Asynchronous JavaScript",
+      issuer: "Frontend Masters",
+      date: "2025",
+      credential: "Professional Certificate",
+      skills: ["Callbacks", "Higher-Order Functions", "Closure", "asynchronous JavaScript", "Object-oriented JavaScript"],
+      platform: "Frontend Masters",
+      downloadLink: "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
+      verifyLink:"https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
       platformColor: "text-green-400",
     },
     {
-      title: "Frontend Web Development",
+      title: "Complete Intro to Web Development, v3",
       issuer: "Frontend Masters",
-      date: "2021",
+      date: "2024",
       credential: "Professional Certificate",
-      skills: ["HTML5", "CSS3", "JavaScript", "React", "Vue.js"],
+      skills: ["HTML5", "CSS3", "JavaScript"],
       platform: "Frontend Masters",
-      downloadLink: "/files/certificates/frontend-masters-certificate.pdf",
-      verifyLink: "https://frontendmasters.com/certificates/JKL012",
+      downloadLink: "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
+      verifyLink: "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
       platformColor: "text-red-400",
     },
   ];
@@ -367,7 +368,6 @@ const AboutSection = () => {
           {activeTab === "story" && (
             <div className="grid lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-8 px-2 sm:px-0">
-                
                 <div className="glass-card w-full max-w-none p-6 sm:p-8">
                   <h3 className="text-heading-xl text-white mb-6 flex items-center gap-3">
                     <FaHeart className="text-red-400" />
@@ -711,6 +711,7 @@ const AboutSection = () => {
 
           {/* Education Tab */}
           {activeTab === "education" && (
+           
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -758,8 +759,8 @@ const AboutSection = () => {
                   >
                     {/* Stack meta on small screens so long titles can use full width; align in a row on sm+ */}
                     <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-3">
-                      <div className="flex-1">
-                        {/* smaller title on mobile to avoid awkward wrapping */}
+                      <div className="flex-1 min-w-0">
+                        {/* responsive title: slightly larger on tablets to improve readability, allow wrapping */}
                         <h4 className="text-base sm:text-lg font-bold text-white">
                           {cert.title}
                         </h4>
@@ -768,7 +769,7 @@ const AboutSection = () => {
                         </p>
 
                         {/* Platform Tag */}
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <span
                             className={`inline-block text-xs px-2 py-1 rounded-full border border-current ${cert.platformColor} bg-current/10 font-medium`}
                           >
