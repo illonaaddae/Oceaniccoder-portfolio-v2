@@ -127,10 +127,9 @@ const HeroSection = () => {
           </h2>
 
           <p className="text-base sm:text-lg lg:text-xl xl:text-2xl max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto leading-relaxed text-gray-200 dark:text-gray-300 font-light">
-            Executive Director at Slint Tech, building inclusive tech ecosystems
-            and innovative solutions that{" "}
+            Building meaningful digital experiences and nurturing the next generation of African tech leaders {" "}
             <span className="text-white font-medium">
-              transform communities
+              through creativity, collaboration, and community.
             </span>
             .
           </p>
@@ -174,7 +173,7 @@ const HeroSection = () => {
         {/* Download CV */}
         <div className="mb-12">
           <a
-            href="/path-to-your-cv.pdf"
+            href="https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
             download
             className="inline-flex items-center gap-3 text-gray-300 hover:text-cyan-400 transition-colors duration-300 group text-base font-medium"
           >
