@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaEnvelope,
   FaPhone,
@@ -19,6 +19,15 @@ const ContactSection = () => {
   });
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const [responseMessage, setResponseMessage] = useState("");
+  const timeoutRef = useRef(null);
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -220,8 +229,15 @@ const ContactSection = () => {
                   setStatus("success");
                   setResponseMessage(
                     (json && json.message) ||
-                      "Message sent successfully. I'll get back to you soon!"
+                      "✅ Thanks — I received your message. I'll get back to you within 24 hours! ❤️"
                   );
+                  // auto-dismiss success message after 6 seconds
+                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                  timeoutRef.current = setTimeout(() => {
+                    setStatus("idle");
+                    setResponseMessage("");
+                    timeoutRef.current = null;
+                  }, 6000);
                   // reset local controlled form state
                   setFormData({
                     name: "",
@@ -325,12 +341,20 @@ const ContactSection = () => {
               {/* Submit Button */}
               {/* Show inline status messages (success / error) */}
               {status === "success" && (
-                <div className="p-3 rounded bg-green-600/20 border border-green-500/30 text-green-200">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="p-3 rounded bg-green-600/20 border border-green-500/30 text-green-200"
+                >
                   {responseMessage}
                 </div>
               )}
               {status === "error" && (
-                <div className="p-3 rounded bg-red-600/10 border border-red-500/20 text-red-300">
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className="p-3 rounded bg-red-600/10 border border-red-500/20 text-red-300"
+                >
                   {responseMessage}
                 </div>
               )}
