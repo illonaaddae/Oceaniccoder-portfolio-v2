@@ -34,18 +34,31 @@ const ContactSection = () => {
     const form = e.target;
     const data = new FormData(form);
 
-    fetch("/", {
-      method: "POST",
-      body: data,
-    })
-      .then(() => {
-        alert("Message sent successfully!");
-        setFormData({ name: "", email: "", subject: "", message: "" });
-      })
-      .catch((error) => {
-        console.error("Netlify form submit error:", error);
-        alert("Something went wrong! Try again.");
+    setIsSubmitting(true);
+    setSubmitStatus("");
+
+    try {
+      const res = await fetch("/", {
+        method: "POST",
+        body: data,
       });
+
+      if (!res.ok)
+        throw new Error(`Network response was not ok (${res.status})`);
+
+      setSubmitStatus("success");
+      setFormData({ name: "", email: "", subject: "", message: "" });
+      // keep success message briefly
+      setTimeout(() => setSubmitStatus(""), 5000);
+    } catch (error) {
+      console.error("Netlify form submit error:", error);
+      setSubmitStatus("error");
+      // clear error after a short delay so UI doesn't permanently show it
+      setTimeout(() => setSubmitStatus(""), 5000);
+      alert("Something went wrong! Try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactInfo = [
