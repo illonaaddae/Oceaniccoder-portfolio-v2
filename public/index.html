@@ -32,7 +32,7 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://oceaniccoder.dev" />
-    <meta property="og:image" content="%PUBLIC_URL%/images/STEM.JPG" />
+    <meta property="og:image" content="%PUBLIC_URL%/images/profile.webp" />
 
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -45,7 +45,7 @@
       name="twitter:description"
       content="Full-Stack Developer & Tech Community Leader"
     />
-    <meta name="twitter:image" content="%PUBLIC_URL%/images/STEM.JPG" />
+    <meta name="twitter:image" content="%PUBLIC_URL%/images/profile.webp" />
 
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
@@ -61,18 +61,22 @@
     <title>
       Illona Addae - Oceaniccoder | Full-Stack Developer & Tech Leader
     </title>
-      <script id="data-theme-init">
-      (function() {
+    <script id="data-theme-init">
+      (function () {
         try {
           var key = "oc-theme-v2";
           var stored = localStorage.getItem(key);
-          var theme = stored || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          var theme =
+            stored ||
+            (window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light");
           document.documentElement.setAttribute("data-theme", theme);
           if (theme === "dark") document.documentElement.classList.add("dark");
         } catch (e) {}
       })();
     </script>
-    
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
