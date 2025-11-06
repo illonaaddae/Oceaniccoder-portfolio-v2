@@ -6,6 +6,7 @@ import {
   FaLinkedin,
   FaGithub,
   FaTwitter,
+  FaInstagram,
   FaPaperPlane,
   FaHeart,
 } from "react-icons/fa";
@@ -52,8 +53,8 @@ const ContactSection = () => {
     {
       icon: <FaPhone className="text-green-400" />,
       label: "Phone",
-      value: "+233 XX XXX XXXX",
-      href: "tel:+233XXXXXXXXX",
+      value: "+233 54 449 7456",
+      href: "tel:+233544497456",
     },
     {
       icon: <FaMapMarkerAlt className="text-red-400" />,
@@ -81,6 +82,12 @@ const ContactSection = () => {
       label: "Twitter",
       href: "https://twitter.com/oceaniccoder",
       color: "hover:text-blue-400",
+    },
+    {
+      icon: <FaInstagram />,
+      label: "Instagram",
+      href: "https://instagram.com/oceaniccoder",
+      color: "hover:text-pink-400",
     },
   ];
 
