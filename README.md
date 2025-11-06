@@ -5,7 +5,7 @@
 ![Live demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=flat)
 ![License MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)
 
-Soft, modern, and minimal — a portfolio that showcases craft, community, and code. This repo contains the source for my personal site: a speedy, accessible, theme-aware React app built to make it easy for hiring teams to evaluate my work and design sense.
+Soft, modern, and minimal  a portfolio that showcases craft, community, and code. This repo contains the source for my personal site: a speedy, accessible, theme-aware React app built to make it easy for hiring teams to evaluate my work and design sense.
 
 🌸 Tone: professional, friendly, and a little playful — inspired by soft pastels, clear typography, and focused UX.
 
@@ -13,7 +13,7 @@ Soft, modern, and minimal — a portfolio that showcases craft, community, and c
 
 ## Quick recruiter snapshot ✨
 
-- Senior front-end engineer with 20+ years of experience delivering production web apps and mentoring teams.
+- Entry level front-end engineer with 2+ years of experience delivering production web apps and mentoring teams.
 - Focus areas: performance, accessibility (a11y), component-driven UI, and delightful product experiences.
 - Tech & craft: React, Tailwind/PostCSS, thoughtful SEO, and pragmatic front-end architecture.
 

@@ -362,8 +362,7 @@ const AboutSection = () => {
           {activeTab === "story" && (
             <div className="grid lg:grid-cols-2 gap-12 items-start">
               <div className="space-y-8 px-2 sm:px-0">
-                {/* Make the story card full-width on small screens and remove any max-width
-                    so it feels less 'thin' on mobile. Use smaller padding on mobile. */}
+                
                 <div className="glass-card w-full max-w-none p-6 sm:p-8">
                   <h3 className="text-heading-xl text-white mb-6 flex items-center gap-3">
                     <FaHeart className="text-red-400" />
@@ -373,7 +372,7 @@ const AboutSection = () => {
                     <p className="text-story-lg">
                       I was raised{" "}
                       <strong className="text-cyan-400 text-strong">
-                        by two remarkable women my mother and grandmother
+                        by two remarkable women my mother and grandmother,
                       </strong>{" "}
                       who taught me that strength isn't loud, it's consistent.
                       After losing my father early, I learned resilience not as
@@ -410,7 +409,7 @@ const AboutSection = () => {
                       designing a user experience, or mentoring someone new to
                       tech, I build with empathy, intention, and vision. My
                       journey isn't just about writing code. It's about writing
-                      change, one project, one person, one purpose at a time.
+                      change. One project, one person, one purpose at a time.
                     </p>
                   </div>
 

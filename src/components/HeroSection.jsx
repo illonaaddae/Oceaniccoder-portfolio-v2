@@ -13,10 +13,17 @@ const HeroSection = () => {
 
   const roles = React.useMemo(
     () => [
+      "Software Engineer",
+      "Front-End Developer",
       "Fullstack Developer",
+      "Problem Solver",
       "Executive Director",
+      "Future Robotics Innovator",
       "Community Tech Leader",
       "Creative Coder",
+      " WordPress & Web Experience Designer",
+      "UI/UX Thinker",
+      "Continuous Learner",
       "Oceaniccoder 🌊",
     ],
     []
