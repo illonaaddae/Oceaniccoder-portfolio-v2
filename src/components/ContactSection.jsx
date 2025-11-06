@@ -220,7 +220,7 @@ const ContactSection = () => {
                   setStatus("success");
                   setResponseMessage(
                     (json && json.message) ||
-                      "Message sent successfully. I'll get back to you soon!"
+                      "✅ Thanks — I received your message. I'll get back to you within 24 hours!"
                   );
                   // reset local controlled form state
                   setFormData({
@@ -325,12 +325,20 @@ const ContactSection = () => {
               {/* Submit Button */}
               {/* Show inline status messages (success / error) */}
               {status === "success" && (
-                <div className="p-3 rounded bg-green-600/20 border border-green-500/30 text-green-200">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="p-3 rounded bg-green-600/20 border border-green-500/30 text-green-200"
+                >
                   {responseMessage}
                 </div>
               )}
               {status === "error" && (
-                <div className="p-3 rounded bg-red-600/10 border border-red-500/20 text-red-300">
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className="p-3 rounded bg-red-600/10 border border-red-500/20 text-red-300"
+                >
                   {responseMessage}
                 </div>
               )}
