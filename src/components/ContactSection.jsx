@@ -8,7 +8,6 @@ import {
   FaTwitter,
   FaInstagram,
   FaPaperPlane,
-  FaHeart,
 } from "react-icons/fa";
 
 const ContactSection = () => {
@@ -18,47 +17,12 @@ const ContactSection = () => {
     subject: "",
     message: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState("");
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const data = new FormData(form);
-
-    setIsSubmitting(true);
-    setSubmitStatus("");
-
-    try {
-      const res = await fetch("/", {
-        method: "POST",
-        body: data,
-      });
-
-      if (!res.ok)
-        throw new Error(`Network response was not ok (${res.status})`);
-
-      setSubmitStatus("success");
-      setFormData({ name: "", email: "", subject: "", message: "" });
-      // keep success message briefly
-      setTimeout(() => setSubmitStatus(""), 5000);
-    } catch (error) {
-      console.error("Netlify form submit error:", error);
-      setSubmitStatus("error");
-      // clear error after a short delay so UI doesn't permanently show it
-      setTimeout(() => setSubmitStatus(""), 5000);
-      alert("Something went wrong! Try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const contactInfo = [
@@ -215,28 +179,11 @@ const ContactSection = () => {
               Send a Message
             </h3>
 
-            {submitStatus === "success" && (
-              <div className="mb-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg">
-                <div className="flex items-center gap-2 text-green-400">
-                  <FaHeart className="w-4 h-4" />
-                  <span className="font-medium">
-                    Message sent successfully!
-                  </span>
-                </div>
-                <p className="text-sm text-gray-300 mt-1">
-                  I'll get back to you within 24 hours.
-                </p>
-              </div>
-            )}
-
             <form
-              name="contact"
+              action="https://formsubmit.co/oceaniccodestech@gmail.com"
               method="POST"
-              data-netlify="true"
-              onSubmit={handleSubmit}
               className="space-y-6"
             >
-              <input type="hidden" name="form-name" value="contact" />
               {/* Name Input */}
               <div>
                 <label
@@ -320,22 +267,10 @@ const ContactSection = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className={`w-full glass-btn bg-gradient-to-r from-cyan-600 to-purple-600 text-white py-3 font-medium hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 ${
-                  isSubmitting ? "opacity-75 cursor-not-allowed" : ""
-                }`}
+                className="w-full glass-btn bg-gradient-to-r from-cyan-600 to-purple-600 text-white py-3 font-medium hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <FaPaperPlane className="w-4 h-4" />
-                    Send Message
-                  </>
-                )}
+                <FaPaperPlane className="w-4 h-4" />
+                Send Message
               </button>
             </form>
 
