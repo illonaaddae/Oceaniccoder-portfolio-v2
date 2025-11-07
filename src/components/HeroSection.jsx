@@ -127,9 +127,8 @@ const HeroSection = () => {
           </h2>
 
           <p className="text-base sm:text-lg lg:text-xl xl:text-2xl max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto leading-relaxed text-gray-200 dark:text-gray-300 font-light">
-             I {" "}
             <span className="text-white font-medium">
-            Create Technology That Connects People.
+            I create products that connects people.
             </span>{" "}
              From elegant websites to
             community-driven tech ecosystems, I build with empathy, clarity, and
