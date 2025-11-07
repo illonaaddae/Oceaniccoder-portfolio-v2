@@ -135,7 +135,7 @@ Build with `npm run build` and publish the `build/` directory to Netlify, Vercel
 
 ---
 
-## Contributing
+## Contributing 🤝
 
 This is my personal portfolio; PRs that fix typos, accessibility issues, or content improvements are welcome. Open an issue or PR with context and I will review.
 
