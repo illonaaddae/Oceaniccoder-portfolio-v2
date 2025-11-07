@@ -24,7 +24,7 @@ export const PROJECTS_DATA = [
       "An elegant, responsive web app that helps designers and developers generate cohesive color palettes. Built with vanilla HTML, CSS and JavaScript and powered by The Color API. Features include multiple harmony modes (monochrome, analogic, complement, triad, quad), real-time previews, accessibility-conscious markup, and one-click copy-to-clipboard for HEX codes. Deployed as a static site with a live demo and source code on GitHub.",
     category: "Web Apps",
     technologies: ["HTML", "CSS", "JavaScript", "The Color API"],
-    image: "/images/the-color-scheme-generator.netlify.app_(Readme).png",
+    image: "/images/the-color-scheme-generator-readme.png",
     liveUrl: "https://the-color-scheme-generator.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/color-scheme-generator",
     featured: true,
