@@ -193,7 +193,7 @@ const ContactSection = () => {
 
             <form
               /* Keep action as fallback when JS is disabled, but intercept submit to use AJAX */
-              action="https://formsubmit.co/oceaniccodestech@gmail.com"
+              action="https://api.web3forms.com/submit"
               method="POST"
               className="space-y-6"
               onSubmit={async (e) => {
@@ -205,29 +205,50 @@ const ContactSection = () => {
                 try {
                   const form = e.target;
                   const formDataToSend = new FormData(form);
-                  // Ensure captcha is disabled server-side
-                  if (!formDataToSend.has("_captcha")) {
-                    formDataToSend.append("_captcha", "false");
+                  // Append access key for Web3Forms (also present as a hidden input for no-JS fallback)
+                  if (!formDataToSend.has("access_key")) {
+                    formDataToSend.append(
+                      "access_key",
+                      "e0faddf8-32ef-4a92-b097-8aec3e900163"
+                    );
                   }
 
-                  const res = await fetch(
-                    "https://formsubmit.co/ajax/oceaniccodestech@gmail.com",
-                    {
-                      method: "POST",
-                      headers: {
-                        Accept: "application/json",
-                      },
-                      body: formDataToSend,
-                    }
-                  );
+                  // Build a nicer, user-aware subject for incoming emails.
+                  // If the visitor provided a subject, include it; otherwise create one using their name.
+                  const visitorName = (
+                    formDataToSend.get("name") || "Someone"
+                  ).toString();
+                  const visitorProvidedSubject = (
+                    formDataToSend.get("subject") || ""
+                  ).toString();
+                  const customSubject = visitorProvidedSubject
+                    ? `${visitorName} — ${visitorProvidedSubject}`
+                    : `${visitorName} sent a message from website`;
+                  // Ensure the subject field is set to our custom subject
+                  formDataToSend.set("subject", customSubject);
 
-                  if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text || `Status ${res.status}`);
+                  // Helpful email fields for Web3Forms: set sender name and reply-to so emails look nicer
+                  formDataToSend.set("from_name", visitorName);
+                  const visitorEmail = (
+                    formDataToSend.get("email") || ""
+                  ).toString();
+                  if (visitorEmail)
+                    formDataToSend.set("reply_to", visitorEmail);
+
+                  const res = await fetch("https://api.web3forms.com/submit", {
+                    method: "POST",
+                    headers: {
+                      Accept: "application/json",
+                    },
+                    body: formDataToSend,
+                  });
+
+                  const json = await res.json().catch(() => null);
+                  if (!res.ok || (json && json.success === false)) {
+                    throw new Error(
+                      (json && json.message) || `Status ${res.status}`
+                    );
                   }
-
-                  // ignore server-provided message and always show our custom friendly copy
-                  await res.json().catch(() => null);
                   setStatus("success");
                   setResponseMessage(
                     "Thanks, I received your message. I'll get back to you within 24 hours! ❤️"
@@ -257,8 +278,18 @@ const ContactSection = () => {
                 }
               }}
             >
-              {/* hidden input to support FormSubmit AJAX fallback values */}
-              <input type="hidden" name="_captcha" value="false" />
+              {/* hidden input to support Web3Forms AJAX / no-JS fallback (access key) */}
+              <input
+                type="hidden"
+                name="access_key"
+                value="e0faddf8-32ef-4a92-b097-8aec3e900163"
+              />
+              {/* default subject for no-JS submissions (JS will override to include visitor name) */}
+              <input
+                type="hidden"
+                name="subject"
+                value="New message from Oceaniccoder website"
+              />
               {/* Name Input */}
               <div>
                 <label
