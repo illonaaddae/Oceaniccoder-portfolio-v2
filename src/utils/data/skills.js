@@ -71,7 +71,7 @@ export const SKILLS_DATA = [
       },
       {
         name: "Vue.js",
-        level: 70,
+        level: 0,
         icon: <FaVuejs className="text-green-500" />,
       },
       {
@@ -81,7 +81,7 @@ export const SKILLS_DATA = [
       },
       {
         name: "Next.js",
-        level: 80,
+        level: 20,
         icon: <SiNextdotjs className="text-white" />,
       },
       {
