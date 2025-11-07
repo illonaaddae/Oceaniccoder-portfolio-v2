@@ -213,6 +213,28 @@ const ContactSection = () => {
                     );
                   }
 
+                  // Build a nicer, user-aware subject for incoming emails.
+                  // If the visitor provided a subject, include it; otherwise create one using their name.
+                  const visitorName = (
+                    formDataToSend.get("name") || "Someone"
+                  ).toString();
+                  const visitorProvidedSubject = (
+                    formDataToSend.get("subject") || ""
+                  ).toString();
+                  const customSubject = visitorProvidedSubject
+                    ? `${visitorName} — ${visitorProvidedSubject}`
+                    : `${visitorName} sent a message from website`;
+                  // Ensure the subject field is set to our custom subject
+                  formDataToSend.set("subject", customSubject);
+
+                  // Helpful email fields for Web3Forms: set sender name and reply-to so emails look nicer
+                  formDataToSend.set("from_name", visitorName);
+                  const visitorEmail = (
+                    formDataToSend.get("email") || ""
+                  ).toString();
+                  if (visitorEmail)
+                    formDataToSend.set("reply_to", visitorEmail);
+
                   const res = await fetch("https://api.web3forms.com/submit", {
                     method: "POST",
                     headers: {
@@ -261,6 +283,12 @@ const ContactSection = () => {
                 type="hidden"
                 name="access_key"
                 value="e0faddf8-32ef-4a92-b097-8aec3e900163"
+              />
+              {/* default subject for no-JS submissions (JS will override to include visitor name) */}
+              <input
+                type="hidden"
+                name="subject"
+                value="New message from Oceaniccoder website"
               />
               {/* Name Input */}
               <div>
