@@ -230,7 +230,7 @@ const ContactSection = () => {
                   await res.json().catch(() => null);
                   setStatus("success");
                   setResponseMessage(
-                    "Thanks — I received your message. I'll get back to you within 24 hours! ❤️"
+                    "Thanks, I received your message. I'll get back to you within 24 hours! ❤️"
                   );
                   // auto-dismiss success message after 6 seconds
                   if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -345,10 +345,10 @@ const ContactSection = () => {
                 <div
                   role="status"
                   aria-live="polite"
-                  className="p-3 rounded bg-green-600/20 border border-green-500/30 text-green-200 flex items-center gap-3"
+                  className="p-3 rounded bg-green-100 border border-green-200 text-green-800 flex items-center gap-3 dark:bg-green-600/20 dark:border-green-500/30 dark:text-green-200"
                 >
                   <FaCheckCircle
-                    className="w-5 h-5 text-green-300 flex-shrink-0"
+                    className="w-5 h-5 text-green-600 dark:text-green-300 flex-shrink-0"
                     aria-hidden="true"
                   />
                   <span>{responseMessage}</span>
