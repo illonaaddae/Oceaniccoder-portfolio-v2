@@ -1,49 +1,50 @@
 import { Client, Databases } from "appwrite";
 
-// Support both Vite (import.meta.env) and Create React App / react-scripts (process.env)
-const VITE_ENV =
-  typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : {};
-const REACT_ENV =
-  typeof process !== "undefined" && process.env ? process.env : {};
+const pick = (...cands) => cands.find((v) => typeof v === "string" && v.trim());
 
-const getEnv = (viteKey, reactKey, fallback) => {
-  return VITE_ENV[viteKey] ?? REACT_ENV[reactKey] ?? fallback;
-};
-
-const APPWRITE_ENDPOINT = getEnv(
-  "VITE_APPWRITE_ENDPOINT",
-  "REACT_APPWRITE_ENDPOINT",
-  ""
+const ENDPOINT = pick(
+  typeof import.meta !== "undefined"
+    ? import.meta.env?.VITE_APPWRITE_ENDPOINT
+    : undefined,
+  process?.env?.REACT_APPWRITE_ENDPOINT,
+  process?.env?.VITE_APPWRITE_ENDPOINT
 );
-const APPWRITE_PROJECT_ID = getEnv(
-  "VITE_APPWRITE_PROJECT_ID",
-  "REACT_APPWRITE_PROJECT_ID",
-  ""
+const PROJECT_ID = pick(
+  typeof import.meta !== "undefined"
+    ? import.meta.env?.VITE_APPWRITE_PROJECT_ID
+    : undefined,
+  process?.env?.REACT_APPWRITE_PROJECT_ID,
+  process?.env?.VITE_APPWRITE_PROJECT_ID
 );
-const APPWRITE_API_KEY = getEnv(
-  "VITE_APPWRITE_API_KEY",
-  "REACT_APPWRITE_API_KEY",
-  ""
+export const databaseId = pick(
+  typeof import.meta !== "undefined"
+    ? import.meta.env?.VITE_APPWRITE_DATABASE_ID
+    : undefined,
+  process?.env?.REACT_APPWRITE_DATABASE_ID,
+  process?.env?.VITE_APPWRITE_DATABASE_ID
 );
-const APPWRITE_DATABASE_ID = getEnv(
-  "VITE_APPWRITE_DATABASE_ID",
-  "REACT_APPWRITE_DATABASE_ID",
-  ""
-);
-const APPWRITE_COLLECTION_ID = getEnv(
-  "VITE_APPWRITE_COLLECTION_ID",
-  "REACT_APPWRITE_COLLECTION_ID",
-  ""
+export const collectionId = pick(
+  typeof import.meta !== "undefined"
+    ? import.meta.env?.VITE_APPWRITE_COLLECTION_ID
+    : undefined,
+  process?.env?.REACT_APPWRITE_COLLECTION_ID,
+  process?.env?.VITE_APPWRITE_COLLECTION_ID
 );
 
 const client = new Client();
 
-// Only call setters when values are present to avoid runtime errors in environments
-// where import.meta or specific env keys are unavailable.
-if (APPWRITE_ENDPOINT) client.setEndpoint(APPWRITE_ENDPOINT);
-if (APPWRITE_PROJECT_ID) client.setProject(APPWRITE_PROJECT_ID);
-if (APPWRITE_API_KEY) client.setKey(APPWRITE_API_KEY);
+if (ENDPOINT) client.setEndpoint(ENDPOINT);
+if (PROJECT_ID) client.setProject(PROJECT_ID);
 
 export const databases = new Databases(client);
-export const databaseId = APPWRITE_DATABASE_ID;
-export const collectionId = APPWRITE_COLLECTION_ID;
+
+// Optional dev sanity log
+if (process?.env?.NODE_ENV === "development") {
+  // eslint-disable-next-line no-console
+  console.log("[Appwrite cfg]", {
+    ENDPOINT,
+    PROJECT_ID,
+    databaseId,
+    collectionId,
+  });
+}
