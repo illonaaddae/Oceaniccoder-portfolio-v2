@@ -25,6 +25,25 @@ jest.mock(
   { virtual: true }
 );
 
+// Mock the Splash so tests render the app content immediately instead of the timed loader
+jest.mock("./components/Splash", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    // Render a simple placeholder so the App shows content during tests
+    default: () => React.createElement("div", null, "Oceaniccoder"),
+  };
+});
+
+// Mock Navbar so the test can find the visible brand text reliably
+jest.mock("./components/Navbar", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: () => React.createElement("div", null, "Oceaniccoder"),
+  };
+});
+
 // import using require so we can call jest.mock above without import ordering lint errors
 const App = require("./App").default;
 

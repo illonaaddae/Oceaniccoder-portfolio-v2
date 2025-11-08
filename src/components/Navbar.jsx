@@ -95,31 +95,53 @@ const Navbar = ({ theme, toggleTheme }) => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.href, item.id)}
-                className={`nav-link-enhanced px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 relative ${
-                  activeSection === item.id
-                    ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
-                    : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
-                }`}
-              >
-                {/* Use NavLink for accessible route highlighting when internal */}
-                {item.href && item.href.startsWith("/") ? (
-                  <NavLink to={item.href} className="inline-block">
-                    {item.label}
-                  </NavLink>
-                ) : (
-                  <span>{item.label}</span>
-                )}
+            {navItems.map((item) => {
+              const isInternal = item.href && item.href.startsWith("/");
+              const base =
+                "nav-link-enhanced px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 relative inline-block";
+              const activeCls =
+                "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30";
+              const inactiveCls =
+                "text-gray-300 hover:text-cyan-400 hover:bg-white/5";
 
-                {/* Active Indicator */}
-                {activeSection === item.id && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
-                )}
-              </button>
-            ))}
+              return isInternal ? (
+                <NavLink
+                  key={item.id}
+                  to={item.href}
+                  end={item.href === "/"}
+                  onClick={() => {
+                    // still update context for scroll spy and close menus
+                    setActiveSection(item.id);
+                    setIsMenuOpen(false);
+                  }}
+                  className={({ isActive }) =>
+                    `${base} ${isActive ? activeCls : inactiveCls}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {item.label}
+                      {isActive && (
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ) : (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.href, item.id)}
+                  className={`${base} ${
+                    activeSection === item.id ? activeCls : inactiveCls
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  {activeSection === item.id && (
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Enhanced Controls */}
@@ -156,23 +178,41 @@ const Navbar = ({ theme, toggleTheme }) => {
         {isMenuOpen && (
           <div className="md:hidden mt-4 glass-card bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
             <div className="flex flex-col space-y-2">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.href, item.id)}
-                  className={`nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 ${
-                    activeSection === item.id
-                      ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
-                      : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
-                  }`}
-                >
-                  {item.href && item.href.startsWith("/") ? (
-                    <NavLink to={item.href}>{item.label}</NavLink>
-                  ) : (
+              {navItems.map((item) => {
+                const isInternal = item.href && item.href.startsWith("/");
+                return isInternal ? (
+                  <NavLink
+                    key={item.id}
+                    to={item.href}
+                    end={item.href === "/"}
+                    onClick={() => {
+                      setActiveSection(item.id);
+                      setIsMenuOpen(false);
+                    }}
+                    className={({ isActive }) =>
+                      `nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 ${
+                        isActive
+                          ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
+                          : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ) : (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.href, item.id)}
+                    className={`nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 ${
+                      activeSection === item.id
+                        ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
+                        : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
+                    }`}
+                  >
                     <span>{item.label}</span>
-                  )}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

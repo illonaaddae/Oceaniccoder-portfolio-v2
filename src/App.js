@@ -133,8 +133,8 @@ function App() {
     let tidy;
     const t = setTimeout(() => {
       setSplashExiting(true);
-      tidy = setTimeout(() => setShowSplash(false), 600); // matches Splash transition duration
-    }, 7600); // extended so typing + longer welcome finish before exit
+      tidy = setTimeout(() => setShowSplash(false), 600); 
+    }, 7600); 
     return () => {
       clearTimeout(t);
       if (tidy) clearTimeout(tidy);

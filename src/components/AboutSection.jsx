@@ -44,6 +44,7 @@ const AboutSection = () => {
         "Awarded Best Student in STEM under ATU SRC IDEAL WOMAN AWARDS 2023",
     },
     {
+
       src: "/images/Campus-Random-pic.webp",
       alt: "Candid photo of Illona standing casually on campus in front of an auditorium, relaxed and natural.",
       caption: "Just me - grounded, present, becoming.",
@@ -77,19 +78,19 @@ const AboutSection = () => {
     },
     {
       icon: <FaUsers />,
-      number: "100+",
+      number: "40+",
       label: "Students Mentored",
       color: "text-green-400",
     },
     {
       icon: <FaMicrophone />,
-      number: "20+",
+      number: "2+",
       label: "Tech Talks Given",
       color: "text-purple-400",
     },
     {
       icon: <FaStar />,
-      number: "5+",
+      number: "2+",
       label: "Years Experience",
       color: "text-orange-400",
     },
@@ -149,6 +150,18 @@ const AboutSection = () => {
 
   const journey = [
     {
+      role: "Frontend Developer (NSS) ",
+      company: "AmaliTech",
+      period: "2025 - Present",
+      location: "Accra, Ghana",
+      description:
+        "Build beautiful, interactive user interfaces for web and mobile applications.",
+      achievements: [
+        "AmaliTech AWS re/Start Programme",
+      ],
+      color: "from-cyan-500 to-blue-500",
+    },
+     {
       role: "Executive Director",
       company: "Slint Tech",
       period: "2025 - Present",
@@ -165,28 +178,29 @@ const AboutSection = () => {
     {
       role: "Frontend Developer",
       company: "Freelance & Contract Work",
-      period: "2020 - Present",
+      period: "2025 - Present",
       location: "Remote & Ghana",
       description:
         "Building scalable web applications and mentoring aspiring developers.",
       achievements: [
-        "Delivered 15+ successful client projects",
+        "Delivered 3+ successful client projects",
         "Maintained 98% client satisfaction rate",
         "Mentored 100+ junior developers",
       ],
       color: "from-green-500 to-cyan-500",
     },
+    
     {
-      role: "Community Tech Leader",
-      company: "Tech Communities Ghana",
-      period: "2019 - Present",
-      location: "Ghana",
+      role: "Software Projects Coordination Intern",
+      company: "Facio Tech",
+      period: "2025 - Present",
+      location: "Remote",
       description:
-        "Advocating for women in tech and creating inclusive tech communities.",
+        " Monitoring project timelines and ensured timely follow-ups on assigned tasks and deliverables to support the software development team.",
       achievements: [
-        "Organized 20+ tech events and workshops",
-        "Increased women participation in tech by 40%",
-        "Built network of 500+ tech professionals",
+        "Monitored project timelines",
+        "Assisted in compiling progress reports ",
+       
       ],
       color: "from-purple-500 to-pink-500",
     },

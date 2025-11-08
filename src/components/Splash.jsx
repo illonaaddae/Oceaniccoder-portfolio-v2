@@ -37,13 +37,8 @@ export default function Splash({ exiting = false }) {
     window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const spinStyle = prefersReducedMotion
-    ? undefined
-    : {
-        animation: "spin 14s linear infinite",
-        animationTimingFunction: "cubic-bezier(.2,.9,.3,1)",
-        willChange: "transform",
-      };
+  // Prefer using a CSS class so vendor-prefixed rules in index.css apply
+  const spinClass = prefersReducedMotion ? "" : "spin-anim";
 
   const containerClass = `fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black transition-all duration-500 ease-in-out ${
     exiting ? "opacity-0 scale-95 pointer-events-none" : "opacity-100"
@@ -62,8 +57,7 @@ export default function Splash({ exiting = false }) {
               loading="eager"
               decoding="async"
               fetchPriority="high"
-              className="w-24 h-24 object-contain"
-              style={spinStyle}
+              className={`w-24 h-24 object-contain ${spinClass}`}
               onError={(e) => {
                 try {
                   e.target.style.display = "none";
