@@ -88,6 +88,20 @@
   }
 }
 
+/* Simple spin animation used by the splash logo (broad support) */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-custom {
+  animation: spin 12s linear infinite;
+}
+
 /* Utility Classes */
 .bg-size-200 {
   background-size: 200% 200%;
