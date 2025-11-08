@@ -155,7 +155,7 @@ const AboutSection = () => {
       period: "2025 - Present",
       location: "Accra, Ghana",
       description:
-        "Build beautiful, interactive user interfaces for web and mobile applications.",
+        "Building beautiful, interactive user interfaces for web and mobile applications.",
       achievements: [
         "AmaliTech AWS re/Start Programme",
       ],

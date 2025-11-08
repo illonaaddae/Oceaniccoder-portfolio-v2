@@ -21,9 +21,10 @@ const RouteChangeHandler = () => {
   }, []);
 
   useEffect(() => {
-    // Smoothly scroll to top on navigation to avoid sudden jumps
+    // Scroll to top on navigation. Use 'auto' to avoid triggering
+    // heavy compositor work on mobile (smooth can cause repaints/flashes).
     try {
-      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     } catch (e) {
       // ignore for non-browser environments
     }
