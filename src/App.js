@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { PortfolioProvider } from "./Context";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -16,16 +17,137 @@ const Projects = React.lazy(() => import("./components/ProjectsSection"));
 const Blog = React.lazy(() => import("./components/BlogSection"));
 const Contact = React.lazy(() => import("./components/ContactSection"));
 
+// Component that wraps Routes with animated page transitions
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  const pageVariant = {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -8 },
+  };
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route
+          path="/"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.45 }}
+            >
+              <Home />
+              <Skills />
+              <Projects />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.45 }}
+            >
+              <About />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/skills"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.45 }}
+            >
+              <Skills />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/projects"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.45 }}
+            >
+              <Projects />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/blog"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.45 }}
+            >
+              <Blog />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.45 }}
+            >
+              <Contact />
+            </motion.div>
+          }
+        />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 function App() {
   // useTheme handles persistence and html class toggling
   const { theme, toggleTheme } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
+  const [splashExiting, setSplashExiting] = useState(false);
+  const [appVisible, setAppVisible] = useState(false);
 
   useEffect(() => {
-    // Show the splash for a slightly longer time so the slower animation completes
-    const t = setTimeout(() => setShowSplash(false), 3200);
-    return () => clearTimeout(t);
+    // Show the splash long enough to display typing + welcome; then fade out
+    let tidy;
+    const t = setTimeout(() => {
+      setSplashExiting(true);
+      tidy = setTimeout(() => setShowSplash(false), 500); // matches Splash transition duration
+    }, 4200);
+    return () => {
+      clearTimeout(t);
+      if (tidy) clearTimeout(tidy);
+    };
   }, []);
+
+  // Control app fade-in when the splash is unmounted
+  useEffect(() => {
+    if (!showSplash) {
+      // start in next frame so CSS transition runs
+      requestAnimationFrame(() => setAppVisible(true));
+    }
+  }, [showSplash]);
 
   useEffect(() => {
     // When the splash hides, ensure the viewport is at the top immediately
@@ -45,42 +167,33 @@ function App() {
     <PortfolioProvider>
       <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
         {showSplash ? (
-          <Splash />
+          <Splash exiting={splashExiting} />
         ) : (
-          <BrowserRouter>
-            <Navbar theme={theme} toggleTheme={toggleTheme} />
+          <div
+            className={`min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white transition-opacity duration-500 ${
+              appVisible ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <BrowserRouter>
+              <Navbar theme={theme} toggleTheme={toggleTheme} />
 
-            <React.Suspense
-              fallback={
-                <div className="p-8 text-center text-sm opacity-70">
-                  Loading…
-                </div>
-              }
-            >
-              <Routes>
-                <Route
-                  path="/"
-                  element={
-                    <>
-                      <Home />
-                      <Skills />
-                      <Projects />
-                    </>
-                  }
-                />
-                <Route path="/about" element={<About />} />
-                <Route path="/skills" element={<Skills />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/contact" element={<Contact />} />
-              </Routes>
-              {/* Manage scroll behavior on route changes */}
-              <RouteChangeHandler />
-            </React.Suspense>
+              <React.Suspense
+                fallback={
+                  <div className="p-8 text-center text-sm opacity-70">
+                    Loading…
+                  </div>
+                }
+              >
+                {/* Animated route transitions using Framer Motion */}
+                <AnimatedRoutes />
+                {/* Manage scroll behavior on route changes */}
+                <RouteChangeHandler />
+              </React.Suspense>
 
-            <Footer />
-            <ScrollToTop />
-          </BrowserRouter>
+              <Footer />
+              <ScrollToTop />
+            </BrowserRouter>
+          </div>
         )}
       </div>
     </PortfolioProvider>

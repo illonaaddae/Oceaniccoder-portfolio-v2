@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaCode,
   FaHeart,
@@ -21,6 +21,7 @@ import {
 
 const AboutSection = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("story");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -338,7 +339,33 @@ const AboutSection = () => {
           </p>
           <div className="mt-4 flex gap-3">
             <button
-              onClick={() => navigate("/contact")}
+              onClick={() => {
+                try {
+                  const el = document.getElementById("contact");
+                  const nav = document.querySelector("nav");
+                  const navHeight = (nav && nav.offsetHeight) || 80;
+
+                  const scrollInto = (target) => {
+                    const rect = target.getBoundingClientRect();
+                    const top = rect.top + window.scrollY - navHeight - 12;
+                    window.scrollTo({ top, left: 0, behavior: "smooth" });
+                  };
+
+                  if (location.pathname === "/contact") {
+                    if (el) scrollInto(el);
+                    return;
+                  }
+
+                  // Navigate to /contact then scroll after mount
+                  navigate("/contact");
+                  setTimeout(() => {
+                    const el2 = document.getElementById("contact");
+                    if (el2) scrollInto(el2);
+                  }, 350);
+                } catch (e) {
+                  navigate("/contact");
+                }
+              }}
               className="glass-btn bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 px-5 py-2 rounded-lg font-medium"
             >
               Hire Me

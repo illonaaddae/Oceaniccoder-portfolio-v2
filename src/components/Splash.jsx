@@ -1,23 +1,60 @@
 import React, { useEffect, useState } from "react";
 
-const Splash = () => {
+export default function Splash({ exiting = false }) {
   const [progress, setProgress] = useState(0);
+  const [typed, setTyped] = useState("");
+  const fullText = "Oceaniccoder";
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
-    // Start the progress animation almost immediately so it completes
-    // roughly in time with the app's splash timeout (3.2s in App.js).
-    const t = setTimeout(() => setProgress(100), 50);
-    return () => clearTimeout(t);
+    const startDelay = 80;
+    const t = setTimeout(() => setProgress(100), startDelay);
+
+    // Slow down typing a bit for a nicer feel
+    const totalTypingMs = 3600; // ms
+    const chars = fullText.length;
+    const intervalMs = Math.max(40, Math.floor(totalTypingMs / chars));
+    let idx = 0;
+    const typeTimer = setInterval(() => {
+      idx += 1;
+      setTyped(fullText.substring(0, idx));
+      if (idx >= chars) {
+        clearInterval(typeTimer);
+        // typing finished — show welcome briefly
+        setShowWelcome(true);
+        setTimeout(() => setShowWelcome(false), 800);
+      }
+    }, intervalMs);
+
+    return () => {
+      clearTimeout(t);
+      clearInterval(typeTimer);
+    };
   }, []);
 
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const spinStyle = prefersReducedMotion
+    ? undefined
+    : {
+        animation: "spin 14s linear infinite",
+        animationTimingFunction: "cubic-bezier(.2,.9,.3,1)",
+        willChange: "transform",
+      };
+
+  const containerClass = `fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black transition-all duration-500 ease-in-out ${
+    exiting ? "opacity-0 scale-95 pointer-events-none" : "opacity-100"
+  }`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black">
+    <div className={containerClass}>
       <div className="flex flex-col items-center gap-6">
         <div className="relative w-40 h-40">
-          {/* Glowing background ring */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-20 animate-pulse blur-lg"></div>
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-20 animate-pulse blur-lg" />
 
-          {/* Rotating logo container */}
           <div className="absolute inset-4 rounded-full flex items-center justify-center bg-white dark:bg-black shadow-2xl">
             <img
               src="/images/logo/oceanic-logo.png"
@@ -25,28 +62,28 @@ const Splash = () => {
               loading="eager"
               decoding="async"
               fetchPriority="high"
-              className="w-24 h-24 object-contain animate-[spin_12s_linear_infinite]"
-              style={{ animationTimingFunction: "cubic-bezier(.2,.9,.3,1)" }}
+              className="w-24 h-24 object-contain"
+              style={spinStyle}
               onError={(e) => {
-                // if the image fails to load (CI/path mismatch), hide it and
-                // reveal a simple text fallback so the splash remains visible
                 try {
                   e.target.style.display = "none";
                   const el =
                     e.target.parentNode.querySelector(".splash-fallback");
                   if (el) el.style.display = "flex";
-                } catch (err) {}
+                } catch (err) {
+                  /* swallow */
+                }
               }}
             />
+
             <div
-              className="splash-fallback w-24 h-24 rounded-full bg-cyan-50 dark:bg-gray-900 text-cyan-500 dark:text-cyan-300 font-bold text-2xl items-center justify-center hidden"
+              className="splash-fallback hidden w-24 h-24 rounded-full bg-cyan-50 dark:bg-gray-900 text-cyan-500 dark:text-cyan-300 font-bold text-2xl"
               aria-hidden
             >
               O
             </div>
           </div>
 
-          {/* Subtle ripple SVG */}
           <svg
             className="absolute bottom-0 left-0 right-0 h-6"
             viewBox="0 0 120 20"
@@ -63,21 +100,42 @@ const Splash = () => {
 
         <div className="text-center">
           <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-            Oceaniccoder
+            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 bg-clip-text text-transparent inline-flex items-center">
+              {typed}
+              <span className="ml-1 text-cyan-400" aria-hidden>
+                {typed.length < fullText.length ? "|" : ""}
+              </span>
+            </span>
           </div>
           <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Crafting delightful experiences — one line of code at a time
+            Crafting delightful experiences, one line of code at a time
+          </div>
+
+          {/* Welcome message shown after typing completes, below the subtitle */}
+          <div aria-hidden className="mt-4">
+            <div
+              className={`text-lg md:text-xl font-semibold text-gray-700 dark:text-gray-200 transition-all duration-240 ease-in-out transform ${
+                showWelcome
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 -translate-y-2"
+              }`}
+            >
+              <span className="mr-2">Welcome</span>
+              <span aria-hidden className="text-2xl">
+                😊
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="w-48 mt-3">
+        <div className="w-56 mt-3">
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="h-2 bg-gradient-to-r from-cyan-400 to-blue-500"
               style={{
                 width: `${progress}%`,
-                // match the visual duration to the splash timeout in App.js (~3.2s)
-                transition: "width 3.1s ease-in-out",
+                // match the slower typing duration so progress feels natural
+                transition: "width 4.2s ease-in-out",
               }}
             />
           </div>
@@ -89,6 +147,4 @@ const Splash = () => {
       </div>
     </div>
   );
-};
-
-export default Splash;
+}
