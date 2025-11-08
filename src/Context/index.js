@@ -29,12 +29,12 @@ export const PortfolioProvider = ({ children }) => {
   const blogUrl = process.env.REACT_APP_BLOG_URL || "https://your-blog.example";
 
   const navItems = [
-    { id: "home", label: "Home", href: "#home" },
-    { id: "about", label: "About", href: "#about" },
-    { id: "skills", label: "Skills", href: "#skills" },
-    { id: "projects", label: "Projects", href: "#projects" },
+    { id: "home", label: "Home", href: "/" },
+    { id: "about", label: "About", href: "/about" },
+    { id: "skills", label: "Skills", href: "/skills" },
+    { id: "projects", label: "Projects", href: "/projects" },
     { id: "blog", label: "Blog", href: blogUrl },
-    { id: "contact", label: "Contact", href: "#contact" },
+    { id: "contact", label: "Contact", href: "/contact" },
   ];
 
   // Project filters

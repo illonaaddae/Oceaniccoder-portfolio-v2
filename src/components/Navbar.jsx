@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaSun, FaMoon, FaBars, FaTimes } from "react-icons/fa";
 import { usePortfolio } from "../Context";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const Navbar = ({ theme, toggleTheme }) => {
   const {
@@ -16,46 +17,30 @@ const Navbar = ({ theme, toggleTheme }) => {
     const handleScroll = () => {
       const isScrolled = window.scrollY > 20;
       setScrolled(isScrolled);
-
-      // Update active section based on scroll position
-      const sections = navItems.map((item) => item.id);
-      let currentSection = "home";
-
-      for (const section of sections) {
-        const element = document.getElementById(section);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 100 && rect.bottom >= 100) {
-            currentSection = section;
-          }
-        }
-      }
-
-      setActiveSection(currentSection);
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [navItems, setActiveSection]);
+  }, []);
+
+  const navigate = useNavigate();
 
   const handleNavClick = (href, id) => {
     setActiveSection(id);
     setIsMenuOpen(false);
 
-    // If href looks like an external link, open it in a new tab
+    // External link -> open new tab
     try {
       const isExternal = /^(https?:)?\/\//i.test(href);
       if (isExternal) {
         window.open(href, "_blank", "noopener,noreferrer");
         return;
       }
-    } catch (e) {
-      // fallback to internal scrolling below
-    }
+    } catch (e) {}
 
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
+    // Internal route -> navigate
+    if (href && href.startsWith("/")) {
+      navigate(href);
     }
   };
 
@@ -120,7 +105,15 @@ const Navbar = ({ theme, toggleTheme }) => {
                     : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
                 }`}
               >
-                {item.label}
+                {/* Use NavLink for accessible route highlighting when internal */}
+                {item.href && item.href.startsWith("/") ? (
+                  <NavLink to={item.href} className="inline-block">
+                    {item.label}
+                  </NavLink>
+                ) : (
+                  <span>{item.label}</span>
+                )}
+
                 {/* Active Indicator */}
                 {activeSection === item.id && (
                   <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
@@ -173,7 +166,11 @@ const Navbar = ({ theme, toggleTheme }) => {
                       : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
                   }`}
                 >
-                  {item.label}
+                  {item.href && item.href.startsWith("/") ? (
+                    <NavLink to={item.href}>{item.label}</NavLink>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
                 </button>
               ))}
             </div>

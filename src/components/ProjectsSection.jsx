@@ -7,6 +7,7 @@ import {
   FaEye,
 } from "react-icons/fa";
 import { usePortfolio } from "../Context"; // Fixed path
+import { useNavigate } from "react-router-dom";
 
 const ProjectsSection = () => {
   const {
@@ -36,6 +37,8 @@ const ProjectsSection = () => {
   const loadMoreProjects = () => {
     setVisibleProjects((prev) => prev + 6);
   };
+
+  const navigate = useNavigate();
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -255,11 +258,7 @@ const ProjectsSection = () => {
               amazing teams. Let's build something incredible together!
             </p>
             <button
-              onClick={() =>
-                document
-                  .getElementById("contact")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => navigate("/contact")}
               className="glass-btn bg-gradient-to-r from-cyan-900 to-blue-900 text-white px-8 py-3 font-medium hover:scale-105 transition-transform duration-300"
             >
               Let's Connect
