@@ -10,6 +10,8 @@ import {
   FaPaperPlane,
   FaCheckCircle,
 } from "react-icons/fa";
+import { databases, databaseId, collectionId } from "../lib/appwrite";
+import { ID } from "appwrite";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -211,6 +213,33 @@ const ContactSection = () => {
                       "access_key",
                       "e0faddf8-32ef-4a92-b097-8aec3e900163"
                     );
+                  }
+
+                  // 🔹 Save submission to Appwrite (best-effort)
+                  try {
+                    if (!databaseId || !collectionId) {
+                      console.info(
+                        "Appwrite DB save skipped: databaseId or collectionId not configured"
+                      );
+                    } else {
+                      await databases.createDocument(
+                        databaseId,
+                        collectionId,
+                        ID.unique(),
+                        {
+                          name: formData.name,
+                          email: formData.email,
+                          subject: formData.subject,
+                          message: formData.message,
+                          createdAt: new Date().toISOString(),
+                        }
+                      );
+                    }
+                  } catch (dbError) {
+                    // non-fatal — continue to send the email even if DB save fails
+                    // log for visibility (include message to help debugging)
+                    // eslint-disable-next-line no-console
+                    console.warn("Appwrite DB save failed:", dbError && dbError.message ? dbError.message : dbError);
                   }
 
                   // Build a nicer, user-aware subject for incoming emails.
