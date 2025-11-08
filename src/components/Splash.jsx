@@ -1,0 +1,73 @@
+import React, { useEffect, useState } from "react";
+
+const Splash = () => {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    // animate progress to 100% over ~3s to slow the splash slightly
+    const t = setTimeout(() => setProgress(100), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black">
+      <div className="flex flex-col items-center gap-6">
+        <div className="relative w-40 h-40">
+          {/* Glowing background ring */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-20 animate-pulse blur-lg"></div>
+
+          {/* Rotating logo container */}
+          <div className="absolute inset-4 rounded-full flex items-center justify-center bg-white dark:bg-black shadow-2xl">
+            <img
+              src="/images/logo/oceanic-logo.png"
+              alt="Oceaniccoder Logo"
+              className="w-24 h-24 object-contain animate-[spin_12s_linear_infinite]"
+              style={{ animationTimingFunction: "cubic-bezier(.2,.9,.3,1)" }}
+            />
+          </div>
+
+          {/* Subtle ripple SVG */}
+          <svg
+            className="absolute bottom-0 left-0 right-0 h-6"
+            viewBox="0 0 120 20"
+            preserveAspectRatio="none"
+            aria-hidden
+          >
+            <path
+              d="M0 10 C 20 0, 40 20, 60 10 C 80 0,100 20,120 10 L120 20 L0 20 Z"
+              fill="#00b5d8"
+              opacity="0.06"
+            />
+          </svg>
+        </div>
+
+        <div className="text-center">
+          <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
+            Oceaniccoder
+          </div>
+          <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Crafting delightful experiences — one line of code at a time
+          </div>
+        </div>
+
+        <div className="w-48 mt-3">
+          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-2 bg-gradient-to-r from-cyan-400 to-blue-500"
+              style={{
+                width: `${progress}%`,
+                transition: "width 3s ease-in-out",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="text-xs text-gray-400">
+          Preparing a smoother, faster experience…
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Splash;

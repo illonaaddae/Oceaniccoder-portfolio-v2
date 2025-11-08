@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaCode,
   FaHeart,
@@ -19,6 +20,7 @@ import {
 } from "react-icons/fa";
 
 const AboutSection = () => {
+  const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("story");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -302,8 +304,10 @@ const AboutSection = () => {
   return (
     <section
       id="about"
-      className="min-h-screen py-20 relative"
+      className="min-h-screen pt-28 pb-20 relative scroll-mt-28"
       style={{
+        // ensure browsers without the Tailwind utility still respect anchor offsets
+        scrollMarginTop: "7rem",
         background:
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%)",
       }}
@@ -316,6 +320,42 @@ const AboutSection = () => {
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
+        {/* Intro Hero: Headshot leading into the About content */}
+        <div className="mb-12 flex flex-col items-center text-center">
+          <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-4">
+            <img
+              src="/images/Headshot.webp"
+              alt="Illona Addae Headshot"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <h3 className="text-2xl font-bold text-white mb-2">
+            Hello, I'm Illona
+          </h3>
+          <p className="text-gray-300 max-w-2xl">
+            I'm a full-stack developer, community leader and mentor. Below is a
+            deeper look at my story, work, and the impact I aim to create.
+          </p>
+          <div className="mt-4 flex gap-3">
+            <button
+              onClick={() => navigate("/contact")}
+              className="glass-btn bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 px-5 py-2 rounded-lg font-medium"
+            >
+              Hire Me
+            </button>
+            <button
+              onClick={() =>
+                window.scrollTo({
+                  top: window.scrollY + 400,
+                  behavior: "smooth",
+                })
+              }
+              className="glass-btn border border-white/20 text-white px-5 py-2 rounded-lg font-medium"
+            >
+              Learn More
+            </button>
+          </div>
+        </div>
         {/* Enhanced Section Header */}
         <div
           className={`text-center mb-16 transition-all duration-1000 ${
