@@ -5,11 +5,13 @@ import {
   FaHeart,
   FaChevronDown,
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const [currentRole, setCurrentRole] = useState(0);
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
 
   const roles = React.useMemo(
     () => [
@@ -51,15 +53,42 @@ const HeroSection = () => {
   }, [displayText, isDeleting, currentRole, roles]);
 
   const scrollToProjects = () => {
-    document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" });
+    navigate("/projects");
   };
 
   const scrollToContact = () => {
-    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+    navigate("/contact");
   };
 
-  const scrollToAbout = () => {
-    document.getElementById("about")?.scrollIntoView({ behavior: "smooth" });
+  // (removed direct about navigation; use the About route from navbar or skills CTA)
+
+  const scrollToSkills = () => {
+    try {
+      const el = document.getElementById("skills");
+      const nav = document.querySelector("nav");
+      const navHeight = (nav && nav.offsetHeight) || 80;
+
+      const scrollInto = (target) => {
+        const rect = target.getBoundingClientRect();
+        const top = rect.top + window.scrollY - navHeight - 12; // small offset
+        window.scrollTo({ top, left: 0, behavior: "smooth" });
+      };
+
+      if (el) {
+        scrollInto(el);
+        return;
+      }
+
+      // If skills section isn't on this route, navigate to home then scroll
+      navigate("/");
+      setTimeout(() => {
+        const el2 = document.getElementById("skills");
+        if (el2) scrollInto(el2);
+      }, 350);
+    } catch (e) {
+      // fallback: navigate to home page
+      navigate("/");
+    }
   };
 
   return (
@@ -128,11 +157,10 @@ const HeroSection = () => {
 
           <p className="text-base sm:text-lg lg:text-xl xl:text-2xl max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto leading-relaxed text-gray-200 dark:text-gray-300 font-light">
             <span className="text-white font-medium">
-            I create products that connects people.
+              I create products that connects people.
             </span>{" "}
-             From elegant websites to
-            community-driven tech ecosystems, I build with empathy, clarity, and
-            purpose.
+            From elegant websites to community-driven tech ecosystems, I build
+            with empathy, clarity, and purpose.
           </p>
         </div>
 
@@ -186,9 +214,9 @@ const HeroSection = () => {
         {/* Scroll Indicator - Positioned Under Download */}
         <div className="mt-8 pb-8">
           <button
-            onClick={scrollToAbout}
+            onClick={scrollToSkills}
             className="flex flex-col items-center space-y-2 text-cyan-400/70 hover:text-cyan-400 transition-all duration-300 group animate-bounce mx-auto"
-            aria-label="Scroll to about section"
+            aria-label="Explore skills section"
           >
             <div className="flex flex-col items-center">
               <FaChevronDown className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
