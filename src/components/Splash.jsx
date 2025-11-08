@@ -11,7 +11,7 @@ export default function Splash({ exiting = false }) {
     const t = setTimeout(() => setProgress(100), startDelay);
 
     // Slow down typing a bit so users can read the welcome message
-    const totalTypingMs = 4800; // ms
+    const totalTypingMs = 4000; // ms
     const chars = fullText.length;
     const intervalMs = Math.max(40, Math.floor(totalTypingMs / chars));
     let idx = 0;

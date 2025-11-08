@@ -34,6 +34,7 @@ function AnimatedRoutes() {
           path="/"
           element={
             <motion.div
+              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
@@ -50,6 +51,7 @@ function AnimatedRoutes() {
           path="/about"
           element={
             <motion.div
+              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
@@ -64,6 +66,7 @@ function AnimatedRoutes() {
           path="/skills"
           element={
             <motion.div
+              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
@@ -78,6 +81,7 @@ function AnimatedRoutes() {
           path="/projects"
           element={
             <motion.div
+              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
@@ -92,6 +96,7 @@ function AnimatedRoutes() {
           path="/blog"
           element={
             <motion.div
+              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
@@ -106,6 +111,7 @@ function AnimatedRoutes() {
           path="/contact"
           element={
             <motion.div
+              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
@@ -133,8 +139,8 @@ function App() {
     let tidy;
     const t = setTimeout(() => {
       setSplashExiting(true);
-      tidy = setTimeout(() => setShowSplash(false), 600); 
-    }, 7600); 
+      tidy = setTimeout(() => setShowSplash(false), 600);
+    }, 7600);
     return () => {
       clearTimeout(t);
       if (tidy) clearTimeout(tidy);
@@ -170,7 +176,7 @@ function App() {
           <Splash exiting={splashExiting} />
         ) : (
           <div
-            className={`min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white transition-opacity duration-500 ${
+            className={`min-h-screen transition-opacity duration-500 ${
               appVisible ? "opacity-100" : "opacity-0"
             }`}
           >
