@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { usePortfolio } from "../Context"; // Fixed path
 
 const SkillsSection = () => {
@@ -158,6 +159,16 @@ const SkillsSection = () => {
             <h4 className="text-xl font-bold text-white mb-2">100+ Students</h4>
             <p className="text-gray-300">Mentored and guided</p>
           </div>
+        </div>
+
+        {/* Learn more link to full About page */}
+        <div className="text-center mt-10">
+          <Link
+            to="/about"
+            className="inline-block px-6 py-3 glass-btn font-semibold mt-4 hover:scale-105 transition-transform duration-200"
+          >
+            Want to know more? Read my About →
+          </Link>
         </div>
       </div>
     </section>

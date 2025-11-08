@@ -4,8 +4,9 @@ const Splash = () => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // animate progress to 100% over ~3s to slow the splash slightly
-    const t = setTimeout(() => setProgress(100), 600);
+    // Start the progress animation almost immediately so it completes
+    // roughly in time with the app's splash timeout (3.2s in App.js).
+    const t = setTimeout(() => setProgress(100), 50);
     return () => clearTimeout(t);
   }, []);
 
@@ -21,9 +22,28 @@ const Splash = () => {
             <img
               src="/images/logo/oceanic-logo.png"
               alt="Oceaniccoder Logo"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
               className="w-24 h-24 object-contain animate-[spin_12s_linear_infinite]"
               style={{ animationTimingFunction: "cubic-bezier(.2,.9,.3,1)" }}
+              onError={(e) => {
+                // if the image fails to load (CI/path mismatch), hide it and
+                // reveal a simple text fallback so the splash remains visible
+                try {
+                  e.target.style.display = "none";
+                  const el =
+                    e.target.parentNode.querySelector(".splash-fallback");
+                  if (el) el.style.display = "flex";
+                } catch (err) {}
+              }}
             />
+            <div
+              className="splash-fallback w-24 h-24 rounded-full bg-cyan-50 dark:bg-gray-900 text-cyan-500 dark:text-cyan-300 font-bold text-2xl items-center justify-center hidden"
+              aria-hidden
+            >
+              O
+            </div>
           </div>
 
           {/* Subtle ripple SVG */}
@@ -56,7 +76,8 @@ const Splash = () => {
               className="h-2 bg-gradient-to-r from-cyan-400 to-blue-500"
               style={{
                 width: `${progress}%`,
-                transition: "width 3s ease-in-out",
+                // match the visual duration to the splash timeout in App.js (~3.2s)
+                transition: "width 3.1s ease-in-out",
               }}
             />
           </div>
