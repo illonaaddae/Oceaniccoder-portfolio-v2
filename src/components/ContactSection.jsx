@@ -10,7 +10,7 @@ import {
   FaPaperPlane,
   FaCheckCircle,
 } from "react-icons/fa";
-import { databases, databaseId, collectionId } from "../lib/appwrite";
+// Appwrite integration removed temporarily
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -214,32 +214,7 @@ const ContactSection = () => {
                     );
                   }
 
-                  // 🔹 Save submission to Appwrite (best-effort)
-                  try {
-                    if (!databaseId || !collectionId) {
-                      console.info(
-                        "Appwrite DB save skipped: databaseId or collectionId not configured"
-                      );
-                    } else {
-                      // Appwrite Tables/Rows API expects createRow in SQL mode
-                      // Send a plain object representing the row data
-                      await databases.createRow(databaseId, collectionId, {
-                        name: formData.name,
-                        email: formData.email,
-                        subject: formData.subject,
-                        message: formData.message,
-                        createdAt: new Date().toISOString(),
-                      });
-                    }
-                  } catch (dbError) {
-                    // non-fatal — continue to send the email even if DB save fails
-                    // log for visibility (include message to help debugging)
-                    // eslint-disable-next-line no-console
-                    console.warn(
-                      "Appwrite DB save failed:",
-                      dbError && dbError.message ? dbError.message : dbError
-                    );
-                  }
+                  // Appwrite integration removed temporarily; emails will still be sent via Web3Forms
 
                   // Build a nicer, user-aware subject for incoming emails.
                   // If the visitor provided a subject, include it; otherwise create one using their name.
