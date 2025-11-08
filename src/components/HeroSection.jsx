@@ -11,6 +11,7 @@ const HeroSection = () => {
   const [currentRole, setCurrentRole] = useState(0);
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const navigate = useNavigate();
 
   const roles = React.useMemo(
@@ -119,7 +120,10 @@ const HeroSection = () => {
                   src="/images/profile.webp"
                   srcSet="/images/profile.webp 1x, /images/profile.webp 2x"
                   alt="Illona Addae - Professional Developer Portrait"
-                  className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
+                  className={`w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 hero-img ${
+                    profileLoaded ? "loaded" : ""
+                  }`}
+                  onLoad={() => setProfileLoaded(true)}
                   loading="eager"
                   decoding="async"
                   fetchPriority="high"

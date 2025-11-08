@@ -10,8 +10,8 @@ export default function Splash({ exiting = false }) {
     const startDelay = 80;
     const t = setTimeout(() => setProgress(100), startDelay);
 
-    // Slow down typing a bit for a nicer feel
-    const totalTypingMs = 3600; // ms
+    // Slow down typing a bit so users can read the welcome message
+    const totalTypingMs = 4800; // ms
     const chars = fullText.length;
     const intervalMs = Math.max(40, Math.floor(totalTypingMs / chars));
     let idx = 0;
@@ -20,9 +20,9 @@ export default function Splash({ exiting = false }) {
       setTyped(fullText.substring(0, idx));
       if (idx >= chars) {
         clearInterval(typeTimer);
-        // typing finished — show welcome briefly
+        // typing finished — show welcome for a bit longer so users notice
         setShowWelcome(true);
-        setTimeout(() => setShowWelcome(false), 800);
+        setTimeout(() => setShowWelcome(false), 2400);
       }
     }, intervalMs);
 
