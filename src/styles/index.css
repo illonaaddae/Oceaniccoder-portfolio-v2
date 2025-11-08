@@ -126,7 +126,8 @@ body {
     var(--bg-tertiary) 100%
   );
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  /* Avoid large background repaints on theme/variable change which can flash on mobile */
+  transition: color 0.2s ease;
   min-height: 100vh;
 }
 
@@ -222,6 +223,44 @@ textarea:focus {
   50% {
     background-position: 100% 50%;
   }
+}
+
+/* Spinner keyframes with WebKit prefix for broader mobile support */
+@-webkit-keyframes spin {
+  from {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* utility to apply spinner animation */
+.spin-anim {
+  -webkit-animation: spin 14s linear infinite;
+  animation: spin 14s linear infinite;
+  transform-origin: center center;
+}
+
+/* Hero image fade-in to prevent sudden repaint flash on mobile */
+.hero-img {
+  opacity: 0;
+  transition: opacity 360ms ease-in-out, transform 360ms ease-in-out;
+  will-change: opacity, transform;
+}
+.hero-img.loaded {
+  opacity: 1;
 }
 
 @keyframes liquid1 {
