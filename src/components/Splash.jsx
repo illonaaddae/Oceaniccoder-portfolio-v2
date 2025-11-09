@@ -40,7 +40,7 @@ export default function Splash({ exiting = false }) {
   // Prefer using a CSS class so vendor-prefixed rules in index.css apply
   const spinClass = prefersReducedMotion ? "" : "spin-anim";
 
-  const containerClass = `fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black transition-all duration-500 ease-in-out ${
+  const containerClass = `splash-root fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black transition-all duration-500 ease-in-out ${
     exiting ? "opacity-0 scale-95 pointer-events-none" : "opacity-100"
   }`;
 
