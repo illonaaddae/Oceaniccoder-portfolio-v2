@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FaArrowRight,
   FaDownload,
@@ -12,7 +12,12 @@ const HeroSection = () => {
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
   const navigate = useNavigate();
+  const timeoutRef = useRef(null);
+  const pauseTimeoutRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
+  const imgRef = useRef(null);
 
   const roles = React.useMemo(
     () => [
@@ -24,7 +29,7 @@ const HeroSection = () => {
       "Future Robotics Innovator",
       "Community Tech Leader",
       "Creative Coder",
-      " WordPress & Web Experience Designer",
+      "WordPress & Web Experience Designer",
       "UI/UX Thinker",
       "Continuous Learner",
       "Oceaniccoder 🌊",
@@ -37,11 +42,22 @@ const HeroSection = () => {
     const typingSpeed = isDeleting ? 50 : 100;
     const pauseTime = isDeleting ? 500 : 2000;
 
-    const timeout = setTimeout(() => {
+    // Clear any existing timeouts
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
       if (!isDeleting && displayText.length < currentString.length) {
         setDisplayText(currentString.substring(0, displayText.length + 1));
       } else if (!isDeleting && displayText.length === currentString.length) {
-        setTimeout(() => setIsDeleting(true), pauseTime);
+        pauseTimeoutRef.current = setTimeout(
+          () => setIsDeleting(true),
+          pauseTime
+        );
       } else if (isDeleting && displayText.length > 0) {
         setDisplayText(currentString.substring(0, displayText.length - 1));
       } else if (isDeleting && displayText.length === 0) {
@@ -50,28 +66,105 @@ const HeroSection = () => {
       }
     }, typingSpeed);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (pauseTimeoutRef.current) {
+        clearTimeout(pauseTimeoutRef.current);
+      }
+    };
   }, [displayText, isDeleting, currentRole, roles]);
 
-  const scrollToProjects = () => {
+  // Cleanup scroll timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Check if image is already loaded/cached on mount to prevent flash
+  useEffect(() => {
+    // First, check if image is already cached using a new Image object
+    const img = new Image();
+    img.src = "/images/profile.webp";
+
+    let checkTimeout = null;
+
+    // Also check the actual img element once it's mounted (with a small delay)
+    const checkImgElement = () => {
+      if (imgRef.current) {
+        const element = imgRef.current;
+        if (element.complete && element.naturalWidth > 0) {
+          // Image is already loaded in the element - show immediately
+          setProfileLoaded(true);
+          setImageReady(true);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (img.complete || img.naturalWidth > 0) {
+      // Image is already cached/loaded - show immediately
+      setProfileLoaded(true);
+      setImageReady(true);
+    } else {
+      // Check the actual element after a short delay (to allow DOM to render)
+      checkTimeout = setTimeout(() => {
+        if (!checkImgElement()) {
+          // Image not cached, will be handled by onLoad
+        }
+      }, 50);
+
+      // Wait for image to load if not cached
+      img.onload = () => {
+        setProfileLoaded(true);
+        // Small delay to ensure smooth transition
+        requestAnimationFrame(() => {
+          setImageReady(true);
+        });
+      };
+      img.onerror = () => {
+        // Fallback: still show the image even if preload failed
+        setProfileLoaded(true);
+        setImageReady(true);
+      };
+    }
+
+    return () => {
+      if (checkTimeout) {
+        clearTimeout(checkTimeout);
+      }
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, []);
+
+  const scrollToProjects = useCallback(() => {
     navigate("/projects");
-  };
+  }, [navigate]);
 
-  const scrollToContact = () => {
+  const scrollToContact = useCallback(() => {
     navigate("/contact");
-  };
+  }, [navigate]);
 
-  // (removed direct about navigation; use the About route from navbar or skills CTA)
-
-  const scrollToSkills = () => {
+  const scrollToSkills = useCallback(() => {
     try {
+      // Clear any existing scroll timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
       const el = document.getElementById("skills");
       const nav = document.querySelector("nav");
       const navHeight = (nav && nav.offsetHeight) || 80;
 
       const scrollInto = (target) => {
         const rect = target.getBoundingClientRect();
-        const top = rect.top + window.scrollY - navHeight - 12; // small offset
+        const top = rect.top + window.scrollY - navHeight - 12;
         window.scrollTo({ top, left: 0, behavior: "smooth" });
       };
 
@@ -82,15 +175,16 @@ const HeroSection = () => {
 
       // If skills section isn't on this route, navigate to home then scroll
       navigate("/");
-      setTimeout(() => {
+      scrollTimeoutRef.current = setTimeout(() => {
         const el2 = document.getElementById("skills");
         if (el2) scrollInto(el2);
+        scrollTimeoutRef.current = null;
       }, 350);
     } catch (e) {
-      // fallback: navigate to home page
+      // Fallback: navigate to home page
       navigate("/");
     }
-  };
+  }, [navigate]);
 
   return (
     <section
@@ -115,20 +209,43 @@ const HeroSection = () => {
             <div className="absolute -inset-4 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
 
             <div className="relative">
-              <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-88 md:h-88 lg:w-96 lg:h-96 xl:w-[25rem] xl:h-[25rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
+              <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-[22rem] md:h-[22rem] lg:w-96 lg:h-96 xl:w-[25rem] xl:h-[25rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300 bg-gradient-to-br from-cyan-900/20 via-blue-900/20 to-purple-900/20">
                 <img
+                  ref={imgRef}
                   src="/images/profile.webp"
                   srcSet="/images/profile.webp 1x, /images/profile.webp 2x"
                   alt="Illona Addae - Professional Developer Portrait"
-                  className={`w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 hero-img ${
-                    profileLoaded ? "loaded" : ""
+                  className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${
+                    imageReady ? "loaded" : ""
                   }`}
-                  onLoad={() => setProfileLoaded(true)}
+                  onLoad={() => {
+                    // Only set if not already set (prevents double-setting if cache check already set it)
+                    if (!profileLoaded) {
+                      setProfileLoaded(true);
+                    }
+                    // Use requestAnimationFrame for smoother transition
+                    if (!imageReady) {
+                      requestAnimationFrame(() => {
+                        setImageReady(true);
+                      });
+                    }
+                  }}
                   loading="eager"
                   decoding="async"
                   fetchPriority="high"
                   width="1200"
                   height="1200"
+                  style={{
+                    // Prevent flash by using will-change and GPU acceleration
+                    willChange: imageReady ? "transform" : "opacity",
+                    transform: "translateZ(0)",
+                    backfaceVisibility: "hidden",
+                    // If image is ready from cache, show immediately (bypass transition)
+                    opacity: imageReady ? 1 : undefined,
+                    transition: imageReady
+                      ? "opacity 0ms ease-out, transform 300ms ease-out"
+                      : undefined,
+                  }}
                 />
               </div>
             </div>
@@ -161,10 +278,9 @@ const HeroSection = () => {
 
           <p className="text-base sm:text-lg lg:text-xl xl:text-2xl max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto leading-relaxed text-gray-200 dark:text-gray-300 font-light">
             <span className="text-white font-medium">
-              I create products that connects people.
-            </span>{" "}
-            From elegant websites to community-driven tech ecosystems, I build
-            with empathy, clarity, and purpose.
+              "In a world of can'ts, she whispers I can, and in doing so, she
+              became an unstoppable force."
+            </span>
           </p>
         </div>
 
@@ -187,6 +303,7 @@ const HeroSection = () => {
           <button
             onClick={scrollToProjects}
             className="glass-btn bg-gradient-to-r from-cyan-500/30 to-blue-500/30 backdrop-blur-md border border-cyan-400/40 text-white px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-cyan-500/40 hover:to-blue-500/40 transition-all duration-300 shadow-lg"
+            aria-label="Navigate to projects section"
           >
             <span>🚀</span>
             View My Projects
@@ -196,6 +313,7 @@ const HeroSection = () => {
           <button
             onClick={scrollToContact}
             className="glass-btn bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md border border-green-400/40 text-green-300 px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-green-500/30 hover:to-emerald-500/30 transition-all duration-300"
+            aria-label="Navigate to contact section"
           >
             <span>💼</span>
             Hire Me
@@ -208,7 +326,10 @@ const HeroSection = () => {
           <a
             href="https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
             download
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-3 text-gray-300 hover:text-cyan-400 transition-colors duration-300 group text-base font-medium"
+            aria-label="Download CV resume"
           >
             <FaDownload className="w-4 h-4 group-hover:animate-bounce" />
             <span>Download CV</span>

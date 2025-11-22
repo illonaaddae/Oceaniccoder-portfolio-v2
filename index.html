@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <!-- Critical resources preload -->
-    <link rel="preload" as="image" href="%PUBLIC_URL%/images/profile.webp" />
-    <link rel="preload" as="image" href="%PUBLIC_URL%/images/logo-icon.png" />
+    <link rel="preload" as="image" href="/images/profile.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/images/logo-icon.png" />
 
     <!-- DNS Prefetch and Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,9 +12,9 @@
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
   <!-- Favicons / PWA manifest (using temporary designer-provided logo files) -->
-  <link rel="icon" href="%PUBLIC_URL%/images/logo/favicon.ico" />
-  <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/images/logo/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/images/logo/favicon-16x16.png" />
+  <link rel="icon" href="/images/logo/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/logo/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/logo/favicon-16x16.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#01b4e4" />
     <meta
@@ -35,7 +35,7 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://oceaniccoder.dev" />
-    <meta property="og:image" content="%PUBLIC_URL%/images/profile.webp" />
+    <meta property="og:image" content="/images/profile.webp" />
 
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -48,10 +48,10 @@
       name="twitter:description"
       content="Full-Stack Developer & Tech Community Leader"
     />
-    <meta name="twitter:image" content="%PUBLIC_URL%/images/profile.webp" />
+    <meta name="twitter:image" content="/images/profile.webp" />
 
-  <link rel="apple-touch-icon" href="%PUBLIC_URL%/images/logo/apple-touch-icon.png" />
-  <link rel="manifest" href="%PUBLIC_URL%/images/logo/site.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/logo/apple-touch-icon.png" />
+  <link rel="manifest" href="/images/logo/site.webmanifest" />
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -84,5 +84,7 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
   </body>
 </html>
+

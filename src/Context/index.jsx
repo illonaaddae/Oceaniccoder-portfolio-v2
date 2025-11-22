@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { SKILLS_DATA } from "../utils/data/skills";
+import { SKILLS_DATA } from "../utils/data/skills.jsx";
 import { PROJECTS_DATA } from "../utils/data/projects";
 import { BLOGS_DATA } from "../utils/data/blogs";
 
@@ -26,7 +26,7 @@ export const PortfolioProvider = ({ children }) => {
 
   // Navigation items
   // Allow an external blog URL via env variable; fallback to a placeholder
-  const blogUrl = process.env.REACT_APP_BLOG_URL || "https://your-blog.example";
+  const blogUrl = import.meta.env.VITE_BLOG_URL || "https://your-blog.example";
 
   const navItems = [
     { id: "home", label: "Home", href: "/" },

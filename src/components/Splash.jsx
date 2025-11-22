@@ -37,9 +37,6 @@ export default function Splash({ exiting = false }) {
     window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Prefer using a CSS class so vendor-prefixed rules in index.css apply
-  const spinClass = prefersReducedMotion ? "" : "spin-anim";
-
   const containerClass = `splash-root fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black transition-all duration-500 ease-in-out ${
     exiting ? "opacity-0 scale-95 pointer-events-none" : "opacity-100"
   }`;
@@ -47,17 +44,34 @@ export default function Splash({ exiting = false }) {
   return (
     <div className={containerClass}>
       <div className="flex flex-col items-center gap-6">
-        <div className="relative w-40 h-40">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-20 animate-pulse blur-lg" />
+        <div className="relative w-40 h-40 flex items-center justify-center">
+          {/* Animated outer ring */}
+          {!prefersReducedMotion && (
+            <div className="absolute inset-0 rounded-full border-4 border-cyan-400/30 loader-ring loader-ring-outer"></div>
+          )}
+          
+          {/* Animated middle ring */}
+          {!prefersReducedMotion && (
+            <div className="absolute inset-2 rounded-full border-3 border-blue-400/40 loader-ring loader-ring-middle"></div>
+          )}
+          
+          {/* Animated inner ring */}
+          {!prefersReducedMotion && (
+            <div className="absolute inset-6 rounded-full border-2 border-green-400/50 loader-ring loader-ring-inner"></div>
+          )}
 
-          <div className="absolute inset-4 rounded-full flex items-center justify-center bg-white dark:bg-black shadow-2xl">
+          {/* Glowing pulse background */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-20 blur-lg loader-pulse"></div>
+
+          {/* Logo container */}
+          <div className="absolute inset-4 rounded-full flex items-center justify-center bg-white dark:bg-black shadow-2xl z-10">
             <img
               src="/images/logo/oceanic-logo.png"
               alt="Oceaniccoder Logo"
               loading="eager"
               decoding="async"
               fetchPriority="high"
-              className={`w-24 h-24 object-contain ${spinClass}`}
+              className="w-24 h-24 object-contain"
               onError={(e) => {
                 try {
                   e.target.style.display = "none";
@@ -71,7 +85,7 @@ export default function Splash({ exiting = false }) {
             />
 
             <div
-              className="splash-fallback hidden w-24 h-24 rounded-full bg-cyan-50 dark:bg-gray-900 text-cyan-500 dark:text-cyan-300 font-bold text-2xl"
+              className="splash-fallback hidden w-24 h-24 rounded-full bg-cyan-50 dark:bg-gray-900 text-cyan-500 dark:text-cyan-300 font-bold text-2xl items-center justify-center"
               aria-hidden
             >
               O
