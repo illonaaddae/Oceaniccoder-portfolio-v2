@@ -17,6 +17,22 @@ export const PROJECTS_DATA = [
   },
   {
     id: 2,
+    title: "SAKAMA Petroleum",
+    description:
+      "A modern, responsive website for SAKAMA Petroleum featuring a clean design, smooth animations, and optimized performance built with React and Vite.",
+    longDescription:
+      "A professional petroleum company website built with React and Vite, showcasing services, company information, and contact details. Features include responsive design, fast load times, and modern UI/UX best practices. Deployed on Netlify with optimized build configuration.",
+    category: "Web Apps",
+    technologies: ["React", "Vite", "JavaScript", "CSS", "HTML5"],
+    image: "/images/Sakama-petroleum.png",
+    liveUrl: "https://sakama-petroleum.netlify.app/",
+    githubUrl: "https://github.com/illonaaddae/SAKAMA-Petroleum",
+    featured: true,
+    status: "Completed",
+    year: "2025",
+  },
+  {
+    id: 3,
     title: "Color Scheme Generator App",
     description:
       "A modern color scheme generator that builds harmonious palettes from a seed color with multiple harmony modes and one-click HEX copying.",
@@ -33,7 +49,7 @@ export const PROJECTS_DATA = [
   },
 
   {
-    id: 3,
+    id: 4,
     title: "Secure Password Generator",
     description:
       "A responsive password generator that creates secure, customizable passwords with a sleek dark/light theme toggle and one-click copy-to-clipboard.",
@@ -49,7 +65,23 @@ export const PROJECTS_DATA = [
     year: "2025",
   },
   {
-    id: 4,
+    id: 5,
+    title: "Omnifood Website",
+    description:
+      "Omnifood is an AI-powered food subscription that will make you eat healthy again, 365 days per year. ",
+    longDescription:
+      "The smart 365-days-per-year food subscription that will make you eat healthy again. Tailored to your personal tastes and nutritional needs.It's tailored to your personal tastes and nutritional needs. Developed using HTML ,CSS and a touch of JavaScript. Fully customized CSS.",
+    category: "Web Apps",
+    technologies: ["HTML", "CSS"],
+    image: "/images/Omninifood.png",
+    liveUrl: "https://illona-omnifood.netlify.app/",
+    githubUrl: "https://github.com/illonaaddae/Omni-food",
+    featured: true,
+    status: "Completed",
+    year: "2023",
+  },
+  {
+    id: 6,
     title: "E-commerce Platform",
     description:
       "A full-fledged e-commerce platform where users can browse products, add to cart, and make purchases with integrated payment processing.",
@@ -64,8 +96,9 @@ export const PROJECTS_DATA = [
     status: "Planning",
     year: "2025",
   },
+
   {
-    id: 5,
+    id: 7,
     title: "Image Recognition App",
     description:
       "A computer vision application that can identify objects like cars and pets in images using OpenCV and machine learning.",
@@ -87,7 +120,7 @@ export const PROJECTS_DATA = [
     year: "2025",
   },
   {
-    id: 6,
+    id: 8,
     title: "Weather Forecast App",
     description:
       "A comprehensive weather application that provides real-time weather data, 7-day forecasts, and interactive weather maps.",
@@ -104,7 +137,7 @@ export const PROJECTS_DATA = [
   },
 
   {
-    id: 7,
+    id: 9,
     title: "Blog Platform",
     description:
       "A full-stack blog platform where users can create, edit, delete, and view blog posts with user authentication and rich text editing.",

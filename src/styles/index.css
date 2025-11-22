@@ -1,8 +1,12 @@
+/* All @import statements must come first (CSS specification) */
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Ysabeau+Office:wght@300;400;500;600;700&display=swap");
+@import "./animations.css";
+@import "./components.css";
+
+/* Tailwind directives must come after all @import statements */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import "./components.css";
 
 /* ✅ Optimized CSS Variables */
 :root {
@@ -131,6 +135,25 @@ body {
   min-height: 100vh;
 }
 
+/* Force GPU compositing for loader and animated elements to avoid mobile repaint flicker */
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Splash container: make it a promoted layer to avoid being dropped by mobile compositor */
+.splash-root {
+  will-change: opacity, transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
 /* ✅ Optimized Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -253,14 +276,145 @@ textarea:focus {
   transform-origin: center center;
 }
 
+/* Ensure spinning images are compositor-friendly on mobile */
+.spin-anim,
+.splash-root img {
+  will-change: transform, opacity;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Mobile-friendly loader rings animation */
+.loader-ring {
+  will-change: transform;
+  -webkit-transform: translateZ(0) rotate(0deg);
+  transform: translateZ(0) rotate(0deg);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+  transform-origin: center center;
+}
+
+/* Outer ring - slowest rotation */
+.loader-ring-outer {
+  -webkit-animation: loader-rotate 8s linear infinite;
+  animation: loader-rotate 8s linear infinite;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+
+/* Middle ring - medium rotation (opposite direction) */
+.loader-ring-middle {
+  -webkit-animation: loader-rotate-reverse 6s linear infinite;
+  animation: loader-rotate-reverse 6s linear infinite;
+  border-top-color: transparent;
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+}
+
+/* Inner ring - fastest rotation */
+.loader-ring-inner {
+  -webkit-animation: loader-rotate 4s linear infinite;
+  animation: loader-rotate 4s linear infinite;
+  border-top-color: transparent;
+  border-right-color: transparent;
+}
+
+/* Smooth pulse animation for background glow */
+.loader-pulse {
+  -webkit-animation: loader-pulse 2s ease-in-out infinite;
+  animation: loader-pulse 2s ease-in-out infinite;
+}
+
+/* Keyframes for ring rotation (clockwise) */
+@-webkit-keyframes loader-rotate {
+  from {
+    -webkit-transform: translateZ(0) rotate(0deg);
+    transform: translateZ(0) rotate(0deg);
+  }
+  to {
+    -webkit-transform: translateZ(0) rotate(360deg);
+    transform: translateZ(0) rotate(360deg);
+  }
+}
+
+@keyframes loader-rotate {
+  from {
+    transform: translateZ(0) rotate(0deg);
+  }
+  to {
+    transform: translateZ(0) rotate(360deg);
+  }
+}
+
+/* Keyframes for ring rotation (counter-clockwise) */
+@-webkit-keyframes loader-rotate-reverse {
+  from {
+    -webkit-transform: translateZ(0) rotate(0deg);
+    transform: translateZ(0) rotate(0deg);
+  }
+  to {
+    -webkit-transform: translateZ(0) rotate(-360deg);
+    transform: translateZ(0) rotate(-360deg);
+  }
+}
+
+@keyframes loader-rotate-reverse {
+  from {
+    transform: translateZ(0) rotate(0deg);
+  }
+  to {
+    transform: translateZ(0) rotate(-360deg);
+  }
+}
+
+/* Keyframes for pulse animation */
+@-webkit-keyframes loader-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    -webkit-transform: translateZ(0) scale(1);
+    transform: translateZ(0) scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    -webkit-transform: translateZ(0) scale(1.05);
+    transform: translateZ(0) scale(1.05);
+  }
+}
+
+@keyframes loader-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateZ(0) scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: translateZ(0) scale(1.05);
+  }
+}
+
 /* Hero image fade-in to prevent sudden repaint flash on mobile */
 .hero-img {
   opacity: 0;
-  transition: opacity 360ms ease-in-out, transform 360ms ease-in-out;
+  transition: opacity 200ms ease-out, transform 300ms ease-out;
   will-change: opacity, transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
 }
 .hero-img.loaded {
   opacity: 1;
+  /* Instant transition if image is already cached */
+  transition: opacity 0ms ease-out, transform 300ms ease-out;
 }
 
 @keyframes liquid1 {

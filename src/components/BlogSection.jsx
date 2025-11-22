@@ -36,7 +36,7 @@ const BlogSection = () => {
   const blogItem = navItems.find((n) => n.id === "blog");
   const blogHref =
     blogItem?.href ||
-    process.env.REACT_APP_BLOG_URL ||
+    import.meta.env.VITE_BLOG_URL ||
     "https://your-blog.example";
 
   const previewsSource =

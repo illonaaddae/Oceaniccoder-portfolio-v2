@@ -550,14 +550,10 @@ const AboutSection = () => {
                   </h3>
 
                   <div className="relative -mx-6 -mb-6">
-                    <div className="relative overflow-hidden rounded-b-2xl shadow-2xl border border-cyan-400/30">
-                      <div
-                        className="relative"
-                        style={{
-                          paddingBottom: "85%",
-                        }}
-                      >
-                        {/* Image remains the same */}
+                    <div className="relative overflow-hidden rounded-b-2xl shadow-2xl border border-cyan-400/30 bg-gradient-to-br from-gray-900 to-gray-800 gallery-container">
+                      {/* Improved image container - adapts to image size while maintaining responsive height */}
+                      <div className="relative w-full gallery-image-wrapper" style={{ minHeight: "350px", maxHeight: "70vh" }}>
+                        <div className="flex items-center justify-center w-full h-full p-4 sm:p-6 md:p-8">
                         <img
                           loading="lazy"
                           decoding="async"
@@ -565,7 +561,7 @@ const AboutSection = () => {
                           height="800"
                           src={galleryImages[currentImageIndex].src}
                           alt={galleryImages[currentImageIndex].alt}
-                          className="absolute inset-0 w-full h-full object-cover bg-gradient-to-br from-gray-900 to-gray-800 transition-all duration-700 hover:scale-105"
+                            className="gallery-main-image"
                           style={{
                             objectPosition: "center",
                           }}
@@ -574,6 +570,8 @@ const AboutSection = () => {
                             e.target.src = "/images/profile.webp";
                           }}
                         />
+                        </div>
+                      </div>
 
                         {/* Navigation arrows remain the same */}
                         <button
@@ -601,13 +599,12 @@ const AboutSection = () => {
                           </div>
                         </div>
 
-                        {/* Caption with proper font sizing */}
-                        <div className="absolute bottom-2 left-2 right-14 z-10">
-                          <div className="glass-card bg-black/60 backdrop-blur-sm border border-white/10 rounded-lg px-2.5 py-1.5 shadow-lg">
-                            <p className="text-white text-caption font-medium leading-tight">
+                        {/* Caption with proper font sizing - improved for better visibility */}
+                        <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-14 sm:right-16 z-10">
+                          <div className="glass-card bg-black/80 backdrop-blur-md border border-white/20 rounded-lg px-3 py-2 shadow-xl max-w-md">
+                            <p className="text-white text-caption sm:text-base font-medium leading-relaxed">
                               {galleryImages[currentImageIndex].caption}
                             </p>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -724,14 +721,14 @@ const AboutSection = () => {
           {/* Career Journey Tab */}
           {activeTab === "journey" && (
             <div className="space-y-8">
-              <div className="glass-card p-6 sm:p-8">
-                <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
-                  <FaRocket className="text-cyan-400" />
+              <div className="glass-card p-6 sm:p-8 journey-container">
+                <h3 className="text-2xl font-bold text-white journey-title mb-8 flex items-center gap-3">
+                  <FaRocket className="text-cyan-400 journey-icon" />
                   Career Journey
                 </h3>
                 <div className="space-y-8">
                   {journey.map((item, index) => (
-                    <div key={index} className="relative">
+                    <div key={index} className="relative journey-item">
                       {/* Stack on mobile and show row on small+ screens so the card fills available width */}
                       {/* Ensure items align to the top so the timeline dot + line sit at the card top (not centered) */}
                       {/* keep items in a left-aligned row (wrap if needed) so timeline stays to the left
@@ -742,54 +739,54 @@ const AboutSection = () => {
                             connector starts just below the dot and stretches to the bottom of the item */}
                         <div className="w-8 sm:w-12 flex-shrink-0 relative flex items-start justify-center self-stretch">
                           <div
-                            className={`absolute left-1/2 -translate-x-1/2 top-5 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r ${item.color} rounded-full shadow-lg z-20`}
+                            className={`absolute left-1/2 -translate-x-1/2 top-5 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r ${item.color} rounded-full shadow-lg z-20 journey-dot`}
                           />
 
                           {index < journey.length - 1 && (
-                            <div className="absolute left-1/2 -translate-x-1/2 top-11 bottom-4 w-[2px] bg-gradient-to-b from-cyan-400/70 to-transparent opacity-95 z-10" />
+                            <div className="absolute left-1/2 -translate-x-1/2 top-11 bottom-4 w-[2px] bg-gradient-to-b from-cyan-400/70 to-transparent opacity-95 z-10 journey-line" />
                           )}
                         </div>
 
                         {/* content column: add a small horizontal padding so content doesn't touch the timeline */}
-                        <div className="flex-1 glass-card p-3 sm:p-6 hover:scale-105 transition-all duration-300 min-w-0 sm:pl-4">
+                        <div className="flex-1 glass-card p-3 sm:p-6 hover:scale-105 transition-all duration-300 min-w-0 sm:pl-4 journey-card">
                           <div className="flex flex-wrap items-start justify-between mb-3">
                             <div>
-                              <h4 className="text-xl font-bold text-white">
+                              <h4 className="text-xl font-bold text-white journey-role">
                                 {item.role}
                               </h4>
-                              <p className="text-cyan-400 font-medium">
+                              <p className="text-cyan-400 font-medium journey-company">
                                 {item.company}
                               </p>
                             </div>
                             <div className="text-right">
                               {/* Enhanced period text with better visibility */}
-                              <p className="text-sm text-gray-200 font-medium bg-gray-700/30 px-2 py-1 rounded">
+                              <p className="text-sm text-gray-200 font-medium bg-gray-700/30 px-2 py-1 rounded journey-period">
                                 {item.period}
                               </p>
                               {/* Enhanced location text with better visibility */}
-                              <p className="text-xs text-gray-300 flex items-center gap-1 mt-1">
-                                <FaMapMarkerAlt className="w-3 h-3 text-cyan-400" />
-                                <span className="bg-gray-700/20 px-1.5 py-0.5 rounded text-gray-200">
+                              <p className="text-xs text-gray-300 flex items-center gap-1 mt-1 journey-location-wrapper">
+                                <FaMapMarkerAlt className="w-3 h-3 text-cyan-400 journey-location-icon" />
+                                <span className="bg-gray-700/20 px-1.5 py-0.5 rounded text-gray-200 journey-location">
                                   {item.location}
                                 </span>
                               </p>
                             </div>
                           </div>
-                          <p className="text-gray-300 mb-4 text-story-base">
+                          <p className="text-gray-300 mb-4 text-story-base journey-description">
                             {item.description}
                           </p>
                           <div className="space-y-2">
-                            <h5 className="text-sm font-semibold text-white">
+                            <h5 className="text-sm font-semibold text-white journey-achievements-title">
                               Key Achievements:
                             </h5>
                             <ul className="space-y-1">
                               {item.achievements.map((achievement, i) => (
                                 <li
                                   key={i}
-                                  className="text-caption text-gray-300 flex items-start gap-2"
+                                  className="text-caption text-gray-300 flex items-start gap-2 journey-achievement"
                                 >
-                                  <span className="text-green-400 mt-1">•</span>
-                                  {achievement}
+                                  <span className="text-green-400 mt-1 journey-achievement-bullet">•</span>
+                                  <span className="journey-achievement-text">{achievement}</span>
                                 </li>
                               ))}
                             </ul>
@@ -814,24 +811,24 @@ const AboutSection = () => {
                 {education.map((edu, index) => (
                   <div
                     key={index}
-                    className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300"
+                    className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300 education-card"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="text-3xl">{edu.icon}</div>
+                      <div className="text-3xl text-blue-400 edu-icon">{edu.icon}</div>
                       <div className="flex-1">
-                        <h4 className="text-lg font-bold text-white">
+                        <h4 className="text-lg font-bold text-white edu-title mb-1">
                           {edu.degree}
                         </h4>
-                        <p className="text-cyan-400 font-medium">
+                        <p className="text-cyan-400 font-medium edu-institution mb-1">
                           {edu.institution}
                         </p>
-                        <p className="text-sm text-gray-400 mb-2">
+                        <p className="text-sm text-gray-400 edu-period mb-3">
                           {edu.period}
                         </p>
-                        <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1 rounded-full border border-green-500/30 mb-3">
+                        <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full border border-green-500/30 mb-3 font-medium shadow-sm edu-badge">
                           {edu.achievement}
                         </div>
-                        <p className="text-gray-300 text-sm">
+                        <p className="text-gray-300 text-sm leading-relaxed edu-description">
                           {edu.description}
                         </p>
                       </div>
@@ -848,33 +845,33 @@ const AboutSection = () => {
                 {certifications.map((cert, index) => (
                   <div
                     key={index}
-                    className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300"
+                    className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300 certification-card"
                   >
                     {/* Stack meta on small screens so long titles can use full width; align in a row on sm+ */}
                     <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-3">
                       <div className="flex-1 min-w-0">
                         {/* responsive title: slightly larger on tablets to improve readability, allow wrapping */}
-                        <h4 className="text-base sm:text-lg font-bold text-white">
+                        <h4 className="text-base sm:text-lg font-bold text-white cert-title mb-1">
                           {cert.title}
                         </h4>
-                        <p className="text-purple-400 font-medium">
+                        <p className="text-purple-400 font-medium cert-issuer mb-2">
                           {cert.issuer}
                         </p>
 
                         {/* Platform Tag */}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <span
-                            className={`inline-block text-xs px-2 py-1 rounded-full border border-current ${cert.platformColor} bg-current/10 font-medium`}
+                            className={`inline-block text-xs px-2.5 py-1 rounded-full border ${cert.platformColor} bg-current/10 font-medium text-current shadow-sm platform-tag`}
                           >
                             📚 {cert.platform}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-400 bg-gray-700/20 px-2 py-1 rounded cert-date">
                             {cert.date}
                           </span>
                         </div>
                       </div>
                       <div className="text-right ml-0 sm:ml-4 flex-shrink-0">
-                        <span className="inline-block text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 sm:whitespace-nowrap">
+                        <span className="inline-block text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 px-2.5 py-1 rounded border border-purple-500/30 sm:whitespace-nowrap font-medium shadow-sm cert-credential">
                           {cert.credential}
                         </span>
                       </div>
@@ -885,7 +882,7 @@ const AboutSection = () => {
                       {cert.skills.map((skill, i) => (
                         <span
                           key={i}
-                          className="text-xs bg-gray-700/50 text-gray-300 px-2 py-1 rounded"
+                          className="text-xs bg-gray-700/50 text-gray-300 px-2.5 py-1 rounded border border-gray-600/30 font-medium shadow-sm skill-tag"
                         >
                           {skill}
                         </span>

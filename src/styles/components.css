@@ -417,9 +417,226 @@ body[data-theme="light"] svg.text-white,
 
 [data-theme="light"] .glass-card {
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(16, 24, 32, 0.04);
-  box-shadow: 0 8px 24px rgba(16, 24, 32, 0.06);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
   color: var(--text-primary);
+}
+
+/* Light mode improvements for education section */
+[data-theme="light"] .education-card,
+[data-theme="light"] .certification-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(13, 148, 136, 0.25) !important;
+  box-shadow: 0 8px 32px rgba(13, 148, 136, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .education-card .edu-title,
+[data-theme="light"] .certification-card .cert-title {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .education-card .edu-institution,
+[data-theme="light"] .certification-card .cert-issuer {
+  color: #0891b2 !important;
+}
+
+[data-theme="light"] .education-card .edu-period,
+[data-theme="light"] .certification-card .cert-date {
+  color: var(--text-accent) !important;
+}
+
+[data-theme="light"] .education-card .edu-description {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="light"] .education-card .edu-icon {
+  color: #0891b2 !important;
+}
+
+/* Light mode improvements for badges and tags */
+[data-theme="light"] .edu-badge,
+[data-theme="light"] .cert-credential {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.15), rgba(16, 185, 129, 0.15)) !important;
+  border-color: rgba(5, 150, 105, 0.35) !important;
+  color: #047857 !important;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15) !important;
+}
+
+[data-theme="light"] .platform-tag {
+  background: rgba(147, 51, 234, 0.12) !important;
+  border-color: rgba(147, 51, 234, 0.3) !important;
+  color: #6b21a8 !important;
+}
+
+[data-theme="light"] .skill-tag {
+  background: rgba(148, 163, 184, 0.2) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="light"] .cert-date {
+  background: rgba(148, 163, 184, 0.15) !important;
+  color: var(--text-accent) !important;
+}
+
+/* Light mode improvements for section headings */
+[data-theme="light"] h3.text-white,
+[data-theme="light"] h4.text-white,
+[data-theme="light"] h5.text-white {
+  color: var(--text-primary) !important;
+}
+
+/* Light mode improvements for Career Journey section */
+[data-theme="light"] .journey-container {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(13, 148, 136, 0.25) !important;
+  box-shadow: 0 8px 32px rgba(13, 148, 136, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .journey-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(13, 148, 136, 0.2) !important;
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.1), 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .journey-title,
+[data-theme="light"] .journey-role,
+[data-theme="light"] .journey-achievements-title {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .journey-icon,
+[data-theme="light"] .journey-company,
+[data-theme="light"] .journey-location-icon {
+  color: #0891b2 !important;
+}
+
+[data-theme="light"] .journey-description,
+[data-theme="light"] .journey-achievement-text {
+  color: var(--text-secondary) !important;
+}
+
+/* Career Journey period tag (date badge) */
+[data-theme="light"] .journey-period {
+  background: rgba(148, 163, 184, 0.25) !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Career Journey location tag */
+[data-theme="light"] .journey-location {
+  background: rgba(148, 163, 184, 0.2) !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
+}
+
+[data-theme="light"] .journey-location-wrapper {
+  color: var(--text-accent) !important;
+}
+
+/* Career Journey achievements bullet and text */
+[data-theme="light"] .journey-achievement-bullet {
+  color: #047857 !important;
+}
+
+[data-theme="light"] .journey-achievement {
+  color: var(--text-secondary) !important;
+}
+
+/* Timeline elements in light mode */
+[data-theme="light"] .journey-dot {
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3) !important;
+}
+
+[data-theme="light"] .journey-line {
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 145, 178, 0.4),
+    rgba(8, 145, 178, 0.1)
+  ) !important;
+}
+
+/* Gallery improvements - ensure images display fully */
+.gallery-container {
+  position: relative;
+}
+
+.gallery-image-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.gallery-main-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  margin: 0 auto;
+  border-radius: 12px;
+  transition: transform 0.7s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.gallery-main-image:hover {
+  transform: scale(1.02);
+}
+
+/* Responsive gallery sizing */
+@media (max-width: 640px) {
+  .gallery-image-wrapper {
+    min-height: 300px !important;
+    max-height: 50vh !important;
+  }
+  
+  .gallery-main-image {
+    max-height: calc(50vh - 2rem) !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .gallery-image-wrapper {
+    min-height: 450px !important;
+    max-height: 60vh !important;
+  }
+  
+  .gallery-main-image {
+    max-height: calc(60vh - 3rem) !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .gallery-image-wrapper {
+    min-height: 500px !important;
+    max-height: 70vh !important;
+  }
+  
+  .gallery-main-image {
+    max-height: calc(70vh - 4rem) !important;
+  }
+}
+
+/* Gallery thumbnail improvements */
+.gallery-thumbnail {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Light mode gallery improvements */
+[data-theme="light"] .gallery-container {
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(241, 245, 249, 0.95)) !important;
+  border-color: rgba(13, 148, 136, 0.3) !important;
+}
+
+[data-theme="light"] .gallery-image-wrapper {
+  background: rgba(255, 255, 255, 0.5) !important;
 }
 
 /* ✅ Enhanced Text Animations */
