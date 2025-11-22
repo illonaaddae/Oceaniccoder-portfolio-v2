@@ -272,7 +272,7 @@ const ContactSection = () => {
                   ).toString().trim();
                   if (visitorEmail)
                     formDataToSend.set("reply_to", visitorEmail);
-                  
+
                   // Add timestamp to help with spam detection
                   formDataToSend.set("_timestamp", now.toString());
 
@@ -285,11 +285,11 @@ const ContactSection = () => {
                     // Note: Don't set Content-Type header - browser will set it automatically for FormData
                     // User-Agent header is not allowed in browser fetch requests
                     res = await fetch("https://api.web3forms.com/submit", {
-                      method: "POST",
-                      headers: {
-                        Accept: "application/json",
-                      },
-                      body: formDataToSend,
+                    method: "POST",
+                    headers: {
+                      Accept: "application/json",
+                    },
+                    body: formDataToSend,
                       signal: controller.signal,
                       // Enable CORS credentials if needed (default is 'same-origin')
                       mode: "cors",
@@ -541,11 +541,11 @@ const ContactSection = () => {
             {/* Response Time Note */}
             <div className="mt-6 space-y-3">
               <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg border border-cyan-500/20">
-                <p className="text-sm text-cyan-300">
-                  💡 <strong>Quick Response:</strong> I typically respond to
-                  messages within 24 hours. For urgent inquiries, feel free to
-                  reach out via LinkedIn or email directly.
-                </p>
+              <p className="text-sm text-cyan-300">
+                💡 <strong>Quick Response:</strong> I typically respond to
+                messages within 24 hours. For urgent inquiries, feel free to
+                reach out via LinkedIn or email directly.
+              </p>
               </div>
               <div className="p-3 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-lg border border-purple-500/10">
                 <p className="text-xs text-gray-400">

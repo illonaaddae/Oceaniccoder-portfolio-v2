@@ -554,22 +554,22 @@ const AboutSection = () => {
                       {/* Improved image container - adapts to image size while maintaining responsive height */}
                       <div className="relative w-full gallery-image-wrapper" style={{ minHeight: "350px", maxHeight: "70vh" }}>
                         <div className="flex items-center justify-center w-full h-full p-4 sm:p-6 md:p-8">
-                          <img
-                            loading="lazy"
-                            decoding="async"
-                            width="1200"
-                            height="800"
-                            src={galleryImages[currentImageIndex].src}
-                            alt={galleryImages[currentImageIndex].alt}
+                        <img
+                          loading="lazy"
+                          decoding="async"
+                          width="1200"
+                          height="800"
+                          src={galleryImages[currentImageIndex].src}
+                          alt={galleryImages[currentImageIndex].alt}
                             className="gallery-main-image"
-                            style={{
-                              objectPosition: "center",
-                            }}
-                            onError={(e) => {
-                              // fallback to the optimized profile image
-                              e.target.src = "/images/profile.webp";
-                            }}
-                          />
+                          style={{
+                            objectPosition: "center",
+                          }}
+                          onError={(e) => {
+                            // fallback to the optimized profile image
+                            e.target.src = "/images/profile.webp";
+                          }}
+                        />
                         </div>
                       </div>
 
@@ -605,8 +605,8 @@ const AboutSection = () => {
                             <p className="text-white text-caption sm:text-base font-medium leading-relaxed">
                               {galleryImages[currentImageIndex].caption}
                             </p>
-                          </div>
                         </div>
+                      </div>
                     </div>
 
                     {/* Navigation hints with better font */}
