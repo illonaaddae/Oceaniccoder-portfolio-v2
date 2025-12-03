@@ -212,8 +212,8 @@ const HeroSection = () => {
               <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-[22rem] md:h-[22rem] lg:w-96 lg:h-96 xl:w-[25rem] xl:h-[25rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300 bg-gradient-to-br from-cyan-900/20 via-blue-900/20 to-purple-900/20">
                 <img
                   ref={imgRef}
-                  src="public/images/profile.webp"
-                  srcSet="public/images/profile.webp 1x, public/images/profile.webp 2x"
+                  src="/images/profile.webp"
+                  srcSet="/images/profile.webp 1x, public/images/profile.webp 2x"
                   alt="Illona Addae - Professional Developer Portrait"
                   className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${
                     imageReady ? "loaded" : ""
