@@ -44,7 +44,6 @@ const AboutSection = () => {
         "Awarded Best Student in STEM under ATU SRC IDEAL WOMAN AWARDS 2023",
     },
     {
-
       src: "/images/Campus-Random-pic.webp",
       alt: "Candid photo of Illona standing casually on campus in front of an auditorium, relaxed and natural.",
       caption: "Just me - grounded, present, becoming.",
@@ -66,6 +65,11 @@ const AboutSection = () => {
       alt: "Illona in a pageantry gown, smiling confidently. A moment from her early journey before discovering her deeper calling in tech and leadership.",
       caption:
         "Before I found my direction, I was still learning who I could become.",
+    },
+    {
+      src: "/images/Futurize.webp",
+      alt: "A futuristic image of Illona, representing her future aspirations and goals.",
+      caption: "A future where I can make a positive impact on the world.",
     },
   ];
 
@@ -156,12 +160,10 @@ const AboutSection = () => {
       location: "Accra, Ghana",
       description:
         "Building beautiful, interactive user interfaces for web and mobile applications.",
-      achievements: [
-        "AmaliTech AWS re/Start Programme",
-      ],
+      achievements: ["AmaliTech AWS re/Start Programme"],
       color: "from-cyan-500 to-blue-500",
     },
-     {
+    {
       role: "Executive Director",
       company: "Slint Tech",
       period: "2025 - Present",
@@ -189,7 +191,7 @@ const AboutSection = () => {
       ],
       color: "from-green-500 to-cyan-500",
     },
-    
+
     {
       role: "Software Projects Coordination Intern",
       company: "Facio Tech",
@@ -200,7 +202,6 @@ const AboutSection = () => {
       achievements: [
         "Monitored project timelines",
         "Assisted in compiling progress reports ",
-       
       ],
       color: "from-purple-500 to-pink-500",
     },
@@ -552,59 +553,62 @@ const AboutSection = () => {
                   <div className="relative -mx-6 -mb-6">
                     <div className="relative overflow-hidden rounded-b-2xl shadow-2xl border border-cyan-400/30 bg-gradient-to-br from-gray-900 to-gray-800 gallery-container">
                       {/* Improved image container - adapts to image size while maintaining responsive height */}
-                      <div className="relative w-full gallery-image-wrapper" style={{ minHeight: "350px", maxHeight: "70vh" }}>
+                      <div
+                        className="relative w-full gallery-image-wrapper"
+                        style={{ minHeight: "350px", maxHeight: "70vh" }}
+                      >
                         <div className="flex items-center justify-center w-full h-full p-4 sm:p-6 md:p-8">
-                        <img
-                          loading="lazy"
-                          decoding="async"
-                          width="1200"
-                          height="800"
-                          src={galleryImages[currentImageIndex].src}
-                          alt={galleryImages[currentImageIndex].alt}
+                          <img
+                            loading="lazy"
+                            decoding="async"
+                            width="1200"
+                            height="800"
+                            src={galleryImages[currentImageIndex].src}
+                            alt={galleryImages[currentImageIndex].alt}
                             className="gallery-main-image"
-                          style={{
-                            objectPosition: "center",
-                          }}
-                          onError={(e) => {
-                            // fallback to the optimized profile image
-                            e.target.src = "/images/profile.webp";
-                          }}
-                        />
+                            style={{
+                              objectPosition: "center",
+                            }}
+                            onError={(e) => {
+                              // fallback to the optimized profile image
+                              e.target.src = "/images/profile.webp";
+                            }}
+                          />
                         </div>
                       </div>
 
-                        {/* Navigation arrows remain the same */}
-                        <button
-                          onClick={prevImage}
-                          className="absolute left-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
-                          aria-label="Previous image"
-                        >
-                          <FaChevronLeft className="w-3.5 h-3.5 group-hover:scale-110" />
-                        </button>
+                      {/* Navigation arrows remain the same */}
+                      <button
+                        onClick={prevImage}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
+                        aria-label="Previous image"
+                      >
+                        <FaChevronLeft className="w-3.5 h-3.5 group-hover:scale-110" />
+                      </button>
 
-                        <button
-                          onClick={nextImage}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
-                          aria-label="Next image"
-                        >
-                          <FaChevronRight className="w-3.5 h-3.5 group-hover:scale-110" />
-                        </button>
+                      <button
+                        onClick={nextImage}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
+                        aria-label="Next image"
+                      >
+                        <FaChevronRight className="w-3.5 h-3.5 group-hover:scale-110" />
+                      </button>
 
-                        {/* Image counter with better font */}
-                        <div className="absolute bottom-2 right-2 z-10">
-                          <div className="glass-card bg-black/80 backdrop-blur-sm border border-white/20 rounded-lg px-2.5 py-1 shadow-lg">
-                            <span className="text-white text-small font-medium">
-                              {currentImageIndex + 1}/{galleryImages.length}
-                            </span>
-                          </div>
+                      {/* Image counter with better font */}
+                      <div className="absolute bottom-2 right-2 z-10">
+                        <div className="glass-card bg-black/80 backdrop-blur-sm border border-white/20 rounded-lg px-2.5 py-1 shadow-lg">
+                          <span className="text-white text-small font-medium">
+                            {currentImageIndex + 1}/{galleryImages.length}
+                          </span>
                         </div>
+                      </div>
 
-                        {/* Caption with proper font sizing - improved for better visibility */}
-                        <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-14 sm:right-16 z-10">
-                          <div className="glass-card bg-black/80 backdrop-blur-md border border-white/20 rounded-lg px-3 py-2 shadow-xl max-w-md">
-                            <p className="text-white text-caption sm:text-base font-medium leading-relaxed">
-                              {galleryImages[currentImageIndex].caption}
-                            </p>
+                      {/* Caption with proper font sizing - improved for better visibility */}
+                      <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-14 sm:right-16 z-10">
+                        <div className="glass-card bg-black/80 backdrop-blur-md border border-white/20 rounded-lg px-3 py-2 shadow-xl max-w-md">
+                          <p className="text-white text-caption sm:text-base font-medium leading-relaxed">
+                            {galleryImages[currentImageIndex].caption}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -785,8 +789,12 @@ const AboutSection = () => {
                                   key={i}
                                   className="text-caption text-gray-300 flex items-start gap-2 journey-achievement"
                                 >
-                                  <span className="text-green-400 mt-1 journey-achievement-bullet">•</span>
-                                  <span className="journey-achievement-text">{achievement}</span>
+                                  <span className="text-green-400 mt-1 journey-achievement-bullet">
+                                    •
+                                  </span>
+                                  <span className="journey-achievement-text">
+                                    {achievement}
+                                  </span>
                                 </li>
                               ))}
                             </ul>
@@ -814,7 +822,9 @@ const AboutSection = () => {
                     className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300 education-card"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="text-3xl text-blue-400 edu-icon">{edu.icon}</div>
+                      <div className="text-3xl text-blue-400 edu-icon">
+                        {edu.icon}
+                      </div>
                       <div className="flex-1">
                         <h4 className="text-lg font-bold text-white edu-title mb-1">
                           {edu.degree}
