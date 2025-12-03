@@ -33,6 +33,11 @@ const AboutSection = () => {
   // Image gallery data
   const galleryImages = [
     {
+      src: "/images/Futurize.webp",
+      alt: "A futuristic image of Illona, representing her future aspirations and goals.",
+      caption: "A future where I can make a positive impact on the world.",
+    },
+    {
       src: "/images/Headshot.webp",
       alt: "Professional headshot of Illona, looking confident and composed, representing her current journey as a developer, leader, and creative thinker.",
       caption: "Focused. Growing. Aligned with purpose.",
@@ -65,11 +70,6 @@ const AboutSection = () => {
       alt: "Illona in a pageantry gown, smiling confidently. A moment from her early journey before discovering her deeper calling in tech and leadership.",
       caption:
         "Before I found my direction, I was still learning who I could become.",
-    },
-    {
-      src: "/images/Futurize.webp",
-      alt: "A futuristic image of Illona, representing her future aspirations and goals.",
-      caption: "A future where I can make a positive impact on the world.",
     },
   ];
 
