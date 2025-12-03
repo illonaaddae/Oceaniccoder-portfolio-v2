@@ -87,9 +87,12 @@ const HeroSection = () => {
 
   // Check if image is already loaded/cached on mount to prevent flash
   useEffect(() => {
+    // Use the correct filename - try capital P first, fallback to lowercase for compatibility
+    const imagePath = "/images/Profile.webp";
+
     // First, check if image is already cached using a new Image object
     const img = new Image();
-    img.src = "/images/profile.webp";
+    img.src = imagePath;
 
     let checkTimeout = null;
 
@@ -209,11 +212,11 @@ const HeroSection = () => {
             <div className="absolute -inset-4 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
 
             <div className="relative">
-              <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-[22rem] md:h-[22rem] lg:w-96 lg:h-96 xl:w-[25rem] xl:h-[25rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300 bg-gradient-to-br from-cyan-900/20 via-blue-900/20 to-purple-900/20">
+              <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-[22rem] md:h-[22rem] lg:w-96 lg:h-96 xl:w-[25rem] xl:h-[25rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
                 <img
                   ref={imgRef}
-                  src="/images/profile.webp"
-                  srcSet="/images/profile.webp 1x, public/images/profile.webp 2x"
+                  src="/images/Profile.webp"
+                  srcSet="/images/Profile.webp 1x, /images/Profile.webp 2x"
                   alt="Illona Addae - Professional Developer Portrait"
                   className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${
                     imageReady ? "loaded" : ""
@@ -235,16 +238,30 @@ const HeroSection = () => {
                   fetchPriority="high"
                   width="1200"
                   height="1200"
+                  onError={(e) => {
+                    // Fallback to lowercase version if capital P version fails (for case-sensitive systems)
+                    if (e.target.src.includes("Profile.webp")) {
+                      e.target.src = "/images/profile.webp";
+                      e.target.srcSet =
+                        "/images/profile.webp 1x, /images/profile.webp 2x";
+                    } else {
+                      // Still show container even if image fails
+                      setProfileLoaded(true);
+                      setImageReady(true);
+                    }
+                  }}
                   style={{
                     // Prevent flash by using will-change and GPU acceleration
                     willChange: imageReady ? "transform" : "opacity",
                     transform: "translateZ(0)",
+                    WebkitTransform: "translateZ(0)",
                     backfaceVisibility: "hidden",
-                    // If image is ready from cache, show immediately (bypass transition)
-                    opacity: imageReady ? 1 : undefined,
+                    WebkitBackfaceVisibility: "hidden",
+                    // Always set opacity explicitly for mobile browsers
+                    opacity: imageReady ? 1 : 0,
                     transition: imageReady
                       ? "opacity 0ms ease-out, transform 300ms ease-out"
-                      : undefined,
+                      : "opacity 300ms ease-out, transform 300ms ease-out",
                   }}
                 />
               </div>
