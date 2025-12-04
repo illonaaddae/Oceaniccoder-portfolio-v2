@@ -141,6 +141,8 @@ const AboutSection = () => {
       description:
         " Specializing in Software Engineering, Cloud Computing, Artificial Intelligence and Machine Learning ",
       icon: <FaGraduationCap className="text-blue-400" />,
+      universityLogo: "/images/ATU-LOGO-.png",
+      gpa: null,
     },
     {
       institution: "Accra Technical University",
@@ -150,6 +152,8 @@ const AboutSection = () => {
       description:
         "Specialized in Software Engineering, Data Structures & Algorithms, and Network Systems.",
       icon: <FaGraduationCap className="text-blue-400" />,
+      universityLogo: "/images/ATU-LOGO-.png",
+      gpa: "N.A/5.0",
     },
   ];
 
@@ -176,7 +180,7 @@ const AboutSection = () => {
         "Built partnerships with 5+ international tech organizations",
         "Launched scholarship program supporting 50+ students",
       ],
-      color: "from-cyan-500 to-blue-500",
+      color: "from-purple-500 to-pink-500",
     },
     {
       role: "Frontend Developer",
@@ -204,7 +208,7 @@ const AboutSection = () => {
         "Monitored project timelines",
         "Assisted in compiling progress reports ",
       ],
-      color: "from-purple-500 to-pink-500",
+      color: "from-orange-500 to-red-500",
     },
   ];
 
@@ -260,7 +264,7 @@ const AboutSection = () => {
       platform: "AWS Training",
       downloadLink: "/files/certificates/aws-cloud-practitioner.pdf",
       verifyLink: "https://aws.amazon.com/verification/GHI789",
-      platformColor: "text-orange-400",
+      platformColor: "text-gray-300",
     },
     {
       title: "The Hard Parts of Asynchronous JavaScript",
@@ -836,8 +840,27 @@ const AboutSection = () => {
                         <p className="text-sm text-gray-400 edu-period mb-3">
                           {edu.period}
                         </p>
-                        <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full border border-green-500/30 mb-3 font-medium shadow-sm edu-badge">
-                          {edu.achievement}
+                        <div className="flex items-center gap-2 flex-wrap mb-3">
+                          <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full border border-green-500/30 font-medium shadow-sm edu-badge">
+                            {edu.achievement}
+                          </div>
+                          {edu.universityLogo && (
+                            <div className="inline-flex items-center gap-1.5 bg-gray-700/30 text-gray-300 text-xs px-2.5 py-1.5 rounded-full border border-gray-600/50 font-medium shadow-sm">
+                              <img
+                                src={edu.universityLogo}
+                                alt="University Logo"
+                                className="w-4 h-4 object-contain"
+                                loading="eager"
+                                decoding="async"
+                              />
+                              <span>ATU</span>
+                            </div>
+                          )}
+                          {edu.gpa && (
+                            <div className="inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 text-xs px-3 py-1.5 rounded-full border border-purple-500/30 font-medium shadow-sm">
+                              GPA: {edu.gpa}
+                            </div>
+                          )}
                         </div>
                         <p className="text-gray-300 text-sm leading-relaxed edu-description">
                           {edu.description}
@@ -940,7 +963,7 @@ const AboutSection = () => {
                     Want to Know More?
                   </h4>
                   <a
-                    href="/files/Illona-Addae-CV.pdf"
+                    href="https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
                     download
                     className="glass-btn bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-6 py-3 font-medium hover:scale-105 transition-all duration-300 inline-flex items-center gap-2"
                   >

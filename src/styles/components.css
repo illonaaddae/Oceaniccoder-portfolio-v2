@@ -483,9 +483,16 @@ body[data-theme="light"] svg.text-white,
 /* Remove filters for logos that already have proper branding colors */
 .platform-tag img[alt*="Frontend Masters"],
 .platform-tag img[alt*="Scrimba"],
+.platform-tag img[alt*="AWS"],
 .platform-tag .platform-logo-original {
   filter: none !important;
   opacity: 1 !important;
+}
+
+/* AWS logo specific: add drop shadow on dark mode for visibility */
+.platform-tag img[alt*="AWS"] {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6))
+    drop-shadow(0 0 8px rgba(249, 144, 0, 0.4)) !important;
 }
 
 [data-theme="light"] .platform-tag img {
@@ -495,6 +502,7 @@ body[data-theme="light"] svg.text-white,
 
 [data-theme="light"] .platform-tag img[alt*="Frontend Masters"],
 [data-theme="light"] .platform-tag img[alt*="Scrimba"],
+[data-theme="light"] .platform-tag img[alt*="AWS"],
 [data-theme="light"] .platform-tag .platform-logo-original {
   filter: none !important;
   opacity: 1 !important;

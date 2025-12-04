@@ -5,30 +5,42 @@
  */
 
 export const platformLogos = {
-  "Codecademy": {
-    local: "/images/platforms/codecademy.svg", // You can add local logos here
+  Codecademy: {
+    local: "/images/platforms/code-cademy.svg",
     cdn: "https://cdn.simpleicons.org/codecademy/1F4056",
     fallback: "CC",
-    color: "#1F4056"
+    color: "#1F4056",
   },
-  "Scrimba": {
+  Scrimba: {
     local: "/images/platforms/scrimba.png",
     cdn: "https://cdn.simpleicons.org/scrimba/2B283A",
     fallback: "SB",
-    color: "#2B283A"
+    color: "#2B283A",
   },
   "AWS Training": {
-    local: "/images/platforms/aws.svg",
+    local: "/images/platforms/aws-logo.svg",
     cdn: "https://cdn.simpleicons.org/amazonaws/FF9900",
     fallback: "AWS",
-    color: "#FF9900"
+    color: "#FF9900",
   },
   "Frontend Masters": {
     local: "/images/platforms/frontendmasters.png",
     cdn: "https://cdn.simpleicons.org/frontendmentor/3F54A3",
     fallback: "FM",
-    color: "#3F54A3"
-  }
+    color: "#3F54A3",
+  },
+  Coursera: {
+    local: "/images/platforms/Coursera.png",
+    cdn: "https://cdn.simpleicons.org/coursera/0056D2",
+    fallback: "CR",
+    color: "#0056D2",
+  },
+  Udemy: {
+    local: null,
+    cdn: "https://cdn.simpleicons.org/udemy/A435F0",
+    fallback: "UD",
+    color: "#A435F0",
+  },
 };
 
 /**
@@ -44,7 +56,7 @@ export const getPlatformLogo = (platformName) => {
 
   // Case-insensitive match
   const normalizedName = Object.keys(platformLogos).find(
-    key => key.toLowerCase() === platformName.toLowerCase()
+    (key) => key.toLowerCase() === platformName.toLowerCase()
   );
 
   if (normalizedName) {
@@ -56,7 +68,6 @@ export const getPlatformLogo = (platformName) => {
     local: null,
     cdn: null,
     fallback: platformName.substring(0, 2).toUpperCase(),
-    color: "#6B7280"
+    color: "#6B7280",
   };
 };
-

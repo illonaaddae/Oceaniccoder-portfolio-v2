@@ -59,7 +59,9 @@ const PlatformLogo = ({ platformName, className = "w-4 h-4" }) => {
 
   // Check if this platform should preserve original colors (no filters)
   const preserveColors =
-    platformName === "Frontend Masters" || platformName === "Scrimba";
+    platformName === "Frontend Masters" ||
+    platformName === "Scrimba" ||
+    platformName === "AWS Training";
 
   return (
     <img
@@ -69,7 +71,9 @@ const PlatformLogo = ({ platformName, className = "w-4 h-4" }) => {
         preserveColors ? "platform-logo-original" : ""
       }`}
       onError={handleImageError}
-      loading="lazy"
+      loading="eager"
+      decoding="async"
+      fetchPriority="high"
       title={platformName}
     />
   );

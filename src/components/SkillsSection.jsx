@@ -165,9 +165,13 @@ const SkillsSection = () => {
         <div className="text-center mt-10">
           <Link
             to="/about"
-            className="inline-block px-6 py-3 glass-btn font-semibold mt-4 hover:scale-105 transition-transform duration-200"
+            className="inline-flex items-center gap-3 px-6 py-3 glass-btn font-semibold mt-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50 group"
           >
-            Want to know more? Read my About →
+            <span className="text-lg">✨</span>
+            <span>Want to know more? Read my About</span>
+            <span className="group-hover:translate-x-1 transition-transform duration-300">
+              →
+            </span>
           </Link>
         </div>
       </div>
