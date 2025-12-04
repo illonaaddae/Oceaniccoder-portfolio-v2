@@ -18,6 +18,7 @@ import {
   FaChevronRight,
   FaPlay,
 } from "react-icons/fa";
+import PlatformLogo from "./PlatformLogo";
 
 const AboutSection = () => {
   const navigate = useNavigate();
@@ -248,7 +249,7 @@ const AboutSection = () => {
       platform: "Scrimba",
       downloadLink: "/files/certificates/google-marketing-certificate.pdf",
       verifyLink: "https://coursera.org/verify/professional-cert/DEF456",
-      platformColor: "text-blue-400",
+      platformColor: "text-gray-300",
     },
     {
       title: "AWS Cloud Practitioner",
@@ -278,7 +279,7 @@ const AboutSection = () => {
         "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
       verifyLink:
         "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
-      platformColor: "text-green-400",
+      platformColor: "text-gray-300",
     },
     {
       title: "Complete Intro to Web Development, v3",
@@ -291,7 +292,7 @@ const AboutSection = () => {
         "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
       verifyLink:
         "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
-      platformColor: "text-red-400",
+      platformColor: "text-gray-300",
     },
   ];
 
@@ -871,9 +872,18 @@ const AboutSection = () => {
                         {/* Platform Tag */}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <span
-                            className={`inline-block text-xs px-2.5 py-1 rounded-full border ${cert.platformColor} bg-current/10 font-medium text-current shadow-sm platform-tag`}
+                            className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium shadow-sm platform-tag ${
+                              cert.platform === "Frontend Masters" ||
+                              cert.platform === "Scrimba"
+                                ? "border-gray-600/50 bg-gray-700/30 text-gray-300"
+                                : `${cert.platformColor} bg-current/10 text-current border-current/30`
+                            }`}
                           >
-                            📚 {cert.platform}
+                            <PlatformLogo
+                              platformName={cert.platform}
+                              className="w-4 h-4 flex-shrink-0"
+                            />
+                            {cert.platform}
                           </span>
                           <span className="text-xs text-gray-400 bg-gray-700/20 px-2 py-1 rounded cert-date">
                             {cert.date}
