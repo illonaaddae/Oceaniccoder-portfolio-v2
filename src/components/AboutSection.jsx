@@ -262,8 +262,10 @@ const AboutSection = () => {
       credential: "Cloud Certification",
       skills: ["Cloud Computing", "AWS Services", "Security", "Architecture"],
       platform: "AWS Training",
-      downloadLink: "/files/certificates/aws-cloud-practitioner.pdf",
-      verifyLink: "https://aws.amazon.com/verification/GHI789",
+      downloadLink:
+        "https://drive.google.com/file/d/1hf4bV5NDjozcvJxRAnqt3hYBJz92l5iQ/view?usp=sharing",
+      verifyLink:
+        "https://www.credly.com/badges/87313eca-cc7a-4182-9044-6e098d74df0c/public_url",
       platformColor: "text-gray-300",
     },
     {
