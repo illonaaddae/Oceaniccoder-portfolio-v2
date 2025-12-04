@@ -427,7 +427,8 @@ body[data-theme="light"] svg.text-white,
 [data-theme="light"] .certification-card {
   background: rgba(255, 255, 255, 0.98) !important;
   border: 1px solid rgba(13, 148, 136, 0.25) !important;
-  box-shadow: 0 8px 32px rgba(13, 148, 136, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 8px 32px rgba(13, 148, 136, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.04) !important;
 }
 
 [data-theme="light"] .education-card .edu-title,
@@ -456,7 +457,11 @@ body[data-theme="light"] svg.text-white,
 /* Light mode improvements for badges and tags */
 [data-theme="light"] .edu-badge,
 [data-theme="light"] .cert-credential {
-  background: linear-gradient(135deg, rgba(5, 150, 105, 0.15), rgba(16, 185, 129, 0.15)) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(5, 150, 105, 0.15),
+    rgba(16, 185, 129, 0.15)
+  ) !important;
   border-color: rgba(5, 150, 105, 0.35) !important;
   color: #047857 !important;
   box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15) !important;
@@ -466,6 +471,37 @@ body[data-theme="light"] svg.text-white,
   background: rgba(147, 51, 234, 0.12) !important;
   border-color: rgba(147, 51, 234, 0.3) !important;
   color: #6b21a8 !important;
+}
+
+/* Platform Logo Styling */
+.platform-tag img {
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+/* Remove filters for logos that already have proper branding colors */
+.platform-tag img[alt*="Frontend Masters"],
+.platform-tag img[alt*="Scrimba"],
+.platform-tag .platform-logo-original {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+[data-theme="light"] .platform-tag img {
+  filter: brightness(0) invert(0);
+  opacity: 0.8;
+}
+
+[data-theme="light"] .platform-tag img[alt*="Frontend Masters"],
+[data-theme="light"] .platform-tag img[alt*="Scrimba"],
+[data-theme="light"] .platform-tag .platform-logo-original {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+.platform-tag:hover img {
+  opacity: 1;
 }
 
 [data-theme="light"] .skill-tag {
@@ -490,7 +526,8 @@ body[data-theme="light"] svg.text-white,
 [data-theme="light"] .journey-container {
   background: rgba(255, 255, 255, 0.98) !important;
   border: 1px solid rgba(13, 148, 136, 0.25) !important;
-  box-shadow: 0 8px 32px rgba(13, 148, 136, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 8px 32px rgba(13, 148, 136, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.04) !important;
 }
 
 [data-theme="light"] .journey-card {
@@ -595,7 +632,7 @@ body[data-theme="light"] svg.text-white,
     min-height: 300px !important;
     max-height: 50vh !important;
   }
-  
+
   .gallery-main-image {
     max-height: calc(50vh - 2rem) !important;
   }
@@ -606,7 +643,7 @@ body[data-theme="light"] svg.text-white,
     min-height: 450px !important;
     max-height: 60vh !important;
   }
-  
+
   .gallery-main-image {
     max-height: calc(60vh - 3rem) !important;
   }
@@ -617,7 +654,7 @@ body[data-theme="light"] svg.text-white,
     min-height: 500px !important;
     max-height: 70vh !important;
   }
-  
+
   .gallery-main-image {
     max-height: calc(70vh - 4rem) !important;
   }
@@ -631,7 +668,11 @@ body[data-theme="light"] svg.text-white,
 
 /* Light mode gallery improvements */
 [data-theme="light"] .gallery-container {
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(241, 245, 249, 0.95)) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.95),
+    rgba(241, 245, 249, 0.95)
+  ) !important;
   border-color: rgba(13, 148, 136, 0.3) !important;
 }
 
