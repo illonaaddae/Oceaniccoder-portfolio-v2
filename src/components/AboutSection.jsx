@@ -20,6 +20,28 @@ import {
 } from "react-icons/fa";
 import PlatformLogo from "./PlatformLogo";
 
+/**
+ * AboutSection Component
+ *
+ * Displays comprehensive information about Illona's professional journey, education,
+ * certifications, and personal values. Data is organized in separate modules for
+ * better maintainability and code readability.
+ *
+ * Data Sources:
+ * - Education: src/utils/data/education.js
+ * - Career Journey: src/utils/data/journey.js
+ * - Certifications: src/utils/data/certifications.js
+ * - Gallery Images: src/utils/data/gallery.js
+ */
+
+// Import data from separate files for better code organization
+import {
+  education,
+  journey,
+  certifications,
+  galleryImages,
+} from "../utils/data";
+
 const AboutSection = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,51 +50,13 @@ const AboutSection = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
+    console.log("AboutSection mounted");
+    console.log("Education data:", education);
+    console.log("Journey data:", journey);
+    console.log("Certifications data:", certifications);
+    console.log("Gallery data:", galleryImages);
     setIsVisible(true);
   }, []);
-
-  // Image gallery data
-  const galleryImages = [
-    {
-      src: "/images/Futurize.webp",
-      alt: "A futuristic image of Illona, representing her future aspirations and goals.",
-      caption: "A future where I can make a positive impact on the world.",
-    },
-    {
-      src: "/images/Headshot.webp",
-      alt: "Professional headshot of Illona, looking confident and composed, representing her current journey as a developer, leader, and creative thinker.",
-      caption: "Focused. Growing. Aligned with purpose.",
-    },
-    {
-      src: "/images/Best-Female-Student-In-STEM.webp",
-      alt: "Illona Best Student In STEM award",
-      caption:
-        "Awarded Best Student in STEM under ATU SRC IDEAL WOMAN AWARDS 2023",
-    },
-    {
-      src: "/images/Campus-Random-pic.webp",
-      alt: "Candid photo of Illona standing casually on campus in front of an auditorium, relaxed and natural.",
-      caption: "Just me - grounded, present, becoming.",
-    },
-    {
-      src: "/images/Outstanding-student.webp",
-      alt: "Tech conference",
-      caption:
-        "Excellence recognized Outstanding Student Of the Year, ATU CPS Level 100.",
-    },
-    {
-      src: "/images/Akwaba-night.webp",
-      alt: "Illona performing on stage at the university Aquaponite event, expressing confidence and artistic openness.",
-      caption:
-        "The courage to show upn- even before I understood where I was headed",
-    },
-    {
-      src: "/images/Pagentry.webp",
-      alt: "Illona in a pageantry gown, smiling confidently. A moment from her early journey before discovering her deeper calling in tech and leadership.",
-      caption:
-        "Before I found my direction, I was still learning who I could become.",
-    },
-  ];
 
   const stats = [
     {
@@ -129,176 +113,6 @@ const AboutSection = () => {
       description:
         "Committed to staying at the forefront of technology while sharing knowledge with the next generation.",
       impact: "Completed 10+ certifications in emerging technologies",
-    },
-  ];
-
-  const education = [
-    {
-      institution: "Accra Technical University",
-      degree: "Bachelor of Technology (BTech) in Computer Science",
-      period: "2025 - Present",
-      achievement: "N/A",
-      description:
-        " Specializing in Software Engineering, Cloud Computing, Artificial Intelligence and Machine Learning ",
-      icon: <FaGraduationCap className="text-blue-400" />,
-      universityLogo: "/images/ATU-LOGO-.png",
-      gpa: null,
-    },
-    {
-      institution: "Accra Technical University",
-      degree: "Higher National Diploma (HND) in Computer Science",
-      period: "2023 - 2025",
-      achievement: "First Class Honours",
-      description:
-        "Specialized in Software Engineering, Data Structures & Algorithms, and Network Systems.",
-      icon: <FaGraduationCap className="text-blue-400" />,
-      universityLogo: "/images/ATU-LOGO-.png",
-      gpa: "N.A/5.0",
-    },
-  ];
-
-  const journey = [
-    {
-      role: "Frontend Developer (NSS) ",
-      company: "AmaliTech",
-      period: "2025 - Present",
-      location: "Accra, Ghana",
-      description:
-        "Building beautiful, interactive user interfaces for web and mobile applications.",
-      achievements: ["AmaliTech AWS re/Start Programme"],
-      color: "from-cyan-500 to-blue-500",
-    },
-    {
-      role: "Executive Director",
-      company: "Slint Tech",
-      period: "2025 - Present",
-      location: "Accra, Ghana",
-      description:
-        "Leading educational transformation through technology integration and community building.",
-      achievements: [
-        "Increased community engagement by 30%",
-        "Built partnerships with 5+ international tech organizations",
-        "Launched scholarship program supporting 50+ students",
-      ],
-      color: "from-purple-500 to-pink-500",
-    },
-    {
-      role: "Frontend Developer",
-      company: "Freelance & Contract Work",
-      period: "2025 - Present",
-      location: "Remote & Ghana",
-      description:
-        "Building scalable web applications and mentoring aspiring developers.",
-      achievements: [
-        "Delivered 3+ successful client projects",
-        "Maintained 98% client satisfaction rate",
-        "Mentored 100+ junior developers",
-      ],
-      color: "from-green-500 to-cyan-500",
-    },
-
-    {
-      role: "Software Projects Coordination Intern",
-      company: "Facio Tech",
-      period: "2025 - Present",
-      location: "Remote",
-      description:
-        " Monitoring project timelines and ensured timely follow-ups on assigned tasks and deliverables to support the software development team.",
-      achievements: [
-        "Monitored project timelines",
-        "Assisted in compiling progress reports ",
-      ],
-      color: "from-orange-500 to-red-500",
-    },
-  ];
-
-  const certifications = [
-    {
-      title: "Full-Stack Engineer Career Path",
-      issuer: "Codecademy",
-      date: "2025",
-      credential: "Professional Certificate",
-      skills: [
-        "HTML",
-        "CSS",
-        "JavaScript",
-        "Responsive Design",
-        "API",
-        "React",
-        "Redux",
-        "Web Performance",
-        "Node.JS",
-        "Express",
-        "Web Performance",
-        "Git / GitHub",
-      ],
-      platform: "Codecademy",
-      downloadLink: "/files/certificates/meta-react-certificate.pdf",
-      verifyLink: "https://coursera.org/verify/professional-cert/ABC123",
-      platformColor: "text-blue-400",
-    },
-    {
-      title: "Front-End Developer Career Path",
-      issuer: "Scrimba",
-      date: "2025",
-      credential: "Professional Certificate",
-      skills: [
-        "HTML",
-        "CSS",
-        "JavaScript",
-        "Responsive Design",
-        "API",
-        "React",
-      ],
-      platform: "Scrimba",
-      downloadLink: "/files/certificates/google-marketing-certificate.pdf",
-      verifyLink: "https://coursera.org/verify/professional-cert/DEF456",
-      platformColor: "text-gray-300",
-    },
-    {
-      title: "AWS Cloud Practitioner",
-      issuer: "Amazon Web Services",
-      date: "2022",
-      credential: "Cloud Certification",
-      skills: ["Cloud Computing", "AWS Services", "Security", "Architecture"],
-      platform: "AWS Training",
-      downloadLink:
-        "https://drive.google.com/file/d/1hf4bV5NDjozcvJxRAnqt3hYBJz92l5iQ/view?usp=sharing",
-      verifyLink:
-        "https://www.credly.com/badges/87313eca-cc7a-4182-9044-6e098d74df0c/public_url",
-      platformColor: "text-gray-300",
-    },
-    {
-      title: "The Hard Parts of Asynchronous JavaScript",
-      issuer: "Frontend Masters",
-      date: "2025",
-      credential: "Professional Certificate",
-      skills: [
-        "Callbacks",
-        "Higher-Order Functions",
-        "Closure",
-        "asynchronous JavaScript",
-        "Object-oriented JavaScript",
-      ],
-      platform: "Frontend Masters",
-      downloadLink:
-        "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
-      verifyLink:
-        "https://static.frontendmasters.com/ud/c/cfdc15c3e7/mKwIKFRvDi/javascript-new-hard-parts.pdf",
-      platformColor: "text-gray-300",
-    },
-    {
-      title: "Complete Intro to Web Development, v3",
-      issuer: "Frontend Masters",
-      date: "2024",
-      credential: "Professional Certificate",
-      skills: ["HTML5", "CSS3", "JavaScript"],
-      platform: "Frontend Masters",
-      downloadLink:
-        "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
-      verifyLink:
-        "https://static.frontendmasters.com/ud/c/091103566d/yBlPKcpCER/web-development-v3.pdf",
-      platformColor: "text-gray-300",
     },
   ];
 
@@ -830,7 +644,7 @@ const AboutSection = () => {
                   >
                     <div className="flex items-start gap-4">
                       <div className="text-3xl text-blue-400 edu-icon">
-                        {edu.icon}
+                        <FaGraduationCap className="text-blue-400" />
                       </div>
                       <div className="flex-1">
                         <h4 className="text-lg font-bold text-white edu-title mb-1">

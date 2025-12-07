@@ -153,3 +153,5 @@ export const PROJECTS_DATA = [
     year: "2025",
   },
 ];
+
+export default PROJECTS_DATA;
