@@ -87,3 +87,5 @@ export const BLOGS_DATA = [
     featured: true,
   },
 ];
+
+export default BLOGS_DATA;
