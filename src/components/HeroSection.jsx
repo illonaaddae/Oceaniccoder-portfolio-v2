@@ -87,8 +87,9 @@ const HeroSection = () => {
 
   // Check if image is already loaded/cached on mount to prevent flash
   useEffect(() => {
-    // Use the correct filename - try capital P first, fallback to lowercase for compatibility
-    const imagePath = "/images/Profile.webp";
+    // Use Appwrite Storage URL for profile image
+    const imagePath =
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883";
 
     // First, check if image is already cached using a new Image object
     const img = new Image();
@@ -215,8 +216,7 @@ const HeroSection = () => {
               <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-[22rem] md:h-[22rem] lg:w-96 lg:h-96 xl:w-[25rem] xl:h-[25rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
                 <img
                   ref={imgRef}
-                  src="/images/Profile.webp"
-                  srcSet="/images/Profile.webp 1x, /images/Profile.webp 2x"
+                  src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
                   alt="Illona Addae - Professional Developer Portrait"
                   className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${
                     imageReady ? "loaded" : ""
@@ -239,16 +239,9 @@ const HeroSection = () => {
                   width="1200"
                   height="1200"
                   onError={(e) => {
-                    // Fallback to lowercase version if capital P version fails (for case-sensitive systems)
-                    if (e.target.src.includes("Profile.webp")) {
-                      e.target.src = "/images/profile.webp";
-                      e.target.srcSet =
-                        "/images/profile.webp 1x, /images/profile.webp 2x";
-                    } else {
-                      // Still show container even if image fails
-                      setProfileLoaded(true);
-                      setImageReady(true);
-                    }
+                    // Still show container even if image fails
+                    setProfileLoaded(true);
+                    setImageReady(true);
                   }}
                   style={{
                     // Prevent flash by using will-change and GPU acceleration

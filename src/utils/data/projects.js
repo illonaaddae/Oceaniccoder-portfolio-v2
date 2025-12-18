@@ -8,7 +8,8 @@ export const PROJECTS_DATA = [
       "This portfolio showcases my journey as a full-stack developer and community leader. Built with cutting-edge technologies including React 18, Tailwind CSS, and custom liquid morphing animations. Features include responsive design, accessibility compliance, and performance optimization.",
     category: "Web Apps",
     technologies: ["React", "Tailwind CSS", "JavaScript", "CSS3", "HTML5"],
-    image: "/images/projects/portfolio-v2.jpg.png",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cfb0020fb902f77/view?project=6943431e00253c8f9883",
     liveUrl: "https://oceaniccoder.dev",
     githubUrl: "https://github.com/illonaaddae/Oceaniccoder-portfolio-v2",
     featured: true,
@@ -24,7 +25,8 @@ export const PROJECTS_DATA = [
       "A professional petroleum company website built with React and Vite, showcasing services, company information, and contact details. Features include responsive design, fast load times, and modern UI/UX best practices. Deployed on Netlify with optimized build configuration.",
     category: "Web Apps",
     technologies: ["React", "Vite", "JavaScript", "CSS", "HTML5"],
-    image: "/images/Sakama-petroleum.png",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ced001d6821a234/view?project=6943431e00253c8f9883",
     liveUrl: "https://sakama-petroleum.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/SAKAMA-Petroleum",
     featured: true,
@@ -40,7 +42,8 @@ export const PROJECTS_DATA = [
       "An elegant, responsive web app that helps designers and developers generate cohesive color palettes. Built with vanilla HTML, CSS and JavaScript and powered by The Color API. Features include multiple harmony modes (monochrome, analogic, complement, triad, quad), real-time previews, accessibility-conscious markup, and one-click copy-to-clipboard for HEX codes. Deployed as a static site with a live demo and source code on GitHub.",
     category: "Web Apps",
     technologies: ["HTML", "CSS", "JavaScript", "The Color API"],
-    image: "/images/the-color-scheme-generator-readme.png",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cfe00302110bb02/view?project=6943431e00253c8f9883",
     liveUrl: "https://the-color-scheme-generator.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/color-scheme-generator",
     featured: true,
@@ -57,7 +60,8 @@ export const PROJECTS_DATA = [
       "A lightweight, responsive web app built with vanilla HTML, CSS, and JavaScript that lets users generate secure passwords with exact control over letters, numbers, and symbols. Features include dual password generation, Fisher–Yates shuffling for strong randomness, a dark/light theme with localStorage persistence, and click-to-copy functionality with visual feedback. Designed with accessibility and mobile-first responsiveness in mind. Ready for static deployment as a portfolio demo.",
     category: "Web Apps",
     technologies: ["HTML", "CSS", "JavaScript"],
-    image: "/images/Ps.G-darkmode(iPad Pro).png",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cec0011ec4fc0d8/view?project=6943431e00253c8f9883",
     liveUrl: "https://password-generator-o.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/Password-Generator-App",
     featured: true,
@@ -73,7 +77,8 @@ export const PROJECTS_DATA = [
       "The smart 365-days-per-year food subscription that will make you eat healthy again. Tailored to your personal tastes and nutritional needs.It's tailored to your personal tastes and nutritional needs. Developed using HTML ,CSS and a touch of JavaScript. Fully customized CSS.",
     category: "Web Apps",
     technologies: ["HTML", "CSS"],
-    image: "/images/Omninifood.png",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce60028e9b96e28/view?project=6943431e00253c8f9883",
     liveUrl: "https://illona-omnifood.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/Omni-food",
     featured: true,
@@ -89,7 +94,8 @@ export const PROJECTS_DATA = [
       "Complete e-commerce solution with product catalog, shopping cart, user authentication, payment processing, and admin dashboard. Designed for scalability and security.",
     category: "Web Apps",
     technologies: ["React", "Node.js", "PostgreSQL", "Stripe", "GraphQL"],
-    image: "/images/projects/ecommerce-platform.jpg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
     liveUrl: "https://shop.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/ecommerce-platform",
     featured: true,
@@ -112,7 +118,8 @@ export const PROJECTS_DATA = [
       "FastAPI",
       "Machine Learning",
     ],
-    image: "/images/projects/image-recognition.jpg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
     liveUrl: "https://vision.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/image-recognition",
     featured: false,
@@ -128,7 +135,8 @@ export const PROJECTS_DATA = [
       "Built using React and OpenWeather API, this application provides accurate weather information with a beautiful, intuitive interface. Features include geolocation support, weather alerts, and historical weather data visualization.",
     category: "Web Apps",
     technologies: ["React", "JavaScript", "REST API", "CSS3", "Weather API"],
-    image: "/images/projects/weather-app.jpg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
     liveUrl: "https://weather.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/weather-app",
     featured: false,
@@ -145,7 +153,8 @@ export const PROJECTS_DATA = [
       "Complete blogging solution with user authentication, rich text editor, comment system, and admin dashboard. Built with modern technologies focusing on performance and user experience.",
     category: "Web Apps",
     technologies: ["React", "Node.js", "MongoDB", "Express", "JWT"],
-    image: "/images/projects/blog-platform.jpg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
     liveUrl: "https://blog.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/blog-platform",
     featured: true,

@@ -10,16 +10,19 @@ const placeholderPosts = [
       "A short primer on community-first product development, outreach, and mentorship.",
     publishedAt: "2025-10-01",
     readTime: "6 min",
-    image: "/images/blog-placeholder-1.svg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
   },
   {
     id: "ph-2",
     title: "Small wins that scale: onboarding contributors",
+    
     excerpt:
       "Practical steps to reduce friction for new contributors and hires.",
     publishedAt: "2025-08-15",
     readTime: "4 min",
-    image: "/images/blog-placeholder-2.svg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf000057a457f95/view?project=6943431e00253c8f9883",
   },
   {
     id: "ph-3",
@@ -27,7 +30,8 @@ const placeholderPosts = [
     excerpt: "Processes and rituals that keep teams shipping and learning.",
     publishedAt: "2025-06-20",
     readTime: "7 min",
-    image: "/images/blog-placeholder-3.svg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf00032bc7780ff/view?project=6943431e00253c8f9883",
   },
 ];
 
@@ -112,7 +116,10 @@ const BlogSection = () => {
                   decoding="async"
                   width="1200"
                   height="630"
-                  src={post.image || "/images/blog-placeholder-1.svg"}
+                  src={
+                    post.image ||
+                    "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883"
+                  }
                   alt={post.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -120,7 +127,8 @@ const BlogSection = () => {
                     const target = e.currentTarget;
                     if (!target.dataset.fallback) {
                       target.dataset.fallback = "1";
-                      target.src = "/images/blog-placeholder-1.svg";
+                      target.src =
+                        "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
                     }
                   }}
                 />

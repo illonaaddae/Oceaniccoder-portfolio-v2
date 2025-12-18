@@ -7,7 +7,8 @@ const education = [
     achievement: "N/A",
     description:
       " Specializing in Software Engineering, Cloud Computing, Artificial Intelligence and Machine Learning ",
-    universityLogo: "/images/ATU-LOGO-.png",
+    universityLogo:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cdb00195a0cc8ab/view?project=6943431e00253c8f9883",
     gpa: null,
   },
   {
@@ -17,7 +18,8 @@ const education = [
     achievement: "First Class Honours",
     description:
       "Specialized in Software Engineering, Data Structures & Algorithms, and Network Systems.",
-    universityLogo: "/images/ATU-LOGO-.png",
+    universityLogo:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cdb00195a0cc8ab/view?project=6943431e00253c8f9883",
     gpa: "N.A/5.0",
   },
 ];

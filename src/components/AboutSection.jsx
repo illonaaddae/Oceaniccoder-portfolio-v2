@@ -19,28 +19,21 @@ import {
   FaPlay,
 } from "react-icons/fa";
 import PlatformLogo from "./PlatformLogo";
+import { usePortfolioData } from "../hooks/usePortfolioData";
 
 /**
  * AboutSection Component
  *
  * Displays comprehensive information about Illona's professional journey, education,
- * certifications, and personal values. Data is organized in separate modules for
- * better maintainability and code readability.
+ * certifications, and personal values. Data is now fetched from the database
+ * with static fallbacks for better data management.
  *
- * Data Sources:
- * - Education: src/utils/data/education.js
- * - Career Journey: src/utils/data/journey.js
- * - Certifications: src/utils/data/certifications.js
- * - Gallery Images: src/utils/data/gallery.js
+ * Data Sources (from database):
+ * - Education: Appwrite education collection
+ * - Career Journey: Appwrite journey collection
+ * - Certifications: Appwrite certifications collection
+ * - Gallery Images: Appwrite gallery collection
  */
-
-// Import data from separate files for better code organization
-import {
-  education,
-  journey,
-  certifications,
-  galleryImages,
-} from "../utils/data";
 
 const AboutSection = () => {
   const navigate = useNavigate();
@@ -49,6 +42,15 @@ const AboutSection = () => {
   const [activeTab, setActiveTab] = useState("story");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Fetch data from database (with static fallbacks)
+  const {
+    education,
+    journey,
+    certifications,
+    gallery: galleryImages,
+    loading: dataLoading,
+  } = usePortfolioData();
+
   useEffect(() => {
     console.log("AboutSection mounted");
     console.log("Education data:", education);
@@ -56,7 +58,7 @@ const AboutSection = () => {
     console.log("Certifications data:", certifications);
     console.log("Gallery data:", galleryImages);
     setIsVisible(true);
-  }, []);
+  }, [education, journey, certifications, galleryImages]);
 
   const stats = [
     {
@@ -161,7 +163,7 @@ const AboutSection = () => {
         <div className="mb-12 flex flex-col items-center text-center">
           <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-4">
             <img
-              src="/images/Headshot.webp"
+              src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce3002c5e175da5/view?project=6943431e00253c8f9883"
               alt="Illona Addae Headshot"
               className="w-full h-full object-cover"
             />
@@ -392,13 +394,14 @@ const AboutSection = () => {
                             }}
                             onError={(e) => {
                               // fallback to the optimized profile image
-                              e.target.src = "/images/profile.webp";
+                              e.target.src =
+                                "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883";
                             }}
                           />
                         </div>
                       </div>
 
-                      {/* Navigation arrows remain the same */}
+                      {/* Navigation arrows */}
                       <button
                         onClick={prevImage}
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
@@ -462,7 +465,8 @@ const AboutSection = () => {
                               className="w-full h-full object-cover transition-transform duration-300"
                               onError={(e) => {
                                 // fallback to the optimized profile image
-                                e.target.src = "/images/profile.webp";
+                                e.target.src =
+                                  "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883";
                               }}
                             />
                             {index === currentImageIndex && (
