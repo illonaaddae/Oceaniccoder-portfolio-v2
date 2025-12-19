@@ -38,6 +38,7 @@ interface SidebarProps {
   onTabChange: (tab: TabType) => void;
   theme: string | "light" | "dark";
   onThemeToggle: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -45,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTabChange,
   theme,
   onThemeToggle,
+  onLogout,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -234,6 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </span>
           </button>
           <button
+            onClick={onLogout}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 border ${
               theme === "dark"
                 ? "text-red-400 hover:bg-red-500/10 border-transparent hover:border-red-500/30"

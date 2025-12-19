@@ -19,61 +19,40 @@
   }
 }
 
-/* Enhanced Liquid Morphing */
+/* Enhanced Liquid Morphing - Simplified for better performance */
 @keyframes liquid1 {
   0%,
   100% {
-    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    transform: translate(0px, 0px) scale(1);
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    filter: blur(40px) hue-rotate(0deg);
-  }
-  25% {
-    transform: translate(30px, -30px) scale(1.1) rotate(90deg);
-    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-    filter: blur(45px) hue-rotate(90deg);
   }
   50% {
-    transform: translate(-20px, 20px) scale(0.9) rotate(180deg);
-    border-radius: 70% 30% 40% 60% / 40% 50% 60% 50%;
-    filter: blur(50px) hue-rotate(180deg);
-  }
-  75% {
-    transform: translate(40px, 10px) scale(1.05) rotate(270deg);
-    border-radius: 40% 70% 50% 30% / 60% 40% 70% 30%;
-    filter: blur(42px) hue-rotate(270deg);
+    transform: translate(20px, -15px) scale(1.05);
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
   }
 }
 
 @keyframes liquid2 {
   0%,
   100% {
-    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    transform: translate(0px, 0px) scale(1);
     border-radius: 40% 60% 30% 70% / 60% 30% 70% 40%;
-    filter: blur(35px) hue-rotate(0deg);
   }
-  33% {
-    transform: translate(-30px, 30px) scale(0.8) rotate(-120deg);
+  50% {
+    transform: translate(-20px, 20px) scale(0.95);
     border-radius: 60% 30% 70% 40% / 50% 60% 30% 60%;
-    filter: blur(40px) hue-rotate(120deg);
-  }
-  66% {
-    transform: translate(20px, -20px) scale(1.2) rotate(-240deg);
-    border-radius: 30% 70% 40% 60% / 40% 50% 60% 50%;
-    filter: blur(45px) hue-rotate(240deg);
   }
 }
 
 @keyframes liquid3 {
   0%,
   100% {
-    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    transform: translate(0px, 0px) scale(1);
     border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
-    filter: blur(30px) hue-rotate(0deg);
   }
   50% {
-    transform: translate(25px, 25px) scale(1.1) rotate(180deg);
+    transform: translate(15px, 15px) scale(1.08);
     border-radius: 30% 70% 60% 40% / 50% 60% 30% 70%;
-    filter: blur(38px) hue-rotate(180deg);
   }
 }
 

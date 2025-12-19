@@ -341,8 +341,8 @@ const ContactSection = () => {
                     console.error("Failed to parse response:", parseError);
                   }
 
-                  if (!res.ok || (json && json.success === false)) {
-                    // Check for spam error specifically
+                  // Check for HTTP errors
+                  if (!res.ok) {
                     const errorMsg =
                       (json && json.message) || `Status ${res.status}`;
                     if (errorMsg.toLowerCase().includes("spam")) {
@@ -353,28 +353,30 @@ const ContactSection = () => {
                     throw new Error(errorMsg || `Server error: ${res.status}`);
                   }
 
-                  // Ensure we have a successful response
-                  if (!json || json.success !== true) {
+                  // Check for explicit success=false in response
+                  if (json && json.success === false) {
                     throw new Error(
-                      "The form submission was not successful. Please try again or contact me directly at info@illonaaddae.com"
+                      json.message ||
+                        "The form submission was not successful. Please try again or contact me directly at info@illonaaddae.com"
                     );
                   }
 
-                  // Save message to database
-                  try {
-                    await createMessage({
-                      name: formData.name,
-                      email: formData.email,
-                      subject: formData.subject,
-                      message: formData.message,
-                    });
-                  } catch (dbError) {
+                  // If we got here with a 200 OK, consider it successful
+                  // (even if json parsing failed or success field is missing)
+
+                  // Save message to database (don't await to prevent hanging)
+                  createMessage({
+                    name: formData.name,
+                    email: formData.email,
+                    subject: formData.subject,
+                    message: formData.message,
+                  }).catch((dbError) => {
                     console.warn(
                       "Failed to save message to database:",
                       dbError
                     );
                     // Don't fail the submission if database save fails
-                  }
+                  });
 
                   // Success - update last submission time
                   lastSubmissionRef.current = now;

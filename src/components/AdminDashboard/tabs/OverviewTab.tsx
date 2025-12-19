@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   FaFolder,
   FaCode,
@@ -9,6 +10,8 @@ import {
   FaEnvelope,
 } from "react-icons/fa";
 import type { Skill, Message, Project } from "@/types";
+import { getStorageStats, type StorageStats } from "@/services/api";
+import { formatRelativeTime } from "@/utils/formatters";
 
 interface OverviewTabProps {
   theme: "light" | "dark";
@@ -41,6 +44,24 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onAddCertification,
   onNavigateToTab,
 }) => {
+  // Storage stats state
+  const [storageStats, setStorageStats] = useState<StorageStats>({
+    totalFiles: 0,
+    totalSizeBytes: 0,
+    totalSizeMB: 0,
+    usedPercentage: 0,
+    maxStorageMB: 2048,
+  });
+
+  // Fetch storage stats on mount
+  useEffect(() => {
+    const fetchStorageStats = async () => {
+      const stats = await getStorageStats();
+      setStorageStats(stats);
+    };
+    fetchStorageStats();
+  }, []);
+
   const stats = [
     {
       label: "Total Projects",
@@ -71,10 +92,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     {
       label: "Gallery Items",
       value: totalGallery,
-      change: "+ 5 new",
+      change: `${storageStats.totalFiles} files`,
       icon: FaImage,
       bgGradient: "from-green-600 to-green-500",
-      tabLink: null,
+      tabLink: "gallery",
     },
   ];
 
@@ -335,7 +356,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                           theme === "dark" ? "text-slate-400" : "text-slate-600"
                         }`}
                       >
-                        2h ago
+                        {formatRelativeTime(proj.$createdAt || proj.$updatedAt)}
                       </td>
                     </tr>
                   ))}
@@ -390,7 +411,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                             : "text-slate-600"
                         }`}
                       >
-                        1d ago
+                        {formatRelativeTime(msg.$createdAt)}
                       </td>
                     </tr>
                   ))}
@@ -460,8 +481,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     fill="none"
                     stroke="url(#gradient)"
                     strokeWidth="8"
-                    strokeDasharray="212"
-                    strokeDashoffset="53"
+                    strokeDasharray="282.7"
+                    strokeDashoffset={
+                      282.7 - (282.7 * storageStats.usedPercentage) / 100
+                    }
                     strokeLinecap="round"
                   />
                   <defs>
@@ -483,7 +506,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       theme === "dark" ? "text-white" : "text-slate-900"
                     }`}
                   >
-                    75%
+                    {storageStats.usedPercentage}%
                   </span>
                 </div>
               </div>
@@ -494,17 +517,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 theme === "dark" ? "text-slate-200/90" : "text-slate-700"
               }`}
             >
-              1.5 GB of 2 GB used
+              {storageStats.totalSizeMB < 1024
+                ? `${storageStats.totalSizeMB.toFixed(1)} MB`
+                : `${(storageStats.totalSizeMB / 1024).toFixed(2)} GB`}{" "}
+              of {storageStats.maxStorageMB / 1024} GB used
             </p>
             <p
               className={`text-center text-[10px] sm:text-xs transition-colors duration-300 mb-3 sm:mb-4 ${
                 theme === "dark" ? "text-slate-400" : "text-slate-600"
               }`}
             >
-              Clean up your gallery assets to free up space.
+              {storageStats.totalFiles} files stored in your bucket
             </p>
 
             <button
+              onClick={() => onNavigateToTab?.("gallery")}
               className={`w-full px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition duration-300 border ${
                 theme === "dark"
                   ? "bg-white/10 border-white/20 text-white hover:bg-white/15 hover:border-white/30"
@@ -515,7 +542,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </button>
           </div>
 
-          {/* Views Chart */}
+          {/* Portfolio Stats */}
           <div
             className={`glass-card backdrop-blur-xl border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-colors duration-300 ${
               theme === "dark"
@@ -529,95 +556,114 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   theme === "dark" ? "text-white/95" : "text-slate-900"
                 }`}
               >
-                Views
+                Portfolio Stats
               </h3>
-              <select
-                title="Select time period for views"
-                className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border transition-colors duration-300 ${
-                  theme === "dark"
-                    ? "bg-white/10 border-white/20 text-white"
-                    : "bg-white/30 border-blue-200/30 text-slate-900"
-                }`}
-              >
-                <option>Last 7 Days</option>
-                <option>Last 30 Days</option>
-              </select>
             </div>
 
             <div className="space-y-3 sm:space-y-4">
-              {/* Chart bars in boxes */}
+              {/* Stats bars */}
               <div className="flex items-end justify-between gap-1 sm:gap-2 h-24 sm:h-32">
                 {[
                   {
-                    day: "M",
-                    fullDay: "MON",
-                    heightClass: "h-[45%]",
-                    views: 1200,
+                    label: "Proj",
+                    fullLabel: "Projects",
+                    value: totalProjects,
+                    max: Math.max(
+                      totalProjects,
+                      filteredSkills.length,
+                      totalCertifications,
+                      totalGallery,
+                      newMessages || 1
+                    ),
+                    color: "from-blue-500 to-blue-400",
                   },
                   {
-                    day: "T",
-                    fullDay: "TUE",
-                    heightClass: "h-[56%]",
-                    views: 1500,
+                    label: "Skill",
+                    fullLabel: "Skills",
+                    value: filteredSkills.length,
+                    max: Math.max(
+                      totalProjects,
+                      filteredSkills.length,
+                      totalCertifications,
+                      totalGallery,
+                      newMessages || 1
+                    ),
+                    color: "from-purple-500 to-purple-400",
                   },
                   {
-                    day: "W",
-                    fullDay: "WED",
-                    heightClass: "h-[34%]",
-                    views: 900,
+                    label: "Cert",
+                    fullLabel: "Certs",
+                    value: totalCertifications,
+                    max: Math.max(
+                      totalProjects,
+                      filteredSkills.length,
+                      totalCertifications,
+                      totalGallery,
+                      newMessages || 1
+                    ),
+                    color: "from-amber-500 to-amber-400",
                   },
                   {
-                    day: "T",
-                    fullDay: "THU",
-                    heightClass: "h-[64%]",
-                    views: 1700,
+                    label: "Img",
+                    fullLabel: "Gallery",
+                    value: totalGallery,
+                    max: Math.max(
+                      totalProjects,
+                      filteredSkills.length,
+                      totalCertifications,
+                      totalGallery,
+                      newMessages || 1
+                    ),
+                    color: "from-green-500 to-green-400",
                   },
                   {
-                    day: "F",
-                    fullDay: "FRI",
-                    heightClass: "h-[53%]",
-                    views: 1400,
+                    label: "Msg",
+                    fullLabel: "Messages",
+                    value: newMessages,
+                    max: Math.max(
+                      totalProjects,
+                      filteredSkills.length,
+                      totalCertifications,
+                      totalGallery,
+                      newMessages || 1
+                    ),
+                    color: "from-cyan-500 to-cyan-400",
                   },
-                  {
-                    day: "S",
-                    fullDay: "SAT",
-                    heightClass: "h-[30%]",
-                    views: 800,
-                  },
-                  {
-                    day: "S",
-                    fullDay: "SUN",
-                    heightClass: "h-[41%]",
-                    views: 1100,
-                  },
-                ].map((bar, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 flex flex-col items-center gap-1 sm:gap-2"
-                  >
+                ].map((bar, idx) => {
+                  const heightPercent =
+                    bar.max > 0 ? Math.max((bar.value / bar.max) * 100, 5) : 5;
+                  return (
                     <div
-                      className={`w-full rounded-t-md sm:rounded-t-lg transition-all duration-300 hover:opacity-90 bg-gradient-to-t from-blue-500 to-cyan-400 relative group ${bar.heightClass}`}
+                      key={idx}
+                      className="flex-1 flex flex-col items-center gap-1 sm:gap-2"
                     >
+                      <div
+                        className={`w-full rounded-t-md sm:rounded-t-lg transition-all duration-300 hover:opacity-90 bg-gradient-to-t ${bar.color} relative group`}
+                        style={{ height: `${heightPercent}%` }}
+                      >
+                        <span
+                          className={`absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 text-[10px] sm:text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ${
+                            theme === "dark" ? "text-cyan-300" : "text-blue-600"
+                          }`}
+                        >
+                          {bar.value}
+                        </span>
+                      </div>
                       <span
-                        className={`absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 text-[10px] sm:text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ${
-                          theme === "dark" ? "text-cyan-300" : "text-blue-600"
+                        className={`text-[10px] sm:text-xs font-semibold transition-colors duration-300 ${
+                          theme === "dark"
+                            ? "text-slate-100/90"
+                            : "text-slate-700"
                         }`}
                       >
-                        {bar.views}
+                        <span className="sm:hidden">{bar.label}</span>
+                        <span className="hidden sm:inline">
+                          {bar.fullLabel}
+                        </span>
                       </span>
                     </div>
-                    <span
-                      className={`text-[10px] sm:text-xs font-semibold transition-colors duration-300 ${
-                        theme === "dark"
-                          ? "text-slate-100/90"
-                          : "text-slate-700"
-                      }`}
-                    >
-                      <span className="sm:hidden">{bar.day}</span>
-                      <span className="hidden sm:inline">{bar.fullDay}</span>
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
