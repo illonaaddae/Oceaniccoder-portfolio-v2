@@ -431,6 +431,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           </div>
 
           <button
+            onClick={() => setActiveTab("messages")}
+            title={
+              newMessages > 0
+                ? `${newMessages} new message${newMessages > 1 ? "s" : ""}`
+                : "No new messages"
+            }
             className={`relative p-2 rounded-lg transition flex-shrink-0 ${
               theme === "dark"
                 ? "text-slate-200 hover:text-cyan-300 hover:bg-white/10"
