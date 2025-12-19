@@ -149,6 +149,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           accept={accept}
           onChange={handleInputChange}
           className="hidden"
+          aria-label="Upload image file"
+          title="Upload image file"
         />
 
         {uploading ? (

@@ -303,9 +303,8 @@ export const CertificationFormModal: React.FC<CertificationFormModalProps> = ({
             Upload an image of your certificate if you have one
           </p>
           <ImageUpload
-            currentImage={form.image}
-            onImageChange={(url) => setForm({ ...form, image: url })}
-            theme={theme}
+            value={form.image}
+            onChange={(url) => setForm({ ...form, image: url })}
             label="Certificate Image"
           />
         </div>

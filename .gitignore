@@ -7,3 +7,11 @@ dist/
 .env.development.local
 .DS_Store
 *.log
+
+# Personal/internal documentation (not for public repo)
+ADMIN-DASHBOARD-GUIDE.md
+ADMIN_DASHBOARD_REFACTORING.md
+DASHBOARD-UI-FIXES.md
+MESSAGE-SYSTEM-SETUP.md
+README-PERF-THEME.md
+TYPESCRIPT_MIGRATION.md
