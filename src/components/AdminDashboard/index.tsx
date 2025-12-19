@@ -615,7 +615,7 @@ export const AdminDashboard: React.FC = () => {
         onClose={closeGalleryModal}
         onSubmit={handleGallerySubmit}
         theme={theme}
-        editingGalleryImage={editingGalleryImage}
+        editingImage={editingGalleryImage}
       />
 
       {/* Toast Notifications */}

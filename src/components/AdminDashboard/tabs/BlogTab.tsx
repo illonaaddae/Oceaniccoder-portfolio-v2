@@ -564,6 +564,8 @@ const BlogTab: React.FC<BlogTabProps> = ({
                 onChange={(e) =>
                   setFormData({ ...formData, category: e.target.value })
                 }
+                title="Select category"
+                aria-label="Select category"
                 className={`w-full px-4 py-3 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
                   theme === "dark"
                     ? "bg-white/10 border-white/20 text-white"
@@ -752,6 +754,8 @@ code blocks
               <button
                 type="button"
                 onClick={handleAddTag}
+                title="Add tag"
+                aria-label="Add tag"
                 className="px-4 py-2.5 bg-cyan-500/20 text-cyan-600 rounded-xl hover:bg-cyan-500/30 transition-colors font-medium border border-cyan-500/30"
               >
                 <FaPlus />
@@ -772,6 +776,8 @@ code blocks
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
+                      title={`Remove ${tag}`}
+                      aria-label={`Remove ${tag}`}
                       className="hover:text-red-400 transition-colors"
                     >
                       <FaTimes className="text-xs" />
@@ -806,6 +812,8 @@ code blocks
               onChange={(e) =>
                 setFormData({ ...formData, publishedAt: e.target.value })
               }
+              title="Select published date"
+              aria-label="Select published date"
               className={`w-full px-4 py-3 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
                 theme === "dark"
                   ? "bg-white/10 border-white/20 text-white [color-scheme:dark]"
