@@ -1,5 +1,7 @@
-import { FaEnvelope, FaCheck, FaTrash } from "react-icons/fa";
+import { useState } from "react";
+import { FaEnvelope, FaCheck, FaTrash, FaEye } from "react-icons/fa";
 import type { Message } from "@/types";
+import { MessageDetailModal } from "../modals";
 
 interface MessagesTabProps {
   theme: "light" | "dark";
@@ -19,6 +21,27 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
   onStatusChange,
   onDelete,
 }) => {
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleViewMessage = (message: Message) => {
+    setSelectedMessage(message);
+    setIsModalOpen(true);
+    // Auto-mark as read when viewing
+    if (message.status === "new") {
+      onStatusChange(message.$id, "read");
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedMessage(null);
+  };
+
+  const handleMarkAsRead = (messageId: string) => {
+    onStatusChange(messageId, "read");
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -125,7 +148,8 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
                 {filteredMessages.map((msg) => (
                   <tr
                     key={msg.$id}
-                    className={`transition-all duration-300 ${
+                    onClick={() => handleViewMessage(msg)}
+                    className={`transition-all duration-300 cursor-pointer ${
                       theme === "dark"
                         ? "hover:bg-white/5"
                         : "hover:bg-white/20"
@@ -167,12 +191,27 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewMessage(msg);
+                          }}
+                          className={`p-2 rounded transition duration-300 ${
+                            theme === "dark"
+                              ? "text-cyan-300 hover:bg-cyan-500/20"
+                              : "text-blue-600 hover:bg-blue-400/20"
+                          }`}
+                          title="View message"
+                        >
+                          <FaEye className="text-sm" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             onStatusChange(
                               msg.$id,
                               msg.status === "read" ? "new" : "read"
-                            )
-                          }
+                            );
+                          }}
                           className={`p-2 rounded transition duration-300 ${
                             theme === "dark"
                               ? "text-cyan-300 hover:bg-cyan-500/20"
@@ -183,7 +222,10 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
                           <FaCheck className="text-sm" />
                         </button>
                         <button
-                          onClick={() => onDelete(msg.$id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(msg.$id);
+                          }}
                           className={`p-2 rounded transition duration-300 ${
                             theme === "dark"
                               ? "text-red-400 hover:bg-red-500/20"
@@ -202,6 +244,15 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Message Detail Modal */}
+      <MessageDetailModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        theme={theme}
+        message={selectedMessage}
+        onMarkAsRead={handleMarkAsRead}
+      />
     </div>
   );
 };

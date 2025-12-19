@@ -5,3 +5,4 @@ export { CertificationFormModal } from "./CertificationFormModal";
 export { EducationFormModal } from "./EducationFormModal";
 export { JourneyFormModal } from "./JourneyFormModal";
 export { GalleryFormModal } from "./GalleryFormModal";
+export { MessageDetailModal } from "./MessageDetailModal";
