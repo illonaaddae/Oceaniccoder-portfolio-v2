@@ -495,6 +495,22 @@ textarea:focus {
   }
 }
 
+/* Toast slide-in animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
 /* ✅ Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   .liquid-morph {

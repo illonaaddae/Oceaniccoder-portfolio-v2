@@ -10,7 +10,7 @@ import {
   FaPaperPlane,
   FaCheckCircle,
 } from "react-icons/fa";
-// Appwrite integration removed temporarily
+import { createMessage } from "../services/api";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -203,10 +203,10 @@ const ContactSection = () => {
                 e.preventDefault();
                 // Prevent double submits
                 if (status === "sending") return;
-                
+
                 const form = e.target;
                 const formDataToSend = new FormData(form);
-                
+
                 // Honeypot spam check - if honeypot field is filled, it's spam
                 const honeypot = formDataToSend.get("website");
                 if (honeypot && honeypot.toString().trim() !== "") {
@@ -215,31 +215,41 @@ const ContactSection = () => {
                   setResponseMessage("Spam detected. Please try again.");
                   return;
                 }
-                
+
                 // Rate limiting - prevent submissions within 10 seconds
                 const now = Date.now();
-                if (lastSubmissionRef.current && (now - lastSubmissionRef.current) < 10000) {
+                if (
+                  lastSubmissionRef.current &&
+                  now - lastSubmissionRef.current < 10000
+                ) {
                   setStatus("error");
-                  setResponseMessage("Please wait a few seconds before submitting again.");
+                  setResponseMessage(
+                    "Please wait a few seconds before submitting again."
+                  );
                   return;
                 }
-                
+
                 // Human behavior check - form must be open for at least 3 seconds
                 const formFillTime = now - formStartTimeRef.current;
                 if (formFillTime < 3000) {
                   setStatus("error");
-                  setResponseMessage("Please take your time filling out the form.");
+                  setResponseMessage(
+                    "Please take your time filling out the form."
+                  );
                   return;
                 }
-                
+
                 // Basic content validation
-                const message = formDataToSend.get("message")?.toString().trim() || "";
+                const message =
+                  formDataToSend.get("message")?.toString().trim() || "";
                 if (message.length < 10) {
                   setStatus("error");
-                  setResponseMessage("Please provide a more detailed message (at least 10 characters).");
+                  setResponseMessage(
+                    "Please provide a more detailed message (at least 10 characters)."
+                  );
                   return;
                 }
-                
+
                 setStatus("sending");
 
                 try {
@@ -253,12 +263,14 @@ const ContactSection = () => {
 
                   // Build a nicer, user-aware subject for incoming emails.
                   // If the visitor provided a subject, include it; otherwise create one using their name.
-                  const visitorName = (
-                    formDataToSend.get("name") || "Someone"
-                  ).toString().trim();
+                  const visitorName = (formDataToSend.get("name") || "Someone")
+                    .toString()
+                    .trim();
                   const visitorProvidedSubject = (
                     formDataToSend.get("subject") || ""
-                  ).toString().trim();
+                  )
+                    .toString()
+                    .trim();
                   const customSubject = visitorProvidedSubject
                     ? `${visitorName} — ${visitorProvidedSubject}`
                     : `${visitorName} sent a message from website`;
@@ -267,9 +279,9 @@ const ContactSection = () => {
 
                   // Helpful email fields for Web3Forms: set sender name and reply-to so emails look nicer
                   formDataToSend.set("from_name", visitorName);
-                  const visitorEmail = (
-                    formDataToSend.get("email") || ""
-                  ).toString().trim();
+                  const visitorEmail = (formDataToSend.get("email") || "")
+                    .toString()
+                    .trim();
                   if (visitorEmail)
                     formDataToSend.set("reply_to", visitorEmail);
 
@@ -285,11 +297,11 @@ const ContactSection = () => {
                     // Note: Don't set Content-Type header - browser will set it automatically for FormData
                     // User-Agent header is not allowed in browser fetch requests
                     res = await fetch("https://api.web3forms.com/submit", {
-                    method: "POST",
-                    headers: {
-                      Accept: "application/json",
-                    },
-                    body: formDataToSend,
+                      method: "POST",
+                      headers: {
+                        Accept: "application/json",
+                      },
+                      body: formDataToSend,
                       signal: controller.signal,
                       // Enable CORS credentials if needed (default is 'same-origin')
                       mode: "cors",
@@ -298,20 +310,23 @@ const ContactSection = () => {
                     clearTimeout(timeoutId);
                   } catch (fetchError) {
                     clearTimeout(timeoutId);
-                    
+
                     // Handle network errors specifically
                     if (fetchError.name === "AbortError") {
                       throw new Error(
                         "Request timed out. Please check your internet connection and try again."
                       );
                     }
-                    
-                    if (fetchError instanceof TypeError && fetchError.message.includes("Failed to fetch")) {
+
+                    if (
+                      fetchError instanceof TypeError &&
+                      fetchError.message.includes("Failed to fetch")
+                    ) {
                       throw new Error(
                         "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at illona@oceaniccoder.dev"
                       );
                     }
-                    
+
                     throw fetchError;
                   }
 
@@ -328,7 +343,8 @@ const ContactSection = () => {
 
                   if (!res.ok || (json && json.success === false)) {
                     // Check for spam error specifically
-                    const errorMsg = (json && json.message) || `Status ${res.status}`;
+                    const errorMsg =
+                      (json && json.message) || `Status ${res.status}`;
                     if (errorMsg.toLowerCase().includes("spam")) {
                       throw new Error(
                         "Your message was flagged as spam. Please ensure your message is genuine and try again, or contact me directly via email."
@@ -336,14 +352,30 @@ const ContactSection = () => {
                     }
                     throw new Error(errorMsg || `Server error: ${res.status}`);
                   }
-                  
+
                   // Ensure we have a successful response
                   if (!json || json.success !== true) {
                     throw new Error(
                       "The form submission was not successful. Please try again or contact me directly at illona@oceaniccoder.dev"
                     );
                   }
-                  
+
+                  // Save message to database
+                  try {
+                    await createMessage({
+                      name: formData.name,
+                      email: formData.email,
+                      subject: formData.subject,
+                      message: formData.message,
+                    });
+                  } catch (dbError) {
+                    console.warn(
+                      "Failed to save message to database:",
+                      dbError
+                    );
+                    // Don't fail the submission if database save fails
+                  }
+
                   // Success - update last submission time
                   lastSubmissionRef.current = now;
                   setStatus("success");
@@ -352,7 +384,7 @@ const ContactSection = () => {
                   );
                   // Reset form start time for next submission
                   formStartTimeRef.current = Date.now();
-                  
+
                   // auto-dismiss success message after 6 seconds
                   if (timeoutRef.current) clearTimeout(timeoutRef.current);
                   timeoutRef.current = setTimeout(() => {
@@ -370,24 +402,31 @@ const ContactSection = () => {
                 } catch (err) {
                   console.error("Form submit error:", err);
                   setStatus("error");
-                  
+
                   // Provide specific error messages based on error type
-                  let errorMessage = "Something went wrong. Please try again later.";
-                  
+                  let errorMessage =
+                    "Something went wrong. Please try again later.";
+
                   if (err && err.message) {
                     errorMessage = err.message;
                   } else if (err instanceof TypeError) {
                     // Network errors (fetch failed)
-                    errorMessage = "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at illona@oceaniccoder.dev";
+                    errorMessage =
+                      "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at illona@oceaniccoder.dev";
                   } else if (err.name === "AbortError") {
-                    errorMessage = "Request timed out. Please check your internet connection and try again.";
+                    errorMessage =
+                      "Request timed out. Please check your internet connection and try again.";
                   }
-                  
+
                   // Add helpful fallback message if not already present
-                  if (!errorMessage.includes("illona@oceaniccoder.dev") && !errorMessage.includes("email")) {
-                    errorMessage += " Alternatively, you can contact me directly at illona@oceaniccoder.dev";
+                  if (
+                    !errorMessage.includes("illona@oceaniccoder.dev") &&
+                    !errorMessage.includes("email")
+                  ) {
+                    errorMessage +=
+                      " Alternatively, you can contact me directly at illona@oceaniccoder.dev";
                   }
-                  
+
                   setResponseMessage(errorMessage);
                 }
               }}
@@ -484,7 +523,10 @@ const ContactSection = () => {
                   htmlFor="message"
                   className="block text-sm font-medium text-white mb-2"
                 >
-                  Message * <span className="text-gray-400 text-xs font-normal">(minimum 10 characters)</span>
+                  Message *{" "}
+                  <span className="text-gray-400 text-xs font-normal">
+                    (minimum 10 characters)
+                  </span>
                 </label>
                 <textarea
                   id="message"
@@ -541,17 +583,18 @@ const ContactSection = () => {
             {/* Response Time Note */}
             <div className="mt-6 space-y-3">
               <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg border border-cyan-500/20">
-              <p className="text-sm text-cyan-300">
-                💡 <strong>Quick Response:</strong> I typically respond to
-                messages within 24 hours. For urgent inquiries, feel free to
-                reach out via LinkedIn or email directly.
-              </p>
+                <p className="text-sm text-cyan-300">
+                  💡 <strong>Quick Response:</strong> I typically respond to
+                  messages within 24 hours. For urgent inquiries, feel free to
+                  reach out via LinkedIn or email directly.
+                </p>
               </div>
               <div className="p-3 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-lg border border-purple-500/10">
                 <p className="text-xs text-gray-400">
-                  <strong>Tip:</strong> Please take your time filling out the form 
-                  and ensure your message is detailed (at least 10 characters). 
-                  This helps prevent spam and ensures I receive your message properly.
+                  <strong>Tip:</strong> Please take your time filling out the
+                  form and ensure your message is detailed (at least 10
+                  characters). This helps prevent spam and ensures I receive
+                  your message properly.
                 </p>
               </div>
             </div>

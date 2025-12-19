@@ -49,12 +49,12 @@ export default function Splash({ exiting = false }) {
           {!prefersReducedMotion && (
             <div className="absolute inset-0 rounded-full border-4 border-cyan-400/30 loader-ring loader-ring-outer"></div>
           )}
-          
+
           {/* Animated middle ring */}
           {!prefersReducedMotion && (
             <div className="absolute inset-2 rounded-full border-3 border-blue-400/40 loader-ring loader-ring-middle"></div>
           )}
-          
+
           {/* Animated inner ring */}
           {!prefersReducedMotion && (
             <div className="absolute inset-6 rounded-full border-2 border-green-400/50 loader-ring loader-ring-inner"></div>
@@ -66,7 +66,7 @@ export default function Splash({ exiting = false }) {
           {/* Logo container */}
           <div className="absolute inset-4 rounded-full flex items-center justify-center bg-white dark:bg-black shadow-2xl z-10">
             <img
-              src="/images/logo/oceanic-logo.png"
+              src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf6002987c3841b/view?project=6943431e00253c8f9883"
               alt="Oceaniccoder Logo"
               loading="eager"
               decoding="async"

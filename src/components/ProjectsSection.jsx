@@ -117,7 +117,8 @@ const ProjectsSection = () => {
                     onError={(e) => {
                       if (!e.currentTarget.dataset.fallback) {
                         e.currentTarget.dataset.fallback = "1";
-                        e.currentTarget.src = "/images/blog-placeholder-1.svg";
+                        e.currentTarget.src =
+                          "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
                       }
                     }}
                   />

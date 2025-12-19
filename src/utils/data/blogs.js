@@ -23,7 +23,8 @@ export const BLOGS_DATA = [
     tags: ["Women in Tech", "Leadership", "Diversity", "Inclusion"],
     publishedAt: "2024-01-15",
     readTime: "5 min read",
-    image: "/images/blog/women-in-tech.jpg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
     featured: true,
   },
   {
@@ -51,7 +52,8 @@ export const BLOGS_DATA = [
     tags: ["CSS", "UI/UX", "Web Design", "Animations"],
     publishedAt: "2024-01-10",
     readTime: "8 min read",
-    image: "/images/blog/glass-ui.jpg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf000057a457f95/view?project=6943431e00253c8f9883",
     featured: false,
   },
   {
@@ -83,7 +85,8 @@ export const BLOGS_DATA = [
     tags: ["AI", "Education", "Machine Learning", "Innovation"],
     publishedAt: "2024-01-05",
     readTime: "6 min read",
-    image: "/images/blog/ai-education.jpg",
+    image:
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf00032bc7780ff/view?project=6943431e00253c8f9883",
     featured: true,
   },
 ];

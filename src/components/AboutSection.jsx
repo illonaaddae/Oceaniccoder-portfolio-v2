@@ -19,28 +19,21 @@ import {
   FaPlay,
 } from "react-icons/fa";
 import PlatformLogo from "./PlatformLogo";
+import { usePortfolioData } from "../hooks/usePortfolioData";
 
 /**
  * AboutSection Component
  *
  * Displays comprehensive information about Illona's professional journey, education,
- * certifications, and personal values. Data is organized in separate modules for
- * better maintainability and code readability.
+ * certifications, and personal values. Data is now fetched from the database
+ * with static fallbacks for better data management.
  *
- * Data Sources:
- * - Education: src/utils/data/education.js
- * - Career Journey: src/utils/data/journey.js
- * - Certifications: src/utils/data/certifications.js
- * - Gallery Images: src/utils/data/gallery.js
+ * Data Sources (from database):
+ * - Education: Appwrite education collection
+ * - Career Journey: Appwrite journey collection
+ * - Certifications: Appwrite certifications collection
+ * - Gallery Images: Appwrite gallery collection
  */
-
-// Import data from separate files for better code organization
-import {
-  education,
-  journey,
-  certifications,
-  galleryImages,
-} from "../utils/data";
 
 const AboutSection = () => {
   const navigate = useNavigate();
@@ -49,6 +42,15 @@ const AboutSection = () => {
   const [activeTab, setActiveTab] = useState("story");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Fetch data from database (with static fallbacks)
+  const {
+    education,
+    journey,
+    certifications,
+    gallery: galleryImages,
+    loading: dataLoading,
+  } = usePortfolioData();
+
   useEffect(() => {
     console.log("AboutSection mounted");
     console.log("Education data:", education);
@@ -56,7 +58,7 @@ const AboutSection = () => {
     console.log("Certifications data:", certifications);
     console.log("Gallery data:", galleryImages);
     setIsVisible(true);
-  }, []);
+  }, [education, journey, certifications, galleryImages]);
 
   const stats = [
     {
@@ -123,20 +125,42 @@ const AboutSection = () => {
     { id: "values", label: "Core Values", icon: <FaLightbulb /> },
   ];
 
-  // Image carousel functions
+  // Image carousel functions - with safety checks
   const nextImage = () => {
+    if (!galleryImages || galleryImages.length === 0) return;
     setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
   };
 
   const prevImage = () => {
+    if (!galleryImages || galleryImages.length === 0) return;
     setCurrentImageIndex(
       (prev) => (prev - 1 + galleryImages.length) % galleryImages.length
     );
   };
 
   const goToSlide = (index) => {
+    if (!galleryImages || galleryImages.length === 0) return;
     setCurrentImageIndex(index);
   };
+
+  // Show loading state or handle empty gallery
+  if (dataLoading) {
+    return (
+      <section
+        id="about"
+        className="min-h-screen pt-28 pb-20 flex items-center justify-center"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%)",
+        }}
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -161,7 +185,7 @@ const AboutSection = () => {
         <div className="mb-12 flex flex-col items-center text-center">
           <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-4">
             <img
-              src="/images/Headshot.webp"
+              src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce3002c5e175da5/view?project=6943431e00253c8f9883"
               alt="Illona Addae Headshot"
               className="w-full h-full object-cover"
             />
@@ -362,184 +386,191 @@ const AboutSection = () => {
                 </div>
               </div>
 
-              {/* Image Gallery remains the same but with updated caption fonts */}
-              <div className="space-y-8 px-2 sm:px-0">
-                {/* Image gallery card also stretched a bit on mobile */}
-                <div className="glass-card w-full max-w-none p-6">
-                  <h3 className="text-heading-lg text-white mb-6 flex items-center gap-3">
-                    <FaPlay className="text-cyan-400" />
-                    My Journey in Pictures
-                  </h3>
+              {/* Image Gallery - only render if we have images */}
+              {galleryImages && galleryImages.length > 0 && (
+                <div className="space-y-8 px-2 sm:px-0">
+                  {/* Image gallery card also stretched a bit on mobile */}
+                  <div className="glass-card w-full max-w-none p-6">
+                    <h3 className="text-heading-lg text-white mb-6 flex items-center gap-3">
+                      <FaPlay className="text-cyan-400" />
+                      My Journey in Pictures
+                    </h3>
 
-                  <div className="relative -mx-6 -mb-6">
-                    <div className="relative overflow-hidden rounded-b-2xl shadow-2xl border border-cyan-400/30 bg-gradient-to-br from-gray-900 to-gray-800 gallery-container">
-                      {/* Improved image container - adapts to image size while maintaining responsive height */}
-                      <div
-                        className="relative w-full gallery-image-wrapper"
-                        style={{ minHeight: "350px", maxHeight: "70vh" }}
-                      >
-                        <div className="flex items-center justify-center w-full h-full p-4 sm:p-6 md:p-8">
-                          <img
-                            loading="lazy"
-                            decoding="async"
-                            width="1200"
-                            height="800"
-                            src={galleryImages[currentImageIndex].src}
-                            alt={galleryImages[currentImageIndex].alt}
-                            className="gallery-main-image"
-                            style={{
-                              objectPosition: "center",
-                            }}
-                            onError={(e) => {
-                              // fallback to the optimized profile image
-                              e.target.src = "/images/profile.webp";
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Navigation arrows remain the same */}
-                      <button
-                        onClick={prevImage}
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
-                        aria-label="Previous image"
-                      >
-                        <FaChevronLeft className="w-3.5 h-3.5 group-hover:scale-110" />
-                      </button>
-
-                      <button
-                        onClick={nextImage}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
-                        aria-label="Next image"
-                      >
-                        <FaChevronRight className="w-3.5 h-3.5 group-hover:scale-110" />
-                      </button>
-
-                      {/* Image counter with better font */}
-                      <div className="absolute bottom-2 right-2 z-10">
-                        <div className="glass-card bg-black/80 backdrop-blur-sm border border-white/20 rounded-lg px-2.5 py-1 shadow-lg">
-                          <span className="text-white text-small font-medium">
-                            {currentImageIndex + 1}/{galleryImages.length}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Caption with proper font sizing - improved for better visibility */}
-                      <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-14 sm:right-16 z-10">
-                        <div className="glass-card bg-black/80 backdrop-blur-md border border-white/20 rounded-lg px-3 py-2 shadow-xl max-w-md">
-                          <p className="text-white text-caption sm:text-base font-medium leading-relaxed">
-                            {galleryImages[currentImageIndex].caption}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Navigation hints with better font */}
-                    <div className="px-6 pt-3">
-                      {/* Thumbnails remain the same */}
-                      <div className="flex justify-center gap-1.5">
-                        {galleryImages.map((image, index) => (
-                          <button
-                            key={index}
-                            onClick={() => goToSlide(index)}
-                            className={`relative overflow-hidden rounded-lg border-2 transition-all duration-300 ${
-                              index === currentImageIndex
-                                ? "border-cyan-400 scale-105 shadow-lg shadow-cyan-400/25"
-                                : "border-white/20 hover:border-cyan-400/50 hover:scale-105"
-                            }`}
-                            style={{
-                              width: "35px",
-                              height: "35px",
-                            }}
-                          >
+                    <div className="relative -mx-6 -mb-6">
+                      <div className="relative overflow-hidden rounded-b-2xl shadow-2xl border border-cyan-400/30 bg-gradient-to-br from-gray-900 to-gray-800 gallery-container">
+                        {/* Improved image container - adapts to image size while maintaining responsive height */}
+                        <div
+                          className="relative w-full gallery-image-wrapper"
+                          style={{ minHeight: "350px", maxHeight: "70vh" }}
+                        >
+                          <div className="flex items-center justify-center w-full h-full p-4 sm:p-6 md:p-8">
                             <img
                               loading="lazy"
                               decoding="async"
-                              width="60"
-                              height="60"
-                              src={image.src}
-                              alt={image.alt}
-                              className="w-full h-full object-cover transition-transform duration-300"
+                              width="1200"
+                              height="800"
+                              src={galleryImages[currentImageIndex]?.src || ""}
+                              alt={
+                                galleryImages[currentImageIndex]?.alt ||
+                                "Gallery image"
+                              }
+                              className="gallery-main-image"
+                              style={{
+                                objectPosition: "center",
+                              }}
                               onError={(e) => {
                                 // fallback to the optimized profile image
-                                e.target.src = "/images/profile.webp";
+                                e.target.src =
+                                  "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883";
                               }}
                             />
-                            {index === currentImageIndex && (
-                              <div className="absolute inset-0 bg-cyan-400/20"></div>
-                            )}
-                          </button>
-                        ))}
+                          </div>
+                        </div>
+
+                        {/* Navigation arrows */}
+                        <button
+                          onClick={prevImage}
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
+                          aria-label="Previous image"
+                        >
+                          <FaChevronLeft className="w-3.5 h-3.5 group-hover:scale-110" />
+                        </button>
+
+                        <button
+                          onClick={nextImage}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 glass-btn bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full hover:scale-110 hover:bg-black/90 transition-all duration-300 group shadow-xl z-20"
+                          aria-label="Next image"
+                        >
+                          <FaChevronRight className="w-3.5 h-3.5 group-hover:scale-110" />
+                        </button>
+
+                        {/* Image counter with better font */}
+                        <div className="absolute bottom-2 right-2 z-10">
+                          <div className="glass-card bg-black/80 backdrop-blur-sm border border-white/20 rounded-lg px-2.5 py-1 shadow-lg">
+                            <span className="text-white text-small font-medium">
+                              {currentImageIndex + 1}/{galleryImages.length}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Caption with proper font sizing - improved for better visibility */}
+                        <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-14 sm:right-16 z-10">
+                          <div className="glass-card bg-black/80 backdrop-blur-md border border-white/20 rounded-lg px-3 py-2 shadow-xl max-w-md">
+                            <p className="text-white text-caption sm:text-base font-medium leading-relaxed">
+                              {galleryImages[currentImageIndex]?.caption || ""}
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Slide indicators remain the same */}
-                      <div className="flex justify-center gap-1.5 mt-2">
-                        {galleryImages.map((_, index) => (
-                          <button
-                            key={index}
-                            onClick={() => goToSlide(index)}
-                            className={`transition-all duration-300 ${
-                              index === currentImageIndex
-                                ? "w-5 h-1.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full scale-110"
-                                : "w-1.5 h-1.5 bg-gray-500 rounded-full hover:bg-cyan-400/70 hover:scale-105"
-                            }`}
-                            aria-label={`Go to slide ${index + 1}`}
-                          />
-                        ))}
-                      </div>
+                      {/* Navigation hints with better font */}
+                      <div className="px-6 pt-3">
+                        {/* Thumbnails remain the same */}
+                        <div className="flex justify-center gap-1.5">
+                          {galleryImages.map((image, index) => (
+                            <button
+                              key={index}
+                              onClick={() => goToSlide(index)}
+                              className={`relative overflow-hidden rounded-lg border-2 transition-all duration-300 ${
+                                index === currentImageIndex
+                                  ? "border-cyan-400 scale-105 shadow-lg shadow-cyan-400/25"
+                                  : "border-white/20 hover:border-cyan-400/50 hover:scale-105"
+                              }`}
+                              style={{
+                                width: "35px",
+                                height: "35px",
+                              }}
+                            >
+                              <img
+                                loading="lazy"
+                                decoding="async"
+                                width="60"
+                                height="60"
+                                src={image.src}
+                                alt={image.alt}
+                                className="w-full h-full object-cover transition-transform duration-300"
+                                onError={(e) => {
+                                  // fallback to the optimized profile image
+                                  e.target.src =
+                                    "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883";
+                                }}
+                              />
+                              {index === currentImageIndex && (
+                                <div className="absolute inset-0 bg-cyan-400/20"></div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
 
-                      {/* Navigation hint with proper font */}
-                      <div className="flex justify-center mt-2 mb-4">
-                        <div className="glass-card bg-white/5 border border-white/10 rounded-lg px-2.5 py-0.5">
-                          <span className="text-small text-gray-400">
-                            ← Swipe or click to navigate →
-                          </span>
+                        {/* Slide indicators remain the same */}
+                        <div className="flex justify-center gap-1.5 mt-2">
+                          {galleryImages.map((_, index) => (
+                            <button
+                              key={index}
+                              onClick={() => goToSlide(index)}
+                              className={`transition-all duration-300 ${
+                                index === currentImageIndex
+                                  ? "w-5 h-1.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full scale-110"
+                                  : "w-1.5 h-1.5 bg-gray-500 rounded-full hover:bg-cyan-400/70 hover:scale-105"
+                              }`}
+                              aria-label={`Go to slide ${index + 1}`}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Navigation hint with proper font */}
+                        <div className="flex justify-center mt-2 mb-4">
+                          <div className="glass-card bg-white/5 border border-white/10 rounded-lg px-2.5 py-0.5">
+                            <span className="text-small text-gray-400">
+                              ← Swipe or click to navigate →
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Enhanced Quick Facts with better fonts */}
-                <div className="glass-card w-full max-w-none p-6">
-                  <h4 className="text-heading-lg text-white mb-4 flex items-center gap-2">
-                    <FaStar className="text-yellow-400" />
-                    Quick Facts
-                  </h4>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
-                      <div className="w-8 h-8 rounded-full bg-red-400/20 flex items-center justify-center">
-                        <FaMapMarkerAlt className="text-red-400 text-xs" />
+                  {/* Enhanced Quick Facts with better fonts */}
+                  <div className="glass-card w-full max-w-none p-6">
+                    <h4 className="text-heading-lg text-white mb-4 flex items-center gap-2">
+                      <FaStar className="text-yellow-400" />
+                      Quick Facts
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
+                        <div className="w-8 h-8 rounded-full bg-red-400/20 flex items-center justify-center">
+                          <FaMapMarkerAlt className="text-red-400 text-xs" />
+                        </div>
+                        <span className="text-gray-300">
+                          Based in Accra, Ghana
+                        </span>
                       </div>
-                      <span className="text-gray-300">
-                        Based in Accra, Ghana
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
-                      <div className="w-8 h-8 rounded-full bg-blue-400/20 flex items-center justify-center">
-                        <FaCalendarAlt className="text-blue-400 text-xs" />
+                      <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
+                        <div className="w-8 h-8 rounded-full bg-blue-400/20 flex items-center justify-center">
+                          <FaCalendarAlt className="text-blue-400 text-xs" />
+                        </div>
+                        <span className="text-gray-300">2+ Years in Tech</span>
                       </div>
-                      <span className="text-gray-300">2+ Years in Tech</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
-                      <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center">
-                        <FaUsers className="text-green-400 text-xs" />
+                      <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
+                        <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center">
+                          <FaUsers className="text-green-400 text-xs" />
+                        </div>
+                        <span className="text-gray-300">
+                          40+ Students Mentored
+                        </span>
                       </div>
-                      <span className="text-gray-300">
-                        40+ Students Mentored
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
-                      <div className="w-8 h-8 rounded-full bg-yellow-400/20 flex items-center justify-center">
-                        <FaAward className="text-yellow-400 text-xs" />
+                      <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
+                        <div className="w-8 h-8 rounded-full bg-yellow-400/20 flex items-center justify-center">
+                          <FaAward className="text-yellow-400 text-xs" />
+                        </div>
+                        <span className="text-gray-300">
+                          Multiple Certifications
+                        </span>
                       </div>
-                      <span className="text-gray-300">
-                        Multiple Certifications
-                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
