@@ -39,9 +39,9 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
         </div>
         <button
           onClick={onShowForm}
-          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-300 backdrop-blur-md border shadow-lg ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
             theme === "dark"
-              ? "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-500/30"
+              ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
               : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
           }`}
         >
@@ -62,20 +62,20 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
         </div>
       ) : filteredCertifications.length === 0 ? (
         <div
-          className={`glass-card backdrop-blur-xl border rounded-2xl p-12 text-center transition-colors duration-300 ${
+          className={`glass-card border rounded-2xl p-12 text-center transition-colors duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
+              ? "bg-gray-800/50 border-gray-700/80"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
           }`}
         >
           <FaAward
             className={`text-4xl mx-auto mb-4 transition-colors duration-300 ${
-              theme === "dark" ? "text-slate-400/50" : "text-slate-400/60"
+              theme === "dark" ? "text-gray-600" : "text-slate-400/60"
             }`}
           />
           <p
             className={`transition-colors duration-300 ${
-              theme === "dark" ? "text-slate-300" : "text-slate-600"
+              theme === "dark" ? "text-gray-400" : "text-slate-600"
             }`}
           >
             No certifications yet
@@ -83,9 +83,9 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
         </div>
       ) : (
         <div
-          className={`glass-card backdrop-blur-xl border rounded-2xl overflow-hidden transition-colors duration-300 ${
+          className={`glass-card border rounded-2xl overflow-hidden transition-colors duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
+              ? "bg-gray-800/50 border-gray-700/80"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
           }`}
         >
@@ -93,8 +93,8 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
             <table className="w-full">
               <thead>
                 <tr
-                  className={`border-b transition-colors duration-300 ${
-                    theme === "dark" ? "border-white/20" : "border-blue-200/40"
+                  className={`border-b transition-colors duration-200 ${
+                    theme === "dark" ? "border-gray-700" : "border-blue-200/40"
                   }`}
                 >
                   <th

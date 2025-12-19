@@ -16,6 +16,7 @@ import {
   FaUser,
   FaBars,
   FaTimes,
+  FaBlog,
 } from "react-icons/fa";
 import { useState } from "react";
 
@@ -29,6 +30,7 @@ type TabType =
   | "education"
   | "journey"
   | "about"
+  | "blog"
   | "settings";
 
 interface SidebarProps {
@@ -53,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "skills", label: "Skills", icon: FaCode },
     { id: "projects", label: "Projects", icon: FaProjectDiagram },
     { id: "certifications", label: "Certifications", icon: FaFileAlt },
+    { id: "blog", label: "Blog Posts", icon: FaBlog },
     { id: "education", label: "Education", icon: FaGraduationCap },
     { id: "journey", label: "Journey", icon: FaRoad },
     { id: "gallery", label: "Gallery", icon: FaImage },
@@ -94,8 +97,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`fixed left-0 top-0 h-screen w-64 transition-all duration-300 ${
           theme === "dark"
-            ? "bg-gradient-to-b from-white/10 to-white/5 border-r border-white/10"
-            : "bg-gradient-to-b from-white/50 to-white/30 border-r border-blue-200/30"
+            ? "bg-[#111827] border-r border-gray-800 shadow-xl shadow-black/30"
+            : "bg-gradient-to-b from-white/80 to-white/60 border-r border-blue-200/30 shadow-xl shadow-blue-100/10"
         } backdrop-blur-xl z-40 ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
@@ -103,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Header with Profile */}
         <div
           className={`p-4 sm:p-6 pt-14 lg:pt-6 border-b ${
-            theme === "dark" ? "border-white/10" : "border-blue-200/30"
+            theme === "dark" ? "border-gray-800" : "border-blue-200/30"
           }`}
         >
           {/* Profile Image */}
@@ -111,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div
               className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex-shrink-0 ${
                 theme === "dark"
-                  ? "border-cyan-400/50 ring-2 ring-cyan-500/30"
+                  ? "border-cyan-500/60 ring-2 ring-cyan-500/20"
                   : "border-blue-400/50 ring-2 ring-blue-500/30"
               }`}
             >
@@ -172,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -180,17 +183,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
                     ? theme === "dark"
-                      ? "bg-gradient-to-r from-cyan-500/50 to-blue-500/40 border border-cyan-400/50"
-                      : "bg-gradient-to-r from-blue-400/40 to-cyan-400/30 border border-blue-300/50"
+                      ? "bg-cyan-500/15 border border-cyan-500/30 text-cyan-400"
+                      : "bg-gradient-to-r from-blue-400/30 to-cyan-400/20 border border-blue-300/50 text-blue-700 shadow-lg shadow-blue-200/20"
                     : theme === "dark"
-                    ? "text-slate-300 hover:bg-white/10"
-                    : "text-slate-700 hover:bg-white/30"
+                    ? "text-gray-400 hover:bg-gray-800/60 hover:text-gray-200 border border-transparent"
+                    : "text-slate-600 hover:bg-white/40 hover:text-slate-900"
                 }`}
               >
-                <Icon className="text-lg flex-shrink-0" />
+                <Icon
+                  className={`text-lg flex-shrink-0 ${
+                    isActive
+                      ? theme === "dark"
+                        ? "text-cyan-400"
+                        : "text-blue-600"
+                      : ""
+                  }`}
+                />
                 <span className="font-medium">{tab.label}</span>
               </button>
             );
@@ -199,28 +210,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer */}
         <div
-          className={`border-t border-white/10 p-4 space-y-3 ${
-            theme === "dark" ? "bg-white/5" : "bg-white/20"
+          className={`border-t p-4 space-y-3 ${
+            theme === "dark"
+              ? "bg-[#0d1321] border-gray-800"
+              : "bg-white/30 border-blue-200/30"
           }`}
         >
           <button
             onClick={onThemeToggle}
-            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-300 ${
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
               theme === "dark"
-                ? "bg-white/10 text-yellow-300 hover:bg-white/20"
-                : "bg-white/40 text-slate-700 hover:bg-white/60"
+                ? "bg-gray-800/80 text-amber-400 hover:bg-gray-800 border border-gray-700 hover:border-amber-500/40"
+                : "bg-white/50 text-slate-700 hover:bg-white/70 border border-blue-200/30 hover:border-blue-300/50"
             }`}
           >
-            {theme === "dark" ? <FaSun /> : <FaMoon />}
+            {theme === "dark" ? (
+              <FaSun className="text-amber-400" />
+            ) : (
+              <FaMoon className="text-slate-600" />
+            )}
             <span className="font-medium">
               {theme === "dark" ? "Light Mode" : "Dark Mode"}
             </span>
           </button>
           <button
-            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-300 ${
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 border ${
               theme === "dark"
-                ? "text-red-400 hover:bg-red-500/20"
-                : "text-red-600 hover:bg-red-400/20"
+                ? "text-red-400 hover:bg-red-500/10 border-transparent hover:border-red-500/30"
+                : "text-red-600 hover:bg-red-50 border-transparent hover:border-red-200"
             }`}
           >
             <FaSignOutAlt />

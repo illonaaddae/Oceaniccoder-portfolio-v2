@@ -62,9 +62,9 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({
     }
   };
 
-  const inputClass = `w-full px-4 py-3 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
+  const inputClass = `w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
     theme === "dark"
-      ? "bg-white/10 border-white/20 text-white placeholder-slate-400"
+      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-cyan-500/60"
       : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500"
   }`;
 

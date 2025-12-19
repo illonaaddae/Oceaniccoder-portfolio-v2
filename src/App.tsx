@@ -17,6 +17,7 @@ const About = React.lazy(() => import("./components/AboutSection"));
 const Skills = React.lazy(() => import("./components/SkillsSection"));
 const Projects = React.lazy(() => import("./components/ProjectsSection"));
 const Blog = React.lazy(() => import("./components/BlogSection"));
+const BlogPost = React.lazy(() => import("./components/BlogPost"));
 const Contact = React.lazy(() => import("./components/ContactSection"));
 const AdminDashboard = React.lazy(() => import("./components/AdminDashboard"));
 
@@ -111,6 +112,21 @@ const AnimatedRoutes: FC<{
               transition={{ duration: 0.45 }}
             >
               <Blog />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/blog/:slug"
+          element={
+            <motion.div
+              style={{ willChange: "opacity, transform" }}
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.45 }}
+            >
+              <BlogPost />
             </motion.div>
           }
         />

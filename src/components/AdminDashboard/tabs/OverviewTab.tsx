@@ -100,9 +100,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
             onClick={onAddCertification}
-            className={`flex items-center gap-2 px-3 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-300 backdrop-blur-md border ${
+            className={`flex items-center gap-2 px-3 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border ${
               theme === "dark"
-                ? "bg-white/8 border-white/20 text-white hover:bg-white/15 hover:border-white/30"
+                ? "bg-gray-800/80 border-gray-700 text-gray-200 hover:bg-gray-800 hover:border-gray-600"
                 : "bg-white/40 border-blue-200/40 text-slate-900 hover:bg-white/60 hover:border-blue-200/60"
             }`}
           >
@@ -111,9 +111,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </button>
           <button
             onClick={onNewProject}
-            className={`flex items-center gap-2 px-3 sm:px-6 py-2 rounded-lg font-medium text-sm sm:text-base transition duration-300 backdrop-blur-md border shadow-lg ${
+            className={`flex items-center gap-2 px-3 sm:px-6 py-2 rounded-xl font-medium text-sm sm:text-base transition duration-200 border shadow-lg ${
               theme === "dark"
-                ? "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-500/30"
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
                 : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
             }`}
           >
@@ -131,11 +131,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <div
               key={idx}
               onClick={() => stat.tabLink && onNavigateToTab?.(stat.tabLink)}
-              className={`glass-card backdrop-blur-xl border rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all duration-300 hover:border-opacity-40 ${
+              className={`glass-card border rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all duration-200 ${
                 stat.tabLink ? "cursor-pointer hover:scale-[1.02]" : ""
               } ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20 hover:border-white/30 hover:bg-gradient-to-br hover:from-white/12 hover:to-white/6"
+                  ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600 hover:bg-gray-800/70"
                   : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
               }`}
             >
@@ -143,9 +143,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 <div>
                   <p
                     className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
-                      theme === "dark"
-                        ? "text-slate-100/95"
-                        : "text-slate-700/80"
+                      theme === "dark" ? "text-gray-400" : "text-slate-700/80"
                     }`}
                   >
                     {stat.label}
@@ -205,16 +203,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Recent Activity - Left Column (2/3 width) */}
         <div
-          className={`lg:col-span-2 glass-card backdrop-blur-xl border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-colors duration-300 ${
+          className={`lg:col-span-2 glass-card border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-colors duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
+              ? "bg-gray-800/50 border-gray-700/80"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
           }`}
         >
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2
               className={`text-base sm:text-lg font-bold transition-colors duration-300 ${
-                theme === "dark" ? "text-white/95" : "text-slate-900"
+                theme === "dark" ? "text-white" : "text-slate-900"
               }`}
             >
               <FaChartLine className="inline mr-2" />
@@ -222,9 +220,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </h2>
             <button
               onClick={() => onNavigateToTab?.("projects")}
-              className={`text-sm font-bold transition-colors duration-300 ${
+              className={`text-sm font-bold transition-colors duration-200 ${
                 theme === "dark"
-                  ? "text-cyan-300 hover:text-cyan-200"
+                  ? "text-cyan-400 hover:text-cyan-300"
                   : "text-blue-600 hover:text-blue-700"
               }`}
             >

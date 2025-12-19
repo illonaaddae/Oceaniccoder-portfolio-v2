@@ -145,7 +145,7 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
   const response = await databases.listDocuments(
     DATABASE_ID,
     COLLECTIONS.BLOG_POSTS,
-    [Query.equal("published", true), Query.orderDesc("publishedAt")]
+    [Query.orderDesc("publishedAt")]
   );
   return response.documents as unknown as BlogPost[];
 }
@@ -160,6 +160,33 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost> {
     throw new Error("Blog post not found");
   }
   return response.documents[0] as unknown as BlogPost;
+}
+
+export async function createBlogPost(
+  post: Omit<BlogPost, "$id">
+): Promise<BlogPost> {
+  return databases.createDocument(
+    DATABASE_ID,
+    COLLECTIONS.BLOG_POSTS,
+    ID.unique(),
+    post
+  ) as unknown as BlogPost;
+}
+
+export async function updateBlogPost(
+  postId: string,
+  post: Partial<Omit<BlogPost, "$id">>
+): Promise<BlogPost> {
+  return databases.updateDocument(
+    DATABASE_ID,
+    COLLECTIONS.BLOG_POSTS,
+    postId,
+    post
+  ) as unknown as BlogPost;
+}
+
+export async function deleteBlogPost(postId: string): Promise<void> {
+  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BLOG_POSTS, postId);
 }
 
 // Comments

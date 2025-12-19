@@ -8,6 +8,7 @@ import type {
   Education,
   Journey,
   About,
+  BlogPost,
 } from "@/types";
 import {
   getMessages,
@@ -39,6 +40,10 @@ import {
   deleteJourney,
   getAbout,
   saveAbout,
+  getBlogPosts,
+  createBlogPost,
+  updateBlogPost,
+  deleteBlogPost,
 } from "@/services/api";
 
 export const useAdminData = () => {
@@ -50,6 +55,7 @@ export const useAdminData = () => {
   const [education, setEducation] = useState<Education[]>([]);
   const [journey, setJourney] = useState<Journey[]>([]);
   const [about, setAbout] = useState<About | null>(null);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,6 +122,13 @@ export const useAdminData = () => {
         console.warn("Failed to load about:", err);
       }
 
+      let blogPostsData: BlogPost[] = [];
+      try {
+        blogPostsData = await getBlogPosts();
+      } catch (err) {
+        console.warn("Failed to load blog posts:", err);
+      }
+
       setMessages(messagesData);
       setSkills(skillsData);
       setProjects(projectsData);
@@ -124,6 +137,7 @@ export const useAdminData = () => {
       setEducation(educationData);
       setJourney(journeyData);
       setAbout(aboutData);
+      setBlogPosts(blogPostsData);
       setError(null); // Clear any previous errors since data loaded
     } catch (err) {
       const errorMessage =
@@ -395,6 +409,40 @@ export const useAdminData = () => {
     }
   };
 
+  // Blog Post handlers
+  const handleAddBlogPost = async (postForm: Omit<BlogPost, "$id">) => {
+    try {
+      await createBlogPost(postForm);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to add blog post:", err);
+      throw err;
+    }
+  };
+
+  const handleUpdateBlogPost = async (
+    postId: string,
+    postForm: Partial<Omit<BlogPost, "$id">>
+  ) => {
+    try {
+      await updateBlogPost(postId, postForm);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to update blog post:", err);
+      throw err;
+    }
+  };
+
+  const handleDeleteBlogPost = async (postId: string) => {
+    try {
+      await deleteBlogPost(postId);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to delete blog post:", err);
+      throw err;
+    }
+  };
+
   return {
     messages,
     skills,
@@ -404,6 +452,7 @@ export const useAdminData = () => {
     education,
     journey,
     about,
+    blogPosts,
     loading,
     error,
     loadData,
@@ -428,5 +477,8 @@ export const useAdminData = () => {
     handleUpdateJourney,
     handleDeleteJourney,
     handleSaveAbout,
+    handleAddBlogPost,
+    handleUpdateBlogPost,
+    handleDeleteBlogPost,
   };
 };

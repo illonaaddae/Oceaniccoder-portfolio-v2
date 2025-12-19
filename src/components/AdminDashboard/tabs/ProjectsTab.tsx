@@ -46,9 +46,9 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         </div>
         <button
           onClick={onShowForm}
-          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-300 backdrop-blur-md border shadow-lg ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
             theme === "dark"
-              ? "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-500/30"
+              ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
               : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
           }`}
         >
@@ -60,9 +60,9 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
       {/* Project Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
         <div
-          className={`glass-card backdrop-blur-xl border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-300 hover:border-opacity-40 ${
+          className={`glass-card border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20 hover:border-white/30 hover:bg-gradient-to-br hover:from-white/12 hover:to-white/6"
+              ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
           }`}
         >
@@ -90,9 +90,9 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         </div>
 
         <div
-          className={`glass-card backdrop-blur-xl border rounded-2xl p-6 transition-all duration-300 hover:border-opacity-40 ${
+          className={`glass-card border rounded-2xl p-6 transition-all duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20 hover:border-white/30 hover:bg-gradient-to-br hover:from-white/12 hover:to-white/6"
+              ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
           }`}
         >
@@ -100,14 +100,14 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
             <div>
               <p
                 className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
-                  theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"
+                  theme === "dark" ? "text-gray-400" : "text-slate-700/80"
                 }`}
               >
                 Published
               </p>
               <p
                 className={`text-4xl font-bold mt-2 transition-colors duration-300 ${
-                  theme === "dark" ? "text-white/98" : "text-slate-900"
+                  theme === "dark" ? "text-white" : "text-slate-900"
                 }`}
               >
                 {
@@ -117,16 +117,16 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                 }
               </p>
             </div>
-            <div className="p-3 rounded-xl backdrop-blur-md bg-gradient-to-br from-green-600 to-green-500 shadow-lg">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-green-600 to-green-500 shadow-lg">
               <FaCheckCircle className="text-white text-xl font-bold" />
             </div>
           </div>
         </div>
 
         <div
-          className={`glass-card backdrop-blur-xl border rounded-2xl p-6 transition-all duration-300 hover:border-opacity-40 ${
+          className={`glass-card border rounded-2xl p-6 transition-all duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20 hover:border-white/30 hover:bg-gradient-to-br hover:from-white/12 hover:to-white/6"
+              ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
           }`}
         >
@@ -134,14 +134,14 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
             <div>
               <p
                 className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
-                  theme === "dark" ? "text-slate-100/95" : "text-slate-700/80"
+                  theme === "dark" ? "text-gray-400" : "text-slate-700/80"
                 }`}
               >
                 Drafts
               </p>
               <p
                 className={`text-4xl font-bold mt-2 transition-colors duration-300 ${
-                  theme === "dark" ? "text-white/98" : "text-slate-900"
+                  theme === "dark" ? "text-white" : "text-slate-900"
                 }`}
               >
                 {filteredProjects.filter((p) => p.status === "draft").length}

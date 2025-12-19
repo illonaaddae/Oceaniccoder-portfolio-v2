@@ -50,20 +50,20 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
         </div>
       ) : filteredMessages.length === 0 ? (
         <div
-          className={`glass-card backdrop-blur-xl border rounded-2xl p-12 text-center transition-colors duration-300 ${
+          className={`glass-card border rounded-2xl p-12 text-center transition-colors duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
+              ? "bg-gray-800/50 border-gray-700/80"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
           }`}
         >
           <FaEnvelope
             className={`text-4xl mx-auto mb-4 transition-colors duration-300 ${
-              theme === "dark" ? "text-slate-400/50" : "text-slate-400/60"
+              theme === "dark" ? "text-gray-600" : "text-slate-400/60"
             }`}
           />
           <p
             className={`transition-colors duration-300 ${
-              theme === "dark" ? "text-slate-300" : "text-slate-600"
+              theme === "dark" ? "text-gray-400" : "text-slate-600"
             }`}
           >
             No messages yet
@@ -71,18 +71,18 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
         </div>
       ) : (
         <div
-          className={`glass-card backdrop-blur-xl border rounded-2xl overflow-hidden transition-colors duration-300 ${
+          className={`glass-card border rounded-2xl overflow-hidden transition-colors duration-200 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
+              ? "bg-gray-800/50 border-gray-700/80"
               : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
           }`}
         >
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead
-                className={`backdrop-blur-sm border-b transition-colors duration-300 ${
+                className={`border-b transition-colors duration-200 ${
                   theme === "dark"
-                    ? "bg-white/8 border-white/10"
+                    ? "bg-gray-900/50 border-gray-700"
                     : "bg-white/20 border-blue-200/30"
                 }`}
               >

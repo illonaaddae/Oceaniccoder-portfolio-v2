@@ -90,9 +90,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ theme }) => {
     }
   };
 
-  const inputClasses = `w-full backdrop-blur-md border rounded-lg pl-4 pr-12 py-3 transition-all duration-300 focus:outline-none focus:ring-2 ${
+  const inputClasses = `w-full border rounded-lg pl-4 pr-12 py-3 transition-all duration-200 focus:outline-none focus:ring-2 ${
     theme === "dark"
-      ? "bg-white/5 border-white/10 text-white placeholder-slate-400 focus:ring-cyan-400 focus:border-cyan-400"
+      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:ring-cyan-500/50 focus:border-cyan-500/60"
       : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500 focus:ring-blue-400 focus:border-blue-400"
   }`;
 
@@ -117,9 +117,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ theme }) => {
 
       {/* Change Password Card */}
       <div
-        className={`glass-card backdrop-blur-xl border rounded-2xl p-6 transition-colors duration-300 ${
+        className={`glass-card border rounded-2xl p-6 transition-colors duration-200 ${
           theme === "dark"
-            ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
+            ? "bg-gray-800/50 border-gray-700/80"
             : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
         }`}
       >
@@ -281,10 +281,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ theme }) => {
           <button
             type="submit"
             disabled={isChangingPassword}
-            className={`w-full sm:w-auto px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 ${
+            className={`w-full sm:w-auto px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg ${
               theme === "dark"
-                ? "bg-gradient-to-r from-cyan-500/40 to-blue-500/40 border border-cyan-400/50 hover:from-cyan-500/50 hover:to-blue-500/50 text-white"
-                : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-500/50 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20"
+                : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-blue-400/30"
             }`}
           >
             {isChangingPassword ? (
@@ -304,15 +304,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ theme }) => {
 
       {/* Other Settings Placeholder */}
       <div
-        className={`glass-card backdrop-blur-xl border rounded-2xl p-8 text-center transition-colors duration-300 ${
+        className={`glass-card border rounded-2xl p-8 text-center transition-colors duration-200 ${
           theme === "dark"
-            ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
+            ? "bg-gray-800/50 border-gray-700/80"
             : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
         }`}
       >
         <FaCog
           className={`text-4xl mx-auto mb-4 transition-colors duration-300 ${
-            theme === "dark" ? "text-slate-400/50" : "text-slate-400/60"
+            theme === "dark" ? "text-gray-600" : "text-slate-400/60"
           }`}
         />
         <p

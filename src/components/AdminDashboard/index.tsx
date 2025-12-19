@@ -12,6 +12,7 @@ import { GalleryTab } from "./tabs/GalleryTab";
 import { EducationTab } from "./tabs/EducationTab";
 import { JourneyTab } from "./tabs/JourneyTab";
 import { AboutTab } from "./tabs/AboutTab";
+import BlogTab from "./tabs/BlogTab";
 import {
   ProjectFormModal,
   SkillFormModal,
@@ -30,6 +31,7 @@ import type {
   Education,
   Journey,
   About,
+  BlogPost,
 } from "@/types";
 
 type TabType =
@@ -42,6 +44,7 @@ type TabType =
   | "education"
   | "journey"
   | "about"
+  | "blog"
   | "settings";
 
 export const AdminDashboard: React.FC = () => {
@@ -108,6 +111,10 @@ export const AdminDashboard: React.FC = () => {
     handleUpdateJourney,
     handleDeleteJourney,
     handleSaveAbout,
+    blogPosts,
+    handleAddBlogPost,
+    handleUpdateBlogPost,
+    handleDeleteBlogPost,
   } = useAdminData();
 
   // Filtering functions
@@ -361,7 +368,7 @@ export const AdminDashboard: React.FC = () => {
     <div
       className={`flex h-screen overflow-hidden transition-colors duration-300 ${
         theme === "dark"
-          ? "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800"
+          ? "bg-[#0a0f1a]"
           : "bg-gradient-to-br from-blue-50 via-white to-cyan-50"
       }`}
     >
@@ -383,8 +390,8 @@ export const AdminDashboard: React.FC = () => {
         <header
           className={`glass-card transition-all duration-300 border-b px-4 sm:px-8 py-4 flex items-center justify-between gap-4 sm:gap-6 z-30 ${
             theme === "dark"
-              ? "bg-gradient-to-r from-white/6 to-white/3 backdrop-blur-xl border-white/10"
-              : "bg-gradient-to-r from-white/50 to-white/30 backdrop-blur-xl border-blue-200/30"
+              ? "bg-[#111827]/90 backdrop-blur-xl border-gray-800 shadow-lg shadow-black/20"
+              : "bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-xl border-blue-200/30 shadow-lg shadow-blue-100/20"
           }`}
         >
           {/* Spacer for mobile menu button */}
@@ -393,10 +400,10 @@ export const AdminDashboard: React.FC = () => {
           {/* Search Bar */}
           <div className="flex-1 max-w-md">
             <div
-              className={`flex items-center gap-3 px-3 sm:px-4 py-2 rounded-lg transition-colors duration-300 ${
+              className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 rounded-xl transition-all duration-300 ${
                 theme === "dark"
-                  ? "bg-white/10 border border-white/20 focus-within:border-white/40"
-                  : "bg-white/40 border border-blue-200/40 focus-within:border-blue-300/60"
+                  ? "bg-gray-800/80 border border-gray-700 focus-within:border-cyan-500/60 focus-within:bg-gray-800 focus-within:ring-1 focus-within:ring-cyan-500/30"
+                  : "bg-white/60 border border-blue-200/40 focus-within:border-blue-400/60 focus-within:bg-white/80 focus-within:ring-1 focus-within:ring-blue-400/30"
               }`}
             >
               <FaSearch
@@ -542,6 +549,19 @@ export const AdminDashboard: React.FC = () => {
               loading={loading}
               about={about}
               onSave={handleSaveAbout}
+            />
+          )}
+
+          {activeTab === "blog" && (
+            <BlogTab
+              blogPosts={blogPosts}
+              onAdd={async (post) => {
+                await handleAddBlogPost(post as Omit<BlogPost, "$id">);
+              }}
+              onEdit={handleUpdateBlogPost}
+              onDelete={handleDeleteBlogPost}
+              loading={loading}
+              theme={theme}
             />
           )}
 

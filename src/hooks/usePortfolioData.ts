@@ -8,6 +8,7 @@ import {
   getGallery,
   getJourney,
   getAbout,
+  getBlogPosts,
 } from "@/services/api";
 import type {
   Project,
@@ -17,6 +18,7 @@ import type {
   GalleryImage,
   Journey,
   About,
+  BlogPost,
 } from "@/types";
 
 // Static fallback data (imported from local files as backup)
@@ -34,6 +36,7 @@ interface PortfolioData {
   education: Education[];
   gallery: GalleryImage[];
   journey: Journey[];
+  blogPosts: BlogPost[];
   about: About | null;
   loading: boolean;
   error: string | null;
@@ -49,6 +52,7 @@ const dataCache: {
   education?: Education[];
   gallery?: GalleryImage[];
   journey?: Journey[];
+  blogPosts?: BlogPost[];
   about?: About | null;
   timestamp?: number;
 } = {};
@@ -63,6 +67,7 @@ export function usePortfolioData(): PortfolioData {
   const [education, setEducation] = useState<Education[]>([]);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [journey, setJourney] = useState<Journey[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [about, setAbout] = useState<About | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +88,7 @@ export function usePortfolioData(): PortfolioData {
       setEducation(dataCache.education || []);
       setGallery(dataCache.gallery || []);
       setJourney(dataCache.journey || []);
+      setBlogPosts(dataCache.blogPosts || []);
       setAbout(dataCache.about || null);
       setLoading(false);
       return;
@@ -102,6 +108,7 @@ export function usePortfolioData(): PortfolioData {
         galleryData,
         journeyData,
         aboutData,
+        blogData,
       ] = await Promise.allSettled([
         getProjects(),
         getFeaturedProjects(),
@@ -111,6 +118,7 @@ export function usePortfolioData(): PortfolioData {
         getGallery(),
         getJourney(),
         getAbout(),
+        getBlogPosts(),
       ]);
 
       // Handle each result
@@ -174,6 +182,15 @@ export function usePortfolioData(): PortfolioData {
       handleResult(eduData, staticEducation, setEducation);
       handleResult(galleryData, staticGallery, setGallery);
       handleResult(journeyData, staticJourney, setJourney);
+
+      // Handle blog posts
+      if (blogData.status === "fulfilled" && blogData.value) {
+        setBlogPosts(blogData.value);
+        dataCache.blogPosts = blogData.value;
+      } else {
+        setBlogPosts([]);
+        dataCache.blogPosts = [];
+      }
 
       // Handle about (single document, not array)
       if (aboutData.status === "fulfilled" && aboutData.value) {
@@ -242,6 +259,7 @@ export function usePortfolioData(): PortfolioData {
     education,
     gallery,
     journey,
+    blogPosts,
     about,
     loading,
     error,

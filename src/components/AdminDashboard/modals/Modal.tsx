@@ -56,16 +56,16 @@ export const Modal: React.FC<ModalProps> = ({
             sizeClasses[size]
           } rounded-2xl border shadow-2xl transition-all duration-300 ${
             theme === "dark"
-              ? "bg-gradient-to-br from-slate-900 to-slate-800 border-white/20"
-              : "bg-gradient-to-br from-white to-slate-50 border-blue-200/60"
+              ? "bg-gradient-to-br from-slate-900 via-slate-900/98 to-slate-800 border-white/15 shadow-black/30"
+              : "bg-gradient-to-br from-white to-slate-50 border-blue-200/60 shadow-blue-100/20"
           }`}
         >
           {/* Header */}
           <div
             className={`sticky top-0 z-10 flex items-center justify-between p-6 border-b rounded-t-2xl ${
               theme === "dark"
-                ? "bg-slate-900 border-white/10"
-                : "bg-white border-blue-200/30"
+                ? "bg-slate-900/95 backdrop-blur-sm border-white/10"
+                : "bg-white/95 backdrop-blur-sm border-blue-200/30"
             }`}
           >
             <h2

@@ -17,6 +17,8 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow Appwrite connections
+    Access-Control-Allow-Origin = "*"
 
 [[headers]]
   for = "/assets/*"

@@ -101,7 +101,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           <img
             src={value}
             alt="Preview"
-            className="w-full h-40 object-cover rounded-lg border border-gray-600"
+            className="w-full h-40 object-cover rounded-lg border border-gray-700"
           />
           <button
             type="button"
@@ -137,8 +137,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           transition-colors duration-200
           ${
             dragOver
-              ? "border-blue-500 bg-blue-500/10"
-              : "border-gray-600 hover:border-gray-500 hover:bg-gray-700/50"
+              ? "border-cyan-500 bg-cyan-500/10"
+              : "border-gray-700 hover:border-gray-600 hover:bg-gray-800/50"
           }
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
@@ -154,7 +154,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         {uploading ? (
           <div className="flex flex-col items-center gap-2">
             <svg
-              className="w-8 h-8 text-blue-500 animate-spin"
+              className="w-8 h-8 text-cyan-500 animate-spin"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -177,7 +177,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         ) : (
           <div className="flex flex-col items-center gap-2">
             <svg
-              className="w-8 h-8 text-gray-500"
+              className="w-8 h-8 text-gray-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -190,7 +190,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               />
             </svg>
             <div className="text-sm text-gray-400">
-              <span className="text-blue-500 hover:text-blue-400">
+              <span className="text-cyan-500 hover:text-cyan-400">
                 Click to upload
               </span>{" "}
               or drag and drop
@@ -226,7 +226,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="https://..."
-          className="w-full px-3 py-2 text-sm bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 text-sm bg-gray-800/80 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/60"
         />
       </div>
     </div>

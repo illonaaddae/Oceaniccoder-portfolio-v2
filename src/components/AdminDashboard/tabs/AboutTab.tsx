@@ -64,9 +64,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
     }
   };
 
-  const inputClass = `w-full px-4 py-3 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
+  const inputClass = `w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
     theme === "dark"
-      ? "bg-white/10 border-white/20 text-white placeholder-slate-400"
+      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-cyan-500/60 focus:bg-gray-800"
       : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500"
   }`;
 
@@ -85,7 +85,7 @@ export const AboutTab: React.FC<AboutTabProps> = ({
         saved === field
           ? "bg-green-500/20 text-green-400"
           : theme === "dark"
-          ? "bg-white/10 text-white hover:bg-white/20"
+          ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600"
           : "bg-slate-100 text-slate-700 hover:bg-slate-200"
       }`}
     >
@@ -141,9 +141,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
         <div className="space-y-6">
           {/* Profile Section */}
           <div
-            className={`glass-card backdrop-blur-xl border rounded-2xl p-6 ${
+            className={`glass-card border rounded-2xl p-6 transition-colors duration-200 ${
               theme === "dark"
-                ? "bg-gradient-to-br from-white/10 to-white/5 border-white/20"
+                ? "bg-gray-800/50 border-gray-700/80"
                 : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40"
             }`}
           >
@@ -161,7 +161,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
             <div className="flex flex-col sm:flex-row items-start gap-6">
               <div
                 className={`w-24 h-24 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden ${
-                  theme === "dark" ? "bg-white/10" : "bg-slate-100"
+                  theme === "dark"
+                    ? "bg-gray-800 border border-gray-700"
+                    : "bg-slate-100"
                 }`}
               >
                 {form.profileImage ? (
@@ -247,9 +249,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
 
           {/* Resume Section */}
           <div
-            className={`glass-card backdrop-blur-xl border rounded-2xl p-6 ${
+            className={`glass-card border rounded-2xl p-6 transition-colors duration-200 ${
               theme === "dark"
-                ? "bg-gradient-to-br from-white/10 to-white/5 border-white/20"
+                ? "bg-gray-800/50 border-gray-700/80"
                 : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40"
             }`}
           >
@@ -282,9 +284,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
 
           {/* Story Section */}
           <div
-            className={`glass-card backdrop-blur-xl border rounded-2xl p-6 ${
+            className={`glass-card border rounded-2xl p-6 transition-colors duration-200 ${
               theme === "dark"
-                ? "bg-gradient-to-br from-white/10 to-white/5 border-white/20"
+                ? "bg-gray-800/50 border-gray-700/80"
                 : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40"
             }`}
           >
@@ -320,10 +322,12 @@ export const AboutTab: React.FC<AboutTabProps> = ({
               type="button"
               onClick={handleSaveAll}
               disabled={saving === "all"}
-              className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition duration-300 disabled:opacity-50 ${
+              className={`flex items-center gap-2 px-8 py-3 rounded-xl font-medium transition duration-200 disabled:opacity-50 shadow-lg ${
                 saved === "all"
                   ? "bg-green-500/20 text-green-400 border border-green-400/30"
-                  : "bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:from-blue-600 hover:to-cyan-500"
+                  : theme === "dark"
+                  ? "bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
+                  : "bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
               }`}
             >
               <FaSave />
