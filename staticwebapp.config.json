@@ -1,0 +1,53 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/images/*.{png,jpg,gif,webp,svg}",
+      "/assets/*",
+      "/*.{css,js,json,ico,txt,xml}"
+    ]
+  },
+  "routes": [
+    {
+      "route": "/admin",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/admin/*",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/blog/*",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/projects",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/contact",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/about",
+      "rewrite": "/index.html"
+    }
+  ],
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    }
+  },
+  "globalHeaders": {
+    "X-Frame-Options": "SAMEORIGIN",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Cache-Control": "public, max-age=31536000, immutable"
+  },
+  "mimeTypes": {
+    ".json": "application/json",
+    ".webp": "image/webp",
+    ".woff2": "font/woff2"
+  }
+}

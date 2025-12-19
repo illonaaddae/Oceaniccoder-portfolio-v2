@@ -12,6 +12,8 @@ export interface Project {
   featured?: boolean;
   status?: string;
   year?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
 }
 
 // Certification Types

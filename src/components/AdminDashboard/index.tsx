@@ -47,7 +47,11 @@ type TabType =
   | "blog"
   | "settings";
 
-export const AdminDashboard: React.FC = () => {
+interface AdminDashboardProps {
+  onLogout?: () => void;
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const {
@@ -378,6 +382,7 @@ export const AdminDashboard: React.FC = () => {
         onTabChange={setActiveTab}
         theme={theme}
         onThemeToggle={toggleTheme}
+        onLogout={onLogout}
       />
 
       {/* Main Content */}

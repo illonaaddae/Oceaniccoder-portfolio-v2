@@ -399,7 +399,8 @@ export async function getSetting(key: string): Promise<Settings | null> {
     return null;
   } catch (error) {
     console.error("Error getting setting:", error);
-    return null;
+    // Re-throw the error so callers can handle it appropriately
+    throw error;
   }
 }
 
@@ -407,25 +408,30 @@ export async function setSetting(
   key: string,
   value: string
 ): Promise<Settings> {
-  // Check if setting exists
-  const existing = await getSetting(key);
+  try {
+    // Check if setting exists
+    const existing = await getSetting(key);
 
-  if (existing) {
-    // Update existing setting
-    return databases.updateDocument(
-      DATABASE_ID,
-      COLLECTIONS.SETTINGS,
-      existing.$id,
-      { value }
-    ) as unknown as Settings;
-  } else {
-    // Create new setting
-    return databases.createDocument(
-      DATABASE_ID,
-      COLLECTIONS.SETTINGS,
-      "unique()",
-      { key, value }
-    ) as unknown as Settings;
+    if (existing) {
+      // Update existing setting
+      return databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.SETTINGS,
+        existing.$id,
+        { value }
+      ) as unknown as Settings;
+    } else {
+      // Create new setting
+      return databases.createDocument(
+        DATABASE_ID,
+        COLLECTIONS.SETTINGS,
+        "unique()",
+        { key, value }
+      ) as unknown as Settings;
+    }
+  } catch (error) {
+    console.error("Error setting value:", error);
+    throw error;
   }
 }
 
@@ -439,13 +445,19 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyAdminPassword(password: string): Promise<boolean> {
-  const storedHash = await getSetting("admin_password_hash");
-  if (!storedHash) {
-    // No password set, use default
+  try {
+    const storedHash = await getSetting("admin_password_hash");
+    if (!storedHash) {
+      // No password set, use default
+      return password === "illona2025";
+    }
+    const inputHash = await hashPassword(password);
+    return inputHash === storedHash.value;
+  } catch (error) {
+    console.error("Error verifying password:", error);
+    // Fallback to default password if settings collection is not accessible
     return password === "illona2025";
   }
-  const inputHash = await hashPassword(password);
-  return inputHash === storedHash.value;
 }
 
 export async function setAdminPassword(newPassword: string): Promise<void> {
@@ -507,6 +519,51 @@ export async function saveAbout(
 }
 
 // ============ Storage Functions ============
+
+export interface StorageStats {
+  totalFiles: number;
+  totalSizeBytes: number;
+  totalSizeMB: number;
+  usedPercentage: number;
+  maxStorageMB: number;
+}
+
+/**
+ * Get storage statistics for the bucket
+ * @returns Storage statistics including file count and total size
+ */
+export async function getStorageStats(): Promise<StorageStats> {
+  try {
+    const response = await storage.listFiles(STORAGE_BUCKET_ID);
+
+    // Calculate total size from all files
+    let totalSizeBytes = 0;
+    for (const file of response.files) {
+      totalSizeBytes += file.sizeOriginal || 0;
+    }
+
+    const totalSizeMB = totalSizeBytes / (1024 * 1024);
+    const maxStorageMB = 2048; // 2GB free tier limit for Appwrite
+    const usedPercentage = Math.min((totalSizeMB / maxStorageMB) * 100, 100);
+
+    return {
+      totalFiles: response.total,
+      totalSizeBytes,
+      totalSizeMB: Math.round(totalSizeMB * 100) / 100,
+      usedPercentage: Math.round(usedPercentage * 10) / 10,
+      maxStorageMB,
+    };
+  } catch (error) {
+    console.error("Error getting storage stats:", error);
+    return {
+      totalFiles: 0,
+      totalSizeBytes: 0,
+      totalSizeMB: 0,
+      usedPercentage: 0,
+      maxStorageMB: 2048,
+    };
+  }
+}
 
 /**
  * Upload an image to Appwrite Storage
