@@ -44,8 +44,8 @@ const ContactSection = () => {
     {
       icon: <FaEnvelope className="text-cyan-400" />,
       label: "Email",
-      value: "illona@oceaniccoder.dev",
-      href: "mailto:illona@oceaniccoder.dev",
+      value: "info@illonaaddae.com",
+      href: "mailto:info@illonaaddae.com",
     },
     {
       icon: <FaPhone className="text-green-400" />,
@@ -323,7 +323,7 @@ const ContactSection = () => {
                       fetchError.message.includes("Failed to fetch")
                     ) {
                       throw new Error(
-                        "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at illona@oceaniccoder.dev"
+                        "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at info@illonaaddae.com"
                       );
                     }
 
@@ -356,7 +356,7 @@ const ContactSection = () => {
                   // Ensure we have a successful response
                   if (!json || json.success !== true) {
                     throw new Error(
-                      "The form submission was not successful. Please try again or contact me directly at illona@oceaniccoder.dev"
+                      "The form submission was not successful. Please try again or contact me directly at info@illonaaddae.com"
                     );
                   }
 
@@ -420,11 +420,11 @@ const ContactSection = () => {
 
                   // Add helpful fallback message if not already present
                   if (
-                    !errorMessage.includes("illona@oceaniccoder.dev") &&
+                    !errorMessage.includes("info@illonaaddae.com") &&
                     !errorMessage.includes("email")
                   ) {
                     errorMessage +=
-                      " Alternatively, you can contact me directly at illona@oceaniccoder.dev";
+                      " Alternatively, you can contact me directly at info@illonaaddae.com";
                   }
 
                   setResponseMessage(errorMessage);
