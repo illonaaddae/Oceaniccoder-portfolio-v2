@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FaUser, FaSave, FaFileAlt, FaBook } from "react-icons/fa";
+import { FaUser, FaSave, FaFileAlt, FaBook, FaFilePdf } from "react-icons/fa";
 import type { About } from "@/types";
+import ImageUpload from "../ImageUpload";
 
 interface AboutTabProps {
   theme: "light" | "dark";
@@ -266,19 +267,73 @@ export const AboutTab: React.FC<AboutTabProps> = ({
               </h3>
               <SaveButton field="resumeUrl" label="CV" />
             </div>
-            <input
-              type="url"
+
+            {/* PDF Preview */}
+            {form.resumeUrl && (
+              <div
+                className={`mb-4 p-4 rounded-xl border ${
+                  theme === "dark"
+                    ? "bg-gray-800/60 border-gray-700"
+                    : "bg-slate-50 border-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`p-3 rounded-lg ${
+                      theme === "dark" ? "bg-red-500/20" : "bg-red-100"
+                    }`}
+                  >
+                    <FaFilePdf className="text-2xl text-red-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`text-sm font-medium truncate ${
+                        theme === "dark" ? "text-white" : "text-slate-900"
+                      }`}
+                    >
+                      Current Resume/CV
+                    </p>
+                    <a
+                      href={form.resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-cyan-500 hover:text-cyan-400 truncate block"
+                    >
+                      {form.resumeUrl.length > 50
+                        ? form.resumeUrl.substring(0, 50) + "..."
+                        : form.resumeUrl}
+                    </a>
+                  </div>
+                  <a
+                    href={form.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                      theme === "dark"
+                        ? "bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
+                        : "bg-cyan-100 text-cyan-600 hover:bg-cyan-200"
+                    }`}
+                  >
+                    View
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <ImageUpload
               value={form.resumeUrl}
-              onChange={(e) => setForm({ ...form, resumeUrl: e.target.value })}
-              className={inputClass}
-              placeholder="https://drive.google.com/..."
+              onChange={(url) => setForm({ ...form, resumeUrl: url })}
+              theme={theme}
+              allowPdf={true}
+              maxSizeMB={10}
             />
             <p
               className={`text-xs mt-2 ${
                 theme === "dark" ? "text-slate-400" : "text-slate-500"
               }`}
             >
-              Paste a link to your resume (Google Drive, Dropbox, etc.)
+              Upload a PDF file or paste a link to your resume (Google Drive,
+              Dropbox, etc.)
             </p>
           </div>
 
