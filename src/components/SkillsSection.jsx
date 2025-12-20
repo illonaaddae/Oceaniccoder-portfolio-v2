@@ -1,11 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { usePortfolio } from "../Context"; // Fixed path
+import { usePortfolioData } from "../hooks/usePortfolioData";
 
 const SkillsSection = () => {
   const { skills, activeSkillCategory, setActiveSkillCategory } =
     usePortfolio();
+  const { projects, about } = usePortfolioData();
   const [animatedSkills, setAnimatedSkills] = useState({});
+
+  // Calculate total unique technologies from skills
+  const totalTechnologies = useMemo(() => {
+    if (!skills) return 20;
+    return skills.reduce(
+      (total, category) => total + (category.skills?.length || 0),
+      0
+    );
+  }, [skills]);
 
   useEffect(() => {
     // Animate skill bars when category changes
@@ -138,7 +149,9 @@ const SkillsSection = () => {
             <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
               💻
             </div>
-            <h4 className="text-xl font-bold text-white mb-2">15+ Projects</h4>
+            <h4 className="text-xl font-bold text-white mb-2">
+              {projects?.length || 15}+ Projects
+            </h4>
             <p className="text-gray-300">Built and deployed</p>
           </div>
 
@@ -147,7 +160,7 @@ const SkillsSection = () => {
               🛠️
             </div>
             <h4 className="text-xl font-bold text-white mb-2">
-              20+ Technologies
+              {totalTechnologies}+ Technologies
             </h4>
             <p className="text-gray-300">Mastered and counting</p>
           </div>
@@ -156,7 +169,9 @@ const SkillsSection = () => {
             <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
               👥
             </div>
-            <h4 className="text-xl font-bold text-white mb-2">100+ Students</h4>
+            <h4 className="text-xl font-bold text-white mb-2">
+              {about?.studentsMentored || 40}+ Students
+            </h4>
             <p className="text-gray-300">Mentored and guided</p>
           </div>
         </div>
