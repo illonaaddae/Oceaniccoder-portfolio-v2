@@ -33,15 +33,13 @@
 
 <!-- TODO: Add your dashboard screenshots here -->
 
-|                          Dashboard Overview                           |                          Content Management                           |
-| :-------------------------------------------------------------------: | :-------------------------------------------------------------------: |
+|                     Dashboard Overview                      |                     Content Management                      |
+| :---------------------------------------------------------: | :---------------------------------------------------------: |
 | ![Dashboard Overview](public/images/dashboard-overview.png) | ![Content Management](public/images/content-management.png) |
 
-|                       Blog Editor                       |                    Messages & Analytics                     |
-| :-----------------------------------------------------: | :---------------------------------------------------------: |
+|                  Blog Editor                  |               Messages & Analytics                |
+| :-------------------------------------------: | :-----------------------------------------------: |
 | ![Blog Editor](public/images/blog-editor.png) | ![Messages](public/images/massages-analytics.png) |
-
-
 
 ---
 
@@ -168,11 +166,15 @@ oceanicoder-portfolio-v2/
 │   │   ├── AdminDashboard/              # 🎛️ CMS Components
 │   │   │   ├── index.tsx                # Dashboard layout
 │   │   │   ├── Sidebar.tsx              # Navigation
-│   │   │   ├── ImageUpload.tsx          # Media management
+│   │   │   ├── ImageUpload.tsx          # Media management (images + PDFs)
+│   │   │   ├── Toast.tsx                # Toast notifications
 │   │   │   ├── useAdminData.ts          # Data hook
 │   │   │   ├── tabs/                    # Content sections
 │   │   │   └── modals/                  # CRUD modals
 │   │   ├── ui/                          # Reusable UI components
+│   │   ├── Confetti.tsx                 # 🎊 Celebration animation
+│   │   ├── EventBanner.tsx              # 🎂 Special event banners
+│   │   ├── SupportButton.tsx            # 💝 Floating support links
 │   │   └── *.jsx                        # Page sections
 │   ├── Context/
 │   │   └── index.tsx                    # Theme & App context
@@ -187,6 +189,7 @@ oceanicoder-portfolio-v2/
 │   │   └── index.ts                     # TypeScript definitions
 │   ├── utils/
 │   │   ├── formatters.ts                # Data formatters
+│   │   ├── imageUrls.ts                 # Appwrite image URLs
 │   │   └── themeStyles.ts               # Theme utilities
 │   └── styles/
 │       └── index.css                    # Global styles
@@ -309,6 +312,7 @@ on:
 | ---------------- | --------------------------------------------------------------------------------- |
 | `projects`       | title, description, technologies[], image, liveUrl, githubUrl, featured, category |
 | `blog_posts`     | title, slug, content, excerpt, tags[], publishedAt, image, featured, published    |
+| `blog_reactions` | postId, visitorId, reaction (like/dislike)                                        |
 | `skills`         | name, category, percentage, icon                                                  |
 | `certifications` | title, issuer, date, credential, platform, image, verifyLink                      |
 | `education`      | institution, degree, period, achievement, gpa, universityLogo                     |
@@ -349,6 +353,17 @@ on:
 
 ## 🔄 Recent Updates
 
+### v2.1.0 — Enhanced User Experience & Engagement Features
+
+- 💝 **Support Button** — Floating button (bottom-left) with Buy Me a Coffee & Scrimba links
+- 🎂 **Event Banner System** — Automatic celebration banners (birthday, New Year) with confetti
+- 👍 **Blog Reactions** — Like/dislike system for blog posts with Appwrite storage
+- 🔔 **Toast Notifications** — User feedback for blog CRUD operations
+- 📄 **PDF Upload Support** — Upload PDF certificates alongside images
+- 🎨 **Theme-aware Components** — Improved dark/light mode support for forms
+- 📱 **Enhanced Mobile UI** — Better responsiveness for admin dashboard & modals
+- 🎓 **Scrimba Ambassador** — 20% discount promotion in footer
+
 ### v2.0.0 — Cloud Migration & Dashboard
 
 - ✨ Migrated from Netlify to **Azure Static Web Apps**
@@ -359,6 +374,39 @@ on:
 - 📱 Enhanced **mobile responsiveness** across all pages
 - 🎨 Improved **dark/light theme** with system preference detection
 - ⚡ **TypeScript migration** for type safety
+
+---
+
+## 🎉 Special Features
+
+### 💝 Support & Promotion Links
+
+A floating heart button in the bottom-left corner provides quick access to:
+
+| Link                   | Description                          |
+| ---------------------- | ------------------------------------ |
+| ☕ **Buy Me a Coffee** | Support the developer's work         |
+| 🎓 **Scrimba Pro**     | Get 20% OFF with ambassador discount |
+
+### 🎂 Event Banner System
+
+Automatic celebration banners appear on special dates:
+
+| Event       | Date     | Features                                  |
+| ----------- | -------- | ----------------------------------------- |
+| 🎂 Birthday | April 28 | Pink gradient banner + confetti animation |
+| 🎉 New Year | Jan 1-3  | Gold gradient banner + confetti animation |
+
+_Banners can be dismissed and won't reappear for the same day._
+
+### 👍 Blog Reactions
+
+Visitors can interact with blog posts:
+
+- 👍 Like and 👎 Dislike buttons on each blog post
+- Reactions stored in Appwrite `blog_reactions` collection
+- Anonymous tracking via localStorage visitor ID
+- Real-time reaction counts displayed
 
 ---
 

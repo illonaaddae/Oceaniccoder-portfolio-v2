@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/node": "^25.0.3",
@@ -45,6 +45,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.21",
+    "jsdom": "^27.3.0",
     "node-appwrite": "^21.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
