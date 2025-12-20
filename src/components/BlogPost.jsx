@@ -21,7 +21,6 @@ import {
   FaRegThumbsDown,
 } from "react-icons/fa";
 import { usePortfolioData } from "../hooks/usePortfolioData";
-import useTheme from "../hooks/useTheme";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -126,8 +125,27 @@ const BlogPost = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { blogPosts, loading } = usePortfolioData();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+
+  // Track theme state with MutationObserver for real-time updates
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains("dark")
+  );
+
+  // Listen for theme changes on the HTML element
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === "class") {
+          setIsDark(document.documentElement.classList.contains("dark"));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => observer.disconnect();
+  }, []);
+
   const [post, setPost] = useState(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
