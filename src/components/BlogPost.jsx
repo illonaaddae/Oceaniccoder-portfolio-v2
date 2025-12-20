@@ -127,12 +127,14 @@ const BlogPost = () => {
   const { blogPosts, loading } = usePortfolioData();
 
   // Track theme state with MutationObserver for real-time updates
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains("dark")
-  );
+  const [isDark, setIsDark] = useState(true); // Default to dark
 
-  // Listen for theme changes on the HTML element
+  // Initialize theme on mount and listen for changes
   useEffect(() => {
+    // Set initial theme
+    setIsDark(document.documentElement.classList.contains("dark"));
+
+    // Listen for theme changes on the HTML element
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.attributeName === "class") {
