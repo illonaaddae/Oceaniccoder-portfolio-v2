@@ -883,10 +883,11 @@ Now go create something beautiful! ✨`,
                     {children}
                   </blockquote>
                 ),
-                code: ({ node, inline, className, children, ...props }) => {
+                code(props) {
+                  const { children, className, node, ...rest } = props;
                   // Check if it's inline code or a code block
                   const isInline =
-                    inline || (!className && !String(children).includes("\n"));
+                    !className && !String(children).includes("\n");
 
                   // Extract language from className (e.g., "language-javascript")
                   const match = /language-(\w+)/.exec(className || "");
@@ -928,7 +929,7 @@ Now go create something beautiful! ✨`,
                   ) : (
                     <code
                       className="bg-white/10 text-emerald-400 px-2 py-0.5 rounded text-sm font-mono"
-                      {...props}
+                      {...rest}
                     >
                       {children}
                     </code>
