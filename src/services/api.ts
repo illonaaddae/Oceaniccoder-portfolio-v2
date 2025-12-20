@@ -166,24 +166,78 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost> {
 export async function createBlogPost(
   post: Omit<BlogPost, "$id">
 ): Promise<BlogPost> {
-  return databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.BLOG_POSTS,
-    ID.unique(),
-    post
-  ) as unknown as BlogPost;
+  try {
+    // Clean up the data - only include fields with values
+    const cleanedData: Record<string, unknown> = {
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      content: post.content,
+    };
+
+    // Only add optional fields if they have values
+    if (post.category) cleanedData.category = post.category;
+    if (post.tags && post.tags.length > 0) cleanedData.tags = post.tags;
+    if (post.publishedAt) cleanedData.publishedAt = post.publishedAt;
+    if (post.readTime) cleanedData.readTime = post.readTime;
+    if (post.image) cleanedData.image = post.image;
+    if (post.featured !== undefined) cleanedData.featured = post.featured;
+    if (post.published !== undefined) cleanedData.published = post.published;
+
+    console.log("Creating blog post with data:", cleanedData);
+
+    const result = await databases.createDocument(
+      DATABASE_ID,
+      COLLECTIONS.BLOG_POSTS,
+      ID.unique(),
+      cleanedData
+    );
+    console.log("Blog post created:", result);
+    return result as unknown as BlogPost;
+  } catch (error) {
+    console.error("Appwrite createBlogPost error:", error);
+    throw error;
+  }
 }
 
 export async function updateBlogPost(
   postId: string,
   post: Partial<Omit<BlogPost, "$id">>
 ): Promise<BlogPost> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.BLOG_POSTS,
-    postId,
-    post
-  ) as unknown as BlogPost;
+  try {
+    // Clean up the data - only include fields that are provided
+    const cleanedData: Record<string, unknown> = {};
+
+    if (post.title !== undefined) cleanedData.title = post.title;
+    if (post.slug !== undefined) cleanedData.slug = post.slug;
+    if (post.excerpt !== undefined) cleanedData.excerpt = post.excerpt;
+    if (post.content !== undefined) cleanedData.content = post.content;
+    if (post.category !== undefined)
+      cleanedData.category = post.category || null;
+    if (post.tags !== undefined)
+      cleanedData.tags = post.tags && post.tags.length > 0 ? post.tags : [];
+    if (post.publishedAt !== undefined)
+      cleanedData.publishedAt = post.publishedAt || null;
+    if (post.readTime !== undefined)
+      cleanedData.readTime = post.readTime || null;
+    if (post.image !== undefined) cleanedData.image = post.image || null;
+    if (post.featured !== undefined) cleanedData.featured = post.featured;
+    if (post.published !== undefined) cleanedData.published = post.published;
+
+    console.log("Updating blog post with data:", cleanedData);
+
+    const result = await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTIONS.BLOG_POSTS,
+      postId,
+      cleanedData
+    );
+    console.log("Blog post updated:", result);
+    return result as unknown as BlogPost;
+  } catch (error) {
+    console.error("Appwrite updateBlogPost error:", error);
+    throw error;
+  }
 }
 
 export async function deleteBlogPost(postId: string): Promise<void> {
