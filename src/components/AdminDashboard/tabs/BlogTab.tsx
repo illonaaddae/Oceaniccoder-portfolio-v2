@@ -322,11 +322,12 @@ const BlogTab: React.FC<BlogTabProps> = ({
                   : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40 hover:border-blue-300/60 hover:bg-gradient-to-br hover:from-white/70 hover:to-white/50"
               }`}
             >
-              <div className="flex gap-4">
-                {/* Image */}
+              {/* Mobile: Stack vertically, Desktop: Side by side */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Image - Full width on mobile, fixed on desktop */}
                 {post.image && (
                   <div
-                    className={`w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden border ${
+                    className={`w-full sm:w-24 h-40 sm:h-24 flex-shrink-0 rounded-xl overflow-hidden border ${
                       theme === "dark"
                         ? "border-gray-700"
                         : "border-blue-200/30"
@@ -346,140 +347,147 @@ const BlogTab: React.FC<BlogTabProps> = ({
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
+                  {/* Title and Actions row */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {post.featured && (
-                          <FaStar className="text-yellow-400 text-sm" />
+                          <FaStar className="text-yellow-400 text-sm flex-shrink-0" />
                         )}
                         <h3
-                          className={`font-semibold truncate transition-colors duration-300 ${
+                          className={`font-semibold text-base sm:text-lg truncate transition-colors duration-300 ${
                             theme === "dark" ? "text-white" : "text-slate-900"
                           }`}
                         >
                           {post.title}
                         </h3>
                       </div>
-                      <p
-                        className={`text-sm line-clamp-2 mb-2 transition-colors duration-300 ${
-                          theme === "dark" ? "text-slate-400" : "text-slate-600"
-                        }`}
-                      >
-                        {post.excerpt}
-                      </p>
-                      <div
-                        className={`flex flex-wrap items-center gap-3 text-xs transition-colors duration-300 ${
-                          theme === "dark" ? "text-slate-500" : "text-slate-500"
-                        }`}
-                      >
-                        {post.category && (
-                          <span
-                            className={`px-2.5 py-1 rounded-lg font-medium ${
-                              theme === "dark"
-                                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                                : "bg-cyan-100 text-cyan-700 border border-cyan-200"
-                            }`}
-                          >
-                            {post.category}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <FaCalendarAlt />
-                          {formatDate(post.publishedAt)}
-                        </span>
-                        {post.readTime && (
-                          <span className="flex items-center gap-1">
-                            <FaClock />
-                            {post.readTime}
-                          </span>
-                        )}
-                        {!post.published && (
-                          <span
-                            className={`px-2.5 py-1 rounded-lg font-medium ${
-                              theme === "dark"
-                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                                : "bg-amber-100 text-amber-700 border border-amber-200"
-                            }`}
-                          >
-                            Draft
-                          </span>
-                        )}
-                      </div>
-                      {post.tags && post.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5.5 mt-2">
-                          {post.tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag}
-                              className={`px-2 py-0.5 text-xs rounded-md flex items-center gap-1 ${
-                                theme === "dark"
-                                  ? "bg-white/8 text-slate-400 border border-white/10"
-                                  : "bg-slate-100 text-slate-600 border border-slate-200"
-                              }`}
-                            >
-                              <FaTag
-                                className={
-                                  theme === "dark"
-                                    ? "text-cyan-400"
-                                    : "text-cyan-600"
-                                }
-                              />
-                              {tag}
-                            </span>
-                          ))}
-                          {post.tags.length > 3 && (
-                            <span
-                              className={`text-xs ${
-                                theme === "dark"
-                                  ? "text-slate-500"
-                                  : "text-slate-500"
-                              }`}
-                            >
-                              +{post.tags.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1">
+                    {/* Actions - Always visible on mobile */}
+                    <div className="flex items-center gap-1 sm:gap-1 flex-shrink-0">
                       <a
                         href={`/blog/${post.slug || post.$id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`p-2.5 rounded-lg transition-all duration-200 ${
+                        className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
                           theme === "dark"
                             ? "text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/15"
                             : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-100"
                         }`}
                         title="View"
                       >
-                        <FaEye />
+                        <FaEye className="text-sm sm:text-base" />
                       </a>
                       <button
                         onClick={() => openEditModal(post)}
-                        className={`p-2.5 rounded-lg transition-all duration-200 ${
+                        className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
                           theme === "dark"
                             ? "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/15"
                             : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-100"
                         }`}
                         title="Edit"
                       >
-                        <FaEdit />
+                        <FaEdit className="text-sm sm:text-base" />
                       </button>
                       <button
                         onClick={() => handleDelete(post.$id)}
-                        className={`p-2.5 rounded-lg transition-all duration-200 ${
+                        className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
                           theme === "dark"
                             ? "text-slate-400 hover:text-red-400 hover:bg-red-500/15"
                             : "text-slate-500 hover:text-red-600 hover:bg-red-100"
                         }`}
                         title="Delete"
                       >
-                        <FaTrash />
+                        <FaTrash className="text-sm sm:text-base" />
                       </button>
                     </div>
                   </div>
+
+                  {/* Excerpt */}
+                  <p
+                    className={`text-sm line-clamp-2 mb-2 transition-colors duration-300 ${
+                      theme === "dark" ? "text-slate-400" : "text-slate-600"
+                    }`}
+                  >
+                    {post.excerpt}
+                  </p>
+
+                  {/* Meta info - wrap on mobile */}
+                  <div
+                    className={`flex flex-wrap items-center gap-2 sm:gap-3 text-xs transition-colors duration-300 ${
+                      theme === "dark" ? "text-slate-500" : "text-slate-500"
+                    }`}
+                  >
+                    {post.category && (
+                      <span
+                        className={`px-2 py-1 rounded-lg font-medium ${
+                          theme === "dark"
+                            ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                            : "bg-cyan-100 text-cyan-700 border border-cyan-200"
+                        }`}
+                      >
+                        {post.category}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <FaCalendarAlt />
+                      {formatDate(post.publishedAt)}
+                    </span>
+                    {post.readTime && (
+                      <span className="flex items-center gap-1">
+                        <FaClock />
+                        {post.readTime}
+                      </span>
+                    )}
+                    {!post.published && (
+                      <span
+                        className={`px-2 py-1 rounded-lg font-medium ${
+                          theme === "dark"
+                            ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                            : "bg-amber-100 text-amber-700 border border-amber-200"
+                        }`}
+                      >
+                        Draft
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Tags - hidden on mobile to save space */}
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="hidden sm:flex flex-wrap gap-1.5 mt-2">
+                      {post.tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className={`px-2 py-0.5 text-xs rounded-md flex items-center gap-1 ${
+                            theme === "dark"
+                              ? "bg-white/8 text-slate-400 border border-white/10"
+                              : "bg-slate-100 text-slate-600 border border-slate-200"
+                          }`}
+                        >
+                          <FaTag
+                            className={
+                              theme === "dark"
+                                ? "text-cyan-400"
+                                : "text-cyan-600"
+                            }
+                          />
+                          {tag}
+                        </span>
+                      ))}
+                      {post.tags.length > 3 && (
+                        <span
+                          className={`text-xs ${
+                            theme === "dark"
+                              ? "text-slate-500"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          +{post.tags.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

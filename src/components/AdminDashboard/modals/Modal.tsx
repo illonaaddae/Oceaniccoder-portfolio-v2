@@ -49,12 +49,12 @@ export const Modal: React.FC<ModalProps> = ({
       />
 
       {/* Modal Container - for proper centering */}
-      <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="flex min-h-screen items-end sm:items-center justify-center p-0 sm:p-4">
         {/* Modal */}
         <div
           className={`relative w-full ${
             sizeClasses[size]
-          } rounded-2xl border shadow-2xl transition-all duration-300 ${
+          } rounded-t-2xl sm:rounded-2xl border shadow-2xl transition-all duration-300 max-h-[95vh] sm:max-h-[90vh] flex flex-col ${
             theme === "dark"
               ? "bg-gradient-to-br from-slate-900 via-slate-900/98 to-slate-800 border-white/15 shadow-black/30"
               : "bg-gradient-to-br from-white to-slate-50 border-blue-200/60 shadow-blue-100/20"
@@ -62,14 +62,14 @@ export const Modal: React.FC<ModalProps> = ({
         >
           {/* Header */}
           <div
-            className={`sticky top-0 z-10 flex items-center justify-between p-6 border-b rounded-t-2xl ${
+            className={`sticky top-0 z-10 flex items-center justify-between p-4 sm:p-6 border-b rounded-t-2xl flex-shrink-0 ${
               theme === "dark"
                 ? "bg-slate-900/95 backdrop-blur-sm border-white/10"
                 : "bg-white/95 backdrop-blur-sm border-blue-200/30"
             }`}
           >
             <h2
-              className={`text-xl font-bold ${
+              className={`text-lg sm:text-xl font-bold ${
                 theme === "dark" ? "text-white" : "text-slate-900"
               }`}
             >
@@ -90,7 +90,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
 
           {/* Content - with max height and scroll */}
-          <div className="p-6 max-h-[70vh] overflow-y-auto">{children}</div>
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1">{children}</div>
         </div>
       </div>
     </div>
