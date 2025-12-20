@@ -2,31 +2,27 @@
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [
-      "/images/*.png",
-      "/images/*.jpg",
-      "/images/*.gif",
-      "/images/*.webp",
-      "/images/*.svg",
-      "/assets/*",
-      "/*.css",
-      "/*.js",
-      "/*.json",
+      "/images/**/*",
+      "/assets/*.js",
+      "/assets/*.css",
       "/*.ico",
       "/*.txt",
-      "/*.xml"
+      "/*.xml",
+      "/manifest.json",
+      "/robots.txt"
     ]
   },
   "routes": [
     {
-      "route": "/admin",
+      "route": "/",
       "rewrite": "/index.html"
     },
     {
-      "route": "/admin/*",
+      "route": "/about",
       "rewrite": "/index.html"
     },
     {
-      "route": "/blog/*",
+      "route": "/skills",
       "rewrite": "/index.html"
     },
     {
@@ -38,7 +34,19 @@
       "rewrite": "/index.html"
     },
     {
-      "route": "/about",
+      "route": "/blog",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/blog/*",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/admin",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/admin/*",
       "rewrite": "/index.html"
     }
   ],
@@ -51,8 +59,7 @@
   "globalHeaders": {
     "X-Frame-Options": "SAMEORIGIN",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Cache-Control": "public, max-age=31536000, immutable"
+    "Referrer-Policy": "strict-origin-when-cross-origin"
   },
   "mimeTypes": {
     ".json": "application/json",

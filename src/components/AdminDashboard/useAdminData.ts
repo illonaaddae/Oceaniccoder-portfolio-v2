@@ -59,9 +59,11 @@ export const useAdminData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
 
       // Load data individually to identify which one fails
@@ -160,7 +162,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await updateMessageStatus(messageId, status);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error(err);
     }
@@ -170,7 +172,7 @@ export const useAdminData = () => {
     if (window.confirm("Delete this message?")) {
       try {
         await deleteMessage(messageId);
-        await loadData();
+        await loadData(false);
       } catch (err) {
         console.error(err);
       }
@@ -182,7 +184,7 @@ export const useAdminData = () => {
     if (window.confirm("Delete this skill?")) {
       try {
         await deleteSkill(skillId);
-        await loadData();
+        await loadData(false);
       } catch (err) {
         console.error("Failed to delete skill:", err);
         throw err;
@@ -195,7 +197,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await createSkill(skillForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to add skill:", err);
       throw err;
@@ -208,7 +210,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await updateSkill(skillId, skillForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to update skill:", err);
       throw err;
@@ -220,7 +222,7 @@ export const useAdminData = () => {
     if (window.confirm("Delete this project?")) {
       try {
         await deleteProject(projectId);
-        await loadData();
+        await loadData(false);
       } catch (err) {
         console.error("Failed to delete project:", err);
         throw err;
@@ -234,7 +236,7 @@ export const useAdminData = () => {
     try {
       const result = await createProject(projectForm);
       console.log("Project created successfully:", result);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to add project:", err);
       throw err;
@@ -248,7 +250,7 @@ export const useAdminData = () => {
     try {
       const result = await updateProject(projectId, projectForm);
       console.log("Project updated successfully:", result);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to update project:", err);
       throw err;
@@ -260,7 +262,7 @@ export const useAdminData = () => {
     if (window.confirm("Delete this certification?")) {
       try {
         await deleteCertification(certId);
-        await loadData();
+        await loadData(false);
       } catch (err) {
         console.error("Failed to delete certification:", err);
         throw err;
@@ -273,7 +275,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await createCertification(certForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to add certification:", err);
       throw err;
@@ -286,7 +288,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await updateCertification(certId, certForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to update certification:", err);
       throw err;
@@ -299,7 +301,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await createGalleryImage(imageForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to add gallery image:", err);
       throw err;
@@ -312,7 +314,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await updateGalleryImage(imageId, imageForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to update gallery image:", err);
       throw err;
@@ -322,7 +324,7 @@ export const useAdminData = () => {
   const handleDeleteGalleryImage = async (imageId: string) => {
     try {
       await deleteGalleryImage(imageId);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to delete gallery image:", err);
       throw err;
@@ -333,7 +335,7 @@ export const useAdminData = () => {
   const handleAddEducation = async (eduForm: Omit<Education, "$id">) => {
     try {
       await createEducation(eduForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to add education:", err);
       throw err;
@@ -346,7 +348,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await updateEducation(eduId, eduForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to update education:", err);
       throw err;
@@ -356,7 +358,7 @@ export const useAdminData = () => {
   const handleDeleteEducation = async (eduId: string) => {
     try {
       await deleteEducation(eduId);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to delete education:", err);
       throw err;
@@ -367,7 +369,7 @@ export const useAdminData = () => {
   const handleAddJourney = async (journeyForm: Omit<Journey, "$id">) => {
     try {
       await createJourney(journeyForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to add journey:", err);
       throw err;
@@ -380,7 +382,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await updateJourney(journeyId, journeyForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to update journey:", err);
       throw err;
@@ -390,7 +392,7 @@ export const useAdminData = () => {
   const handleDeleteJourney = async (journeyId: string) => {
     try {
       await deleteJourney(journeyId);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to delete journey:", err);
       throw err;
@@ -402,7 +404,7 @@ export const useAdminData = () => {
     try {
       const savedAbout = await saveAbout(aboutForm);
       setAbout(savedAbout);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to save about:", err);
       throw err;
@@ -413,7 +415,7 @@ export const useAdminData = () => {
   const handleAddBlogPost = async (postForm: Omit<BlogPost, "$id">) => {
     try {
       await createBlogPost(postForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to add blog post:", err);
       throw err;
@@ -426,7 +428,7 @@ export const useAdminData = () => {
   ) => {
     try {
       await updateBlogPost(postId, postForm);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to update blog post:", err);
       throw err;
@@ -436,7 +438,7 @@ export const useAdminData = () => {
   const handleDeleteBlogPost = async (postId: string) => {
     try {
       await deleteBlogPost(postId);
-      await loadData();
+      await loadData(false);
     } catch (err) {
       console.error("Failed to delete blog post:", err);
       throw err;
