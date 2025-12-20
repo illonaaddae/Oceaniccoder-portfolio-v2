@@ -43,6 +43,7 @@ export interface Education {
   universityLogo?: string;
   logo?: string;
   gpa?: string;
+  initials?: string;
 }
 
 // About Types

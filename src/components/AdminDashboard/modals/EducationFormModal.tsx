@@ -27,6 +27,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
     period: "",
     description: "",
     universityLogo: "",
+    initials: "",
   });
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         description: editingEducation.description || "",
         universityLogo:
           editingEducation.universityLogo || editingEducation.logo || "",
+        initials: editingEducation.initials || "",
       });
     } else {
       setForm({
@@ -48,6 +50,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         period: "",
         description: "",
         universityLogo: "",
+        initials: "",
       });
     }
   }, [editingEducation, isOpen]);
@@ -151,13 +154,47 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
           </div>
         </div>
 
-        {/* Institution Logo */}
-        <div>
-          <ImageUpload
-            value={form.universityLogo}
-            onChange={(url) => setForm({ ...form, universityLogo: url })}
-            label="Institution Logo"
-          />
+        {/* Institution Logo and Initials */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <ImageUpload
+              value={form.universityLogo}
+              onChange={(url) => setForm({ ...form, universityLogo: url })}
+              label="Institution Logo"
+            />
+          </div>
+
+          {/* Initials */}
+          <div>
+            <label className={labelClass}>
+              Institution Initials
+              <span
+                className={`font-normal text-xs ml-2 ${
+                  theme === "dark" ? "text-gray-400" : "text-slate-500"
+                }`}
+              >
+                (e.g., IU, ATU, MIT)
+              </span>
+            </label>
+            <input
+              type="text"
+              value={form.initials}
+              onChange={(e) =>
+                setForm({ ...form, initials: e.target.value.toUpperCase() })
+              }
+              className={inputClass}
+              placeholder="e.g., IU, ATU"
+              maxLength={10}
+            />
+            <p
+              className={`text-xs mt-1 ${
+                theme === "dark" ? "text-gray-400" : "text-slate-500"
+              }`}
+            >
+              Shown next to the logo. Auto-generated from institution name if
+              left empty.
+            </p>
+          </div>
         </div>
 
         {/* Description */}

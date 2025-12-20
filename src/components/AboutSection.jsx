@@ -708,7 +708,15 @@ const AboutSection = () => {
                                 loading="eager"
                                 decoding="async"
                               />
-                              <span>ATU</span>
+                              <span>
+                                {edu.initials ||
+                                  edu.institution
+                                    ?.split(" ")
+                                    .map((word) => word[0])
+                                    .join("")
+                                    .toUpperCase()
+                                    .slice(0, 4)}
+                              </span>
                             </div>
                           )}
                           {edu.gpa && (

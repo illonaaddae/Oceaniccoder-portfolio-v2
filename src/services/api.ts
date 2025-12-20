@@ -437,6 +437,7 @@ export async function createEducation(
       cleanedData.universityLogo = logoUrl;
     }
     if (edu.gpa) cleanedData.gpa = edu.gpa;
+    if (edu.initials) cleanedData.initials = edu.initials;
 
     console.log("Creating education with data:", cleanedData);
 
@@ -476,6 +477,7 @@ export async function updateEducation(
       cleanedData.universityLogo = edu.universityLogo || edu.logo || null;
     }
     if (edu.gpa !== undefined) cleanedData.gpa = edu.gpa || null;
+    if (edu.initials !== undefined) cleanedData.initials = edu.initials || null;
 
     console.log("Updating education with data:", cleanedData);
 
