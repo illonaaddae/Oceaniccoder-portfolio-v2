@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaCoffee, FaTimes, FaHeart } from "react-icons/fa";
+import { FaCoffee, FaTimes, FaHeart, FaCalendarAlt } from "react-icons/fa";
 import { IMAGES } from "../utils/imageUrls";
 
 interface SupportLink {
@@ -14,6 +14,15 @@ interface SupportLink {
 }
 
 const SUPPORT_LINKS: SupportLink[] = [
+  {
+    id: "calendly",
+    name: "Schedule a Meeting",
+    description: "Book a time to chat with me!",
+    url: "https://calendly.com/addaeillona",
+    icon: <FaCalendarAlt className="text-xl" />,
+    bgColor: "bg-gradient-to-r from-cyan-500 to-blue-500",
+    hoverColor: "hover:from-cyan-600 hover:to-blue-600",
+  },
   {
     id: "buymeacoffee",
     name: "Buy Me a Coffee",

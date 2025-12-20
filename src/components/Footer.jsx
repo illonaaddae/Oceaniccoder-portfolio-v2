@@ -7,6 +7,7 @@ import {
   FaInstagram,
   FaEnvelope,
   FaArrowUp,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import { IMAGES } from "../utils/imageUrls";
 import { useNavigate } from "react-router-dom";
@@ -143,11 +144,22 @@ const Footer = () => {
 
             {/* Availability Status */}
             <div className="mt-6 p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-green-400 text-sm font-medium">
-                  Available for hire
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-400 text-sm font-medium">
+                    Available for hire
+                  </span>
+                </div>
+                <a
+                  href="https://calendly.com/addaeillona"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-medium rounded-lg transition-all duration-300 hover:scale-105"
+                >
+                  <FaCalendarAlt className="text-xs" />
+                  Schedule
+                </a>
               </div>
             </div>
 
