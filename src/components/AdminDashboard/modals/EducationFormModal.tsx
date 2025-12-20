@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Modal } from "./Modal";
-import { FaSave } from "react-icons/fa";
+import { FaSave, FaCalendarAlt } from "react-icons/fa";
 import type { Education } from "@/types";
 import { ImageUpload } from "../ImageUpload";
 
@@ -11,6 +11,68 @@ interface EducationFormModalProps {
   theme: "light" | "dark";
   editingEducation?: Education | null;
 }
+
+// Helper to format period from dates
+const formatPeriod = (
+  startDate: string,
+  endDate: string,
+  isOngoing: boolean
+): string => {
+  if (!startDate) return "";
+  const start = new Date(startDate);
+  const startYear = start.getFullYear();
+
+  if (isOngoing) {
+    return `${startYear} - Present`;
+  }
+
+  if (!endDate) return String(startYear);
+  const end = new Date(endDate);
+  const endYear = end.getFullYear();
+
+  return `${startYear} - ${endYear}`;
+};
+
+// Generate years for dropdown (current year to 50 years back)
+const generateYears = () => {
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+  for (let i = currentYear; i >= currentYear - 50; i--) {
+    years.push(i);
+  }
+  return years;
+};
+
+// Generate months
+const months = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+// Class Honours options
+const classHonoursOptions = [
+  { value: "", label: "Select Honours (Optional)" },
+  { value: "First Class", label: "First Class Honours" },
+  { value: "Second Class Upper", label: "Second Class Upper Division" },
+  { value: "Second Class Lower", label: "Second Class Lower Division" },
+  { value: "Third Class", label: "Third Class Honours" },
+  { value: "Pass", label: "Pass" },
+  { value: "Distinction", label: "Distinction" },
+  { value: "Merit", label: "Merit" },
+  { value: "Cum Laude", label: "Cum Laude" },
+  { value: "Magna Cum Laude", label: "Magna Cum Laude" },
+  { value: "Summa Cum Laude", label: "Summa Cum Laude" },
+];
 
 export const EducationFormModal: React.FC<EducationFormModalProps> = ({
   isOpen,
@@ -28,10 +90,39 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
     description: "",
     universityLogo: "",
     initials: "",
+    gpa: "",
+    classHonours: "",
+    startMonth: "",
+    startYear: "",
+    endMonth: "",
+    endYear: "",
+    isOngoing: false,
   });
+
+  const years = useMemo(() => generateYears(), []);
+
+  // Parse existing date strings to extract month/year
+  const parseDateString = (
+    dateStr: string | undefined
+  ): { month: string; year: string } => {
+    if (!dateStr) return { month: "", year: "" };
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return { month: "", year: "" };
+      return {
+        month: String(date.getMonth() + 1).padStart(2, "0"),
+        year: String(date.getFullYear()),
+      };
+    } catch {
+      return { month: "", year: "" };
+    }
+  };
 
   useEffect(() => {
     if (editingEducation) {
+      const startParsed = parseDateString(editingEducation.startDate);
+      const endParsed = parseDateString(editingEducation.endDate);
+
       setForm({
         institution: editingEducation.institution || "",
         degree: editingEducation.degree || "",
@@ -41,6 +132,13 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         universityLogo:
           editingEducation.universityLogo || editingEducation.logo || "",
         initials: editingEducation.initials || "",
+        gpa: editingEducation.gpa || "",
+        classHonours: editingEducation.classHonours || "",
+        startMonth: startParsed.month,
+        startYear: startParsed.year,
+        endMonth: endParsed.month,
+        endYear: endParsed.year,
+        isOngoing: editingEducation.isOngoing || false,
       });
     } else {
       setForm({
@@ -51,6 +149,13 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         description: "",
         universityLogo: "",
         initials: "",
+        gpa: "",
+        classHonours: "",
+        startMonth: "",
+        startYear: "",
+        endMonth: "",
+        endYear: "",
+        isOngoing: false,
       });
     }
   }, [editingEducation, isOpen]);
@@ -62,7 +167,35 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(form);
+      // Build start and end dates from month/year selections
+      const startDate =
+        form.startMonth && form.startYear
+          ? `${form.startYear}-${form.startMonth}-01`
+          : "";
+      const endDate =
+        !form.isOngoing && form.endMonth && form.endYear
+          ? `${form.endYear}-${form.endMonth}-01`
+          : "";
+
+      // Generate period string from dates
+      const period = formatPeriod(startDate, endDate, form.isOngoing);
+
+      const submissionData = {
+        institution: form.institution,
+        degree: form.degree,
+        field: form.field,
+        period: period || form.period,
+        description: form.description,
+        universityLogo: form.universityLogo,
+        initials: form.initials,
+        gpa: form.gpa,
+        classHonours: form.classHonours,
+        startDate,
+        endDate,
+        isOngoing: form.isOngoing,
+      };
+
+      await onSubmit(submissionData);
       onClose();
     } catch (err) {
       console.error("Error submitting education:", err);
@@ -140,18 +273,191 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
             />
           </div>
 
-          {/* Period */}
+          {/* GPA */}
           <div>
-            <label className={labelClass}>Period *</label>
+            <label className={labelClass}>GPA</label>
             <input
               type="text"
-              required
-              value={form.period}
-              onChange={(e) => setForm({ ...form, period: e.target.value })}
+              value={form.gpa}
+              onChange={(e) => setForm({ ...form, gpa: e.target.value })}
               className={inputClass}
-              placeholder="e.g., 2018 - 2022"
+              placeholder="e.g., 3.8/4.0 or 3.8"
             />
           </div>
+        </div>
+
+        {/* Class Honours */}
+        <div>
+          <label className={labelClass}>Class Honours</label>
+          <select
+            value={form.classHonours}
+            onChange={(e) => setForm({ ...form, classHonours: e.target.value })}
+            className={inputClass}
+            aria-label="Class Honours"
+          >
+            {classHonoursOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Period Selection */}
+        <div
+          className={`p-4 rounded-xl border ${
+            theme === "dark"
+              ? "bg-gray-800/50 border-gray-700"
+              : "bg-slate-50 border-slate-200"
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <FaCalendarAlt
+              className={theme === "dark" ? "text-cyan-400" : "text-blue-500"}
+            />
+            <span className={labelClass + " mb-0"}>Study Period *</span>
+          </div>
+
+          {/* Start Date */}
+          <div className="mb-4">
+            <label
+              className={`text-xs font-medium mb-2 block ${
+                theme === "dark" ? "text-gray-400" : "text-slate-500"
+              }`}
+            >
+              Start Date
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                value={form.startMonth}
+                onChange={(e) =>
+                  setForm({ ...form, startMonth: e.target.value })
+                }
+                className={inputClass}
+                required
+                aria-label="Start Month"
+              >
+                <option value="">Month</option>
+                {months.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={form.startYear}
+                onChange={(e) =>
+                  setForm({ ...form, startYear: e.target.value })
+                }
+                className={inputClass}
+                required
+                aria-label="Start Year"
+              >
+                <option value="">Year</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Ongoing Toggle */}
+          <div className="mb-4">
+            <label
+              className={`flex items-center gap-3 cursor-pointer ${
+                theme === "dark" ? "text-slate-200" : "text-slate-700"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={form.isOngoing}
+                onChange={(e) =>
+                  setForm({ ...form, isOngoing: e.target.checked })
+                }
+                className="w-5 h-5 rounded border-2 border-cyan-500 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-sm font-medium">
+                Currently studying here (Ongoing)
+              </span>
+            </label>
+          </div>
+
+          {/* End Date - Only show if not ongoing */}
+          {!form.isOngoing && (
+            <div>
+              <label
+                className={`text-xs font-medium mb-2 block ${
+                  theme === "dark" ? "text-gray-400" : "text-slate-500"
+                }`}
+              >
+                End Date
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  value={form.endMonth}
+                  onChange={(e) =>
+                    setForm({ ...form, endMonth: e.target.value })
+                  }
+                  className={inputClass}
+                  required={!form.isOngoing}
+                  aria-label="End Month"
+                >
+                  <option value="">Month</option>
+                  {months.map((month) => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={form.endYear}
+                  onChange={(e) =>
+                    setForm({ ...form, endYear: e.target.value })
+                  }
+                  className={inputClass}
+                  required={!form.isOngoing}
+                  aria-label="End Year"
+                >
+                  <option value="">Year</option>
+                  {years.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Preview period */}
+          {form.startMonth && form.startYear && (
+            <div
+              className={`mt-4 pt-3 border-t ${
+                theme === "dark" ? "border-gray-700" : "border-slate-200"
+              }`}
+            >
+              <span
+                className={`text-xs ${
+                  theme === "dark" ? "text-gray-400" : "text-slate-500"
+                }`}
+              >
+                Period preview:{" "}
+              </span>
+              <span
+                className={`text-sm font-semibold ${
+                  theme === "dark" ? "text-cyan-400" : "text-blue-600"
+                }`}
+              >
+                {formatPeriod(
+                  `${form.startYear}-${form.startMonth}-01`,
+                  form.isOngoing ? "" : `${form.endYear}-${form.endMonth}-01`,
+                  form.isOngoing
+                )}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Institution Logo and Initials */}

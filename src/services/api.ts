@@ -437,6 +437,10 @@ export async function createEducation(
       cleanedData.universityLogo = logoUrl;
     }
     if (edu.gpa) cleanedData.gpa = edu.gpa;
+    if (edu.classHonours) cleanedData.classHonours = edu.classHonours;
+    if (edu.startDate) cleanedData.startDate = edu.startDate;
+    if (edu.endDate) cleanedData.endDate = edu.endDate;
+    if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials) cleanedData.initials = edu.initials;
 
     console.log("Creating education with data:", cleanedData);
@@ -477,6 +481,12 @@ export async function updateEducation(
       cleanedData.universityLogo = edu.universityLogo || edu.logo || null;
     }
     if (edu.gpa !== undefined) cleanedData.gpa = edu.gpa || null;
+    if (edu.classHonours !== undefined)
+      cleanedData.classHonours = edu.classHonours || null;
+    if (edu.startDate !== undefined)
+      cleanedData.startDate = edu.startDate || null;
+    if (edu.endDate !== undefined) cleanedData.endDate = edu.endDate || null;
+    if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials !== undefined) cleanedData.initials = edu.initials || null;
 
     console.log("Updating education with data:", cleanedData);

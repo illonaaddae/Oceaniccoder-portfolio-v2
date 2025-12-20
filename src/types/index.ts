@@ -43,6 +43,10 @@ export interface Education {
   universityLogo?: string;
   logo?: string;
   gpa?: string;
+  classHonours?: string;
+  startDate?: string;
+  endDate?: string;
+  isOngoing?: boolean;
   initials?: string;
 }
 

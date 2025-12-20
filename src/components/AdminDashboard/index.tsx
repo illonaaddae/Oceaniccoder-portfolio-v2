@@ -169,6 +169,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     [certifications, searchQuery]
   );
 
+  // Filter gallery images
+  const filteredGallery = useMemo(
+    () =>
+      gallery.filter(
+        (img) =>
+          img.alt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          img.caption?.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [gallery, searchQuery]
+  );
+
+  // Filter education entries
+  const filteredEducation = useMemo(
+    () =>
+      education.filter(
+        (edu) =>
+          edu.institution?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          edu.degree?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          edu.field?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          edu.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [education, searchQuery]
+  );
+
+  // Filter journey entries
+  const filteredJourney = useMemo(
+    () =>
+      journey.filter(
+        (j) =>
+          j.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [journey, searchQuery]
+  );
+
+  // Filter blog posts
+  const filteredBlogPosts = useMemo(
+    () =>
+      blogPosts.filter(
+        (post) =>
+          post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.excerpt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.tags?.some((tag) =>
+            tag.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      ),
+    [blogPosts, searchQuery]
+  );
+
   // Modal handlers
   const openNewProject = () => {
     setEditingProject(null);
@@ -463,13 +515,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           {activeTab === "overview" && (
             <OverviewTab
               theme={theme}
-              totalProjects={totalProjects}
+              totalProjects={
+                searchQuery ? filteredProjects.length : totalProjects
+              }
               filteredSkills={filteredSkills}
-              totalCertifications={totalCertifications}
-              totalGallery={totalGallery}
+              totalCertifications={
+                searchQuery
+                  ? filteredCertifications.length
+                  : totalCertifications
+              }
+              totalGallery={searchQuery ? filteredGallery.length : totalGallery}
               newMessages={newMessages}
-              recentMessages={messages.slice(0, 3)}
-              recentProjects={projects.slice(0, 5)}
+              recentMessages={filteredMessages.slice(0, 3)}
+              recentProjects={filteredProjects.slice(0, 5)}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onNewProject={openNewProject}
@@ -525,7 +583,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             <GalleryTab
               theme={theme}
               loading={loading}
-              gallery={gallery}
+              gallery={filteredGallery}
               onShowForm={openNewGalleryImage}
               onEdit={openEditGalleryImage}
               onDelete={handleDeleteGalleryImage}
@@ -536,7 +594,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             <EducationTab
               theme={theme}
               loading={loading}
-              education={education}
+              education={filteredEducation}
               onShowForm={openNewEducation}
               onEdit={openEditEducation}
               onDelete={handleDeleteEducation}
@@ -547,7 +605,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             <JourneyTab
               theme={theme}
               loading={loading}
-              journey={journey}
+              journey={filteredJourney}
               onShowForm={openNewJourney}
               onEdit={openEditJourney}
               onDelete={handleDeleteJourney}
@@ -565,7 +623,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
           {activeTab === "blog" && (
             <BlogTab
-              blogPosts={blogPosts}
+              blogPosts={filteredBlogPosts}
               onAdd={async (post) => {
                 await handleAddBlogPost(post as Omit<BlogPost, "$id">);
               }}

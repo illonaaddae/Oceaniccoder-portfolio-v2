@@ -74,11 +74,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Menu Button - positioned to avoid overlapping sidebar content */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`lg:hidden fixed top-3 left-3 z-50 p-2.5 rounded-lg backdrop-blur-xl border transition-all duration-300 ${
+        className={`lg:hidden fixed top-3 left-3 z-[60] p-2.5 rounded-lg backdrop-blur-xl border transition-all duration-300 touch-manipulation ${
           theme === "dark"
-            ? "bg-slate-900/90 border-white/20 text-white hover:bg-slate-800/90"
-            : "bg-white/90 border-blue-200/40 text-slate-900 hover:bg-white"
+            ? "bg-slate-900/90 border-white/20 text-white hover:bg-slate-800/90 active:bg-slate-700/90"
+            : "bg-white/90 border-blue-200/40 text-slate-900 hover:bg-white active:bg-gray-100"
         } shadow-lg`}
+        aria-label={isOpen ? "Close menu" : "Open menu"}
       >
         {isOpen ? (
           <FaTimes className="text-lg" />
@@ -90,8 +91,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[45]"
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         />
       )}
 
@@ -101,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           theme === "dark"
             ? "bg-[#111827] border-r border-gray-800 shadow-xl shadow-black/30"
             : "bg-gradient-to-b from-white/80 to-white/60 border-r border-blue-200/30 shadow-xl shadow-blue-100/10"
-        } backdrop-blur-xl z-40 ${
+        } backdrop-blur-xl z-[50] ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -177,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 overflow-y-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -185,14 +187,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                className={`w-full flex items-center gap-3 px-3 sm:px-4 py-3.5 sm:py-3 rounded-xl transition-all duration-200 touch-manipulation min-h-[48px] ${
                   isActive
                     ? theme === "dark"
                       ? "bg-cyan-500/15 border border-cyan-500/30 text-cyan-400"
                       : "bg-gradient-to-r from-blue-400/30 to-cyan-400/20 border border-blue-300/50 text-blue-700 shadow-lg shadow-blue-200/20"
                     : theme === "dark"
-                    ? "text-gray-400 hover:bg-gray-800/60 hover:text-gray-200 border border-transparent"
-                    : "text-slate-600 hover:bg-white/40 hover:text-slate-900"
+                    ? "text-gray-400 hover:bg-gray-800/60 hover:text-gray-200 border border-transparent active:bg-gray-700/80"
+                    : "text-slate-600 hover:bg-white/40 hover:text-slate-900 active:bg-white/60"
                 }`}
               >
                 <Icon
@@ -204,7 +206,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       : ""
                   }`}
                 />
-                <span className="font-medium">{tab.label}</span>
+                <span className="font-medium text-sm sm:text-base">
+                  {tab.label}
+                </span>
               </button>
             );
           })}
