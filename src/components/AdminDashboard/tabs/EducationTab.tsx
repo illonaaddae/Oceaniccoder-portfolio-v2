@@ -87,9 +87,9 @@ export const EducationTab: React.FC<EducationTabProps> = ({
             >
               <div className="flex items-start justify-between">
                 <div className="flex gap-4">
-                  {edu.logo && (
+                  {(edu.universityLogo || edu.logo) && (
                     <img
-                      src={edu.logo}
+                      src={edu.universityLogo || edu.logo}
                       alt={edu.institution}
                       className="w-12 h-12 rounded-lg object-contain"
                       onError={(e) => {

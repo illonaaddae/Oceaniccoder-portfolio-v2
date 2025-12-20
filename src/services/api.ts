@@ -55,7 +55,7 @@ export async function createProject(
     const result = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.PROJECTS,
-      "unique()",
+      ID.unique(),
       project as Record<string, unknown>
     );
     console.log("Project created:", result);
@@ -97,7 +97,7 @@ export async function createCertification(
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.CERTIFICATIONS,
-    "unique()",
+    ID.unique(),
     cert as Record<string, unknown>
   ) as unknown as Certification;
 }
@@ -291,7 +291,7 @@ export async function createComment(
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.COMMENTS,
-    "unique()",
+    ID.unique(),
     comment as Record<string, unknown>
   ) as unknown as Comment;
 }
@@ -322,7 +322,7 @@ export async function createMessage(
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.MESSAGES,
-    "unique()",
+    ID.unique(),
     message as Record<string, unknown>
   ) as unknown as Message;
 }
@@ -360,7 +360,7 @@ export async function createSkill(
     const result = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.SKILLS,
-      "unique()",
+      ID.unique(),
       skill as Record<string, unknown>
     );
     console.log("Skill created:", result);
@@ -394,7 +394,7 @@ export async function createGalleryImage(
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.GALLERY,
-    "unique()",
+    ID.unique(),
     image as Record<string, unknown>
   ) as unknown as GalleryImage;
 }
@@ -419,24 +419,78 @@ export async function deleteGalleryImage(imageId: string): Promise<void> {
 export async function createEducation(
   edu: Omit<Education, "$id">
 ): Promise<Education> {
-  return databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.EDUCATION,
-    "unique()",
-    edu as Record<string, unknown>
-  ) as unknown as Education;
+  try {
+    // Clean up the data - remove empty strings and undefined values for optional fields
+    const cleanedData: Record<string, unknown> = {
+      institution: edu.institution,
+      degree: edu.degree,
+      period: edu.period,
+    };
+
+    // Only add optional fields if they have values
+    if (edu.field) cleanedData.field = edu.field;
+    if (edu.achievement) cleanedData.achievement = edu.achievement;
+    if (edu.description) cleanedData.description = edu.description;
+    // Handle logo field - use 'universityLogo' as the Appwrite attribute name
+    const logoUrl = edu.universityLogo || edu.logo;
+    if (logoUrl) {
+      cleanedData.universityLogo = logoUrl;
+    }
+    if (edu.gpa) cleanedData.gpa = edu.gpa;
+
+    console.log("Creating education with data:", cleanedData);
+
+    const result = await databases.createDocument(
+      DATABASE_ID,
+      COLLECTIONS.EDUCATION,
+      ID.unique(),
+      cleanedData
+    );
+    console.log("Education created:", result);
+    return result as unknown as Education;
+  } catch (error) {
+    console.error("Appwrite createEducation error:", error);
+    throw error;
+  }
 }
 
 export async function updateEducation(
   eduId: string,
   edu: Partial<Omit<Education, "$id">>
 ): Promise<Education> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.EDUCATION,
-    eduId,
-    edu as Record<string, unknown>
-  ) as unknown as Education;
+  try {
+    // Clean up the data - only include fields that are provided
+    const cleanedData: Record<string, unknown> = {};
+
+    if (edu.institution !== undefined)
+      cleanedData.institution = edu.institution;
+    if (edu.degree !== undefined) cleanedData.degree = edu.degree;
+    if (edu.period !== undefined) cleanedData.period = edu.period;
+    if (edu.field !== undefined) cleanedData.field = edu.field || null;
+    if (edu.achievement !== undefined)
+      cleanedData.achievement = edu.achievement || null;
+    if (edu.description !== undefined)
+      cleanedData.description = edu.description || null;
+    // Handle logo field - use 'universityLogo' as the Appwrite attribute name
+    if (edu.universityLogo !== undefined || edu.logo !== undefined) {
+      cleanedData.universityLogo = edu.universityLogo || edu.logo || null;
+    }
+    if (edu.gpa !== undefined) cleanedData.gpa = edu.gpa || null;
+
+    console.log("Updating education with data:", cleanedData);
+
+    const result = await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTIONS.EDUCATION,
+      eduId,
+      cleanedData
+    );
+    console.log("Education updated:", result);
+    return result as unknown as Education;
+  } catch (error) {
+    console.error("Appwrite updateEducation error:", error);
+    throw error;
+  }
 }
 
 export async function deleteEducation(eduId: string): Promise<void> {
@@ -450,7 +504,7 @@ export async function createJourney(
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.JOURNEY,
-    "unique()",
+    ID.unique(),
     journey as Record<string, unknown>
   ) as unknown as Journey;
 }
@@ -511,7 +565,7 @@ export async function setSetting(
       return databases.createDocument(
         DATABASE_ID,
         COLLECTIONS.SETTINGS,
-        "unique()",
+        ID.unique(),
         { key, value }
       ) as unknown as Settings;
     }
@@ -572,7 +626,7 @@ export async function createAbout(about: Omit<About, "$id">): Promise<About> {
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.ABOUT,
-    "unique()",
+    ID.unique(),
     about as Record<string, unknown>
   ) as unknown as About;
 }
@@ -658,17 +712,35 @@ export async function getStorageStats(): Promise<StorageStats> {
  */
 export async function uploadImage(file: File): Promise<string> {
   try {
+    console.log("Starting file upload to bucket:", STORAGE_BUCKET_ID);
     const response = await storage.createFile(
       STORAGE_BUCKET_ID,
       ID.unique(),
       file
     );
+    console.log("File uploaded successfully:", response);
 
     // Get the file URL for viewing
     const fileUrl = storage.getFileView(STORAGE_BUCKET_ID, response.$id);
+    console.log("File URL generated:", fileUrl.toString());
     return fileUrl.toString();
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error uploading image:", error);
+    // Provide more context about the error
+    const appwriteError = error as {
+      message?: string;
+      code?: number;
+      type?: string;
+    };
+    if (appwriteError.code === 401) {
+      throw new Error(
+        "Storage permission denied. Check bucket permissions in Appwrite Console."
+      );
+    } else if (appwriteError.code === 404) {
+      throw new Error(
+        "Storage bucket not found. Verify STORAGE_BUCKET_ID in appwrite.ts"
+      );
+    }
     throw error;
   }
 }

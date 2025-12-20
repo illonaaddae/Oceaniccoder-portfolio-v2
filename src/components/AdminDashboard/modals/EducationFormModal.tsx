@@ -26,7 +26,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
     field: "",
     period: "",
     description: "",
-    logo: "",
+    universityLogo: "",
   });
 
   useEffect(() => {
@@ -37,7 +37,8 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         field: editingEducation.field || "",
         period: editingEducation.period || "",
         description: editingEducation.description || "",
-        logo: editingEducation.logo || "",
+        universityLogo:
+          editingEducation.universityLogo || editingEducation.logo || "",
       });
     } else {
       setForm({
@@ -46,19 +47,24 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         field: "",
         period: "",
         description: "",
-        logo: "",
+        universityLogo: "",
       });
     }
   }, [editingEducation, isOpen]);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       await onSubmit(form);
       onClose();
     } catch (err) {
       console.error("Error submitting education:", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -83,6 +89,11 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Institution */}
           <div>
@@ -143,8 +154,8 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         {/* Institution Logo */}
         <div>
           <ImageUpload
-            value={form.logo}
-            onChange={(url) => setForm({ ...form, logo: url })}
+            value={form.universityLogo}
+            onChange={(url) => setForm({ ...form, universityLogo: url })}
             label="Institution Logo"
           />
         </div>
