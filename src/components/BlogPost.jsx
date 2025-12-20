@@ -21,10 +21,14 @@ import {
   FaRegThumbsDown,
 } from "react-icons/fa";
 import { usePortfolioData } from "../hooks/usePortfolioData";
+import useTheme from "../hooks/useTheme";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   getPostReactions,
   getVisitorReaction,
@@ -45,7 +49,7 @@ const getVisitorId = () => {
 };
 
 // Code Block component with copy functionality
-const CodeBlock = ({ language, children }) => {
+const CodeBlock = ({ language, children, isDark }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -62,7 +66,13 @@ const CodeBlock = ({ language, children }) => {
     <div className="relative group my-6">
       {/* Language badge */}
       {language && (
-        <div className="absolute top-0 left-4 -translate-y-1/2 px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30">
+        <div
+          className={`absolute top-0 left-4 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-full border ${
+            isDark
+              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+              : "bg-emerald-100 text-emerald-700 border-emerald-300"
+          }`}
+        >
           {language}
         </div>
       )}
@@ -70,18 +80,22 @@ const CodeBlock = ({ language, children }) => {
       {/* Copy button */}
       <button
         onClick={handleCopy}
-        className="absolute top-3 right-3 p-2 bg-white/10 hover:bg-white/20 rounded-lg text-gray-400 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+        className={`absolute top-3 right-3 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100 ${
+          isDark
+            ? "bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+            : "bg-black/5 hover:bg-black/10 text-gray-500 hover:text-gray-800"
+        }`}
         title="Copy code"
       >
         {copied ? (
-          <FaCheck className="text-emerald-400" />
+          <FaCheck className="text-emerald-500" />
         ) : (
           <FaCopy className="text-sm" />
         )}
       </button>
 
       <SyntaxHighlighter
-        style={oneDark}
+        style={isDark ? oneDark : oneLight}
         language={language || "text"}
         PreTag="div"
         customStyle={{
@@ -90,8 +104,10 @@ const CodeBlock = ({ language, children }) => {
           padding: "1.5rem 1rem",
           paddingTop: language ? "2rem" : "1.5rem",
           fontSize: "0.875rem",
-          background: "rgba(0, 0, 0, 0.4)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          background: isDark ? "rgba(0, 0, 0, 0.4)" : "rgba(249, 250, 251, 1)",
+          border: isDark
+            ? "1px solid rgba(255, 255, 255, 0.1)"
+            : "1px solid rgba(0, 0, 0, 0.1)",
         }}
         codeTagProps={{
           style: {
@@ -110,6 +126,8 @@ const BlogPost = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { blogPosts, loading } = usePortfolioData();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [post, setPost] = useState(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -832,54 +850,104 @@ Now go create something beautiful! ✨`,
         )}
 
         {/* Article Content */}
-        <article className="prose prose-invert prose-lg max-w-none mb-16">
-          <div className="glass-card p-6 md:p-10 rounded-2xl">
+        <article
+          className={`prose prose-lg max-w-none mb-16 ${
+            isDark ? "prose-invert" : ""
+          }`}
+        >
+          <div
+            className={`p-6 md:p-10 rounded-2xl ${
+              isDark
+                ? "glass-card"
+                : "bg-white shadow-lg border border-gray-200"
+            }`}
+          >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-3xl font-bold text-white mt-8 mb-4 first:mt-0">
+                  <h1
+                    className={`text-3xl font-bold mt-8 mb-4 first:mt-0 ${
+                      isDark ? "text-white" : "text-gray-900"
+                    }`}
+                  >
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="text-2xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">
+                  <h2
+                    className={`text-2xl font-bold mt-8 mb-4 pb-2 border-b ${
+                      isDark
+                        ? "text-white border-white/10"
+                        : "text-gray-900 border-gray-200"
+                    }`}
+                  >
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 className="text-xl font-bold text-white mt-6 mb-3">
+                  <h3
+                    className={`text-xl font-bold mt-6 mb-3 ${
+                      isDark ? "text-white" : "text-gray-900"
+                    }`}
+                  >
                     {children}
                   </h3>
                 ),
                 p: ({ children }) => (
-                  <p className="text-gray-300 leading-relaxed mb-4">
+                  <p
+                    className={`leading-relaxed mb-4 ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     {children}
                   </p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="list-disc list-inside text-gray-300 mb-4 space-y-2">
+                  <ul
+                    className={`list-disc list-inside mb-4 space-y-2 ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     {children}
                   </ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="list-decimal list-inside text-gray-300 mb-4 space-y-2">
+                  <ol
+                    className={`list-decimal list-inside mb-4 space-y-2 ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     {children}
                   </ol>
                 ),
                 li: ({ children }) => (
-                  <li className="text-gray-300">{children}</li>
+                  <li className={isDark ? "text-gray-300" : "text-gray-700"}>
+                    {children}
+                  </li>
                 ),
                 strong: ({ children }) => (
-                  <strong className="text-white font-semibold">
+                  <strong
+                    className={`font-semibold ${
+                      isDark ? "text-white" : "text-gray-900"
+                    }`}
+                  >
                     {children}
                   </strong>
                 ),
                 em: ({ children }) => (
-                  <em className="text-emerald-400">{children}</em>
+                  <em
+                    className={isDark ? "text-emerald-400" : "text-emerald-600"}
+                  >
+                    {children}
+                  </em>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-emerald-500 pl-4 italic text-gray-400 my-4">
+                  <blockquote
+                    className={`border-l-4 border-emerald-500 pl-4 italic my-4 ${
+                      isDark ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
                     {children}
                   </blockquote>
                 ),
@@ -925,10 +993,16 @@ Now go create something beautiful! ✨`,
                   }
 
                   return !isInline ? (
-                    <CodeBlock language={language}>{children}</CodeBlock>
+                    <CodeBlock language={language} isDark={isDark}>
+                      {children}
+                    </CodeBlock>
                   ) : (
                     <code
-                      className="bg-white/10 text-emerald-400 px-2 py-0.5 rounded text-sm font-mono"
+                      className={`px-2 py-0.5 rounded text-sm font-mono ${
+                        isDark
+                          ? "bg-white/10 text-emerald-400"
+                          : "bg-gray-100 text-emerald-600"
+                      }`}
                       {...rest}
                     >
                       {children}
@@ -939,7 +1013,11 @@ Now go create something beautiful! ✨`,
                 a: ({ href, children }) => (
                   <a
                     href={href}
-                    className="text-cyan-400 hover:text-cyan-300 underline"
+                    className={`underline ${
+                      isDark
+                        ? "text-cyan-400 hover:text-cyan-300"
+                        : "text-cyan-600 hover:text-cyan-700"
+                    }`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
