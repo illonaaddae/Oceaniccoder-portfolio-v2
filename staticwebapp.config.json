@@ -1,22 +1,21 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/images/*", "/assets/*"]
-  },
-  "responseOverrides": {
-    "404": {
-      "rewrite": "/index.html",
-      "statusCode": 200
-    }
-  },
-  "globalHeaders": {
-    "X-Frame-Options": "SAMEORIGIN",
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
-  },
-  "mimeTypes": {
-    ".json": "application/json",
-    ".webp": "image/webp",
-    ".woff2": "font/woff2"
+    "exclude": [
+      "*.js",
+      "*.css",
+      "*.ico",
+      "*.png",
+      "*.jpg",
+      "*.webp",
+      "*.svg",
+      "*.woff",
+      "*.woff2",
+      "*.json",
+      "*.txt",
+      "*.xml",
+      "/assets/*",
+      "/images/*"
+    ]
   }
 }
