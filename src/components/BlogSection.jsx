@@ -262,14 +262,7 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1
-            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4"
-            style={{
-              transform: "translateZ(0)",
-              willChange: "auto",
-              backfaceVisibility: "hidden",
-            }}
-          >
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
             <span className="bg-gradient-to-r from-green-400 via-emerald-500 to-cyan-500 bg-clip-text text-transparent inline-block">
               Blog & Insights
             </span>
@@ -292,13 +285,14 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
                 <article
                   key={post.$id}
                   onClick={() => handlePostClick(post)}
-                  className="glass-card group cursor-pointer overflow-hidden rounded-2xl hover:scale-[1.02] transition-all duration-300"
+                  className="glass-card group cursor-pointer overflow-hidden rounded-2xl transition-shadow duration-300 hover:shadow-lg hover:shadow-emerald-500/20"
                 >
                   <div className="relative h-48 md:h-56 overflow-hidden">
                     <img
                       src={post.image}
                       alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
                         e.target.src =
                           "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
@@ -433,13 +427,14 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
               <article
                 key={post.$id}
                 onClick={() => handlePostClick(post)}
-                className="glass-card group cursor-pointer overflow-hidden rounded-xl hover:scale-[1.02] transition-all duration-300 flex flex-col"
+                className="glass-card group cursor-pointer overflow-hidden rounded-xl transition-shadow duration-300 hover:shadow-lg hover:shadow-emerald-500/20 flex flex-col"
               >
                 <div className="relative h-44 overflow-hidden">
                   <img
                     src={post.image}
                     alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     onError={(e) => {
                       e.target.src =
                         "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";

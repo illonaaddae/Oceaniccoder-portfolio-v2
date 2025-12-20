@@ -139,15 +139,10 @@ body {
 html,
 body {
   -webkit-font-smoothing: antialiased;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
-/* Splash container: make it a promoted layer to avoid being dropped by mobile compositor */
+/* Splash container */
 .splash-root {
-  will-change: opacity, transform;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
@@ -222,7 +217,6 @@ textarea:focus {
   filter: blur(30px);
   opacity: 0.35;
   animation: liquid1 25s ease-in-out infinite;
-  will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
   contain: layout style paint;
@@ -282,7 +276,6 @@ textarea:focus {
 /* Ensure spinning images are compositor-friendly on mobile */
 .spin-anim,
 .splash-root img {
-  will-change: transform, opacity;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
@@ -291,7 +284,6 @@ textarea:focus {
 
 /* Mobile-friendly loader rings animation */
 .loader-ring {
-  will-change: transform;
   -webkit-transform: translateZ(0) rotate(0deg);
   transform: translateZ(0) rotate(0deg);
   -webkit-backface-visibility: hidden;
@@ -406,13 +398,10 @@ textarea:focus {
 .hero-img {
   opacity: 0;
   transition: opacity 200ms ease-out, transform 300ms ease-out;
-  will-change: opacity, transform;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  -webkit-perspective: 1000px;
-  perspective: 1000px;
 }
 .hero-img.loaded {
   opacity: 1;

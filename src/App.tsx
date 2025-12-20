@@ -42,12 +42,11 @@ const AnimatedRoutes: FC<{
           path="/"
           element={
             <motion.div
-              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 0.35 }}
             >
               <Home />
               <Skills />
@@ -59,12 +58,11 @@ const AnimatedRoutes: FC<{
           path="/about"
           element={
             <motion.div
-              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 0.35 }}
             >
               <About />
             </motion.div>
@@ -74,12 +72,11 @@ const AnimatedRoutes: FC<{
           path="/skills"
           element={
             <motion.div
-              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 0.35 }}
             >
               <Skills />
             </motion.div>
@@ -89,12 +86,11 @@ const AnimatedRoutes: FC<{
           path="/projects"
           element={
             <motion.div
-              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 0.35 }}
             >
               <Projects />
             </motion.div>
@@ -104,12 +100,11 @@ const AnimatedRoutes: FC<{
           path="/blog"
           element={
             <motion.div
-              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 0.35 }}
             >
               <Blog />
             </motion.div>
@@ -119,12 +114,11 @@ const AnimatedRoutes: FC<{
           path="/blog/:slug"
           element={
             <motion.div
-              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 0.35 }}
             >
               <BlogPost />
             </motion.div>
@@ -134,12 +128,11 @@ const AnimatedRoutes: FC<{
           path="/contact"
           element={
             <motion.div
-              style={{ willChange: "opacity, transform" }}
               variants={pageVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 0.35 }}
             >
               <Contact />
             </motion.div>
