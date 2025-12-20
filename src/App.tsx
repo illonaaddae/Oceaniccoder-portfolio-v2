@@ -9,6 +9,8 @@ import useTheme from "./hooks/useTheme";
 import Splash from "./components/Splash";
 import RouteChangeHandler from "./components/RouteChangeHandler";
 import AdminLogin from "./components/AdminLogin";
+import EventBanner from "./components/EventBanner";
+import SupportButton from "./components/SupportButton";
 import { verifyAdminPassword, hashPassword } from "./services/api";
 
 // Code-split heavy routes
@@ -249,6 +251,9 @@ function App() {
             }`}
           >
             <BrowserRouter>
+              {/* Event banner for special occasions like birthday */}
+              <EventBanner />
+
               <Navbar theme={theme} toggleTheme={toggleTheme} />
 
               <React.Suspense
@@ -270,6 +275,9 @@ function App() {
 
               <Footer />
               <ScrollToTop />
+
+              {/* Floating support button (Buy Me Coffee, Scrimba, etc.) */}
+              <SupportButton />
             </BrowserRouter>
           </div>
         )}

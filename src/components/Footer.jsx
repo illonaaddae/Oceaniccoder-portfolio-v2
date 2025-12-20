@@ -7,7 +7,9 @@ import {
   FaInstagram,
   FaEnvelope,
   FaArrowUp,
+  FaGraduationCap,
 } from "react-icons/fa";
+import { SiScrimba } from "react-icons/si";
 import { useNavigate } from "react-router-dom";
 
 const Footer = () => {
@@ -149,6 +151,33 @@ const Footer = () => {
                 </span>
               </div>
             </div>
+
+            {/* Scrimba Ambassador */}
+            <a
+              href="https://scrimba.com/?via=u01ap3s"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 block p-3 bg-gradient-to-r from-[#2B283A]/50 to-[#3D3A4F]/50 rounded-lg border border-[#5D5A6F]/30 hover:border-[#7D7A8F]/50 transition-all duration-300 hover:scale-[1.02] group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#2B283A] rounded-lg">
+                  <SiScrimba className="text-white text-lg" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-sm font-medium">
+                      Scrimba Ambassador
+                    </span>
+                    <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
+                      20% OFF
+                    </span>
+                  </div>
+                  <p className="text-gray-400 text-xs">
+                    Learn to code with my exclusive discount!
+                  </p>
+                </div>
+              </div>
+            </a>
           </div>
         </div>
 
