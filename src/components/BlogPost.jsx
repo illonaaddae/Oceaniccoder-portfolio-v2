@@ -22,6 +22,7 @@ import {
 } from "react-icons/fa";
 import { usePortfolioData } from "../hooks/usePortfolioData";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
@@ -834,6 +835,7 @@ Now go create something beautiful! ✨`,
         <article className="prose prose-invert prose-lg max-w-none mb-16">
           <div className="glass-card p-6 md:p-10 rounded-2xl">
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => (
                   <h1 className="text-3xl font-bold text-white mt-8 mb-4 first:mt-0">
@@ -881,11 +883,47 @@ Now go create something beautiful! ✨`,
                     {children}
                   </blockquote>
                 ),
-                code: ({ inline, className, children, ...props }) => {
-                  const match = /language-(\w+)/.exec(className || "");
-                  const language = match ? match[1] : "";
+                code: ({ node, inline, className, children, ...props }) => {
+                  // Check if it's inline code or a code block
+                  const isInline =
+                    inline || (!className && !String(children).includes("\n"));
 
-                  return !inline ? (
+                  // Extract language from className (e.g., "language-javascript")
+                  const match = /language-(\w+)/.exec(className || "");
+                  let language = match ? match[1] : "";
+
+                  // Auto-detect common languages if not specified
+                  if (!language && !isInline) {
+                    const code = String(children);
+                    if (
+                      code.includes("import ") ||
+                      code.includes("export ") ||
+                      code.includes("const ") ||
+                      code.includes("function ")
+                    ) {
+                      language = "javascript";
+                    } else if (
+                      code.includes("def ") ||
+                      code.includes("print(") ||
+                      code.includes("import ")
+                    ) {
+                      language = "python";
+                    } else if (
+                      code.includes("<html") ||
+                      code.includes("<div") ||
+                      code.includes("</")
+                    ) {
+                      language = "html";
+                    } else if (
+                      code.includes("{") &&
+                      code.includes(":") &&
+                      code.includes(";")
+                    ) {
+                      language = "css";
+                    }
+                  }
+
+                  return !isInline ? (
                     <CodeBlock language={language}>{children}</CodeBlock>
                   ) : (
                     <code
