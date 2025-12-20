@@ -53,6 +53,10 @@ export interface About {
   story?: string;
   profileImage?: string;
   resumeUrl?: string;
+  // Stats (editable from dashboard)
+  studentsMentored?: number;
+  techTalks?: number;
+  yearsExperience?: number;
 }
 
 // Gallery Types

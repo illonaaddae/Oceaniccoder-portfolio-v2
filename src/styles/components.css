@@ -126,6 +126,7 @@ body[data-theme="light"] svg.text-white,
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
 .glass-btn::before {
@@ -142,6 +143,7 @@ body[data-theme="light"] svg.text-white,
     transparent
   );
   transition: left 0.5s ease;
+  pointer-events: none;
 }
 
 .glass-btn:hover::before {
@@ -377,7 +379,7 @@ body[data-theme="light"] svg.text-white,
 }
 
 .card-hover:hover {
-  transform: translateY(-12px) rotateX(5deg);
+  transform: translateY(-8px);
 }
 
 .card-hover:hover .glass-card {

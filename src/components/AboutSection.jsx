@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaCode,
@@ -33,6 +33,8 @@ import { usePortfolioData } from "../hooks/usePortfolioData";
  * - Career Journey: Appwrite journey collection
  * - Certifications: Appwrite certifications collection
  * - Gallery Images: Appwrite gallery collection
+ * - About: Includes stats (studentsMentored, techTalks, yearsExperience)
+ * - Projects: Auto-count from database
  */
 
 const AboutSection = () => {
@@ -48,6 +50,8 @@ const AboutSection = () => {
     journey,
     certifications,
     gallery: galleryImages,
+    projects,
+    about,
     loading: dataLoading,
   } = usePortfolioData();
 
@@ -60,32 +64,36 @@ const AboutSection = () => {
     setIsVisible(true);
   }, [education, journey, certifications, galleryImages]);
 
-  const stats = [
-    {
-      icon: <FaCode />,
-      number: "15+",
-      label: "Projects Completed",
-      color: "text-cyan-400",
-    },
-    {
-      icon: <FaUsers />,
-      number: "40+",
-      label: "Students Mentored",
-      color: "text-green-400",
-    },
-    {
-      icon: <FaMicrophone />,
-      number: "2+",
-      label: "Tech Talks Given",
-      color: "text-purple-400",
-    },
-    {
-      icon: <FaStar />,
-      number: "2+",
-      label: "Years Experience",
-      color: "text-orange-400",
-    },
-  ];
+  // Dynamic stats - Projects count from DB, others editable from dashboard
+  const stats = useMemo(
+    () => [
+      {
+        icon: <FaCode />,
+        number: `${projects?.length || 15}+`,
+        label: "Projects Completed",
+        color: "text-cyan-400",
+      },
+      {
+        icon: <FaUsers />,
+        number: `${about?.studentsMentored || 40}+`,
+        label: "Students Mentored",
+        color: "text-green-400",
+      },
+      {
+        icon: <FaMicrophone />,
+        number: `${about?.techTalks || 2}+`,
+        label: "Tech Talks Given",
+        color: "text-purple-400",
+      },
+      {
+        icon: <FaStar />,
+        number: `${about?.yearsExperience || 2}+`,
+        label: "Years Experience",
+        color: "text-orange-400",
+      },
+    ],
+    [projects, about]
+  );
 
   const values = [
     {

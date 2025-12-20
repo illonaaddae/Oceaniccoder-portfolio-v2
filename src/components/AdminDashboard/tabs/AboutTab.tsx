@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { FaUser, FaSave, FaFileAlt, FaBook, FaFilePdf } from "react-icons/fa";
+import {
+  FaUser,
+  FaSave,
+  FaFileAlt,
+  FaBook,
+  FaFilePdf,
+  FaChartBar,
+  FaUsers,
+  FaMicrophone,
+  FaStar,
+} from "react-icons/fa";
 import type { About } from "@/types";
 import ImageUpload from "../ImageUpload";
 
@@ -22,6 +32,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
     story: "",
     profileImage: "",
     resumeUrl: "",
+    studentsMentored: 40,
+    techTalks: 2,
+    yearsExperience: 2,
   });
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
@@ -34,6 +47,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
         story: about.story || "",
         profileImage: about.profileImage || "",
         resumeUrl: about.resumeUrl || "",
+        studentsMentored: about.studentsMentored ?? 40,
+        techTalks: about.techTalks ?? 2,
+        yearsExperience: about.yearsExperience ?? 2,
       });
     }
   }, [about]);
@@ -335,6 +351,106 @@ export const AboutTab: React.FC<AboutTabProps> = ({
               Upload a PDF file or paste a link to your resume (Google Drive,
               Dropbox, etc.)
             </p>
+          </div>
+
+          {/* Stats Section */}
+          <div
+            className={`glass-card border rounded-2xl p-6 transition-colors duration-200 ${
+              theme === "dark"
+                ? "bg-gray-800/50 border-gray-700/80"
+                : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className={`text-lg font-bold flex items-center gap-2 ${
+                  theme === "dark" ? "text-white" : "text-slate-900"
+                }`}
+              >
+                <FaChartBar className="text-cyan-400" />
+                Stats (Displayed on About Page)
+              </h3>
+            </div>
+            <p
+              className={`text-sm mb-4 ${
+                theme === "dark" ? "text-slate-400" : "text-slate-500"
+              }`}
+            >
+              These stats are shown on your About page. The "Projects Completed"
+              count is automatically calculated from your projects in the
+              database.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label
+                  className={`flex items-center gap-2 text-sm font-semibold mb-2 ${
+                    theme === "dark" ? "text-slate-200" : "text-slate-700"
+                  }`}
+                >
+                  <FaUsers className="text-green-400" />
+                  Students Mentored
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.studentsMentored}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      studentsMentored: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className={inputClass}
+                  placeholder="40"
+                />
+              </div>
+              <div>
+                <label
+                  className={`flex items-center gap-2 text-sm font-semibold mb-2 ${
+                    theme === "dark" ? "text-slate-200" : "text-slate-700"
+                  }`}
+                >
+                  <FaMicrophone className="text-purple-400" />
+                  Tech Talks Given
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.techTalks}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      techTalks: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className={inputClass}
+                  placeholder="2"
+                />
+              </div>
+              <div>
+                <label
+                  className={`flex items-center gap-2 text-sm font-semibold mb-2 ${
+                    theme === "dark" ? "text-slate-200" : "text-slate-700"
+                  }`}
+                >
+                  <FaStar className="text-orange-400" />
+                  Years Experience
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.yearsExperience}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      yearsExperience: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className={inputClass}
+                  placeholder="2"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Story Section */}
