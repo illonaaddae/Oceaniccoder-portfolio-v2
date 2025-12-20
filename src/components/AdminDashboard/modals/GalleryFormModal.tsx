@@ -90,6 +90,7 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({
               setPreviewError(false);
             }}
             label="Gallery Image *"
+            theme={theme}
           />
         </div>
 

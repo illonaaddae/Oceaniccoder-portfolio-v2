@@ -24,6 +24,7 @@ export const COLLECTIONS = {
   EDUCATION: "education",
   GALLERY: "gallery",
   BLOG_POSTS: "blog_posts",
+  BLOG_REACTIONS: "blog_reactions",
   COMMENTS: "comments",
   JOURNEY: "journey",
   MESSAGES: "messages",

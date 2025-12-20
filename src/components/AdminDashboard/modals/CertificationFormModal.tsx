@@ -292,20 +292,23 @@ export const CertificationFormModal: React.FC<CertificationFormModalProps> = ({
           </div>
         </div>
 
-        {/* Certificate Image Upload */}
+        {/* Certificate Image/PDF Upload */}
         <div>
-          <label className={labelClass}>Certificate Image (Optional)</label>
+          <label className={labelClass}>Certificate File (Optional)</label>
           <p
             className={`text-xs mb-2 ${
               theme === "dark" ? "text-slate-400" : "text-slate-500"
             }`}
           >
-            Upload an image of your certificate if you have one
+            Upload an image or PDF of your certificate
           </p>
           <ImageUpload
             value={form.image}
             onChange={(url) => setForm({ ...form, image: url })}
-            label="Certificate Image"
+            label=""
+            theme={theme}
+            allowPdf={true}
+            maxSizeMB={10}
           />
         </div>
 

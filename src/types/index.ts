@@ -78,6 +78,17 @@ export interface BlogPost {
   image?: string;
   featured?: boolean;
   published?: boolean;
+  likes?: number;
+  dislikes?: number;
+}
+
+// Blog Reaction Types
+export interface BlogReaction {
+  $id: string;
+  postId: string;
+  visitorId: string;
+  reaction: "like" | "dislike";
+  $createdAt?: string;
 }
 
 // Comment Types

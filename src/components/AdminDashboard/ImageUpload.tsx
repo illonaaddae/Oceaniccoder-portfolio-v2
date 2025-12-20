@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { uploadImage } from "../../services/api";
+import { FaFilePdf, FaImage, FaTimes, FaExternalLinkAlt } from "react-icons/fa";
 
 interface ImageUploadProps {
   value: string;
@@ -8,6 +9,8 @@ interface ImageUploadProps {
   className?: string;
   accept?: string;
   maxSizeMB?: number;
+  theme?: "light" | "dark";
+  allowPdf?: boolean;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -17,18 +20,31 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   className = "",
   accept = "image/*",
   maxSizeMB = 5,
+  theme = "dark",
+  allowPdf = false,
 }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Determine file type from URL
+  const isPdf =
+    value?.toLowerCase().includes(".pdf") || value?.includes("application/pdf");
+
   const handleFileSelect = async (file: File) => {
     setError(null);
 
     // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+    const isImage = file.type.startsWith("image/");
+    const isPdfFile = file.type === "application/pdf";
+
+    if (!isImage && !(allowPdf && isPdfFile)) {
+      setError(
+        allowPdf
+          ? "Please select an image or PDF file"
+          : "Please select an image file"
+      );
       return;
     }
 
@@ -45,7 +61,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       onChange(url);
     } catch (err) {
       console.error("Upload error:", err);
-      setError("Failed to upload image. Please try again.");
+      setError("Failed to upload file. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -87,41 +103,76 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
+  const acceptTypes = allowPdf ? "image/*,.pdf,application/pdf" : accept;
+
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label
+          className={`block text-sm font-medium mb-2 ${
+            theme === "dark" ? "text-gray-300" : "text-slate-700"
+          }`}
+        >
           {label}
         </label>
       )}
 
       {/* Preview */}
       {value && (
-        <div className="mb-3 relative group">
-          <img
-            src={value}
-            alt="Preview"
-            className="w-full h-40 object-cover rounded-lg border border-gray-700"
-          />
+        <div
+          className={`mb-3 relative group rounded-lg border overflow-hidden ${
+            theme === "dark" ? "border-gray-700" : "border-slate-300"
+          }`}
+        >
+          {isPdf ? (
+            // PDF Preview
+            <div
+              className={`w-full h-40 flex flex-col items-center justify-center gap-3 ${
+                theme === "dark" ? "bg-gray-800" : "bg-slate-100"
+              }`}
+            >
+              <FaFilePdf
+                className={`text-5xl ${
+                  theme === "dark" ? "text-red-400" : "text-red-500"
+                }`}
+              />
+              <span
+                className={`text-sm ${
+                  theme === "dark" ? "text-gray-300" : "text-slate-600"
+                }`}
+              >
+                PDF Certificate
+              </span>
+              <a
+                href={value}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  theme === "dark"
+                    ? "bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
+                    : "bg-cyan-100 text-cyan-700 hover:bg-cyan-200"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <FaExternalLinkAlt className="text-xs" />
+                View PDF
+              </a>
+            </div>
+          ) : (
+            // Image Preview
+            <img
+              src={value}
+              alt="Preview"
+              className="w-full h-40 object-cover"
+            />
+          )}
           <button
             type="button"
             onClick={handleClear}
             className="absolute top-2 right-2 p-1.5 bg-red-500/80 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Remove image"
+            title="Remove file"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <FaTimes className="w-3 h-3" />
           </button>
         </div>
       )}
@@ -137,8 +188,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           transition-colors duration-200
           ${
             dragOver
-              ? "border-cyan-500 bg-cyan-500/10"
-              : "border-gray-700 hover:border-gray-600 hover:bg-gray-800/50"
+              ? theme === "dark"
+                ? "border-cyan-500 bg-cyan-500/10"
+                : "border-cyan-500 bg-cyan-50"
+              : theme === "dark"
+              ? "border-gray-700 hover:border-gray-600 hover:bg-gray-800/50"
+              : "border-slate-300 hover:border-slate-400 hover:bg-slate-50"
           }
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
@@ -146,11 +201,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept={accept}
+          accept={acceptTypes}
           onChange={handleInputChange}
           className="hidden"
-          aria-label="Upload image file"
-          title="Upload image file"
+          aria-label={
+            allowPdf ? "Upload image or PDF file" : "Upload image file"
+          }
+          title={allowPdf ? "Upload image or PDF file" : "Upload image file"}
         />
 
         {uploading ? (
@@ -174,31 +231,48 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            <span className="text-sm text-gray-400">Uploading...</span>
+            <span
+              className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-slate-500"
+              }`}
+            >
+              Uploading...
+            </span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <svg
-              className="w-8 h-8 text-gray-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            <div className="flex items-center gap-2">
+              <FaImage
+                className={`w-6 h-6 ${
+                  theme === "dark" ? "text-gray-500" : "text-slate-400"
+                }`}
               />
-            </svg>
-            <div className="text-sm text-gray-400">
-              <span className="text-cyan-500 hover:text-cyan-400">
+              {allowPdf && (
+                <FaFilePdf
+                  className={`w-6 h-6 ${
+                    theme === "dark" ? "text-gray-500" : "text-slate-400"
+                  }`}
+                />
+              )}
+            </div>
+            <div
+              className={`text-sm ${
+                theme === "dark" ? "text-gray-400" : "text-slate-500"
+              }`}
+            >
+              <span className="text-cyan-500 hover:text-cyan-400 font-medium">
                 Click to upload
               </span>{" "}
               or drag and drop
             </div>
-            <p className="text-xs text-gray-500">
-              PNG, JPG, WebP up to {maxSizeMB}MB
+            <p
+              className={`text-xs ${
+                theme === "dark" ? "text-gray-500" : "text-slate-400"
+              }`}
+            >
+              {allowPdf
+                ? `PNG, JPG, WebP, PDF up to ${maxSizeMB}MB`
+                : `PNG, JPG, WebP up to ${maxSizeMB}MB`}
             </p>
           </div>
         )}
@@ -220,15 +294,23 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
       {/* Manual URL Input (fallback) */}
       <div className="mt-3">
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-          <span>Or paste image URL directly:</span>
+        <div
+          className={`flex items-center gap-2 text-xs mb-1 ${
+            theme === "dark" ? "text-gray-500" : "text-slate-500"
+          }`}
+        >
+          <span>Or paste {allowPdf ? "file" : "image"} URL directly:</span>
         </div>
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="https://..."
-          className="w-full px-3 py-2 text-sm bg-gray-800/80 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/60"
+          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
+            theme === "dark"
+              ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-cyan-500/60"
+              : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-cyan-500"
+          }`}
         />
       </div>
     </div>

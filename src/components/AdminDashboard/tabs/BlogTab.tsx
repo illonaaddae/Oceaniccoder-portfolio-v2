@@ -17,6 +17,7 @@ import {
 import { BlogPost } from "@/types";
 import { Modal } from "../modals/Modal";
 import { ImageUpload } from "../ImageUpload";
+import { ToastContainer, useToast } from "../Toast";
 
 interface BlogTabProps {
   blogPosts: BlogPost[];
@@ -53,7 +54,9 @@ const BlogTab: React.FC<BlogTabProps> = ({
   });
   const [tagInput, setTagInput] = useState("");
   const [showContentImageUpload, setShowContentImageUpload] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const contentTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const toast = useToast();
 
   // Insert image markdown at cursor position in content
   const insertImageToContent = (imageUrl: string) => {
@@ -87,6 +90,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
 
     // Generate slug from title if not provided
     const slug =
@@ -101,15 +105,28 @@ const BlogTab: React.FC<BlogTabProps> = ({
       slug,
     };
 
-    if (editingPost) {
-      await onEdit(editingPost.$id, postData);
-    } else {
-      await onAdd(postData);
-    }
+    try {
+      if (editingPost) {
+        await onEdit(editingPost.$id, postData);
+        toast.success(`Blog post "${formData.title}" updated successfully!`);
+      } else {
+        await onAdd(postData);
+        toast.success(`Blog post "${formData.title}" created successfully!`);
+      }
 
-    setShowModal(false);
-    setEditingPost(null);
-    resetForm();
+      setShowModal(false);
+      setEditingPost(null);
+      resetForm();
+    } catch (error) {
+      console.error("Error saving blog post:", error);
+      toast.error(
+        editingPost
+          ? "Failed to update blog post. Please try again."
+          : "Failed to create blog post. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -166,8 +183,17 @@ const BlogTab: React.FC<BlogTabProps> = ({
   };
 
   const handleDelete = async (id: string) => {
+    const postToDelete = blogPosts.find((p) => p.$id === id);
     if (window.confirm("Are you sure you want to delete this blog post?")) {
-      await onDelete(id);
+      try {
+        await onDelete(id);
+        toast.success(
+          `Blog post "${postToDelete?.title}" deleted successfully!`
+        );
+      } catch (error) {
+        console.error("Error deleting blog post:", error);
+        toast.error("Failed to delete blog post. Please try again.");
+      }
     }
   };
 
@@ -702,6 +728,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
                     if (url) insertImageToContent(url);
                   }}
                   label=""
+                  theme={theme}
                 />
               </div>
             )}
@@ -802,6 +829,7 @@ code blocks
               value={formData.image || ""}
               onChange={(url) => setFormData({ ...formData, image: url })}
               label="Featured Image"
+              theme={theme}
             />
           </div>
 
@@ -911,13 +939,47 @@ code blocks
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-xl hover:from-cyan-600 hover:to-emerald-600 transition-all font-medium shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+              className={`px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-xl hover:from-cyan-600 hover:to-emerald-600 transition-all font-medium shadow-lg shadow-cyan-500/20 flex items-center gap-2 ${
+                submitting ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={submitting}
             >
-              <FaSave /> {editingPost ? "Update" : "Create"} Post
+              {submitting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <FaSave /> {editingPost ? "Update" : "Create"} Post
+                </>
+              )}
             </button>
           </div>
         </form>
       </Modal>
+
+      {/* Toast notifications */}
+      <ToastContainer
+        toasts={toast.toasts}
+        onRemove={toast.removeToast}
+        theme={theme}
+      />
     </div>
   );
 };

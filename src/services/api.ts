@@ -12,6 +12,7 @@ import type {
   Education,
   GalleryImage,
   BlogPost,
+  BlogReaction,
   Comment,
   Journey,
   Message,
@@ -187,6 +188,91 @@ export async function updateBlogPost(
 
 export async function deleteBlogPost(postId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BLOG_POSTS, postId);
+}
+
+// Blog Reactions
+export async function getPostReactions(
+  postId: string
+): Promise<{ likes: number; dislikes: number }> {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTIONS.BLOG_REACTIONS,
+      [Query.equal("postId", postId)]
+    );
+    const reactions = response.documents as unknown as BlogReaction[];
+    const likes = reactions.filter((r) => r.reaction === "like").length;
+    const dislikes = reactions.filter((r) => r.reaction === "dislike").length;
+    return { likes, dislikes };
+  } catch {
+    // Collection might not exist yet
+    return { likes: 0, dislikes: 0 };
+  }
+}
+
+export async function getVisitorReaction(
+  postId: string,
+  visitorId: string
+): Promise<BlogReaction | null> {
+  try {
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTIONS.BLOG_REACTIONS,
+      [Query.equal("postId", postId), Query.equal("visitorId", visitorId)]
+    );
+    if (response.documents.length > 0) {
+      return response.documents[0] as unknown as BlogReaction;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function addReaction(
+  postId: string,
+  visitorId: string,
+  reaction: "like" | "dislike"
+): Promise<BlogReaction> {
+  // Check if visitor already reacted
+  const existing = await getVisitorReaction(postId, visitorId);
+
+  if (existing) {
+    // Update existing reaction
+    if (existing.reaction === reaction) {
+      // Same reaction - remove it (toggle off)
+      await databases.deleteDocument(
+        DATABASE_ID,
+        COLLECTIONS.BLOG_REACTIONS,
+        existing.$id
+      );
+      return existing;
+    } else {
+      // Different reaction - update it
+      return databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.BLOG_REACTIONS,
+        existing.$id,
+        { reaction }
+      ) as unknown as BlogReaction;
+    }
+  } else {
+    // Create new reaction
+    return databases.createDocument(
+      DATABASE_ID,
+      COLLECTIONS.BLOG_REACTIONS,
+      ID.unique(),
+      { postId, visitorId, reaction }
+    ) as unknown as BlogReaction;
+  }
+}
+
+export async function removeReaction(reactionId: string): Promise<void> {
+  await databases.deleteDocument(
+    DATABASE_ID,
+    COLLECTIONS.BLOG_REACTIONS,
+    reactionId
+  );
 }
 
 // Comments

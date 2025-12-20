@@ -239,6 +239,7 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             value={form.image}
             onChange={(url) => setForm({ ...form, image: url })}
             label="Project Image"
+            theme={theme}
           />
         </div>
 

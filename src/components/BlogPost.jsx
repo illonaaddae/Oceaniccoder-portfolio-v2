@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   FaArrowLeft,
@@ -15,11 +15,33 @@ import {
   FaChevronRight,
   FaCopy,
   FaCheck,
+  FaThumbsUp,
+  FaThumbsDown,
+  FaRegThumbsUp,
+  FaRegThumbsDown,
 } from "react-icons/fa";
 import { usePortfolioData } from "../hooks/usePortfolioData";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  getPostReactions,
+  getVisitorReaction,
+  addReaction,
+} from "../services/api";
+
+// Generate or retrieve visitor ID for tracking reactions
+const getVisitorId = () => {
+  let visitorId = localStorage.getItem("blog_visitor_id");
+  if (!visitorId) {
+    visitorId =
+      "visitor_" +
+      Math.random().toString(36).substring(2, 15) +
+      Date.now().toString(36);
+    localStorage.setItem("blog_visitor_id", visitorId);
+  }
+  return visitorId;
+};
 
 // Code Block component with copy functionality
 const CodeBlock = ({ language, children }) => {
@@ -91,6 +113,11 @@ const BlogPost = () => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const [relatedPosts, setRelatedPosts] = useState([]);
+
+  // Reactions state
+  const [reactions, setReactions] = useState({ likes: 0, dislikes: 0 });
+  const [userReaction, setUserReaction] = useState(null); // 'like', 'dislike', or null
+  const [reactionLoading, setReactionLoading] = useState(false);
 
   // Fallback posts matching BlogSection
   const fallbackPosts = [
@@ -513,6 +540,90 @@ Now go create something beautiful! ✨`,
     }
   }, [slug, allPosts]);
 
+  // Load reactions for the current post
+  const loadReactions = useCallback(async () => {
+    if (!post?.$id) return;
+
+    try {
+      const [reactionsData, visitorReaction] = await Promise.all([
+        getPostReactions(post.$id),
+        getVisitorReaction(post.$id, getVisitorId()),
+      ]);
+
+      setReactions(reactionsData);
+      setUserReaction(visitorReaction?.reaction || null);
+    } catch (error) {
+      console.error("Error loading reactions:", error);
+    }
+  }, [post?.$id]);
+
+  useEffect(() => {
+    loadReactions();
+  }, [loadReactions]);
+
+  // Handle reaction click
+  const handleReaction = async (reactionType) => {
+    if (reactionLoading || !post?.$id) {
+      console.log("Reaction blocked:", { reactionLoading, postId: post?.$id });
+      return;
+    }
+
+    console.log("Handling reaction:", reactionType, "for post:", post.$id);
+    setReactionLoading(true);
+    const visitorId = getVisitorId();
+
+    // Optimistically update UI first for better UX
+    const previousReaction = userReaction;
+    const previousReactions = { ...reactions };
+
+    if (userReaction === reactionType) {
+      // Toggle off - removing reaction
+      setUserReaction(null);
+      setReactions((prev) => ({
+        ...prev,
+        [reactionType === "like" ? "likes" : "dislikes"]: Math.max(
+          0,
+          prev[reactionType === "like" ? "likes" : "dislikes"] - 1
+        ),
+      }));
+    } else {
+      // Adding or switching reaction
+      if (userReaction) {
+        // Switching from opposite reaction
+        setReactions((prev) => ({
+          likes:
+            reactionType === "like"
+              ? prev.likes + 1
+              : Math.max(0, prev.likes - 1),
+          dislikes:
+            reactionType === "dislike"
+              ? prev.dislikes + 1
+              : Math.max(0, prev.dislikes - 1),
+        }));
+      } else {
+        // New reaction
+        setReactions((prev) => ({
+          ...prev,
+          [reactionType === "like" ? "likes" : "dislikes"]:
+            prev[reactionType === "like" ? "likes" : "dislikes"] + 1,
+        }));
+      }
+      setUserReaction(reactionType);
+    }
+
+    try {
+      await addReaction(post.$id, visitorId, reactionType);
+      console.log("Reaction saved successfully");
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      // Revert optimistic update on error
+      setUserReaction(previousReaction);
+      setReactions(previousReactions);
+    } finally {
+      setReactionLoading(false);
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -705,7 +816,7 @@ Now go create something beautiful! ✨`,
 
         {/* Featured Image */}
         {post.image && (
-          <div className="relative h-64 md:h-96 rounded-2xl overflow-hidden mb-10">
+          <div className="relative h-64 md:h-96 lg:h-[450px] rounded-2xl overflow-hidden mb-10">
             <img
               src={post.image}
               alt={post.title}
@@ -771,15 +882,16 @@ Now go create something beautiful! ✨`,
                   </blockquote>
                 ),
                 code: ({ inline, className, children, ...props }) => {
-                  const match = /language-(\w+)/.exec(className || '');
-                  const language = match ? match[1] : '';
-                  
+                  const match = /language-(\w+)/.exec(className || "");
+                  const language = match ? match[1] : "";
+
                   return !inline ? (
-                    <CodeBlock language={language}>
-                      {children}
-                    </CodeBlock>
+                    <CodeBlock language={language}>{children}</CodeBlock>
                   ) : (
-                    <code className="bg-white/10 text-emerald-400 px-2 py-0.5 rounded text-sm font-mono" {...props}>
+                    <code
+                      className="bg-white/10 text-emerald-400 px-2 py-0.5 rounded text-sm font-mono"
+                      {...props}
+                    >
                       {children}
                     </code>
                   );
@@ -801,6 +913,60 @@ Now go create something beautiful! ✨`,
             </ReactMarkdown>
           </div>
         </article>
+
+        {/* Reactions Section */}
+        <div className="glass-card p-6 rounded-2xl mb-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <h3 className="text-lg font-semibold text-white mb-1">
+                Did you find this article helpful?
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Let me know your thoughts!
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Like Button */}
+              <button
+                type="button"
+                onClick={() => handleReaction("like")}
+                disabled={reactionLoading}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300 cursor-pointer select-none ${
+                  userReaction === "like"
+                    ? "bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 scale-105"
+                    : "bg-white/5 text-gray-300 border border-white/10 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/30 hover:scale-105"
+                } ${reactionLoading ? "opacity-50 cursor-wait" : ""}`}
+              >
+                {userReaction === "like" ? (
+                  <FaThumbsUp className="text-lg" />
+                ) : (
+                  <FaRegThumbsUp className="text-lg" />
+                )}
+                <span className="font-bold">{reactions.likes}</span>
+              </button>
+
+              {/* Dislike Button */}
+              <button
+                type="button"
+                onClick={() => handleReaction("dislike")}
+                disabled={reactionLoading}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300 cursor-pointer select-none ${
+                  userReaction === "dislike"
+                    ? "bg-red-500/30 text-red-400 border border-red-500/50 scale-105"
+                    : "bg-white/5 text-gray-300 border border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 hover:scale-105"
+                } ${reactionLoading ? "opacity-50 cursor-wait" : ""}`}
+              >
+                {userReaction === "dislike" ? (
+                  <FaThumbsDown className="text-lg" />
+                ) : (
+                  <FaRegThumbsDown className="text-lg" />
+                )}
+                <span className="font-bold">{reactions.dislikes}</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Post Navigation */}
         <div className="flex flex-col sm:flex-row gap-4 mb-16">
