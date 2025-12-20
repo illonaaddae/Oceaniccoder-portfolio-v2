@@ -1,12 +1,6 @@
 import React, { useState } from "react";
-import {
-  FaCoffee,
-  FaTimes,
-  FaGraduationCap,
-  FaHeart,
-  FaChevronUp,
-} from "react-icons/fa";
-import { SiScrimba } from "react-icons/si";
+import { FaCoffee, FaTimes, FaHeart } from "react-icons/fa";
+import { IMAGES } from "../utils/imageUrls";
 
 interface SupportLink {
   id: string;
@@ -34,7 +28,13 @@ const SUPPORT_LINKS: SupportLink[] = [
     name: "Scrimba Pro",
     description: "Learn to code with 20% OFF!",
     url: "https://scrimba.com/?via=u01ap3s",
-    icon: <SiScrimba className="text-xl" />,
+    icon: (
+      <img
+        src={IMAGES.scrimba}
+        alt="Scrimba"
+        className="w-5 h-5 object-contain"
+      />
+    ),
     bgColor: "bg-[#2B283A]",
     hoverColor: "hover:bg-[#3D3A4F]",
     badge: "20% OFF",
@@ -45,7 +45,7 @@ const SupportButton: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-3">
       {/* Expanded support options */}
       <div
         className={`flex flex-col gap-2 transition-all duration-300 ${

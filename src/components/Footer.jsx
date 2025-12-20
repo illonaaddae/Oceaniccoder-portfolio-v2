@@ -7,9 +7,8 @@ import {
   FaInstagram,
   FaEnvelope,
   FaArrowUp,
-  FaGraduationCap,
 } from "react-icons/fa";
-import { SiScrimba } from "react-icons/si";
+import { IMAGES } from "../utils/imageUrls";
 import { useNavigate } from "react-router-dom";
 
 const Footer = () => {
@@ -161,7 +160,11 @@ const Footer = () => {
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-[#2B283A] rounded-lg">
-                  <SiScrimba className="text-white text-lg" />
+                  <img
+                    src={IMAGES.scrimba}
+                    alt="Scrimba"
+                    className="w-5 h-5 object-contain"
+                  />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
