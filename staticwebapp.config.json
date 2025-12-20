@@ -1,56 +1,21 @@
 {
   "navigationFallback": {
-    "rewrite": "/index.html",
+    "rewrite": "index.html",
     "exclude": [
       "/images/*",
-      "/images/logo/*",
-      "/images/platforms/*",
       "/assets/*",
-      "/*.ico",
-      "/*.txt",
-      "/*.xml",
-      "/manifest.json",
-      "/robots.txt"
+      "*.ico",
+      "*.txt",
+      "*.xml",
+      "*.json",
+      "*.png",
+      "*.jpg",
+      "*.webp",
+      "*.svg",
+      "*.css",
+      "*.js"
     ]
   },
-  "routes": [
-    {
-      "route": "/",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/about",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/skills",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/projects",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/contact",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/blog",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/blog/*",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/admin",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/admin/*",
-      "rewrite": "/index.html"
-    }
-  ],
   "responseOverrides": {
     "404": {
       "rewrite": "/index.html",
