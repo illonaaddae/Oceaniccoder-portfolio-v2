@@ -94,7 +94,7 @@ const Navbar = ({ theme, toggleTheme }) => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-1">
             {navItems.map((item) => {
               const isInternal = item.href && item.href.startsWith("/");
               const base =
@@ -162,7 +162,7 @@ const Navbar = ({ theme, toggleTheme }) => {
             {/* Enhanced Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
+              className="lg:hidden glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
               aria-label="Toggle menu"
             >
               {isMenuOpen ? (
@@ -176,7 +176,7 @@ const Navbar = ({ theme, toggleTheme }) => {
 
         {/* Enhanced Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 glass-card bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
+          <div className="lg:hidden mt-4 glass-card bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
             <div className="flex flex-col space-y-2">
               {navItems.map((item) => {
                 const isInternal = item.href && item.href.startsWith("/");
