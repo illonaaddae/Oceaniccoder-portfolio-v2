@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   FaQuoteLeft,
   FaStar,
@@ -67,6 +68,20 @@ const TestimonialsSection: React.FC = () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
   }, [testimonials.length, currentIndex]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showForm) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showForm]);
 
   const goToNext = () => {
     if (isAnimating) return;
@@ -201,11 +216,331 @@ const TestimonialsSection: React.FC = () => {
     );
   }
 
-  if (testimonials.length === 0) {
-    return null; // Don't render section if no testimonials
-  }
-
   const currentTestimonial = testimonials[currentIndex];
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setShowForm(false);
+  };
+
+  // Handle backdrop click
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      handleCloseModal();
+    }
+  };
+
+  // If no testimonials, show just the CTA section
+  if (testimonials.length === 0) {
+    return (
+      <section
+        id="testimonials"
+        className="py-20 relative overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
+        }}
+      >
+        {/* Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="liquid-morph absolute top-20 right-20 w-96 h-96 bg-gradient-to-r from-purple-500/8 to-pink-500/10 blur-3xl"></div>
+          <div className="liquid-morph absolute bottom-20 left-20 w-80 h-80 bg-gradient-to-r from-cyan-500/6 to-blue-500/8 blur-3xl"></div>
+        </div>
+
+        <div className="container mx-auto px-6 relative z-10">
+          {/* Section Header */}
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 dark:from-purple-400 dark:via-pink-400 dark:to-red-400 bg-clip-text text-transparent">
+                Testimonials
+              </span>
+            </h2>
+            <p className="text-xl leading-relaxed max-w-3xl mx-auto text-[var(--text-secondary)]">
+              Be the first to share your experience working with me
+            </p>
+          </div>
+
+          {/* Share Your Experience CTA */}
+          <div className="text-center">
+            <button
+              onClick={() => setShowForm(true)}
+              type="button"
+              className="glass-btn bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 font-medium hover:scale-105 active:scale-95 transition-transform duration-300 rounded-xl shadow-lg shadow-purple-500/30 touch-manipulation"
+            >
+              Share Your Experience
+            </button>
+          </div>
+
+          {/* Testimonial Submission Form Modal */}
+          {showForm &&
+            createPortal(
+              <div
+                className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 dark:bg-black/95 backdrop-blur-md"
+                onClick={handleBackdropClick}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="testimonial-form-title"
+              >
+                <div
+                  className="rounded-2xl p-6 md:p-8 w-full max-w-md relative animate-fadeIn max-h-[90vh] overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Close Button */}
+                  <button
+                    onClick={handleCloseModal}
+                    type="button"
+                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] touch-manipulation z-10"
+                    aria-label="Close form"
+                  >
+                    <FaTimes />
+                  </button>
+
+                  {submitSuccess ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <FaCheckCircle className="text-green-400 text-3xl" />
+                      </div>
+                      <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+                        Thank You!
+                      </h3>
+                      <p className="text-[var(--text-secondary)]">
+                        Your testimonial has been submitted and is pending
+                        review.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <h3
+                        id="testimonial-form-title"
+                        className="text-2xl font-bold text-[var(--text-primary)] mb-2"
+                      >
+                        Share Your Experience
+                      </h3>
+                      <p className="text-[var(--text-secondary)] mb-6 text-sm">
+                        Your feedback helps others understand what it's like
+                        working with me.
+                      </p>
+
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Profile Image Upload */}
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                            Profile Image
+                          </label>
+
+                          <div className="flex items-start gap-4">
+                            {(imagePreview || formData.image) && (
+                              <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[var(--glass-border)] flex-shrink-0">
+                                <img
+                                  src={imagePreview || formData.image}
+                                  alt="Preview"
+                                  className="w-full h-full object-cover"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setImagePreview(null);
+                                    setFormData({ ...formData, image: "" });
+                                    if (fileInputRef.current)
+                                      fileInputRef.current.value = "";
+                                  }}
+                                  className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-red-500 transition-colors touch-manipulation"
+                                  title="Remove image"
+                                  aria-label="Remove image"
+                                >
+                                  <FaTimes className="text-xs" />
+                                </button>
+                              </div>
+                            )}
+
+                            <div className="flex-1">
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                                id="testimonial-image-upload-empty"
+                              />
+                              <label
+                                htmlFor="testimonial-image-upload-empty"
+                                className={`flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all touch-manipulation ${
+                                  uploadingImage
+                                    ? "border-purple-500 bg-purple-500/10"
+                                    : "border-[var(--glass-border)] hover:border-purple-500 hover:bg-[var(--glass-border)]/50"
+                                }`}
+                              >
+                                {uploadingImage ? (
+                                  <>
+                                    <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-purple-400 text-sm">
+                                      Uploading...
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <FaCloudUploadAlt className="text-[var(--text-secondary)]" />
+                                    <span className="text-[var(--text-secondary)] text-sm">
+                                      {imagePreview || formData.image
+                                        ? "Change Image"
+                                        : "Upload Photo"}
+                                    </span>
+                                  </>
+                                )}
+                              </label>
+
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-[var(--text-accent)]">
+                                  or paste URL:
+                                </span>
+                                <input
+                                  type="url"
+                                  value={formData.image}
+                                  onChange={(e) => {
+                                    setFormData({
+                                      ...formData,
+                                      image: e.target.value,
+                                    });
+                                    setImagePreview(null);
+                                  }}
+                                  className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                                  placeholder="https://..."
+                                />
+                              </div>
+                              <p className="text-xs text-[var(--text-accent)] mt-1">
+                                Optional - Max 5MB (JPG, PNG, GIF)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                            Your Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                            placeholder="John Doe"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                              Your Role *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={formData.role}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  role: e.target.value,
+                                })
+                              }
+                              className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                              placeholder="CEO"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                              Company
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.company}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  company: e.target.value,
+                                })
+                              }
+                              className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                              placeholder="Acme Inc"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                            Your Rating *
+                          </label>
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() =>
+                                  setFormData({ ...formData, rating: star })
+                                }
+                                className="p-1 transition-transform hover:scale-110 active:scale-95 touch-manipulation"
+                                aria-label={`Rate ${star} star${
+                                  star > 1 ? "s" : ""
+                                }`}
+                              >
+                                <FaStar
+                                  className={`w-6 h-6 ${
+                                    star <= formData.rating
+                                      ? "text-yellow-400"
+                                      : "text-[var(--text-accent)]"
+                                  }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                            Your Testimonial *
+                          </label>
+                          <textarea
+                            required
+                            rows={4}
+                            value={formData.content}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                content: e.target.value,
+                              })
+                            }
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none resize-none"
+                            placeholder="Share your experience working with me..."
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-500 hover:to-pink-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                        >
+                          {submitting ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <FaPaperPlane className="text-sm" />
+                              Submit Testimonial
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    </>
+                  )}
+                </div>
+              </div>,
+              document.body
+            )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -377,270 +712,279 @@ const TestimonialsSection: React.FC = () => {
         <div className="mt-16 text-center">
           <button
             onClick={() => setShowForm(true)}
-            className="glass-btn bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 font-medium hover:scale-105 transition-transform duration-300 rounded-xl shadow-lg shadow-purple-500/30"
+            type="button"
+            className="glass-btn bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 font-medium hover:scale-105 active:scale-95 transition-transform duration-300 rounded-xl shadow-lg shadow-purple-500/30 touch-manipulation"
           >
             Share Your Experience
           </button>
         </div>
 
         {/* Testimonial Submission Form Modal */}
-        {showForm && (
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
-            onClick={(e) => e.target === e.currentTarget && setShowForm(false)}
-          >
+        {showForm &&
+          createPortal(
             <div
-              className="rounded-2xl p-6 md:p-8 w-full max-w-md relative animate-fadeIn max-h-[90vh] overflow-y-auto"
-              style={{
-                backgroundColor: "var(--bg-primary, #0a0f1a)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-              }}
+              className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 dark:bg-black/95 backdrop-blur-md"
+              onClick={handleBackdropClick}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="testimonial-form-title-main"
             >
-              {/* Close Button */}
-              <button
-                onClick={() => setShowForm(false)}
-                className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
-                aria-label="Close form"
+              <div
+                className="rounded-2xl p-6 md:p-8 w-full max-w-md relative animate-fadeIn max-h-[90vh] overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
               >
-                <FaTimes />
-              </button>
+                {/* Close Button */}
+                <button
+                  onClick={handleCloseModal}
+                  type="button"
+                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] touch-manipulation z-10"
+                  aria-label="Close form"
+                >
+                  <FaTimes />
+                </button>
 
-              {submitSuccess ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <FaCheckCircle className="text-green-400 text-3xl" />
+                {submitSuccess ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <FaCheckCircle className="text-green-400 text-3xl" />
+                    </div>
+                    <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+                      Thank You!
+                    </h3>
+                    <p className="text-[var(--text-secondary)]">
+                      Your testimonial has been submitted and is pending review.
+                    </p>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">
-                    Thank You!
-                  </h3>
-                  <p className="text-gray-400">
-                    Your testimonial has been submitted and is pending review.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    Share Your Experience
-                  </h3>
-                  <p className="text-gray-400 mb-6 text-sm">
-                    Your feedback helps others understand what it's like working
-                    with me.
-                  </p>
+                ) : (
+                  <>
+                    <h3
+                      id="testimonial-form-title-main"
+                      className="text-2xl font-bold text-[var(--text-primary)] mb-2"
+                    >
+                      Share Your Experience
+                    </h3>
+                    <p className="text-[var(--text-secondary)] mb-6 text-sm">
+                      Your feedback helps others understand what it's like
+                      working with me.
+                    </p>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Profile Image Upload */}
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        Profile Image
-                      </label>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      {/* Profile Image Upload */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Profile Image
+                        </label>
 
-                      {/* Image Preview or Upload Area */}
-                      <div className="flex items-start gap-4">
-                        {/* Preview */}
-                        {(imagePreview || formData.image) && (
-                          <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/20 flex-shrink-0">
-                            <img
-                              src={imagePreview || formData.image}
-                              alt="Preview"
-                              className="w-full h-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImagePreview(null);
-                                setFormData({ ...formData, image: "" });
-                                if (fileInputRef.current)
-                                  fileInputRef.current.value = "";
-                              }}
-                              className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-red-500 transition-colors"
-                              title="Remove image"
-                              aria-label="Remove image"
-                            >
-                              <FaTimes className="text-xs" />
-                            </button>
-                          </div>
-                        )}
+                        {/* Image Preview or Upload Area */}
+                        <div className="flex items-start gap-4">
+                          {/* Preview */}
+                          {(imagePreview || formData.image) && (
+                            <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[var(--glass-border)] flex-shrink-0">
+                              <img
+                                src={imagePreview || formData.image}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setImagePreview(null);
+                                  setFormData({ ...formData, image: "" });
+                                  if (fileInputRef.current)
+                                    fileInputRef.current.value = "";
+                                }}
+                                className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-red-500 transition-colors touch-manipulation"
+                                title="Remove image"
+                                aria-label="Remove image"
+                              >
+                                <FaTimes className="text-xs" />
+                              </button>
+                            </div>
+                          )}
 
-                        {/* Upload Button */}
-                        <div className="flex-1">
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                            id="testimonial-image-upload"
-                          />
-                          <label
-                            htmlFor="testimonial-image-upload"
-                            className={`flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all ${
-                              uploadingImage
-                                ? "border-purple-500 bg-purple-500/10"
-                                : "border-white/20 hover:border-purple-500 hover:bg-white/5"
-                            }`}
-                          >
-                            {uploadingImage ? (
-                              <>
-                                <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                                <span className="text-purple-400 text-sm">
-                                  Uploading...
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <FaCloudUploadAlt className="text-gray-400" />
-                                <span className="text-gray-400 text-sm">
-                                  {imagePreview || formData.image
-                                    ? "Change Image"
-                                    : "Upload Photo"}
-                                </span>
-                              </>
-                            )}
-                          </label>
-
-                          {/* OR paste URL */}
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs text-gray-500">
-                              or paste URL:
-                            </span>
+                          {/* Upload Button */}
+                          <div className="flex-1">
                             <input
-                              type="url"
-                              value={formData.image}
-                              onChange={(e) => {
-                                setFormData({
-                                  ...formData,
-                                  image: e.target.value,
-                                });
-                                setImagePreview(null);
-                              }}
-                              className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
-                              placeholder="https://..."
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                              id="testimonial-image-upload"
                             />
+                            <label
+                              htmlFor="testimonial-image-upload"
+                              className={`flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all ${
+                                uploadingImage
+                                  ? "border-purple-500 bg-purple-500/10"
+                                  : "border-[var(--glass-border)] hover:border-purple-500 hover:bg-[var(--glass-border)]/50"
+                              }`}
+                            >
+                              {uploadingImage ? (
+                                <>
+                                  <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                                  <span className="text-purple-400 text-sm">
+                                    Uploading...
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <FaCloudUploadAlt className="text-[var(--text-secondary)]" />
+                                  <span className="text-[var(--text-secondary)] text-sm">
+                                    {imagePreview || formData.image
+                                      ? "Change Image"
+                                      : "Upload Photo"}
+                                  </span>
+                                </>
+                              )}
+                            </label>
+
+                            {/* OR paste URL */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-xs text-[var(--text-accent)]">
+                                or paste URL:
+                              </span>
+                              <input
+                                type="url"
+                                value={formData.image}
+                                onChange={(e) => {
+                                  setFormData({
+                                    ...formData,
+                                    image: e.target.value,
+                                  });
+                                  setImagePreview(null);
+                                }}
+                                className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                                placeholder="https://..."
+                              />
+                            </div>
+                            <p className="text-xs text-[var(--text-accent)] mt-1">
+                              Optional - Max 5MB (JPG, PNG, GIF)
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Optional - Max 5MB (JPG, PNG, GIF)
-                          </p>
                         </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-1">
-                        Your Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
-                        placeholder="John Doe"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-white mb-1">
-                          Your Role *
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                          Your Name *
                         </label>
                         <input
                           type="text"
                           required
-                          value={formData.role}
+                          value={formData.name}
                           onChange={(e) =>
-                            setFormData({ ...formData, role: e.target.value })
+                            setFormData({ ...formData, name: e.target.value })
                           }
-                          className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
-                          placeholder="CEO"
+                          className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                          placeholder="John Doe"
                         />
                       </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                            Your Role *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.role}
+                            onChange={(e) =>
+                              setFormData({ ...formData, role: e.target.value })
+                            }
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                            placeholder="CEO"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                            Company
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.company}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                company: e.target.value,
+                              })
+                            }
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                            placeholder="Acme Inc"
+                          />
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="block text-sm font-medium text-white mb-1">
-                          Company
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                          Your Rating *
                         </label>
-                        <input
-                          type="text"
-                          value={formData.company}
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() =>
+                                setFormData({ ...formData, rating: star })
+                              }
+                              className="p-1 transition-transform hover:scale-110 active:scale-95 touch-manipulation"
+                              aria-label={`Rate ${star} star${
+                                star > 1 ? "s" : ""
+                              }`}
+                            >
+                              <FaStar
+                                className={`w-6 h-6 ${
+                                  star <= formData.rating
+                                    ? "text-yellow-400"
+                                    : "text-[var(--text-accent)]"
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                          Your Testimonial *
+                        </label>
+                        <textarea
+                          required
+                          rows={4}
+                          value={formData.content}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              company: e.target.value,
+                              content: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
-                          placeholder="Acme Inc"
+                          className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none resize-none"
+                          placeholder="Share your experience working with me..."
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-1">
-                        Your Rating *
-                      </label>
-                      <div className="flex gap-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            onClick={() =>
-                              setFormData({ ...formData, rating: star })
-                            }
-                            className="p-1 transition-transform hover:scale-110"
-                            aria-label={`Rate ${star} star${
-                              star > 1 ? "s" : ""
-                            }`}
-                          >
-                            <FaStar
-                              className={`w-6 h-6 ${
-                                star <= formData.rating
-                                  ? "text-yellow-400"
-                                  : "text-gray-600"
-                              }`}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-1">
-                        Your Testimonial *
-                      </label>
-                      <textarea
-                        required
-                        rows={4}
-                        value={formData.content}
-                        onChange={(e) =>
-                          setFormData({ ...formData, content: e.target.value })
-                        }
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none resize-none"
-                        placeholder="Share your experience working with me..."
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-500 hover:to-pink-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {submitting ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <FaPaperPlane className="text-sm" />
-                          Submit Testimonial
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-500 hover:to-pink-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                      >
+                        {submitting ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <FaPaperPlane className="text-sm" />
+                            Submit Testimonial
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
       </div>
     </section>
   );
