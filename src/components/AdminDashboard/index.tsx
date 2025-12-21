@@ -49,9 +49,13 @@ type TabType =
 
 interface AdminDashboardProps {
   onLogout?: () => void;
+  isReadOnly?: boolean;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+  onLogout,
+  isReadOnly = false,
+}) => {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const {
@@ -77,6 +81,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
   const [editingGalleryImage, setEditingGalleryImage] =
     useState<GalleryImage | null>(null);
+
+  // Delete confirmation state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean;
+    type:
+      | "message"
+      | "skill"
+      | "project"
+      | "certification"
+      | "education"
+      | "journey"
+      | "gallery"
+      | "blogPost"
+      | null;
+    id: string | null;
+    name?: string;
+  }>({ show: false, type: null, id: null });
 
   const { theme: rawTheme, toggleTheme } = useTheme();
   const theme = (
@@ -108,6 +129,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     handleAddGalleryImage,
     handleUpdateGalleryImage,
     handleDeleteGalleryImage,
+    handleUpdateGalleryOrder,
+    handleToggleGalleryVisibility,
     handleAddEducation,
     handleUpdateEducation,
     handleDeleteEducation,
@@ -221,13 +244,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     [blogPosts, searchQuery]
   );
 
-  // Modal handlers
+  // Modal handlers - prevent modals from opening in read-only mode
   const openNewProject = () => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingProject(null);
     setShowProjectModal(true);
   };
 
   const openEditProject = (project: Project) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingProject(project);
     setShowProjectModal(true);
   };
@@ -238,11 +273,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   const openNewSkill = () => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingSkill(null);
     setShowSkillModal(true);
   };
 
   const openEditSkill = (skill: Skill) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingSkill(skill);
     setShowSkillModal(true);
   };
@@ -253,11 +300,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   const openNewCertification = () => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingCertification(null);
     setShowCertModal(true);
   };
 
   const openEditCertification = (cert: Certification) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingCertification(cert);
     setShowCertModal(true);
   };
@@ -268,11 +327,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   const openNewEducation = () => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingEducation(null);
     setShowEducationModal(true);
   };
 
   const openEditEducation = (edu: Education) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingEducation(edu);
     setShowEducationModal(true);
   };
@@ -283,11 +354,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   const openNewJourney = () => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingJourney(null);
     setShowJourneyModal(true);
   };
 
   const openEditJourney = (journey: Journey) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingJourney(journey);
     setShowJourneyModal(true);
   };
@@ -298,11 +381,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   const openNewGalleryImage = () => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingGalleryImage(null);
     setShowGalleryModal(true);
   };
 
   const openEditGalleryImage = (image: GalleryImage) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
     setEditingGalleryImage(image);
     setShowGalleryModal(true);
   };
@@ -310,6 +405,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const closeGalleryModal = () => {
     setShowGalleryModal(false);
     setEditingGalleryImage(null);
+  };
+
+  // Delete confirmation handlers
+  const requestDeleteMessage = (messageId: string) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
+    setDeleteConfirm({ show: true, type: "message", id: messageId });
+  };
+
+  const requestDeleteSkill = (skillId: string, skillName?: string) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
+    setDeleteConfirm({
+      show: true,
+      type: "skill",
+      id: skillId,
+      name: skillName,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id || !deleteConfirm.type) return;
+
+    try {
+      switch (deleteConfirm.type) {
+        case "message":
+          await handleDeleteMessage(deleteConfirm.id);
+          showSuccess("Message deleted successfully!");
+          break;
+        case "skill":
+          await handleDeleteSkill(deleteConfirm.id);
+          showSuccess("Skill deleted successfully!");
+          break;
+        // Add more cases as needed
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      showError(`Failed to delete: ${errorMessage}`);
+    } finally {
+      setDeleteConfirm({ show: false, type: null, id: null });
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, type: null, id: null });
   };
 
   // Submit handlers
@@ -435,17 +584,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         theme={theme}
         onThemeToggle={toggleTheme}
         onLogout={onLogout}
+        isReadOnly={isReadOnly}
       />
 
       {/* Main Content */}
       <main
-        className={`flex-1 flex flex-col h-screen overflow-hidden relative z-30 ml-0 lg:ml-64 transition-all duration-300 ${
+        className={`flex-1 flex flex-col h-screen overflow-hidden ml-0 lg:ml-64 transition-all duration-300 relative z-0 ${
           theme === "dark" ? "" : ""
         }`}
       >
         {/* Top Header */}
         <header
-          className={`glass-card transition-all duration-300 border-b px-4 sm:px-8 py-4 flex items-center justify-between gap-4 sm:gap-6 z-30 ${
+          className={`glass-card transition-all duration-300 border-b px-4 sm:px-8 py-4 flex items-center justify-between gap-4 sm:gap-6 relative z-10 ${
             theme === "dark"
               ? "bg-[#111827]/90 backdrop-blur-xl border-gray-800 shadow-lg shadow-black/20"
               : "bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-xl border-blue-200/30 shadow-lg shadow-blue-100/20"
@@ -533,6 +683,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onNewProject={openNewProject}
               onAddCertification={openNewCertification}
               onNavigateToTab={(tab) => setActiveTab(tab as TabType)}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -542,7 +693,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               loading={loading}
               filteredMessages={filteredMessages}
               onStatusChange={handleStatusChange}
-              onDelete={handleDeleteMessage}
+              onDelete={requestDeleteMessage}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -551,9 +703,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               theme={theme}
               loading={loading}
               filteredSkills={filteredSkills}
-              onDelete={handleDeleteSkill}
+              onDelete={requestDeleteSkill}
               onEdit={openEditSkill}
               onShowForm={openNewSkill}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -565,6 +718,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onDelete={handleDeleteProject}
               onEdit={openEditProject}
               onShowForm={openNewProject}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -576,6 +730,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onDelete={handleDeleteCertification}
               onEdit={openEditCertification}
               onShowForm={openNewCertification}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -587,6 +742,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onShowForm={openNewGalleryImage}
               onEdit={openEditGalleryImage}
               onDelete={handleDeleteGalleryImage}
+              onUpdateOrder={handleUpdateGalleryOrder}
+              onToggleVisibility={handleToggleGalleryVisibility}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -598,6 +756,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onShowForm={openNewEducation}
               onEdit={openEditEducation}
               onDelete={handleDeleteEducation}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -609,6 +768,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onShowForm={openNewJourney}
               onEdit={openEditJourney}
               onDelete={handleDeleteJourney}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -618,6 +778,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               loading={loading}
               about={about}
               onSave={handleSaveAbout}
+              isReadOnly={isReadOnly}
+              onSuccess={showSuccess}
+              onError={showError}
             />
           )}
 
@@ -631,6 +794,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onDelete={handleDeleteBlogPost}
               loading={loading}
               theme={theme}
+              isReadOnly={isReadOnly}
             />
           )}
 
@@ -686,6 +850,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         theme={theme}
         editingImage={editingGalleryImage}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div
+            className={`${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
+            } rounded-xl p-6 max-w-md w-full shadow-2xl border ${
+              theme === "dark" ? "border-gray-700" : "border-gray-200"
+            }`}
+          >
+            <h3
+              className={`text-lg font-bold mb-3 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}
+            >
+              Confirm Delete
+            </h3>
+            <p
+              className={`mb-6 ${
+                theme === "dark" ? "text-gray-300" : "text-gray-600"
+              }`}
+            >
+              Are you sure you want to delete this {deleteConfirm.type}
+              {deleteConfirm.name ? ` "${deleteConfirm.name}"` : ""}? This
+              action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelDelete}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} theme={theme} />

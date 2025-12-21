@@ -9,6 +9,7 @@ interface MessageDetailModalProps {
   theme: "light" | "dark";
   message: Message | null;
   onMarkAsRead?: (messageId: string) => void;
+  isReadOnly?: boolean;
 }
 
 export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
@@ -17,6 +18,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
   theme,
   message,
   onMarkAsRead,
+  isReadOnly = false,
 }) => {
   if (!message) return null;
 
@@ -144,31 +146,33 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <button
-            onClick={handleReply}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 ${
-              theme === "dark"
-                ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25"
-                : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25"
-            }`}
-          >
-            <FaReply />
-            Reply via Email
-          </button>
-          {message.status === "new" && onMarkAsRead && (
+        {!isReadOnly && (
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
             <button
-              onClick={() => onMarkAsRead(message.$id)}
-              className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all duration-300 border ${
+              onClick={handleReply}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 ${
                 theme === "dark"
-                  ? "border-slate-600 text-slate-300 hover:bg-slate-700"
-                  : "border-slate-300 text-slate-700 hover:bg-slate-100"
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25"
+                  : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25"
               }`}
             >
-              Mark as Read
+              <FaReply />
+              Reply via Email
             </button>
-          )}
-        </div>
+            {message.status === "new" && onMarkAsRead && (
+              <button
+                onClick={() => onMarkAsRead(message.$id)}
+                className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all duration-300 border ${
+                  theme === "dark"
+                    ? "border-slate-600 text-slate-300 hover:bg-slate-700"
+                    : "border-slate-300 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                Mark as Read
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );

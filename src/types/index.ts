@@ -71,6 +71,7 @@ export interface GalleryImage {
   alt: string;
   caption?: string;
   order?: number;
+  isPublic?: boolean;
 }
 
 // Blog Post Types

@@ -23,6 +23,29 @@ const BlogPost = React.lazy(() => import("./components/BlogPost"));
 const Contact = React.lazy(() => import("./components/ContactSection"));
 const AdminDashboard = React.lazy(() => import("./components/AdminDashboard"));
 
+// Layout wrapper that conditionally shows Navbar/Footer based on route
+const MainLayout: FC<{
+  theme: string;
+  toggleTheme: () => void;
+  children: React.ReactNode;
+}> = ({ theme, toggleTheme, children }) => {
+  const location = useLocation();
+  const isAdminRoute =
+    location.pathname.startsWith("/admin") ||
+    location.pathname === "/dashboard";
+
+  return (
+    <>
+      {!isAdminRoute && <EventBanner />}
+      {!isAdminRoute && <Navbar theme={theme} toggleTheme={toggleTheme} />}
+      {children}
+      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && <ScrollToTop />}
+      {!isAdminRoute && <SupportButton />}
+    </>
+  );
+};
+
 // Component that wraps Routes with animated page transitions
 const AnimatedRoutes: FC<{
   isAdminLoggedIn: boolean;
@@ -152,6 +175,15 @@ const AnimatedRoutes: FC<{
             )
           }
         />
+        {/* Public read-only dashboard view for recruiters */}
+        <Route
+          path="/dashboard"
+          element={
+            <React.Suspense fallback={<div>Loading...</div>}>
+              <AdminDashboard isReadOnly={true} />
+            </React.Suspense>
+          }
+        />
       </Routes>
     </AnimatePresence>
   );
@@ -186,13 +218,7 @@ function App() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      // Fallback to hardcoded password if database fails
-      if (password === "illona2025") {
-        localStorage.setItem("adminAuth", "authenticated");
-        setIsAdminLoggedIn(true);
-      } else {
-        alert("Invalid password");
-      }
+      alert("Login failed. Please try again.");
     } finally {
       setIsLoggingIn(false);
     }
@@ -251,33 +277,24 @@ function App() {
             }`}
           >
             <BrowserRouter>
-              {/* Event banner for special occasions like birthday */}
-              <EventBanner />
-
-              <Navbar theme={theme} toggleTheme={toggleTheme} />
-
-              <React.Suspense
-                fallback={
-                  <div className="p-8 text-center text-sm opacity-70">
-                    Loading…
-                  </div>
-                }
-              >
-                {/* Animated route transitions using Framer Motion */}
-                <AnimatedRoutes
-                  isAdminLoggedIn={isAdminLoggedIn}
-                  onAdminLogin={handleAdminLogin}
-                  onAdminLogout={handleAdminLogout}
-                />
-                {/* Manage scroll behavior on route changes */}
-                <RouteChangeHandler />
-              </React.Suspense>
-
-              <Footer />
-              <ScrollToTop />
-
-              {/* Floating support button (Buy Me Coffee, Scrimba, etc.) */}
-              <SupportButton />
+              <MainLayout theme={theme} toggleTheme={toggleTheme}>
+                <React.Suspense
+                  fallback={
+                    <div className="p-8 text-center text-sm opacity-70">
+                      Loading…
+                    </div>
+                  }
+                >
+                  {/* Animated route transitions using Framer Motion */}
+                  <AnimatedRoutes
+                    isAdminLoggedIn={isAdminLoggedIn}
+                    onAdminLogin={handleAdminLogin}
+                    onAdminLogout={handleAdminLogout}
+                  />
+                  {/* Manage scroll behavior on route changes */}
+                  <RouteChangeHandler />
+                </React.Suspense>
+              </MainLayout>
             </BrowserRouter>
           </div>
         )}

@@ -165,30 +165,28 @@ export const useAdminData = () => {
       await loadData(false);
     } catch (err) {
       console.error(err);
+      throw err;
     }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (window.confirm("Delete this message?")) {
-      try {
-        await deleteMessage(messageId);
-        await loadData(false);
-      } catch (err) {
-        console.error(err);
-      }
+    try {
+      await deleteMessage(messageId);
+      await loadData(false);
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
   };
 
   // Skill handlers
   const handleDeleteSkill = async (skillId: string) => {
-    if (window.confirm("Delete this skill?")) {
-      try {
-        await deleteSkill(skillId);
-        await loadData(false);
-      } catch (err) {
-        console.error("Failed to delete skill:", err);
-        throw err;
-      }
+    try {
+      await deleteSkill(skillId);
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to delete skill:", err);
+      throw err;
     }
   };
 
@@ -235,7 +233,6 @@ export const useAdminData = () => {
   ) => {
     try {
       const result = await createProject(projectForm);
-      console.log("Project created successfully:", result);
       await loadData(false);
     } catch (err) {
       console.error("Failed to add project:", err);
@@ -249,7 +246,6 @@ export const useAdminData = () => {
   ) => {
     try {
       const result = await updateProject(projectId, projectForm);
-      console.log("Project updated successfully:", result);
       await loadData(false);
     } catch (err) {
       console.error("Failed to update project:", err);
@@ -327,6 +323,32 @@ export const useAdminData = () => {
       await loadData(false);
     } catch (err) {
       console.error("Failed to delete gallery image:", err);
+      throw err;
+    }
+  };
+
+  const handleUpdateGalleryOrder = async (
+    imageId: string,
+    newOrder: number
+  ) => {
+    try {
+      await updateGalleryImage(imageId, { order: newOrder });
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to update gallery order:", err);
+      throw err;
+    }
+  };
+
+  const handleToggleGalleryVisibility = async (
+    imageId: string,
+    isPublic: boolean
+  ) => {
+    try {
+      await updateGalleryImage(imageId, { isPublic });
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to toggle gallery visibility:", err);
       throw err;
     }
   };
@@ -472,6 +494,8 @@ export const useAdminData = () => {
     handleAddGalleryImage,
     handleUpdateGalleryImage,
     handleDeleteGalleryImage,
+    handleUpdateGalleryOrder,
+    handleToggleGalleryVisibility,
     handleAddEducation,
     handleUpdateEducation,
     handleDeleteEducation,

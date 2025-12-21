@@ -56,11 +56,6 @@ const AboutSection = () => {
   } = usePortfolioData();
 
   useEffect(() => {
-    console.log("AboutSection mounted");
-    console.log("Education data:", education);
-    console.log("Journey data:", journey);
-    console.log("Certifications data:", certifications);
-    console.log("Gallery data:", galleryImages);
     setIsVisible(true);
   }, [education, journey, certifications, galleryImages]);
 
@@ -700,11 +695,11 @@ const AboutSection = () => {
                             {edu.achievement}
                           </div>
                           {edu.universityLogo && (
-                            <div className="inline-flex items-center gap-1.5 bg-gray-700/30 text-gray-300 text-xs px-2.5 py-1.5 rounded-full border border-gray-600/50 font-medium shadow-sm">
+                            <div className="inline-flex items-center gap-2 bg-gray-700/30 text-gray-300 text-xs px-3 py-1.5 rounded-full border border-gray-600/50 font-medium shadow-sm">
                               <img
                                 src={edu.universityLogo}
                                 alt="University Logo"
-                                className="w-4 h-4 object-contain"
+                                className="w-6 h-6 object-contain flex-shrink-0"
                                 loading="eager"
                                 decoding="async"
                               />

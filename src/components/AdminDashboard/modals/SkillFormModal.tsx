@@ -72,25 +72,188 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
     "Backend",
     "Database",
     "DevOps",
+    "Cloud",
     "Mobile",
+    "AI/ML",
+    "Data Science",
+    "Cybersecurity",
+    "Blockchain",
+    "Game Dev",
     "Design",
+    "Testing/QA",
     "Tools",
+    "Soft Skills",
     "Other",
   ];
 
   const iconOptions = [
+    // Frontend
     { value: "FaReact", label: "React" },
-    { value: "FaNodeJs", label: "Node.js" },
-    { value: "FaPython", label: "Python" },
+    { value: "SiReact", label: "React (Simple)" },
+    { value: "FaVuejs", label: "Vue.js" },
+    { value: "SiVuedotjs", label: "Vue.js (Simple)" },
+    { value: "FaAngular", label: "Angular" },
+    { value: "SiAngular", label: "Angular (Simple)" },
     { value: "FaJs", label: "JavaScript" },
+    { value: "SiJavascript", label: "JavaScript (Simple)" },
+    { value: "SiTypescript", label: "TypeScript" },
     { value: "FaHtml5", label: "HTML5" },
     { value: "FaCss3Alt", label: "CSS3" },
+    { value: "FaSass", label: "Sass" },
+    { value: "SiTailwindcss", label: "Tailwind CSS" },
+    { value: "SiBootstrap", label: "Bootstrap" },
+    { value: "SiNextdotjs", label: "Next.js" },
+    { value: "SiNuxtdotjs", label: "Nuxt.js" },
+    { value: "SiSvelte", label: "Svelte" },
+    { value: "SiAstro", label: "Astro" },
+    { value: "SiRemix", label: "Remix" },
+    // Backend
+    { value: "FaNodeJs", label: "Node.js" },
+    { value: "SiNodedotjs", label: "Node.js (Simple)" },
+    { value: "SiExpress", label: "Express.js" },
+    { value: "SiNestjs", label: "NestJS" },
+    { value: "FaPython", label: "Python" },
+    { value: "SiPython", label: "Python (Simple)" },
+    { value: "SiDjango", label: "Django" },
+    { value: "SiFlask", label: "Flask" },
+    { value: "SiFastapi", label: "FastAPI" },
+    { value: "FaPhp", label: "PHP" },
+    { value: "SiLaravel", label: "Laravel" },
+    { value: "FaJava", label: "Java" },
+    { value: "SiSpring", label: "Spring Boot" },
+    { value: "FaRust", label: "Rust" },
+    { value: "SiGo", label: "Go/Golang" },
+    { value: "SiRuby", label: "Ruby" },
+    { value: "SiRubyonrails", label: "Ruby on Rails" },
+    { value: "SiCsharp", label: "C#" },
+    { value: "SiDotnet", label: ".NET" },
+    { value: "SiCplusplus", label: "C++" },
+    { value: "SiC", label: "C" },
+    { value: "SiKotlin", label: "Kotlin" },
+    { value: "SiScala", label: "Scala" },
+    { value: "SiElixir", label: "Elixir" },
+    { value: "SiGraphql", label: "GraphQL" },
+    // Database
     { value: "FaDatabase", label: "Database" },
+    { value: "SiMongodb", label: "MongoDB" },
+    { value: "SiPostgresql", label: "PostgreSQL" },
+    { value: "SiMysql", label: "MySQL" },
+    { value: "SiRedis", label: "Redis" },
+    { value: "SiSqlite", label: "SQLite" },
+    { value: "SiFirebase", label: "Firebase" },
+    { value: "SiSupabase", label: "Supabase" },
+    { value: "SiPrisma", label: "Prisma" },
+    { value: "SiAppwrite", label: "Appwrite" },
+    // DevOps & Cloud
     { value: "FaDocker", label: "Docker" },
-    { value: "FaGitAlt", label: "Git" },
+    { value: "SiDocker", label: "Docker (Simple)" },
+    { value: "SiKubernetes", label: "Kubernetes" },
     { value: "FaAws", label: "AWS" },
+    { value: "SiAmazonaws", label: "AWS (Simple)" },
+    { value: "FaGoogle", label: "Google Cloud" },
+    { value: "SiGooglecloud", label: "Google Cloud (Simple)" },
+    { value: "FaMicrosoft", label: "Azure" },
+    { value: "SiMicrosoftazure", label: "Azure (Simple)" },
+    { value: "SiVercel", label: "Vercel" },
+    { value: "SiNetlify", label: "Netlify" },
+    { value: "SiHeroku", label: "Heroku" },
+    { value: "SiDigitalocean", label: "DigitalOcean" },
+    { value: "SiCloudflare", label: "Cloudflare" },
+    { value: "FaLinux", label: "Linux" },
+    { value: "FaUbuntu", label: "Ubuntu" },
+    { value: "FaCentos", label: "CentOS" },
+    { value: "FaServer", label: "Server" },
+    { value: "SiNginx", label: "Nginx" },
+    { value: "SiApache", label: "Apache" },
+    { value: "SiJenkins", label: "Jenkins" },
+    { value: "SiGithubactions", label: "GitHub Actions" },
+    { value: "SiCircleci", label: "CircleCI" },
+    { value: "SiTerraform", label: "Terraform" },
+    { value: "SiAnsible", label: "Ansible" },
+    // Tools
+    { value: "FaGitAlt", label: "Git" },
+    { value: "FaGithub", label: "GitHub" },
+    { value: "FaGitlab", label: "GitLab" },
+    { value: "FaBitbucket", label: "Bitbucket" },
+    { value: "FaNpm", label: "NPM" },
+    { value: "FaYarn", label: "Yarn" },
+    { value: "SiPnpm", label: "PNPM" },
+    { value: "SiVite", label: "Vite" },
+    { value: "SiWebpack", label: "Webpack" },
+    { value: "SiEsbuild", label: "ESBuild" },
+    { value: "SiRollup", label: "Rollup" },
+    { value: "SiBabel", label: "Babel" },
+    { value: "SiEslint", label: "ESLint" },
+    { value: "SiPrettier", label: "Prettier" },
+    { value: "SiJest", label: "Jest" },
+    { value: "SiCypress", label: "Cypress" },
+    { value: "SiPlaywright", label: "Playwright" },
+    { value: "SiPostman", label: "Postman" },
+    { value: "SiInsomnia", label: "Insomnia" },
+    // Design
     { value: "FaFigma", label: "Figma" },
+    { value: "SiFigma", label: "Figma (Simple)" },
+    { value: "FaSketch", label: "Sketch" },
+    { value: "SiAdobexd", label: "Adobe XD" },
+    { value: "SiAdobephotoshop", label: "Photoshop" },
+    { value: "SiAdobeillustrator", label: "Illustrator" },
+    { value: "SiCanva", label: "Canva" },
+    { value: "SiBlender", label: "Blender" },
+    { value: "FaPaintBrush", label: "Design" },
+    // Mobile
+    { value: "FaApple", label: "iOS/Apple" },
+    { value: "SiIos", label: "iOS" },
+    { value: "SiSwift", label: "Swift" },
+    { value: "FaAndroid", label: "Android" },
+    { value: "SiAndroid", label: "Android (Simple)" },
+    { value: "SiKotlin", label: "Kotlin (Android)" },
+    { value: "FaMobile", label: "Mobile" },
+    { value: "SiReact", label: "React Native" },
+    { value: "SiExpo", label: "Expo" },
+    { value: "SiFlutter", label: "Flutter" },
+    { value: "SiDart", label: "Dart" },
+    { value: "SiIonic", label: "Ionic" },
+    { value: "SiCapacitor", label: "Capacitor" },
+    { value: "SiXamarin", label: "Xamarin" },
+    // AI/ML
+    { value: "FaRobot", label: "AI/ML" },
+    { value: "FaBrain", label: "Machine Learning" },
+    { value: "SiTensorflow", label: "TensorFlow" },
+    { value: "SiPytorch", label: "PyTorch" },
+    { value: "SiOpenai", label: "OpenAI" },
+    { value: "SiHuggingface", label: "Hugging Face" },
+    { value: "SiJupyter", label: "Jupyter" },
+    { value: "SiNumpy", label: "NumPy" },
+    { value: "SiPandas", label: "Pandas" },
+    { value: "SiScikitlearn", label: "Scikit-learn" },
+    // Other
     { value: "FaCode", label: "Code" },
+    { value: "FaTerminal", label: "Terminal" },
+    { value: "FaCogs", label: "Settings/Config" },
+    { value: "FaCloud", label: "Cloud" },
+    { value: "FaLock", label: "Security" },
+    { value: "FaChartLine", label: "Analytics" },
+    { value: "FaNetworkWired", label: "Networking" },
+    { value: "FaCube", label: "3D/Graphics" },
+    { value: "FaGamepad", label: "Gaming" },
+    { value: "SiUnity", label: "Unity" },
+    { value: "SiUnrealengine", label: "Unreal Engine" },
+    { value: "FaWordpress", label: "WordPress" },
+    { value: "FaShopify", label: "Shopify" },
+    { value: "SiWoocommerce", label: "WooCommerce" },
+    { value: "FaStripe", label: "Stripe" },
+    { value: "FaSlack", label: "Slack" },
+    { value: "SiDiscord", label: "Discord" },
+    { value: "FaTrello", label: "Trello" },
+    { value: "FaJira", label: "Jira" },
+    { value: "SiNotion", label: "Notion" },
+    { value: "SiConfluence", label: "Confluence" },
+    { value: "SiMarkdown", label: "Markdown" },
+    { value: "SiJson", label: "JSON" },
+    { value: "SiYaml", label: "YAML" },
+    { value: "SiSolidity", label: "Solidity" },
+    { value: "SiWeb3dotjs", label: "Web3.js" },
+    { value: "SiEthereum", label: "Ethereum" },
   ];
 
   return (
@@ -168,7 +331,11 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
         <div>
           <label className={labelClass}>Icon</label>
           <select
-            value={form.icon}
+            value={
+              iconOptions.some((opt) => opt.value === form.icon)
+                ? form.icon
+                : ""
+            }
             onChange={(e) => setForm({ ...form, icon: e.target.value })}
             className={inputClass}
             title="Select skill icon"
@@ -181,6 +348,27 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
               </option>
             ))}
           </select>
+          <p
+            className={`text-xs mt-1 ${
+              theme === "dark" ? "text-slate-500" : "text-slate-500"
+            }`}
+          >
+            Or enter a custom icon name below
+          </p>
+          <input
+            type="text"
+            value={form.icon}
+            onChange={(e) => setForm({ ...form, icon: e.target.value })}
+            className={`${inputClass} mt-2`}
+            placeholder="e.g., SiTypescript, SiNextdotjs, SiTailwindcss"
+          />
+          <p
+            className={`text-xs mt-1 ${
+              theme === "dark" ? "text-slate-500" : "text-slate-500"
+            }`}
+          >
+            Use "Fa" prefix for Font Awesome or "Si" prefix for Simple Icons
+          </p>
         </div>
 
         {/* Preview */}

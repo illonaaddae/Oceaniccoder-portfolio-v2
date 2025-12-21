@@ -8,6 +8,7 @@ interface SkillsTabProps {
   onDelete: (skillId: string) => void;
   onEdit: (skill: Skill) => void;
   onShowForm: () => void;
+  isReadOnly?: boolean;
 }
 
 export const SkillsTab: React.FC<SkillsTabProps> = ({
@@ -17,6 +18,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
   onDelete,
   onEdit,
   onShowForm,
+  isReadOnly = false,
 }) => {
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -37,17 +39,19 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
             Manage your technical skills
           </p>
         </div>
-        <button
-          onClick={onShowForm}
-          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
-            theme === "dark"
-              ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
-              : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
-          }`}
-        >
-          <FaPlus className="text-sm" />
-          Add Skill
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={onShowForm}
+            className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
+                : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
+            }`}
+          >
+            <FaPlus className="text-sm" />
+            Add Skill
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -137,30 +141,32 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onEdit(skill)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition text-sm ${
-                    theme === "dark"
-                      ? "bg-cyan-500/20 border-cyan-400/30 text-cyan-200 hover:bg-cyan-500/30"
-                      : "bg-blue-400/20 border-blue-300/30 text-blue-700 hover:bg-blue-400/30"
-                  }`}
-                >
-                  <FaEdit className="text-sm" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => onDelete(skill.$id)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition text-sm ${
-                    theme === "dark"
-                      ? "bg-red-500/20 border-red-400/30 text-red-200 hover:bg-red-500/30"
-                      : "bg-red-400/20 border-red-300/30 text-red-700 hover:bg-red-400/30"
-                  }`}
-                >
-                  <FaTrash className="text-sm" />
-                  Delete
-                </button>
-              </div>
+              {!isReadOnly && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onEdit(skill)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition text-sm ${
+                      theme === "dark"
+                        ? "bg-cyan-500/20 border-cyan-400/30 text-cyan-200 hover:bg-cyan-500/30"
+                        : "bg-blue-400/20 border-blue-300/30 text-blue-700 hover:bg-blue-400/30"
+                    }`}
+                  >
+                    <FaEdit className="text-sm" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(skill.$id)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition text-sm ${
+                      theme === "dark"
+                        ? "bg-red-500/20 border-red-400/30 text-red-200 hover:bg-red-500/30"
+                        : "bg-red-400/20 border-red-300/30 text-red-700 hover:bg-red-400/30"
+                    }`}
+                  >
+                    <FaTrash className="text-sm" />
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

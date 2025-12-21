@@ -26,6 +26,7 @@ interface BlogTabProps {
   onDelete: (id: string) => Promise<void>;
   loading?: boolean;
   theme?: "light" | "dark";
+  isReadOnly?: boolean;
 }
 
 const BlogTab: React.FC<BlogTabProps> = ({
@@ -35,6 +36,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
   onDelete,
   loading,
   theme = "dark",
+  isReadOnly = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -237,20 +239,22 @@ const BlogTab: React.FC<BlogTabProps> = ({
             Create and manage your blog content
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setEditingPost(null);
-            setShowModal(true);
-          }}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm sm:text-base transition duration-200 border shadow-lg ${
-            theme === "dark"
-              ? "bg-gradient-to-r from-emerald-600 to-cyan-600 border-emerald-500/50 text-white hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-500/20"
-              : "bg-gradient-to-r from-emerald-500 to-cyan-500 border-emerald-400/50 text-white hover:from-emerald-600 hover:to-cyan-600 shadow-emerald-400/30"
-          }`}
-        >
-          <FaPlus /> New Post
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={() => {
+              resetForm();
+              setEditingPost(null);
+              setShowModal(true);
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm sm:text-base transition duration-200 border shadow-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-r from-emerald-600 to-cyan-600 border-emerald-500/50 text-white hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-500/20"
+                : "bg-gradient-to-r from-emerald-500 to-cyan-500 border-emerald-400/50 text-white hover:from-emerald-600 hover:to-cyan-600 shadow-emerald-400/30"
+            }`}
+          >
+            <FaPlus /> New Post
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -405,28 +409,32 @@ const BlogTab: React.FC<BlogTabProps> = ({
                       >
                         <FaEye className="text-sm sm:text-base" />
                       </a>
-                      <button
-                        onClick={() => openEditModal(post)}
-                        className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
-                          theme === "dark"
-                            ? "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/15"
-                            : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-100"
-                        }`}
-                        title="Edit"
-                      >
-                        <FaEdit className="text-sm sm:text-base" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(post.$id)}
-                        className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
-                          theme === "dark"
-                            ? "text-slate-400 hover:text-red-400 hover:bg-red-500/15"
-                            : "text-slate-500 hover:text-red-600 hover:bg-red-100"
-                        }`}
-                        title="Delete"
-                      >
-                        <FaTrash className="text-sm sm:text-base" />
-                      </button>
+                      {!isReadOnly && (
+                        <>
+                          <button
+                            onClick={() => openEditModal(post)}
+                            className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
+                              theme === "dark"
+                                ? "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/15"
+                                : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-100"
+                            }`}
+                            title="Edit"
+                          >
+                            <FaEdit className="text-sm sm:text-base" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(post.$id)}
+                            className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
+                              theme === "dark"
+                                ? "text-slate-400 hover:text-red-400 hover:bg-red-500/15"
+                                : "text-slate-500 hover:text-red-600 hover:bg-red-100"
+                            }`}
+                            title="Delete"
+                          >
+                            <FaTrash className="text-sm sm:text-base" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 

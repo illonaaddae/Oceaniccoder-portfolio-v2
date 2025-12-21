@@ -17,8 +17,9 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Allow Appwrite connections
-    Access-Control-Allow-Origin = "*"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # Content Security Policy - adjust as needed for your app
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://fra.cloud.appwrite.io https://*.appwrite.io; frame-ancestors 'none';"
 
 [[headers]]
   for = "/assets/*"

@@ -8,6 +8,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Safe area utilities for mobile devices with notches/home indicators */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
 /* ✅ Optimized CSS Variables */
 :root {
   --bg-primary: #0a1628;

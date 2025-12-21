@@ -51,14 +51,12 @@ export async function createProject(
   project: Omit<Project, "$id" | "$createdAt">
 ): Promise<Project> {
   try {
-    console.log("Creating project with data:", project);
     const result = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.PROJECTS,
       ID.unique(),
       project as Record<string, unknown>
     );
-    console.log("Project created:", result);
     return result as unknown as Project;
   } catch (error) {
     console.error("Appwrite createProject error:", error);
@@ -184,15 +182,12 @@ export async function createBlogPost(
     if (post.featured !== undefined) cleanedData.featured = post.featured;
     if (post.published !== undefined) cleanedData.published = post.published;
 
-    console.log("Creating blog post with data:", cleanedData);
-
     const result = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.BLOG_POSTS,
       ID.unique(),
       cleanedData
     );
-    console.log("Blog post created:", result);
     return result as unknown as BlogPost;
   } catch (error) {
     console.error("Appwrite createBlogPost error:", error);
@@ -224,15 +219,12 @@ export async function updateBlogPost(
     if (post.featured !== undefined) cleanedData.featured = post.featured;
     if (post.published !== undefined) cleanedData.published = post.published;
 
-    console.log("Updating blog post with data:", cleanedData);
-
     const result = await databases.updateDocument(
       DATABASE_ID,
       COLLECTIONS.BLOG_POSTS,
       postId,
       cleanedData
     );
-    console.log("Blog post updated:", result);
     return result as unknown as BlogPost;
   } catch (error) {
     console.error("Appwrite updateBlogPost error:", error);
@@ -410,14 +402,12 @@ export async function createSkill(
   skill: Omit<Skill, "$id" | "$createdAt">
 ): Promise<Skill> {
   try {
-    console.log("Creating skill with data:", skill);
     const result = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.SKILLS,
       ID.unique(),
       skill as Record<string, unknown>
     );
-    console.log("Skill created:", result);
     return result as unknown as Skill;
   } catch (error) {
     console.error("Appwrite createSkill error:", error);
@@ -497,15 +487,12 @@ export async function createEducation(
     if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials) cleanedData.initials = edu.initials;
 
-    console.log("Creating education with data:", cleanedData);
-
     const result = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.EDUCATION,
       ID.unique(),
       cleanedData
     );
-    console.log("Education created:", result);
     return result as unknown as Education;
   } catch (error) {
     console.error("Appwrite createEducation error:", error);
@@ -543,15 +530,12 @@ export async function updateEducation(
     if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials !== undefined) cleanedData.initials = edu.initials || null;
 
-    console.log("Updating education with data:", cleanedData);
-
     const result = await databases.updateDocument(
       DATABASE_ID,
       COLLECTIONS.EDUCATION,
       eduId,
       cleanedData
     );
-    console.log("Education updated:", result);
     return result as unknown as Education;
   } catch (error) {
     console.error("Appwrite updateEducation error:", error);
@@ -654,15 +638,23 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   try {
     const storedHash = await getSetting("admin_password_hash");
     if (!storedHash) {
-      // No password set, use default
-      return password === "illona2025";
+      // No password set yet - first time setup, hash and store the provided password
+      // For security, require password to be set via environment or during first login
+      const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+      if (envPassword && password === envPassword) {
+        // Auto-set the password hash on first valid login
+        await setAdminPassword(password);
+        return true;
+      }
+      return false;
     }
     const inputHash = await hashPassword(password);
     return inputHash === storedHash.value;
   } catch (error) {
     console.error("Error verifying password:", error);
-    // Fallback to default password if settings collection is not accessible
-    return password === "illona2025";
+    // Fallback to environment variable if settings collection is not accessible
+    const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    return envPassword ? password === envPassword : false;
   }
 }
 
@@ -778,17 +770,14 @@ export async function getStorageStats(): Promise<StorageStats> {
  */
 export async function uploadImage(file: File): Promise<string> {
   try {
-    console.log("Starting file upload to bucket:", STORAGE_BUCKET_ID);
     const response = await storage.createFile(
       STORAGE_BUCKET_ID,
       ID.unique(),
       file
     );
-    console.log("File uploaded successfully:", response);
 
     // Get the file URL for viewing
     const fileUrl = storage.getFileView(STORAGE_BUCKET_ID, response.$id);
-    console.log("File URL generated:", fileUrl.toString());
     return fileUrl.toString();
   } catch (error: unknown) {
     console.error("Error uploading image:", error);

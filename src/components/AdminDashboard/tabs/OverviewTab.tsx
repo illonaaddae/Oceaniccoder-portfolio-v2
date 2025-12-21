@@ -27,6 +27,7 @@ interface OverviewTabProps {
   onNewProject?: () => void;
   onAddCertification?: () => void;
   onNavigateToTab?: (tab: string) => void;
+  isReadOnly?: boolean;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -43,6 +44,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onNewProject,
   onAddCertification,
   onNavigateToTab,
+  isReadOnly = false,
 }) => {
   // Storage stats state
   const [storageStats, setStorageStats] = useState<StorageStats>({
@@ -111,48 +113,52 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             Dashboard Overview
           </h1>
           <p
-            className={`text-sm sm:text-base transition-colors duration-300 ${
+            className={`text-xs xs:text-sm sm:text-base transition-colors duration-300 ${
               theme === "dark" ? "text-slate-100/90" : "text-slate-700/90"
             }`}
           >
-            Welcome back, here's what's happening with your portfolio today.
+            {isReadOnly
+              ? "Welcome! Here's an overview of my portfolio."
+              : "Welcome back, here's what's happening with your portfolio today."}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 sm:gap-3">
-          <button
-            onClick={onAddCertification}
-            className={`flex items-center gap-2 px-3 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border ${
-              theme === "dark"
-                ? "bg-gray-800/80 border-gray-700 text-gray-200 hover:bg-gray-800 hover:border-gray-600"
-                : "bg-white/40 border-blue-200/40 text-slate-900 hover:bg-white/60 hover:border-blue-200/60"
-            }`}
-          >
-            <FaCheck className="text-sm" />
-            <span className="hidden xs:inline">Add</span> Certification
-          </button>
-          <button
-            onClick={onNewProject}
-            className={`flex items-center gap-2 px-3 sm:px-6 py-2 rounded-xl font-medium text-sm sm:text-base transition duration-200 border shadow-lg ${
-              theme === "dark"
-                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
-                : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
-            }`}
-          >
-            <FaPlus className="text-sm" />
-            <span className="hidden xs:inline">New</span> Project
-          </button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex flex-wrap gap-2 xs:gap-2 sm:gap-3">
+            <button
+              onClick={onAddCertification}
+              className={`flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3 sm:px-5 py-1.5 xs:py-2 rounded-lg xs:rounded-xl font-bold text-xs xs:text-sm sm:text-base transition duration-200 border ${
+                theme === "dark"
+                  ? "bg-gray-800/80 border-gray-700 text-gray-200 hover:bg-gray-800 hover:border-gray-600"
+                  : "bg-white/40 border-blue-200/40 text-slate-900 hover:bg-white/60 hover:border-blue-200/60"
+              }`}
+            >
+              <FaCheck className="text-xs xs:text-sm" />
+              <span className="hidden xs:inline">Add</span> Cert
+            </button>
+            <button
+              onClick={onNewProject}
+              className={`flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3 sm:px-5 py-1.5 xs:py-2 rounded-lg xs:rounded-xl font-medium text-xs xs:text-sm sm:text-base transition duration-200 border shadow-lg ${
+                theme === "dark"
+                  ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
+                  : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
+              }`}
+            >
+              <FaPlus className="text-xs xs:text-sm" />
+              <span className="hidden xs:inline">New</span> Project
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {stats.map((stat, idx) => {
           const IconComponent = stat.icon;
           return (
             <div
               key={idx}
               onClick={() => stat.tabLink && onNavigateToTab?.(stat.tabLink)}
-              className={`glass-card border rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all duration-200 ${
+              className={`glass-card border rounded-xl sm:rounded-2xl p-4 xs:p-3 sm:p-5 lg:p-6 transition-all duration-200 ${
                 stat.tabLink ? "cursor-pointer hover:scale-[1.02]" : ""
               } ${
                 theme === "dark"
@@ -160,17 +166,17 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
               }`}
             >
-              <div className="flex items-start justify-between mb-2 sm:mb-4">
-                <div>
+              <div className="flex items-start justify-between mb-3 xs:mb-2 sm:mb-4">
+                <div className="min-w-0 flex-1">
                   <p
-                    className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
+                    className={`text-[11px] xs:text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 truncate ${
                       theme === "dark" ? "text-gray-400" : "text-slate-700/80"
                     }`}
                   >
                     {stat.label}
                   </p>
                   <p
-                    className={`text-2xl sm:text-4xl font-bold mt-1 sm:mt-2 transition-colors duration-300 ${
+                    className={`text-2xl xs:text-xl sm:text-3xl lg:text-4xl font-bold mt-1 sm:mt-2 transition-colors duration-300 ${
                       theme === "dark" ? "text-white/98" : "text-slate-900"
                     }`}
                   >
@@ -178,13 +184,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </p>
                 </div>
                 <div
-                  className={`p-2 sm:p-3 rounded-lg sm:rounded-xl backdrop-blur-md bg-gradient-to-br ${stat.bgGradient} shadow-lg`}
+                  className={`p-2 xs:p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl backdrop-blur-md bg-gradient-to-br ${stat.bgGradient} shadow-lg flex-shrink-0 ml-2`}
                 >
-                  <IconComponent className="text-white text-sm sm:text-xl font-bold" />
+                  <IconComponent className="text-white text-base xs:text-sm sm:text-lg lg:text-xl font-bold" />
                 </div>
               </div>
               <div
-                className={`hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 backdrop-blur-sm border ${
+                className={`inline-flex items-center gap-1 px-2 xs:px-2 sm:px-3 py-1 xs:py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] xs:text-[10px] sm:text-xs font-semibold transition-all duration-300 backdrop-blur-sm border ${
                   idx === 0
                     ? theme === "dark"
                       ? "bg-blue-500/20 text-blue-300 border-blue-400/30 hover:bg-blue-500/30"
@@ -455,11 +461,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
 
             <div className="flex items-center justify-center mb-3 sm:mb-4">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24">
+              <div className="relative w-16 h-16 xs:w-20 xs:h-20 sm:w-24 sm:h-24">
                 <svg
-                  className="transform -rotate-90"
-                  width="100"
-                  height="100"
+                  className="transform -rotate-90 w-full h-full"
                   viewBox="0 0 100 100"
                 >
                   <circle
@@ -502,7 +506,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span
-                    className={`text-lg font-bold transition-colors duration-300 ${
+                    className={`text-sm xs:text-base sm:text-lg font-bold transition-colors duration-300 ${
                       theme === "dark" ? "text-white" : "text-slate-900"
                     }`}
                   >
@@ -513,7 +517,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
 
             <p
-              className={`text-center text-xs sm:text-sm transition-colors duration-300 ${
+              className={`text-center text-[10px] xs:text-xs sm:text-sm transition-colors duration-300 ${
                 theme === "dark" ? "text-slate-200/90" : "text-slate-700"
               }`}
             >
@@ -562,7 +566,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
             <div className="space-y-3 sm:space-y-4">
               {/* Stats bars */}
-              <div className="flex items-end justify-between gap-1 sm:gap-2 h-24 sm:h-32">
+              <div className="flex items-end justify-between gap-0.5 xs:gap-1 sm:gap-2 h-28 xs:h-32 sm:h-40">
                 {[
                   {
                     label: "Proj",
@@ -573,7 +577,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages || 1
+                      newMessages,
+                      10 // minimum max to ensure bars show
                     ),
                     color: "from-blue-500 to-blue-400",
                   },
@@ -586,7 +591,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages || 1
+                      newMessages,
+                      10
                     ),
                     color: "from-purple-500 to-purple-400",
                   },
@@ -599,7 +605,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages || 1
+                      newMessages,
+                      10
                     ),
                     color: "from-amber-500 to-amber-400",
                   },
@@ -612,7 +619,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages || 1
+                      newMessages,
+                      10
                     ),
                     color: "from-green-500 to-green-400",
                   },
@@ -625,38 +633,46 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages || 1
+                      newMessages,
+                      10
                     ),
                     color: "from-cyan-500 to-cyan-400",
                   },
                 ].map((bar, idx) => {
                   const heightPercent =
-                    bar.max > 0 ? Math.max((bar.value / bar.max) * 100, 5) : 5;
+                    bar.max > 0 ? Math.max((bar.value / bar.max) * 100, 8) : 8;
                   return (
                     <div
                       key={idx}
-                      className="flex-1 flex flex-col items-center gap-1 sm:gap-2"
+                      className="flex-1 flex flex-col items-center gap-0.5 xs:gap-1 sm:gap-2 h-full min-w-0"
                     >
-                      <div
-                        className={`w-full rounded-t-md sm:rounded-t-lg transition-all duration-300 hover:opacity-90 bg-gradient-to-t ${bar.color} relative group`}
-                        style={{ height: `${heightPercent}%` }}
-                      >
-                        <span
-                          className={`absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 text-[10px] sm:text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ${
-                            theme === "dark" ? "text-cyan-300" : "text-blue-600"
-                          }`}
+                      <div className="flex-1 w-full flex items-end px-0.5">
+                        <div
+                          className={`w-full rounded-t-sm xs:rounded-t-md sm:rounded-t-lg transition-all duration-500 hover:opacity-90 bg-gradient-to-t ${bar.color} relative group min-h-[8px]`}
+                          style={{ height: `${heightPercent}%` }}
                         >
-                          {bar.value}
-                        </span>
+                          <span
+                            className={`absolute -top-5 xs:-top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 text-[9px] xs:text-[10px] sm:text-xs font-bold transition-opacity whitespace-nowrap ${
+                              theme === "dark"
+                                ? "text-cyan-300"
+                                : "text-blue-600"
+                            }`}
+                          >
+                            {bar.value}
+                          </span>
+                        </div>
                       </div>
                       <span
-                        className={`text-[10px] sm:text-xs font-semibold transition-colors duration-300 ${
+                        className={`text-[8px] xs:text-[10px] sm:text-xs font-semibold transition-colors duration-300 text-center truncate w-full ${
                           theme === "dark"
                             ? "text-slate-100/90"
                             : "text-slate-700"
                         }`}
                       >
-                        <span className="sm:hidden">{bar.label}</span>
+                        <span className="xs:hidden">{bar.label}</span>
+                        <span className="hidden xs:inline sm:hidden">
+                          {bar.label}
+                        </span>
                         <span className="hidden sm:inline">
                           {bar.fullLabel}
                         </span>

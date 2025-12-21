@@ -39,6 +39,7 @@ interface SidebarProps {
   theme: string | "light" | "dark";
   onThemeToggle: () => void;
   onLogout?: () => void;
+  isReadOnly?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -47,10 +48,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   theme,
   onThemeToggle,
   onLogout,
+  isReadOnly = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const tabs: Array<{ id: TabType; label: string; icon: typeof FaChartBar }> = [
+  // Define tabs - filter out settings for read-only users
+  const allTabs: Array<{
+    id: TabType;
+    label: string;
+    icon: typeof FaChartBar;
+  }> = [
     { id: "overview", label: "Overview", icon: FaChartBar },
     { id: "messages", label: "Messages", icon: FaEnvelope },
     { id: "about", label: "About Me", icon: FaUser },
@@ -63,6 +70,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "gallery", label: "Gallery", icon: FaImage },
     { id: "settings", label: "Settings", icon: FaCog },
   ];
+
+  // Filter out settings tab for read-only users (public access)
+  const tabs = isReadOnly
+    ? allTabs.filter((tab) => tab.id !== "settings")
+    : allTabs;
 
   const handleTabChange = (tab: TabType) => {
     onTabChange(tab);
@@ -99,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 transition-all duration-300 ${
+        className={`fixed left-0 top-0 h-[100dvh] w-64 flex flex-col transition-all duration-300 ${
           theme === "dark"
             ? "bg-[#111827] border-r border-gray-800 shadow-xl shadow-black/30"
             : "bg-gradient-to-b from-white/80 to-white/60 border-r border-blue-200/30 shadow-xl shadow-blue-100/10"
@@ -109,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Header with Profile */}
         <div
-          className={`p-4 sm:p-6 pt-14 lg:pt-6 border-b ${
+          className={`flex-shrink-0 p-4 sm:p-6 pt-14 lg:pt-6 border-b ${
             theme === "dark" ? "border-gray-800" : "border-blue-200/30"
           }`}
         >
@@ -178,8 +190,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </p>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 overflow-y-auto">
+        {/* Navigation - scrollable area with proper constraints */}
+        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 overflow-y-auto overflow-x-hidden min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -187,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 sm:px-4 py-3.5 sm:py-3 rounded-xl transition-all duration-200 touch-manipulation min-h-[48px] ${
+                className={`w-full flex items-center gap-3 px-3 sm:px-4 py-3 sm:py-2.5 rounded-xl transition-all duration-200 touch-manipulation min-h-[44px] ${
                   isActive
                     ? theme === "dark"
                       ? "bg-cyan-500/15 border border-cyan-500/30 text-cyan-400"
@@ -198,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }`}
               >
                 <Icon
-                  className={`text-lg flex-shrink-0 ${
+                  className={`text-base flex-shrink-0 ${
                     isActive
                       ? theme === "dark"
                         ? "text-cyan-400"
@@ -206,28 +218,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       : ""
                   }`}
                 />
-                <span className="font-medium text-sm sm:text-base">
-                  {tab.label}
-                </span>
+                <span className="font-medium text-sm">{tab.label}</span>
               </button>
             );
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer - ensure it's always visible and clickable */}
         <div
-          className={`border-t p-4 space-y-3 ${
+          className={`flex-shrink-0 border-t p-4 pb-safe space-y-3 relative z-20 pointer-events-auto ${
             theme === "dark"
               ? "bg-[#0d1321] border-gray-800"
               : "bg-white/30 border-blue-200/30"
           }`}
         >
+          {/* Read-only badge for public viewers */}
+          {isReadOnly && (
+            <div
+              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${
+                theme === "dark"
+                  ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                  : "bg-blue-100 text-blue-700 border border-blue-200"
+              }`}
+            >
+              <span>👁️</span>
+              <span>View Only Mode</span>
+            </div>
+          )}
+
           <button
-            onClick={onThemeToggle}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
+            onClick={(e) => {
+              e.stopPropagation();
+              onThemeToggle();
+            }}
+            type="button"
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 touch-manipulation min-h-[44px] cursor-pointer select-none ${
               theme === "dark"
-                ? "bg-gray-800/80 text-amber-400 hover:bg-gray-800 border border-gray-700 hover:border-amber-500/40"
-                : "bg-white/50 text-slate-700 hover:bg-white/70 border border-blue-200/30 hover:border-blue-300/50"
+                ? "bg-gray-800/80 text-amber-400 hover:bg-gray-800 border border-gray-700 hover:border-amber-500/40 active:bg-gray-700"
+                : "bg-white/50 text-slate-700 hover:bg-white/70 border border-blue-200/30 hover:border-blue-300/50 active:bg-white/90"
             }`}
           >
             {theme === "dark" ? (
@@ -239,17 +267,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {theme === "dark" ? "Light Mode" : "Dark Mode"}
             </span>
           </button>
-          <button
-            onClick={onLogout}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 border ${
-              theme === "dark"
-                ? "text-red-400 hover:bg-red-500/10 border-transparent hover:border-red-500/30"
-                : "text-red-600 hover:bg-red-50 border-transparent hover:border-red-200"
-            }`}
-          >
-            <FaSignOutAlt />
-            <span className="font-medium">Logout</span>
-          </button>
+
+          {/* Only show logout for admin users */}
+          {!isReadOnly && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onLogout?.();
+              }}
+              type="button"
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 border touch-manipulation min-h-[44px] cursor-pointer select-none ${
+                theme === "dark"
+                  ? "text-red-400 hover:bg-red-500/10 border-transparent hover:border-red-500/30 active:bg-red-500/20"
+                  : "text-red-600 hover:bg-red-50 border-transparent hover:border-red-200 active:bg-red-100"
+              }`}
+            >
+              <FaSignOutAlt />
+              <span className="font-medium">Logout</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

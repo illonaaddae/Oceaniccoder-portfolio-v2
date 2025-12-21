@@ -18,6 +18,9 @@ interface AboutTabProps {
   loading: boolean;
   about: About | null;
   onSave: (about: Partial<About>) => Promise<void>;
+  isReadOnly?: boolean;
+  onSuccess?: (message: string) => void;
+  onError?: (message: string) => void;
 }
 
 export const AboutTab: React.FC<AboutTabProps> = ({
@@ -25,6 +28,9 @@ export const AboutTab: React.FC<AboutTabProps> = ({
   loading,
   about,
   onSave,
+  isReadOnly = false,
+  onSuccess,
+  onError,
 }) => {
   const [form, setForm] = useState({
     title: "",
@@ -54,14 +60,27 @@ export const AboutTab: React.FC<AboutTabProps> = ({
     }
   }, [about]);
 
+  const fieldLabels: Record<keyof typeof form, string> = {
+    title: "Title",
+    subtitle: "Subtitle",
+    story: "Story",
+    profileImage: "Profile Image",
+    resumeUrl: "Resume URL",
+    studentsMentored: "Students Mentored",
+    techTalks: "Tech Talks",
+    yearsExperience: "Years Experience",
+  };
+
   const handleSaveField = async (field: keyof typeof form) => {
     setSaving(field);
     try {
       await onSave({ [field]: form[field] });
       setSaved(field);
+      onSuccess?.(`${fieldLabels[field]} saved successfully!`);
       setTimeout(() => setSaved(null), 2000);
     } catch (err) {
       console.error(`Failed to save ${field}:`, err);
+      onError?.(`Failed to save ${fieldLabels[field]}`);
     } finally {
       setSaving(null);
     }
@@ -73,9 +92,11 @@ export const AboutTab: React.FC<AboutTabProps> = ({
     try {
       await onSave(form);
       setSaved("all");
+      onSuccess?.("All about information saved successfully!");
       setTimeout(() => setSaved(null), 3000);
     } catch (err) {
       console.error("Failed to save about:", err);
+      onError?.("Failed to save about information");
     } finally {
       setSaving(null);
     }
@@ -85,7 +106,7 @@ export const AboutTab: React.FC<AboutTabProps> = ({
     theme === "dark"
       ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-cyan-500/60 focus:bg-gray-800"
       : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500"
-  }`;
+  } ${isReadOnly ? "cursor-not-allowed opacity-70" : ""}`;
 
   const SaveButton = ({
     field,
@@ -93,34 +114,37 @@ export const AboutTab: React.FC<AboutTabProps> = ({
   }: {
     field: keyof typeof form;
     label: string;
-  }) => (
-    <button
-      type="button"
-      onClick={() => handleSaveField(field)}
-      disabled={saving === field}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
-        saved === field
-          ? "bg-green-500/20 text-green-400"
-          : theme === "dark"
-          ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600"
-          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-      }`}
-    >
-      {saving === field ? (
-        <>
-          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          Saving...
-        </>
-      ) : saved === field ? (
-        <>✓ Saved</>
-      ) : (
-        <>
-          <FaSave className="text-xs" />
-          Save {label}
-        </>
-      )}
-    </button>
-  );
+  }) => {
+    if (isReadOnly) return null;
+    return (
+      <button
+        type="button"
+        onClick={() => handleSaveField(field)}
+        disabled={saving === field}
+        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
+          saved === field
+            ? "bg-green-500/20 text-green-400"
+            : theme === "dark"
+            ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600"
+            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+        }`}
+      >
+        {saving === field ? (
+          <>
+            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            Saving...
+          </>
+        ) : saved === field ? (
+          <>✓ Saved</>
+        ) : (
+          <>
+            <FaSave className="text-xs" />
+            Save {label}
+          </>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -216,6 +240,7 @@ export const AboutTab: React.FC<AboutTabProps> = ({
                   }
                   className={inputClass}
                   placeholder="https://..."
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
@@ -238,6 +263,7 @@ export const AboutTab: React.FC<AboutTabProps> = ({
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   className={inputClass}
                   placeholder="Your name"
+                  readOnly={isReadOnly}
                 />
               </div>
               <div>
@@ -259,6 +285,7 @@ export const AboutTab: React.FC<AboutTabProps> = ({
                   }
                   className={inputClass}
                   placeholder="e.g., Full Stack Developer"
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
@@ -382,14 +409,17 @@ export const AboutTab: React.FC<AboutTabProps> = ({
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label
-                  className={`flex items-center gap-2 text-sm font-semibold mb-2 ${
-                    theme === "dark" ? "text-slate-200" : "text-slate-700"
-                  }`}
-                >
-                  <FaUsers className="text-green-400" />
-                  Students Mentored
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    className={`flex items-center gap-2 text-sm font-semibold ${
+                      theme === "dark" ? "text-slate-200" : "text-slate-700"
+                    }`}
+                  >
+                    <FaUsers className="text-green-400" />
+                    Students Mentored
+                  </label>
+                  <SaveButton field="studentsMentored" label="Save" />
+                </div>
                 <input
                   type="number"
                   min="0"
@@ -402,17 +432,21 @@ export const AboutTab: React.FC<AboutTabProps> = ({
                   }
                   className={inputClass}
                   placeholder="40"
+                  readOnly={isReadOnly}
                 />
               </div>
               <div>
-                <label
-                  className={`flex items-center gap-2 text-sm font-semibold mb-2 ${
-                    theme === "dark" ? "text-slate-200" : "text-slate-700"
-                  }`}
-                >
-                  <FaMicrophone className="text-purple-400" />
-                  Tech Talks Given
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    className={`flex items-center gap-2 text-sm font-semibold ${
+                      theme === "dark" ? "text-slate-200" : "text-slate-700"
+                    }`}
+                  >
+                    <FaMicrophone className="text-purple-400" />
+                    Tech Talks Given
+                  </label>
+                  <SaveButton field="techTalks" label="Save" />
+                </div>
                 <input
                   type="number"
                   min="0"
@@ -425,17 +459,21 @@ export const AboutTab: React.FC<AboutTabProps> = ({
                   }
                   className={inputClass}
                   placeholder="2"
+                  readOnly={isReadOnly}
                 />
               </div>
               <div>
-                <label
-                  className={`flex items-center gap-2 text-sm font-semibold mb-2 ${
-                    theme === "dark" ? "text-slate-200" : "text-slate-700"
-                  }`}
-                >
-                  <FaStar className="text-orange-400" />
-                  Years Experience
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    className={`flex items-center gap-2 text-sm font-semibold ${
+                      theme === "dark" ? "text-slate-200" : "text-slate-700"
+                    }`}
+                  >
+                    <FaStar className="text-orange-400" />
+                    Years Experience
+                  </label>
+                  <SaveButton field="yearsExperience" label="Save" />
+                </div>
                 <input
                   type="number"
                   min="0"
@@ -448,6 +486,7 @@ export const AboutTab: React.FC<AboutTabProps> = ({
                   }
                   className={inputClass}
                   placeholder="2"
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
@@ -477,6 +516,7 @@ export const AboutTab: React.FC<AboutTabProps> = ({
               onChange={(e) => setForm({ ...form, story: e.target.value })}
               className={`${inputClass} min-h-[300px]`}
               placeholder="Write your story here... You can use multiple paragraphs to tell your journey, what drives you, and what you're passionate about."
+              readOnly={isReadOnly}
             />
             <p
               className={`text-sm mt-2 ${
@@ -488,29 +528,33 @@ export const AboutTab: React.FC<AboutTabProps> = ({
           </div>
 
           {/* Save All Button */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={handleSaveAll}
-              disabled={saving === "all"}
-              className={`flex items-center gap-2 px-8 py-3 rounded-xl font-medium transition duration-200 disabled:opacity-50 shadow-lg ${
-                saved === "all"
-                  ? "bg-green-500/20 text-green-400 border border-green-400/30"
-                  : theme === "dark"
-                  ? "bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
-                  : "bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
-              }`}
-            >
-              <FaSave />
-              {saving === "all"
-                ? "Saving All..."
-                : saved === "all"
-                ? "✓ All Saved!"
-                : "Save All Changes"}
-            </button>
-          </div>
+          {!isReadOnly && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSaveAll}
+                disabled={saving === "all"}
+                className={`flex items-center gap-2 px-8 py-3 rounded-xl font-medium transition duration-200 disabled:opacity-50 shadow-lg ${
+                  saved === "all"
+                    ? "bg-green-500/20 text-green-400 border border-green-400/30"
+                    : theme === "dark"
+                    ? "bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
+                    : "bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
+                }`}
+              >
+                <FaSave />
+                {saving === "all"
+                  ? "Saving All..."
+                  : saved === "all"
+                  ? "✓ All Saved!"
+                  : "Save All Changes"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
+
+export default AboutTab;

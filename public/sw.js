@@ -1,5 +1,10 @@
 // Service Worker for Oceaniccoder Portfolio PWA
-const CACHE_NAME = "oceaniccoder-v1";
+// Version 3 - Completely bypass during development
+const CACHE_NAME = "oceaniccoder-v3";
+const IS_LOCALHOST =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1";
+
 const urlsToCache = [
   "/",
   "/index.html",
@@ -12,6 +17,12 @@ const urlsToCache = [
 
 // Install event - cache static assets
 self.addEventListener("install", (event) => {
+  // Skip caching entirely in development
+  if (IS_LOCALHOST) {
+    self.skipWaiting();
+    return;
+  }
+
   event.waitUntil(
     caches
       .open(CACHE_NAME)
@@ -45,6 +56,25 @@ self.addEventListener("activate", (event) => {
 
 // Fetch event - serve from cache, fall back to network
 self.addEventListener("fetch", (event) => {
+  // COMPLETELY BYPASS SERVICE WORKER IN DEVELOPMENT
+  // This prevents all caching issues with Vite dev server
+  if (IS_LOCALHOST) {
+    return; // Let the browser handle it normally
+  }
+
+  // Only cache in production
+  const url = new URL(event.request.url);
+
+  // Skip non-GET requests
+  if (event.request.method !== "GET") {
+    return;
+  }
+
+  // Skip external requests
+  if (!url.origin.includes(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       // Cache hit - return response
@@ -64,12 +94,10 @@ self.addEventListener("fetch", (event) => {
         // Clone the response
         const responseToCache = response.clone();
 
-        // Cache dynamic assets
+        // Only cache static assets in production
         if (
           event.request.url.includes("/assets/") ||
-          event.request.url.includes("/images/") ||
-          event.request.url.includes(".css") ||
-          event.request.url.includes(".js")
+          event.request.url.includes("/images/")
         ) {
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);

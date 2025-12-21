@@ -12,6 +12,7 @@ interface MessagesTabProps {
     status: "new" | "read" | "replied"
   ) => void;
   onDelete: (messageId: string) => void;
+  isReadOnly?: boolean;
 }
 
 export const MessagesTab: React.FC<MessagesTabProps> = ({
@@ -20,11 +21,16 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
   filteredMessages,
   onStatusChange,
   onDelete,
+  isReadOnly = false,
 }) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleViewMessage = (message: Message) => {
+    // Prevent viewing messages in read-only mode
+    if (isReadOnly) {
+      return;
+    }
     setSelectedMessage(message);
     setIsModalOpen(true);
     // Auto-mark as read when viewing
@@ -57,9 +63,28 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
             theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"
           }`}
         >
-          Manage contact form submissions
+          {isReadOnly
+            ? "Overview of contact form activity"
+            : "Manage contact form submissions"}
         </p>
       </div>
+
+      {/* Read-only notice banner */}
+      {isReadOnly && (
+        <div
+          className={`rounded-xl p-4 border ${
+            theme === "dark"
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+              : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}
+        >
+          <p className="text-sm font-medium flex items-center gap-2">
+            <span className="text-lg">🔒</span>
+            Message content is protected for privacy. Contact the portfolio
+            owner directly if you'd like to discuss opportunities.
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12">
@@ -149,7 +174,9 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
                   <tr
                     key={msg.$id}
                     onClick={() => handleViewMessage(msg)}
-                    className={`transition-all duration-300 cursor-pointer ${
+                    className={`transition-all duration-300 ${
+                      isReadOnly ? "cursor-default" : "cursor-pointer"
+                    } ${
                       theme === "dark"
                         ? "hover:bg-white/5"
                         : "hover:bg-white/20"
@@ -158,16 +185,16 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
                     <td
                       className={`px-6 py-4 font-medium transition-colors duration-300 ${
                         theme === "dark" ? "text-white" : "text-slate-900"
-                      }`}
+                      } ${isReadOnly ? "blur-sm select-none" : ""}`}
                     >
-                      {msg.subject}
+                      {isReadOnly ? "••••••••••" : msg.subject}
                     </td>
                     <td
                       className={`px-6 py-4 transition-colors duration-300 ${
                         theme === "dark" ? "text-slate-300" : "text-slate-700"
-                      }`}
+                      } ${isReadOnly ? "blur-sm select-none" : ""}`}
                     >
-                      {msg.name}
+                      {isReadOnly ? "••••••" : msg.name}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -190,51 +217,57 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewMessage(msg);
-                          }}
-                          className={`p-2 rounded transition duration-300 ${
-                            theme === "dark"
-                              ? "text-cyan-300 hover:bg-cyan-500/20"
-                              : "text-blue-600 hover:bg-blue-400/20"
-                          }`}
-                          title="View message"
-                        >
-                          <FaEye className="text-sm" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onStatusChange(
-                              msg.$id,
-                              msg.status === "read" ? "new" : "read"
-                            );
-                          }}
-                          className={`p-2 rounded transition duration-300 ${
-                            theme === "dark"
-                              ? "text-cyan-300 hover:bg-cyan-500/20"
-                              : "text-blue-600 hover:bg-blue-400/20"
-                          }`}
-                          title="Toggle read status"
-                        >
-                          <FaCheck className="text-sm" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(msg.$id);
-                          }}
-                          className={`p-2 rounded transition duration-300 ${
-                            theme === "dark"
-                              ? "text-red-400 hover:bg-red-500/20"
-                              : "text-red-600 hover:bg-red-400/20"
-                          }`}
-                          title="Delete message"
-                        >
-                          <FaTrash className="text-sm" />
-                        </button>
+                        {!isReadOnly && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewMessage(msg);
+                            }}
+                            className={`p-2 rounded transition duration-300 ${
+                              theme === "dark"
+                                ? "text-cyan-300 hover:bg-cyan-500/20"
+                                : "text-blue-600 hover:bg-blue-400/20"
+                            }`}
+                            title="View message"
+                          >
+                            <FaEye className="text-sm" />
+                          </button>
+                        )}
+                        {!isReadOnly && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onStatusChange(
+                                  msg.$id,
+                                  msg.status === "read" ? "new" : "read"
+                                );
+                              }}
+                              className={`p-2 rounded transition duration-300 ${
+                                theme === "dark"
+                                  ? "text-cyan-300 hover:bg-cyan-500/20"
+                                  : "text-blue-600 hover:bg-blue-400/20"
+                              }`}
+                              title="Toggle read status"
+                            >
+                              <FaCheck className="text-sm" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(msg.$id);
+                              }}
+                              className={`p-2 rounded transition duration-300 ${
+                                theme === "dark"
+                                  ? "text-red-400 hover:bg-red-500/20"
+                                  : "text-red-600 hover:bg-red-400/20"
+                              }`}
+                              title="Delete message"
+                            >
+                              <FaTrash className="text-sm" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -252,6 +285,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
         theme={theme}
         message={selectedMessage}
         onMarkAsRead={handleMarkAsRead}
+        isReadOnly={isReadOnly}
       />
     </div>
   );

@@ -57,9 +57,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
     try {
       setUploading(true);
-      console.log("Uploading file:", file.name, file.type, file.size);
       const url = await uploadImage(file);
-      console.log("Upload successful, URL:", url);
       onChange(url);
     } catch (err: unknown) {
       console.error("Upload error:", err);

@@ -251,13 +251,16 @@ export function usePortfolioData(): PortfolioData {
     fetchData();
   }, [fetchData]);
 
+  // Filter gallery to only show public images for public visitors
+  const publicGallery = gallery.filter((img) => img.isPublic !== false);
+
   return {
     projects,
     featuredProjects,
     certifications,
     skills,
     education,
-    gallery,
+    gallery: publicGallery,
     journey,
     blogPosts,
     about,

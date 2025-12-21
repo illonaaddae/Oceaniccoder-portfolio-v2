@@ -8,6 +8,7 @@ interface CertificationsTabProps {
   onDelete: (certId: string) => void;
   onEdit?: (cert: Certification) => void;
   onShowForm?: () => void;
+  isReadOnly?: boolean;
 }
 
 export const CertificationsTab: React.FC<CertificationsTabProps> = ({
@@ -17,6 +18,7 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
   onDelete,
   onEdit,
   onShowForm,
+  isReadOnly = false,
 }) => {
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -37,17 +39,19 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
             Manage your professional certifications
           </p>
         </div>
-        <button
-          onClick={onShowForm}
-          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
-            theme === "dark"
-              ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
-              : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
-          }`}
-        >
-          <FaPlus className="text-sm" />
-          Add Certification
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={onShowForm}
+            className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
+                : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
+            }`}
+          >
+            <FaPlus className="text-sm" />
+            Add Certification
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -194,30 +198,32 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => onEdit?.(cert)}
-                          className={`p-2 rounded-lg transition ${
-                            theme === "dark"
-                              ? "text-cyan-300 hover:bg-white/10"
-                              : "text-blue-600 hover:bg-white/30"
-                          }`}
-                          title="Edit certification"
-                        >
-                          <FaEdit className="text-sm" />
-                        </button>
-                        <button
-                          onClick={() => onDelete(cert.$id)}
-                          className={`p-2 rounded-lg transition ${
-                            theme === "dark"
-                              ? "text-red-400 hover:bg-white/10"
-                              : "text-red-600 hover:bg-white/30"
-                          }`}
-                          title="Delete certification"
-                        >
-                          <FaTrash className="text-sm" />
-                        </button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => onEdit?.(cert)}
+                            className={`p-2 rounded-lg transition ${
+                              theme === "dark"
+                                ? "text-cyan-300 hover:bg-white/10"
+                                : "text-blue-600 hover:bg-white/30"
+                            }`}
+                            title="Edit certification"
+                          >
+                            <FaEdit className="text-sm" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(cert.$id)}
+                            className={`p-2 rounded-lg transition ${
+                              theme === "dark"
+                                ? "text-red-400 hover:bg-white/10"
+                                : "text-red-600 hover:bg-white/30"
+                            }`}
+                            title="Delete certification"
+                          >
+                            <FaTrash className="text-sm" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

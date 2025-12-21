@@ -15,6 +15,7 @@ interface ProjectsTabProps {
   onDelete: (projectId: string) => void;
   onEdit?: (project: Project) => void;
   onShowForm?: () => void;
+  isReadOnly?: boolean;
 }
 
 export const ProjectsTab: React.FC<ProjectsTabProps> = ({
@@ -24,6 +25,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   onDelete,
   onEdit,
   onShowForm,
+  isReadOnly = false,
 }) => {
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -44,17 +46,19 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
             Manage your portfolio projects
           </p>
         </div>
-        <button
-          onClick={onShowForm}
-          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
-            theme === "dark"
-              ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
-              : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
-          }`}
-        >
-          <FaPlus className="text-sm" />
-          Add Project
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={onShowForm}
+            className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
+                : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
+            }`}
+          >
+            <FaPlus className="text-sm" />
+            Add Project
+          </button>
+        )}
       </div>
 
       {/* Project Stats */}
@@ -389,30 +393,32 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => onEdit?.(project)}
-                          className={`p-2 rounded-lg transition ${
-                            theme === "dark"
-                              ? "text-cyan-300 hover:bg-white/10"
-                              : "text-blue-600 hover:bg-white/30"
-                          }`}
-                          title="Edit project"
-                        >
-                          <FaEdit className="text-sm" />
-                        </button>
-                        <button
-                          onClick={() => onDelete(project.$id)}
-                          className={`p-2 rounded-lg transition ${
-                            theme === "dark"
-                              ? "text-red-400 hover:bg-white/10"
-                              : "text-red-600 hover:bg-white/30"
-                          }`}
-                          title="Delete project"
-                        >
-                          <FaTrash className="text-sm" />
-                        </button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => onEdit?.(project)}
+                            className={`p-2 rounded-lg transition ${
+                              theme === "dark"
+                                ? "text-cyan-300 hover:bg-white/10"
+                                : "text-blue-600 hover:bg-white/30"
+                            }`}
+                            title="Edit project"
+                          >
+                            <FaEdit className="text-sm" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(project.$id)}
+                            className={`p-2 rounded-lg transition ${
+                              theme === "dark"
+                                ? "text-red-400 hover:bg-white/10"
+                                : "text-red-600 hover:bg-white/30"
+                            }`}
+                            title="Delete project"
+                          >
+                            <FaTrash className="text-sm" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

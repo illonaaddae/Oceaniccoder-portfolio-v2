@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   FaArrowLeft,
@@ -24,10 +24,9 @@ import { usePortfolioData } from "../hooks/usePortfolioData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
+// Use CJS imports to avoid dynamic import issues
+import oneDark from "react-syntax-highlighter/dist/cjs/styles/prism/one-dark";
+import oneLight from "react-syntax-highlighter/dist/cjs/styles/prism/one-light";
 import {
   getPostReactions,
   getVisitorReaction,
@@ -152,6 +151,7 @@ const BlogPost = () => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const [relatedPosts, setRelatedPosts] = useState([]);
+  const [postNotFound, setPostNotFound] = useState(false);
 
   // Reactions state
   const [reactions, setReactions] = useState({ likes: 0, dislikes: 0 });
@@ -558,15 +558,22 @@ Now go create something beautiful! ✨`,
     },
   ];
 
-  const allPosts =
-    blogPosts && blogPosts.length > 0 ? blogPosts : fallbackPosts;
+  // Memoize allPosts to prevent unnecessary re-renders
+  const allPosts = useMemo(() => {
+    return blogPosts && blogPosts.length > 0 ? blogPosts : fallbackPosts;
+  }, [blogPosts]);
 
   useEffect(() => {
-    const foundPost = allPosts.find((p) => p.slug === slug || p.$id === slug);
-    setPost(foundPost);
+    // Don't search while still loading
+    if (loading) return;
 
-    // Find related posts (same category, excluding current)
+    const foundPost = allPosts.find((p) => p.slug === slug || p.$id === slug);
+
     if (foundPost) {
+      setPost(foundPost);
+      setPostNotFound(false);
+
+      // Find related posts (same category, excluding current)
       const related = allPosts
         .filter(
           (p) =>
@@ -576,8 +583,11 @@ Now go create something beautiful! ✨`,
         )
         .slice(0, 3);
       setRelatedPosts(related);
+    } else {
+      setPost(null);
+      setPostNotFound(true);
     }
-  }, [slug, allPosts]);
+  }, [slug, allPosts, loading]);
 
   // Load reactions for the current post
   const loadReactions = useCallback(async () => {
@@ -603,11 +613,9 @@ Now go create something beautiful! ✨`,
   // Handle reaction click
   const handleReaction = async (reactionType) => {
     if (reactionLoading || !post?.$id) {
-      console.log("Reaction blocked:", { reactionLoading, postId: post?.$id });
       return;
     }
 
-    console.log("Handling reaction:", reactionType, "for post:", post.$id);
     setReactionLoading(true);
     const visitorId = getVisitorId();
 
@@ -652,7 +660,6 @@ Now go create something beautiful! ✨`,
 
     try {
       await addReaction(post.$id, visitorId, reactionType);
-      console.log("Reaction saved successfully");
     } catch (error) {
       console.error("Error adding reaction:", error);
       // Revert optimistic update on error
@@ -1046,7 +1053,17 @@ Now go create something beautiful! ✨`,
                 ),
               }}
             >
-              {post.content}
+              {/* Normalize markdown content - replace smart quotes, HTML entities, and ensure proper line breaks */}
+              {
+                post.content
+                  ?.replace(/[\u2018\u2019]/g, "'") // Replace smart single quotes
+                  ?.replace(/[\u201C\u201D]/g, '"') // Replace smart double quotes
+                  ?.replace(/\r\n/g, "\n") // Normalize line endings
+                  ?.replace(/\\n/g, "\n") // Replace literal \n with newline
+                  ?.replace(/&ast;/g, "*") // Replace HTML entity asterisks
+                  ?.replace(/&#42;/g, "*") // Replace numeric entity asterisks
+                  ?.replace(/\\\*/g, "*") // Replace escaped asterisks
+              }
             </ReactMarkdown>
           </div>
         </article>
