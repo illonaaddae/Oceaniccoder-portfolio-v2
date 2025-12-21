@@ -581,6 +581,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const newMessages = messages.filter(
     (m) => !m.status || m.status === "new"
   ).length;
+  const totalMessages = messages.length;
   const totalProjects = projects.length;
   const totalCertifications = certifications.length;
   const totalGallery = gallery.length;
@@ -692,6 +693,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               }
               totalGallery={searchQuery ? filteredGallery.length : totalGallery}
               newMessages={newMessages}
+              totalMessages={
+                searchQuery ? filteredMessages.length : totalMessages
+              }
               recentMessages={filteredMessages.slice(0, 3)}
               recentProjects={filteredProjects.slice(0, 5)}
               searchQuery={searchQuery}

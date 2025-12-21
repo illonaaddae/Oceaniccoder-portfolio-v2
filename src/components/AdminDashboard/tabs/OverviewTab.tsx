@@ -20,6 +20,7 @@ interface OverviewTabProps {
   totalCertifications: number;
   totalGallery: number;
   newMessages: number;
+  totalMessages: number;
   recentMessages?: Message[];
   recentProjects?: Project[];
   searchQuery?: string;
@@ -37,6 +38,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   totalCertifications,
   totalGallery,
   newMessages,
+  totalMessages,
   recentMessages = [],
   recentProjects = [],
   searchQuery = "",
@@ -577,7 +579,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages,
+                      totalMessages,
                       10 // minimum max to ensure bars show
                     ),
                     color: "from-blue-500 to-blue-400",
@@ -591,7 +593,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages,
+                      totalMessages,
                       10
                     ),
                     color: "from-purple-500 to-purple-400",
@@ -605,7 +607,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages,
+                      totalMessages,
                       10
                     ),
                     color: "from-amber-500 to-amber-400",
@@ -619,7 +621,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages,
+                      totalMessages,
                       10
                     ),
                     color: "from-green-500 to-green-400",
@@ -627,13 +629,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   {
                     label: "Msg",
                     fullLabel: "Messages",
-                    value: newMessages,
+                    value: totalMessages,
                     max: Math.max(
                       totalProjects,
                       filteredSkills.length,
                       totalCertifications,
                       totalGallery,
-                      newMessages,
+                      totalMessages,
                       10
                     ),
                     color: "from-cyan-500 to-cyan-400",
