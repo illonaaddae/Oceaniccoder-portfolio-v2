@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FaProjectDiagram,
   FaPlus,
@@ -5,6 +6,8 @@ import {
   FaTrash,
   FaCheckCircle,
   FaClock,
+  FaTimes,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import type { Project } from "@/types";
 
@@ -12,7 +15,7 @@ interface ProjectsTabProps {
   theme: "light" | "dark";
   loading: boolean;
   filteredProjects: Project[];
-  onDelete: (projectId: string) => void;
+  onDelete: (projectId: string) => Promise<void> | void;
   onEdit?: (project: Project) => void;
   onShowForm?: () => void;
   isReadOnly?: boolean;
@@ -27,8 +30,59 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   onShowForm,
   isReadOnly = false,
 }) => {
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // Show toast notification
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // Handle delete with toast
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await onDelete(projectId);
+      showToast("success", "Project deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      showToast("error", "Failed to delete project. Please try again.");
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-[200] flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-lg ${
+            toast.type === "success"
+              ? theme === "dark"
+                ? "bg-green-500/20 border-green-400/50 text-green-300"
+                : "bg-green-50 border-green-200 text-green-700"
+              : theme === "dark"
+              ? "bg-red-500/20 border-red-400/50 text-red-300"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <FaCheckCircle className="text-lg flex-shrink-0" />
+          ) : (
+            <FaExclamationCircle className="text-lg flex-shrink-0" />
+          )}
+          <p className="flex-1 text-sm font-medium">{toast.message}</p>
+          <button
+            onClick={() => setToast(null)}
+            className="p-1 rounded-lg hover:bg-black/10 transition-colors"
+            aria-label="Dismiss"
+          >
+            <FaTimes className="text-xs" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
           <h1
@@ -407,7 +461,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                             <FaEdit className="text-sm" />
                           </button>
                           <button
-                            onClick={() => onDelete(project.$id)}
+                            onClick={() => handleDeleteProject(project.$id)}
                             className={`p-2 rounded-lg transition ${
                               theme === "dark"
                                 ? "text-red-400 hover:bg-white/10"
