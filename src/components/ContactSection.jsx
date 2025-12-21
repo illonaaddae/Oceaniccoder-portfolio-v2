@@ -11,6 +11,7 @@ import {
   FaCheckCircle,
 } from "react-icons/fa";
 import { createMessage } from "../services/api";
+import { usePortfolioData } from "../hooks/usePortfolioData";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,9 @@ const ContactSection = () => {
   const timeoutRef = useRef(null);
   const lastSubmissionRef = useRef(null);
   const formStartTimeRef = useRef(Date.now());
+
+  // Get about data for CV URL
+  const { about } = usePortfolioData();
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -624,8 +628,12 @@ const ContactSection = () => {
                 Email Me
               </a>
               <a
-                href="https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
-                download
+                href={
+                  about?.resumeUrl ||
+                  "https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
                 className="glass-btn border border-white/20 text-white px-6 py-3 font-medium hover:scale-105 transition-transform duration-300"
               >
                 Download CV
