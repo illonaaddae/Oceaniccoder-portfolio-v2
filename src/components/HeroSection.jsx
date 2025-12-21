@@ -6,6 +6,7 @@ import {
   FaChevronDown,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { usePortfolioData } from "../hooks/usePortfolioData";
 
 const HeroSection = () => {
   const [currentRole, setCurrentRole] = useState(0);
@@ -18,6 +19,9 @@ const HeroSection = () => {
   const pauseTimeoutRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
   const imgRef = useRef(null);
+
+  // Get about data for CV URL
+  const { about } = usePortfolioData();
 
   const roles = React.useMemo(
     () => [
@@ -334,8 +338,10 @@ const HeroSection = () => {
         {/* Download CV */}
         <div className="mb-12">
           <a
-            href="https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
-            download
+            href={
+              about?.resumeUrl ||
+              "https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 text-gray-300 hover:text-cyan-400 transition-colors duration-300 group text-base font-medium"
