@@ -1,6 +1,6 @@
 // Service Worker for Oceaniccoder Portfolio PWA
-// Version 3 - Completely bypass during development
-const CACHE_NAME = "oceaniccoder-v3";
+// Version 4 - Force cache refresh after major updates
+const CACHE_NAME = "oceaniccoder-v4";
 const IS_LOCALHOST =
   self.location.hostname === "localhost" ||
   self.location.hostname === "127.0.0.1";
