@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import { usePortfolio } from "../Context"; // Fixed path
 import { useNavigate } from "react-router-dom";
+import { LazyImage } from "./ui/LazyImage";
 
 const ProjectsSection = () => {
   const {
@@ -105,22 +106,12 @@ const ProjectsSection = () => {
             <div key={project.id} className="card-hover group">
               <div className="glass-card overflow-hidden h-full">
                 {/* Project Image */}
-                <div className="relative overflow-hidden">
-                  <img
-                    loading="lazy"
-                    decoding="async"
-                    width="1200"
-                    height="630"
+                <div className="relative overflow-hidden h-48">
+                  <LazyImage
                     src={project.image}
                     alt={project.title}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      if (!e.currentTarget.dataset.fallback) {
-                        e.currentTarget.dataset.fallback = "1";
-                        e.currentTarget.src =
-                          "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
-                      }
-                    }}
+                    className="w-full h-full group-hover:scale-110 transition-transform duration-500"
+                    placeholderColor="from-slate-800 to-slate-900"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="absolute bottom-4 left-4 right-4 flex gap-2">

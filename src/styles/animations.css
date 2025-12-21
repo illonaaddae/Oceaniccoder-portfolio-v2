@@ -89,3 +89,17 @@
 .animate-gradient-x {
   animation: gradient-x 3s ease infinite;
 }
+
+/* Shimmer animation for lazy loading placeholders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}

@@ -32,6 +32,7 @@ import {
   getVisitorReaction,
   addReaction,
 } from "../services/api";
+import { LazyImage } from "./ui/LazyImage";
 
 // Generate or retrieve visitor ID for tracking reactions
 const getVisitorId = () => {
@@ -863,14 +864,11 @@ Now go create something beautiful! ✨`,
         {/* Featured Image */}
         {post.image && (
           <div className="relative h-64 md:h-96 lg:h-[450px] rounded-2xl overflow-hidden mb-10">
-            <img
+            <LazyImage
               src={post.image}
               alt={post.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.src =
-                  "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
-              }}
+              className="w-full h-full"
+              placeholderColor="from-emerald-900/30 to-slate-900"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </div>
@@ -1171,14 +1169,11 @@ Now go create something beautiful! ✨`,
                   className="glass-card group overflow-hidden rounded-xl hover:scale-[1.02] transition-all duration-300"
                 >
                   <div className="relative h-32 overflow-hidden">
-                    <img
+                    <LazyImage
                       src={relatedPost.image}
                       alt={relatedPost.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      onError={(e) => {
-                        e.target.src =
-                          "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
-                      }}
+                      className="w-full h-full group-hover:scale-110 transition-transform duration-500"
+                      placeholderColor="from-emerald-900/30 to-slate-900"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                   </div>

@@ -13,6 +13,7 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 import { usePortfolioData } from "../hooks/usePortfolioData";
+import { LazyImage } from "./ui/LazyImage";
 
 const POSTS_PER_PAGE = 6;
 
@@ -288,15 +289,11 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
                   className="glass-card group cursor-pointer overflow-hidden rounded-2xl transition-shadow duration-300 hover:shadow-lg hover:shadow-emerald-500/20"
                 >
                   <div className="relative h-48 md:h-56 overflow-hidden">
-                    <img
+                    <LazyImage
                       src={post.image}
                       alt={post.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        e.target.src =
-                          "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
-                      }}
+                      className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+                      placeholderColor="from-emerald-900/50 to-slate-900"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute top-4 left-4">
@@ -430,15 +427,11 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
                 className="glass-card group cursor-pointer overflow-hidden rounded-xl transition-shadow duration-300 hover:shadow-lg hover:shadow-emerald-500/20 flex flex-col"
               >
                 <div className="relative h-44 overflow-hidden">
-                  <img
+                  <LazyImage
                     src={post.image}
                     alt={post.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      e.target.src =
-                        "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
-                    }}
+                    className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+                    placeholderColor="from-emerald-900/50 to-slate-900"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                   {post.category && (

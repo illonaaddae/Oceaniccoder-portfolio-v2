@@ -20,6 +20,7 @@ import {
 } from "react-icons/fa";
 import PlatformLogo from "./PlatformLogo";
 import { usePortfolioData } from "../hooks/usePortfolioData";
+import { LazyImage } from "./ui/LazyImage";
 
 /**
  * AboutSection Component
@@ -407,24 +408,20 @@ const AboutSection = () => {
                           style={{ minHeight: "350px", maxHeight: "70vh" }}
                         >
                           <div className="flex items-center justify-center w-full h-full p-4 sm:p-6 md:p-8">
-                            <img
-                              loading="lazy"
-                              decoding="async"
-                              width="1200"
-                              height="800"
+                            <LazyImage
                               src={galleryImages[currentImageIndex]?.src || ""}
                               alt={
                                 galleryImages[currentImageIndex]?.alt ||
                                 "Gallery image"
                               }
-                              className="gallery-main-image"
+                              className="gallery-main-image rounded-lg"
+                              placeholderColor="from-cyan-900/30 to-slate-900"
+                              fallbackSrc="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
                               style={{
                                 objectPosition: "center",
-                              }}
-                              onError={(e) => {
-                                // fallback to the optimized profile image
-                                e.target.src =
-                                  "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883";
+                                maxHeight: "60vh",
+                                width: "auto",
+                                maxWidth: "100%",
                               }}
                             />
                           </div>
