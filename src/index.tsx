@@ -3,30 +3,26 @@ import ReactDOM from "react-dom/client";
 import "./styles/index.css";
 import App from "./App";
 
-// Only register service worker in production (not on localhost)
-const isLocalhost =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-
-if ("serviceWorker" in navigator && !isLocalhost) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
-        // SW registered successfully
-      })
-      .catch((registrationError) => {
-        // SW registration failed
-      });
-  });
-} else if ("serviceWorker" in navigator && isLocalhost) {
-  // Unregister any existing service workers in development
+// EMERGENCY FIX: Unregister ALL service workers and clear ALL caches
+// This fixes the corrupted cache issue causing blank pages
+if ("serviceWorker" in navigator) {
+  // Unregister all service workers
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     registrations.forEach((registration) => {
       registration.unregister();
-      // SW unregistered for development
+      console.log("Service worker unregistered");
     });
   });
+
+  // Clear all caches
+  if ("caches" in window) {
+    caches.keys().then((cacheNames) => {
+      cacheNames.forEach((cacheName) => {
+        caches.delete(cacheName);
+        console.log("Cache deleted:", cacheName);
+      });
+    });
+  }
 }
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
