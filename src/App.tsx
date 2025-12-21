@@ -25,6 +25,7 @@ const ProjectCaseStudy = React.lazy(
 const Testimonials = React.lazy(
   () => import("./components/TestimonialsSection")
 );
+const Services = React.lazy(() => import("./components/ServicesSection"));
 const Blog = React.lazy(() => import("./components/BlogSection"));
 const BlogPost = React.lazy(() => import("./components/BlogPost"));
 const Contact = React.lazy(() => import("./components/ContactSection"));
@@ -143,6 +144,20 @@ const AnimatedRoutes: FC<{
               transition={{ duration: 0.35 }}
             >
               <ProjectCaseStudy />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/services"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.35 }}
+            >
+              <Services />
             </motion.div>
           }
         />

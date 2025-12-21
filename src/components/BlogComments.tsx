@@ -285,7 +285,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
   };
 
   return (
-    <div className="mt-16">
+    <div className="mt-16 mb-16">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="p-2.5 rounded-xl bg-gradient-to-br from-[var(--brand-ocean-2)]/20 to-[var(--brand-ocean-3)]/20">
