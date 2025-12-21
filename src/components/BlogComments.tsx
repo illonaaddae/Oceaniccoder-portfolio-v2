@@ -602,7 +602,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
             disabled={
               submitting || !form.authorName.trim() || !form.content.trim()
             }
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-[var(--brand-ocean-2)] dark:to-[var(--brand-ocean-3)] text-white font-semibold rounded-xl hover:from-cyan-500 hover:to-blue-500 dark:hover:from-[var(--brand-ocean-3)] dark:hover:to-[var(--brand-ocean-4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25"
           >
             <FaPaperPlane />
             {submitting ? "Posting..." : "Post Comment"}
