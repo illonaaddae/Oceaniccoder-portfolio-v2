@@ -91,7 +91,7 @@ body[data-theme="light"] svg.text-white,
   box-shadow: 0 8px 32px rgba(20, 184, 166, 0.1),
     0 16px 64px rgba(20, 184, 166, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .glass-card::before {
@@ -907,6 +907,15 @@ body[data-theme="light"] footer,
   letter-spacing: 0.025em;
 }
 
+/* Mobile typography scaling */
+@media (max-width: 640px) {
+  .text-story-lg {
+    font-size: 1rem; /* 16px on mobile */
+    line-height: 1.7;
+    letter-spacing: 0.02em;
+  }
+}
+
 .text-story-base {
   font-family: "Ysabeau Office", sans-serif;
   font-size: 1rem; /* 16px */
@@ -921,6 +930,17 @@ body[data-theme="light"] footer,
   line-height: 1.4;
   font-weight: 600;
   letter-spacing: -0.025em;
+}
+
+/* Mobile heading scaling */
+@media (max-width: 640px) {
+  .text-heading-xl {
+    font-size: 1.25rem; /* 20px on mobile */
+  }
+
+  .text-heading-lg {
+    font-size: 1.125rem; /* 18px on mobile */
+  }
 }
 
 .text-heading-lg {
@@ -965,6 +985,14 @@ body[data-theme="light"] footer,
   letter-spacing: 0.01em;
 }
 
+/* Mobile quote scaling */
+@media (max-width: 640px) {
+  .quote-text {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+}
+
 /* Blog grid responsive override: 1 column on very small, 2 columns on small/tablet, 3 on desktop */
 .blog-grid {
   display: grid;
@@ -993,6 +1021,13 @@ body[data-theme="light"] footer,
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  /* Ensure glass-cards don't overflow on mobile */
+  .glass-card {
+    overflow: visible;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   /* Disable heavy hover transforms on touch devices */

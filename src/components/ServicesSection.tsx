@@ -45,7 +45,9 @@ interface AddonService {
 }
 
 const ServicesSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"packages" | "addons" | "faq">("packages");
+  const [activeTab, setActiveTab] = useState<"packages" | "addons" | "faq">(
+    "packages"
+  );
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   // Service Packages
@@ -53,12 +55,13 @@ const ServicesSection: React.FC = () => {
     {
       id: "starter",
       name: "Starter",
-      description: "Perfect for small businesses or personal projects needing a professional web presence.",
-      price: "$499",
+      description:
+        "Perfect for small businesses or personal projects needing a professional web presence.",
+      price: "$299",
       priceNote: "Starting from",
       icon: <FaRocket className="text-2xl" />,
       color: "from-blue-500 to-cyan-500",
-      deliveryTime: "5-7 days",
+      deliveryTime: "7-10 days",
       revisions: "2 rounds",
       support: "1 week post-launch",
       features: [
@@ -70,20 +73,25 @@ const ServicesSection: React.FC = () => {
         { name: "Social Media Integration", included: true },
         { name: "Custom Animations", included: false, additionalCost: "+$100" },
         { name: "CMS Integration", included: false, additionalCost: "+$200" },
-        { name: "E-commerce Features", included: false, additionalCost: "+$300" },
+        {
+          name: "E-commerce Features",
+          included: false,
+          additionalCost: "+$300",
+        },
         { name: "API Integration", included: false, additionalCost: "+$150" },
       ],
     },
     {
       id: "professional",
       name: "Professional",
-      description: "Comprehensive solution for businesses requiring a full-featured website with advanced functionality.",
-      price: "$1,299",
+      description:
+        "Comprehensive solution for businesses requiring a full-featured website with advanced functionality.",
+      price: "$799",
       priceNote: "Starting from",
       popular: true,
       icon: <FaCode className="text-2xl" />,
       color: "from-purple-500 to-pink-500",
-      deliveryTime: "2-3 weeks",
+      deliveryTime: "2-4 weeks",
       revisions: "4 rounds",
       support: "1 month post-launch",
       features: [
@@ -95,15 +103,24 @@ const ServicesSection: React.FC = () => {
         { name: "Custom Animations & Transitions", included: true },
         { name: "Performance Optimization", included: true },
         { name: "Analytics Setup", included: true },
-        { name: "E-commerce (Basic)", included: false, additionalCost: "+$500" },
-        { name: "Custom API Development", included: false, additionalCost: "+$300" },
+        {
+          name: "E-commerce (Basic)",
+          included: false,
+          additionalCost: "+$500",
+        },
+        {
+          name: "Custom API Development",
+          included: false,
+          additionalCost: "+$300",
+        },
       ],
     },
     {
       id: "enterprise",
       name: "Enterprise",
-      description: "Full-scale web application with custom features, integrations, and ongoing support.",
-      price: "$3,499",
+      description:
+        "Full-scale web application with custom features, integrations, and ongoing support.",
+      price: "$1,999",
       priceNote: "Starting from",
       icon: <FaServer className="text-2xl" />,
       color: "from-orange-500 to-red-500",
@@ -144,7 +161,8 @@ const ServicesSection: React.FC = () => {
     },
     {
       name: "SEO Optimization Package",
-      description: "Comprehensive SEO audit, keyword research, and implementation",
+      description:
+        "Comprehensive SEO audit, keyword research, and implementation",
       price: "From $299",
     },
     {
@@ -173,35 +191,43 @@ const ServicesSection: React.FC = () => {
   const faqItems = [
     {
       question: "What's included in the revision rounds?",
-      answer: "Each revision round covers feedback on design, functionality, or content changes. Major scope changes or new feature requests may require additional discussion and potentially an adjusted quote.",
+      answer:
+        "Each revision round covers feedback on design, functionality, or content changes. Major scope changes or new feature requests may require additional discussion and potentially an adjusted quote.",
     },
     {
       question: "How does the payment process work?",
-      answer: "I typically require a 50% deposit to begin work, with the remaining 50% due upon project completion before the final handover. For larger projects, we can discuss milestone-based payments.",
+      answer:
+        "I typically require a 50% deposit to begin work, with the remaining 50% due upon project completion before the final handover. For larger projects, we can discuss milestone-based payments.",
     },
     {
       question: "Do you offer ongoing maintenance?",
-      answer: "Yes! I offer monthly maintenance packages starting at $99/month which includes updates, backups, security monitoring, and minor content changes. Custom maintenance plans are also available.",
+      answer:
+        "Yes! I offer monthly maintenance packages starting at $99/month which includes updates, backups, security monitoring, and minor content changes. Custom maintenance plans are also available.",
     },
     {
       question: "Can I upgrade my package later?",
-      answer: "Absolutely! You can always add more features or upgrade to a higher tier. Any work already completed will be credited toward the upgrade cost.",
+      answer:
+        "Absolutely! You can always add more features or upgrade to a higher tier. Any work already completed will be credited toward the upgrade cost.",
     },
     {
       question: "What technologies do you work with?",
-      answer: "I specialize in React, TypeScript, Node.js, and modern web technologies. For mobile apps, I use React Native. Backend services include Express, PostgreSQL, MongoDB, and cloud services like AWS and Firebase.",
+      answer:
+        "I specialize in React, TypeScript, Node.js, and modern web technologies. For mobile apps, I use React Native. Backend services include Express, PostgreSQL, MongoDB, and cloud services like AWS and Firebase.",
     },
     {
       question: "Do you provide source code?",
-      answer: "Yes, upon full payment, you receive complete ownership of all source code and assets created for your project.",
+      answer:
+        "Yes, upon full payment, you receive complete ownership of all source code and assets created for your project.",
     },
     {
       question: "What if I need something custom?",
-      answer: "I love custom projects! If your needs don't fit these packages, let's chat. I'll provide a tailored quote based on your specific requirements.",
+      answer:
+        "I love custom projects! If your needs don't fit these packages, let's chat. I'll provide a tailored quote based on your specific requirements.",
     },
     {
       question: "How do we communicate during the project?",
-      answer: "I use a combination of email, video calls (Zoom/Google Meet), and project management tools like Notion or Trello. You'll have direct access to me throughout the project.",
+      answer:
+        "I use a combination of email, video calls (Zoom/Google Meet), and project management tools like Notion or Trello. You'll have direct access to me throughout the project.",
     },
   ];
 
@@ -210,7 +236,8 @@ const ServicesSection: React.FC = () => {
       id="services"
       className="py-20 md:py-32 relative overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
+        background:
+          "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
       }}
     >
       {/* Background Elements */}
@@ -235,8 +262,8 @@ const ServicesSection: React.FC = () => {
               </span>
             </h2>
             <p className="text-lg md:text-xl leading-relaxed max-w-3xl mx-auto text-[var(--text-secondary)]">
-              Professional web development services tailored to your needs.
-              From simple landing pages to complex web applications.
+              Professional web development services tailored to your needs. From
+              simple landing pages to complex web applications.
             </p>
           </motion.div>
         </div>
@@ -300,7 +327,9 @@ const ServicesSection: React.FC = () => {
 
                     {/* Header */}
                     <div className={`p-6 pb-0 ${pkg.popular ? "pt-10" : ""}`}>
-                      <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-r ${pkg.color} text-white mb-4`}>
+                      <div
+                        className={`inline-flex p-3 rounded-2xl bg-gradient-to-r ${pkg.color} text-white mb-4`}
+                      >
                         {pkg.icon}
                       </div>
                       <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
@@ -324,16 +353,28 @@ const ServicesSection: React.FC = () => {
                     {/* Quick Info */}
                     <div className="px-6 py-4 border-y border-[var(--glass-border)] grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <p className="text-xs text-[var(--text-accent)] mb-1">Delivery</p>
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">{pkg.deliveryTime}</p>
+                        <p className="text-xs text-[var(--text-accent)] mb-1">
+                          Delivery
+                        </p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">
+                          {pkg.deliveryTime}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-[var(--text-accent)] mb-1">Revisions</p>
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">{pkg.revisions}</p>
+                        <p className="text-xs text-[var(--text-accent)] mb-1">
+                          Revisions
+                        </p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">
+                          {pkg.revisions}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-[var(--text-accent)] mb-1">Support</p>
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">{pkg.support}</p>
+                        <p className="text-xs text-[var(--text-accent)] mb-1">
+                          Support
+                        </p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">
+                          {pkg.support}
+                        </p>
                       </div>
                     </div>
 
@@ -350,7 +391,13 @@ const ServicesSection: React.FC = () => {
                             ) : (
                               <FaTimes className="text-gray-500 mt-0.5 flex-shrink-0" />
                             )}
-                            <span className={`text-sm ${feature.included ? "text-[var(--text-primary)]" : "text-[var(--text-accent)]"}`}>
+                            <span
+                              className={`text-sm ${
+                                feature.included
+                                  ? "text-[var(--text-primary)]"
+                                  : "text-[var(--text-accent)]"
+                              }`}
+                            >
                               {feature.name}
                               {!feature.included && feature.additionalCost && (
                                 <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500">
@@ -367,10 +414,12 @@ const ServicesSection: React.FC = () => {
                     <div className="p-6 pt-0">
                       <Link
                         to="/contact"
-                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r ${
+                          pkg.color
+                        } text-white hover:scale-105 shadow-lg ${
                           pkg.popular
-                            ? `bg-gradient-to-r ${pkg.color} text-white hover:scale-105 shadow-lg`
-                            : "border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-white/5 hover:border-cyan-500/50"
+                            ? "shadow-purple-500/30"
+                            : "shadow-black/20"
                         }`}
                       >
                         Get Started <FaArrowRight className="text-sm" />
@@ -393,7 +442,8 @@ const ServicesSection: React.FC = () => {
                     Need Something Custom?
                   </h3>
                   <p className="text-[var(--text-secondary)] mb-4">
-                    Every project is unique. Let's discuss your specific requirements and create a tailored solution.
+                    Every project is unique. Let's discuss your specific
+                    requirements and create a tailored solution.
                   </p>
                   <Link
                     to="/contact"
@@ -455,7 +505,8 @@ const ServicesSection: React.FC = () => {
                 className="mt-8 text-center"
               >
                 <p className="text-[var(--text-secondary)] text-sm">
-                  💡 <strong>Pro tip:</strong> Bundle add-ons with any package and get 10% off the total!
+                  💡 <strong>Pro tip:</strong> Bundle add-ons with any package
+                  and get 10% off the total!
                 </p>
               </motion.div>
             </motion.div>
@@ -482,7 +533,9 @@ const ServicesSection: React.FC = () => {
                     className="glass-card border border-[var(--glass-border)] rounded-xl overflow-hidden"
                   >
                     <button
-                      onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+                      onClick={() =>
+                        setExpandedFaq(expandedFaq === index ? null : index)
+                      }
                       className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
                     >
                       <span className="font-semibold text-[var(--text-primary)] flex items-center gap-3">
@@ -529,7 +582,8 @@ const ServicesSection: React.FC = () => {
                   Still Have Questions?
                 </h3>
                 <p className="text-[var(--text-secondary)] mb-4">
-                  I'm here to help! Feel free to reach out and let's discuss your project.
+                  I'm here to help! Feel free to reach out and let's discuss
+                  your project.
                 </p>
                 <Link
                   to="/contact"

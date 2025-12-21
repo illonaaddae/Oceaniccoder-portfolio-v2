@@ -169,10 +169,10 @@ const AboutSection = () => {
   return (
     <section
       id="about"
-      className="min-h-screen pt-28 pb-20 relative scroll-mt-28"
+      className="min-h-[auto] sm:min-h-screen pt-20 sm:pt-28 pb-12 sm:pb-20 relative scroll-mt-20 sm:scroll-mt-28"
       style={{
         // ensure browsers without the Tailwind utility still respect anchor offsets
-        scrollMarginTop: "7rem",
+        scrollMarginTop: "5rem",
         background:
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%)",
       }}
@@ -184,9 +184,9 @@ const AboutSection = () => {
         <div className="liquid-morph absolute top-1/2 left-1/2 w-72 h-72 bg-gradient-to-r from-blue-500/4 to-purple-500/6 blur-2xl"></div>
       </div>
 
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Intro Hero: Headshot leading into the About content */}
-        <div className="mb-12 flex flex-col items-center text-center">
+        <div className="mb-8 sm:mb-12 flex flex-col items-center text-center">
           <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-4">
             <img
               src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce3002c5e175da5/view?project=6943431e00253c8f9883"
@@ -308,14 +308,14 @@ const AboutSection = () => {
         <div className="max-w-6xl mx-auto">
           {/* My Story Tab */}
           {activeTab === "story" && (
-            <div className="grid lg:grid-cols-2 gap-12 items-start">
-              <div className="space-y-8 px-2 sm:px-0">
-                <div className="glass-card w-full max-w-none p-6 sm:p-8">
-                  <h3 className="text-heading-xl text-white mb-6 flex items-center gap-3">
-                    <FaHeart className="text-red-400" />
-                    My Story
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-start">
+              <div className="space-y-5 sm:space-y-6 lg:space-y-8">
+                <div className="glass-card w-full p-4 sm:p-6 md:p-8 overflow-visible">
+                  <h3 className="text-heading-xl text-white mb-3 sm:mb-4 md:mb-6 flex items-center gap-2 sm:gap-3">
+                    <FaHeart className="text-red-400 flex-shrink-0 text-lg sm:text-xl" />
+                    <span>My Story</span>
                   </h3>
-                  <div className="space-y-6 text-gray-300 leading-relaxed">
+                  <div className="space-y-3 sm:space-y-4 md:space-y-6 text-gray-300 leading-relaxed">
                     <p className="text-story-lg">
                       I was raised{" "}
                       <strong className="text-cyan-400 text-strong">
@@ -361,24 +361,24 @@ const AboutSection = () => {
                   </div>
 
                   {/* Enhanced Quote */}
-                  <div className="mt-8 p-6 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl border border-cyan-500/20">
-                    <blockquote className="text-cyan-300 quote-text">
+                  <div className="mt-4 sm:mt-6 md:mt-8 p-3 sm:p-4 md:p-6 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl border border-cyan-500/20">
+                    <blockquote className="text-cyan-300 quote-text text-sm sm:text-base leading-relaxed">
                       "In a society where women are often underestimated, I am
                       determined to shift the conversation. Technology is for
                       everyone gender, wealth, or background should never limit
                       one's potential to innovate and succeed."
                     </blockquote>
-                    <cite className="text-caption text-gray-400 mt-3 block">
+                    <cite className="text-caption text-gray-400 mt-2 block text-xs sm:text-sm">
                       — Illona Addae
                     </cite>
                   </div>
                 </div>
 
                 {/* Mission Statement */}
-                <div className="glass-card w-full max-w-none p-6 sm:p-8 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-                  <h3 className="text-heading-lg text-white mb-4 flex items-center gap-3">
-                    <FaRocket className="text-purple-400" />
-                    Mission Statement
+                <div className="glass-card w-full p-4 sm:p-6 md:p-8 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 overflow-visible">
+                  <h3 className="text-heading-lg text-white mb-2 sm:mb-3 md:mb-4 flex items-center gap-2 sm:gap-3">
+                    <FaRocket className="text-purple-400 flex-shrink-0 text-base sm:text-lg" />
+                    <span>Mission Statement</span>
                   </h3>
                   <p className="text-gray-300 text-story-lg">
                     To create a tech ecosystem where talent thrives regardless
@@ -392,22 +392,22 @@ const AboutSection = () => {
 
               {/* Image Gallery - only render if we have images */}
               {galleryImages && galleryImages.length > 0 && (
-                <div className="space-y-8 px-2 sm:px-0">
+                <div className="space-y-5 sm:space-y-6 lg:space-y-8">
                   {/* Image gallery card also stretched a bit on mobile */}
-                  <div className="glass-card w-full max-w-none p-6">
-                    <h3 className="text-heading-lg text-white mb-6 flex items-center gap-3">
-                      <FaPlay className="text-cyan-400" />
-                      My Journey in Pictures
+                  <div className="glass-card w-full p-4 sm:p-6">
+                    <h3 className="text-heading-lg text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                      <FaPlay className="text-cyan-400 flex-shrink-0" />
+                      <span>My Journey in Pictures</span>
                     </h3>
 
-                    <div className="relative -mx-6 -mb-6">
+                    <div className="relative -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
                       <div className="relative overflow-hidden rounded-b-2xl shadow-2xl border border-cyan-400/30 bg-gradient-to-br from-gray-900 to-gray-800 gallery-container">
                         {/* Improved image container - adapts to image size while maintaining responsive height */}
                         <div
                           className="relative w-full gallery-image-wrapper"
-                          style={{ minHeight: "350px", maxHeight: "70vh" }}
+                          style={{ minHeight: "280px", maxHeight: "60vh" }}
                         >
-                          <div className="flex items-center justify-center w-full h-full p-4 sm:p-6 md:p-8">
+                          <div className="flex items-center justify-center w-full h-full p-3 sm:p-4 md:p-6">
                             <LazyImage
                               src={galleryImages[currentImageIndex]?.src || ""}
                               alt={
