@@ -17,12 +17,14 @@ import {
   FaBars,
   FaTimes,
   FaBlog,
+  FaComments,
 } from "react-icons/fa";
 import { useState } from "react";
 
 type TabType =
   | "overview"
   | "messages"
+  | "comments"
   | "skills"
   | "projects"
   | "certifications"
@@ -60,6 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }> = [
     { id: "overview", label: "Overview", icon: FaChartBar },
     { id: "messages", label: "Messages", icon: FaEnvelope },
+    { id: "comments", label: "Comments", icon: FaComments },
     { id: "about", label: "About Me", icon: FaUser },
     { id: "skills", label: "Skills", icon: FaCode },
     { id: "projects", label: "Projects", icon: FaProjectDiagram },

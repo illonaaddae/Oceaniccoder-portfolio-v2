@@ -4,6 +4,7 @@ import { useAdminData } from "./useAdminData";
 import { Sidebar } from "./Sidebar";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { MessagesTab } from "./tabs/MessagesTab";
+import { CommentsTab } from "./tabs/CommentsTab";
 import { SkillsTab } from "./tabs/SkillsTab";
 import { ProjectsTab } from "./tabs/ProjectsTab";
 import { CertificationsTab } from "./tabs/CertificationsTab";
@@ -37,6 +38,7 @@ import type {
 type TabType =
   | "overview"
   | "messages"
+  | "comments"
   | "skills"
   | "projects"
   | "certifications"
@@ -696,6 +698,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onDelete={requestDeleteMessage}
               isReadOnly={isReadOnly}
             />
+          )}
+
+          {activeTab === "comments" && (
+            <CommentsTab theme={theme} isReadOnly={isReadOnly} />
           )}
 
           {activeTab === "skills" && (

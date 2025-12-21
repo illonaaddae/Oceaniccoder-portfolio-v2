@@ -12,6 +12,17 @@ export interface Project {
   featured?: boolean;
   status?: string;
   year?: string;
+  slug?: string;
+  // Case Study fields
+  challenge?: string;
+  solution?: string;
+  results?: string;
+  timeline?: string;
+  role?: string;
+  teamSize?: string;
+  screenshots?: string[];
+  keyFeatures?: string[];
+  lessonsLearned?: string;
   $createdAt?: string;
   $updatedAt?: string;
 }

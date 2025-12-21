@@ -33,6 +33,7 @@ import {
   addReaction,
 } from "../services/api";
 import { LazyImage } from "./ui/LazyImage";
+import BlogComments from "./BlogComments";
 
 // Generate or retrieve visitor ID for tracking reactions
 const getVisitorId = () => {
@@ -1119,6 +1120,9 @@ Now go create something beautiful! ✨`,
             </div>
           </div>
         </div>
+
+        {/* Comments Section */}
+        <BlogComments postId={post.$id} isDark={true} />
 
         {/* Post Navigation */}
         <div className="flex flex-col sm:flex-row gap-4 mb-16">

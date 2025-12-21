@@ -5,9 +5,10 @@ import {
   FaCalendar,
   FaCode,
   FaEye,
+  FaArrowRight,
 } from "react-icons/fa";
 import { usePortfolio } from "../Context"; // Fixed path
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { LazyImage } from "./ui/LazyImage";
 
 const ProjectsSection = () => {
@@ -197,7 +198,7 @@ const ProjectsSection = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 mb-3">
                     {project.liveUrl && (
                       <a
                         href={project.liveUrl}
@@ -221,6 +222,18 @@ const ProjectsSection = () => {
                       </a>
                     )}
                   </div>
+
+                  {/* View Case Study Link */}
+                  <Link
+                    to={`/projects/${
+                      project.slug ||
+                      project.title.toLowerCase().replace(/\s+/g, "-")
+                    }`}
+                    className="flex items-center justify-center gap-2 text-sm text-orange-400 hover:text-orange-300 transition-colors py-2 group/link"
+                  >
+                    View Case Study
+                    <FaArrowRight className="w-3 h-3 group-hover/link:translate-x-1 transition-transform" />
+                  </Link>
                 </div>
               </div>
             </div>

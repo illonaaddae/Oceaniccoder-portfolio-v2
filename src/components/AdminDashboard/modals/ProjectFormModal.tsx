@@ -32,8 +32,18 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     featured: false,
     status: "Completed",
     year: new Date().getFullYear().toString(),
+    // Case Study Fields
+    slug: "",
+    timeline: "",
+    role: "",
+    teamSize: "",
+    lessonsLearned: "",
+    keyFeatures: [] as string[],
+    screenshots: [] as string[],
   });
   const [newTech, setNewTech] = useState("");
+  const [newFeature, setNewFeature] = useState("");
+  const [newScreenshot, setNewScreenshot] = useState("");
 
   useEffect(() => {
     if (editingProject) {
@@ -49,6 +59,14 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         featured: editingProject.featured || false,
         status: editingProject.status || "Completed",
         year: editingProject.year || new Date().getFullYear().toString(),
+        // Case Study Fields
+        slug: editingProject.slug || "",
+        timeline: editingProject.timeline || "",
+        role: editingProject.role || "",
+        teamSize: editingProject.teamSize || "",
+        lessonsLearned: editingProject.lessonsLearned || "",
+        keyFeatures: editingProject.keyFeatures || [],
+        screenshots: editingProject.screenshots || [],
       });
     } else {
       setForm({
@@ -63,6 +81,14 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         featured: false,
         status: "Completed",
         year: new Date().getFullYear().toString(),
+        // Case Study Fields
+        slug: "",
+        timeline: "",
+        role: "",
+        teamSize: "",
+        lessonsLearned: "",
+        keyFeatures: [],
+        screenshots: [],
       });
     }
   }, [editingProject, isOpen]);
@@ -82,6 +108,52 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
       ...form,
       technologies: form.technologies.filter((t) => t !== tech),
     });
+  };
+
+  const handleAddFeature = () => {
+    if (newFeature.trim() && !form.keyFeatures.includes(newFeature.trim())) {
+      setForm({
+        ...form,
+        keyFeatures: [...form.keyFeatures, newFeature.trim()],
+      });
+      setNewFeature("");
+    }
+  };
+
+  const handleRemoveFeature = (feature: string) => {
+    setForm({
+      ...form,
+      keyFeatures: form.keyFeatures.filter((f) => f !== feature),
+    });
+  };
+
+  const handleAddScreenshot = () => {
+    if (
+      newScreenshot.trim() &&
+      !form.screenshots.includes(newScreenshot.trim())
+    ) {
+      setForm({
+        ...form,
+        screenshots: [...form.screenshots, newScreenshot.trim()],
+      });
+      setNewScreenshot("");
+    }
+  };
+
+  const handleRemoveScreenshot = (url: string) => {
+    setForm({
+      ...form,
+      screenshots: form.screenshots.filter((s) => s !== url),
+    });
+  };
+
+  // Auto-generate slug from title
+  const generateSlug = () => {
+    const slug = form.title
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    setForm({ ...form, slug });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -320,6 +392,208 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
                 Featured Project
               </span>
             </label>
+          </div>
+        </div>
+
+        {/* Case Study Section */}
+        <div
+          className={`border-t pt-6 mt-6 ${
+            theme === "dark" ? "border-gray-700" : "border-slate-200"
+          }`}
+        >
+          <h3
+            className={`text-lg font-bold mb-4 ${
+              theme === "dark" ? "text-white" : "text-slate-900"
+            }`}
+          >
+            📋 Case Study Details (Optional)
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            {/* Slug */}
+            <div>
+              <label className={labelClass}>URL Slug</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                  className={inputClass}
+                  placeholder="my-awesome-project"
+                />
+                <button
+                  type="button"
+                  onClick={generateSlug}
+                  title="Generate from title"
+                  className={`px-3 py-2 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${
+                    theme === "dark"
+                      ? "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                      : "bg-cyan-100 text-cyan-700 hover:bg-cyan-200"
+                  }`}
+                >
+                  Auto
+                </button>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div>
+              <label className={labelClass}>Timeline</label>
+              <input
+                type="text"
+                value={form.timeline}
+                onChange={(e) => setForm({ ...form, timeline: e.target.value })}
+                className={inputClass}
+                placeholder="3 months"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            {/* Role */}
+            <div>
+              <label className={labelClass}>Your Role</label>
+              <input
+                type="text"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className={inputClass}
+                placeholder="Lead Developer"
+              />
+            </div>
+
+            {/* Team Size */}
+            <div>
+              <label className={labelClass}>Team Size</label>
+              <input
+                type="text"
+                value={form.teamSize}
+                onChange={(e) => setForm({ ...form, teamSize: e.target.value })}
+                className={inputClass}
+                placeholder="Solo / 3 developers"
+              />
+            </div>
+          </div>
+
+          {/* Lessons Learned */}
+          <div className="mb-5">
+            <label className={labelClass}>Lessons Learned</label>
+            <textarea
+              rows={3}
+              value={form.lessonsLearned}
+              onChange={(e) =>
+                setForm({ ...form, lessonsLearned: e.target.value })
+              }
+              className={inputClass}
+              placeholder="Key takeaways and insights from this project..."
+            />
+          </div>
+
+          {/* Key Features */}
+          <div className="mb-5">
+            <label className={labelClass}>Key Features</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={newFeature}
+                onChange={(e) => setNewFeature(e.target.value)}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), handleAddFeature())
+                }
+                className={inputClass}
+                placeholder="Add a key feature"
+              />
+              <button
+                type="button"
+                onClick={handleAddFeature}
+                title="Add feature"
+                aria-label="Add feature"
+                className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+                  theme === "dark"
+                    ? "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                    : "bg-cyan-100 text-cyan-700 hover:bg-cyan-200"
+                }`}
+              >
+                <FaPlus />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {form.keyFeatures.map((feature, idx) => (
+                <span
+                  key={idx}
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
+                    theme === "dark"
+                      ? "bg-green-500/20 text-green-300"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {feature}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFeature(feature)}
+                    className="hover:text-red-400"
+                    title={`Remove "${feature}"`}
+                    aria-label={`Remove "${feature}"`}
+                  >
+                    <FaTimes className="text-xs" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Screenshots */}
+          <div>
+            <label className={labelClass}>Screenshots (URLs)</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="url"
+                value={newScreenshot}
+                onChange={(e) => setNewScreenshot(e.target.value)}
+                onKeyPress={(e) =>
+                  e.key === "Enter" &&
+                  (e.preventDefault(), handleAddScreenshot())
+                }
+                className={inputClass}
+                placeholder="https://... (screenshot URL)"
+              />
+              <button
+                type="button"
+                onClick={handleAddScreenshot}
+                title="Add screenshot"
+                aria-label="Add screenshot"
+                className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+                  theme === "dark"
+                    ? "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                    : "bg-cyan-100 text-cyan-700 hover:bg-cyan-200"
+                }`}
+              >
+                <FaPlus />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {form.screenshots.map((url, idx) => (
+                <span
+                  key={idx}
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm max-w-xs truncate ${
+                    theme === "dark"
+                      ? "bg-purple-500/20 text-purple-300"
+                      : "bg-purple-100 text-purple-700"
+                  }`}
+                >
+                  {url.length > 30 ? `${url.slice(0, 30)}...` : url}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveScreenshot(url)}
+                    className="hover:text-red-400 flex-shrink-0"
+                    title="Remove screenshot"
+                    aria-label="Remove screenshot"
+                  >
+                    <FaTimes className="text-xs" />
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
