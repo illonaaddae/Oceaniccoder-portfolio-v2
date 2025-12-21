@@ -723,12 +723,32 @@ export async function updateAbout(
   aboutId: string,
   about: Partial<Omit<About, "$id">>
 ): Promise<About> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.ABOUT,
-    aboutId,
-    about as Record<string, unknown>
-  ) as unknown as About;
+  try {
+    return (await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTIONS.ABOUT,
+      aboutId,
+      about as Record<string, unknown>
+    )) as unknown as About;
+  } catch (error: unknown) {
+    // Log detailed error for debugging
+    console.error("Error updating about:", error);
+
+    // Check if it's an Appwrite error about missing attributes
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (
+      errorMessage.includes("Unknown attribute") ||
+      errorMessage.includes("attribute")
+    ) {
+      const attrMatch = errorMessage.match(/"([^"]+)"/);
+      const missingAttr = attrMatch ? attrMatch[1] : "unknown";
+      throw new Error(
+        `The attribute "${missingAttr}" doesn't exist in your Appwrite database. ` +
+          `Please add it to the "about" collection in Appwrite Console.`
+      );
+    }
+    throw error;
+  }
 }
 
 export async function saveAbout(
@@ -742,7 +762,25 @@ export async function saveAbout(
     return updateAbout(existing.$id, about);
   } else {
     // Create new about
-    return createAbout(about as Omit<About, "$id">);
+    try {
+      return await createAbout(about as Omit<About, "$id">);
+    } catch (error: unknown) {
+      console.error("Error creating about:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        errorMessage.includes("Unknown attribute") ||
+        errorMessage.includes("attribute")
+      ) {
+        const attrMatch = errorMessage.match(/"([^"]+)"/);
+        const missingAttr = attrMatch ? attrMatch[1] : "unknown";
+        throw new Error(
+          `The attribute "${missingAttr}" doesn't exist in your Appwrite database. ` +
+            `Please add it to the "about" collection in Appwrite Console.`
+        );
+      }
+      throw error;
+    }
   }
 }
 
