@@ -11,6 +11,7 @@ import RouteChangeHandler from "./components/RouteChangeHandler";
 import AdminLogin from "./components/AdminLogin";
 import EventBanner from "./components/EventBanner";
 import SupportButton from "./components/SupportButton";
+import SkipToContent from "./components/SkipToContent";
 import { verifyAdminPassword, hashPassword } from "./services/api";
 
 // Code-split heavy routes
@@ -36,9 +37,12 @@ const MainLayout: FC<{
 
   return (
     <>
+      {!isAdminRoute && <SkipToContent />}
       {!isAdminRoute && <EventBanner />}
       {!isAdminRoute && <Navbar theme={theme} toggleTheme={toggleTheme} />}
-      {children}
+      <main id="main-content" tabIndex={-1} className="outline-none">
+        {children}
+      </main>
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <ScrollToTop />}
       {!isAdminRoute && <SupportButton />}

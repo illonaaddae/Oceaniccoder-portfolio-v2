@@ -695,7 +695,7 @@ const AboutSection = () => {
                             <div className="inline-flex items-center gap-2 bg-gray-700/30 text-gray-300 text-xs px-3 py-1.5 rounded-full border border-gray-600/50 font-medium shadow-sm">
                               <img
                                 src={edu.universityLogo}
-                                alt="University Logo"
+                                alt={`${edu.institution} logo`}
                                 className="w-6 h-6 object-contain flex-shrink-0"
                                 loading="eager"
                                 decoding="async"
