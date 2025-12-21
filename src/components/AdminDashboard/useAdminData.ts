@@ -231,14 +231,16 @@ export const useAdminData = () => {
 
   // Project handlers
   const handleDeleteProject = async (projectId: string) => {
-    if (window.confirm("Delete this project?")) {
-      try {
-        await deleteProject(projectId);
-        await loadData(false);
-      } catch (err) {
-        console.error("Failed to delete project:", err);
-        throw err;
-      }
+    if (!window.confirm("Delete this project?")) {
+      // User cancelled - throw to signal cancellation
+      throw new Error("cancelled");
+    }
+    try {
+      await deleteProject(projectId);
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to delete project:", err);
+      throw err;
     }
   };
 
