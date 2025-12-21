@@ -169,10 +169,10 @@ const AboutSection = () => {
   return (
     <section
       id="about"
-      className="min-h-[auto] sm:min-h-screen pt-20 sm:pt-28 pb-12 sm:pb-20 relative scroll-mt-20 sm:scroll-mt-28"
+      className="min-h-[auto] sm:min-h-screen pt-28 sm:pt-28 pb-12 sm:pb-20 relative scroll-mt-24 sm:scroll-mt-28"
       style={{
         // ensure browsers without the Tailwind utility still respect anchor offsets
-        scrollMarginTop: "5rem",
+        scrollMarginTop: "6rem",
         background:
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%)",
       }}
