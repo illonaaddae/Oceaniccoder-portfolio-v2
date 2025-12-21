@@ -214,7 +214,7 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               aria-label="Select project category"
             >
               <option value="">Select Category</option>
-              <option value="Web Development">Web Development</option>
+              <option value="Web App">Web App</option>
               <option value="Mobile App">Mobile App</option>
               <option value="Full Stack">Full Stack</option>
               <option value="AI/ML">AI/ML</option>

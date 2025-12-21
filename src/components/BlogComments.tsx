@@ -39,6 +39,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [replyIndex, setReplyIndex] = useState(0); // Track current reply in carousel
   const [isAnimating, setIsAnimating] = useState(false);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
   const [toast, setToast] = useState<{
@@ -88,6 +89,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
     if (isAnimating || topLevelComments.length <= 1) return;
     setIsAnimating(true);
     setCurrentIndex((prev) => (prev + 1) % topLevelComments.length);
+    setReplyIndex(0); // Reset reply index when changing comments
     setTimeout(() => setIsAnimating(false), 400);
   };
 
@@ -97,6 +99,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
     setCurrentIndex(
       (prev) => (prev - 1 + topLevelComments.length) % topLevelComments.length
     );
+    setReplyIndex(0); // Reset reply index when changing comments
     setTimeout(() => setIsAnimating(false), 400);
   };
 
@@ -104,6 +107,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
     if (isAnimating || index === currentIndex) return;
     setIsAnimating(true);
     setCurrentIndex(index);
+    setReplyIndex(0); // Reset reply index when changing comments
     setTimeout(() => setIsAnimating(false), 400);
   };
 
@@ -381,39 +385,107 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
                 </form>
               )}
 
-              {/* Replies Section */}
+              {/* Replies Section - Mini Carousel */}
               {currentReplies.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-[var(--glass-border)]">
-                  <p className={`text-sm font-medium mb-4 ${textAccent}`}>
-                    {currentReplies.length}{" "}
-                    {currentReplies.length === 1 ? "Reply" : "Replies"}
-                  </p>
-                  <div className="space-y-4 max-h-48 overflow-y-auto pr-2">
-                    {currentReplies.map((reply) => (
-                      <div
-                        key={reply.$id}
-                        className={`p-3 rounded-lg border ${cardStyles}`}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-gradient-to-br from-[var(--brand-ocean-2)]/20 to-[var(--brand-ocean-3)]/20 text-[var(--brand-ocean-2)]">
-                            {reply.authorName.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h5
-                              className={`text-sm font-semibold ${textPrimary}`}
-                            >
-                              {reply.authorName}
-                            </h5>
-                            <p className={`text-xs ${textAccent}`}>
-                              {formatDate(reply.$createdAt)}
-                            </p>
-                          </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className={`text-sm font-medium ${textAccent}`}>
+                      {currentReplies.length}{" "}
+                      {currentReplies.length === 1 ? "Reply" : "Replies"}
+                    </p>
+                    {currentReplies.length > 1 && (
+                      <span className={`text-xs ${textAccent}`}>
+                        {replyIndex + 1} / {currentReplies.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    {/* Reply Card */}
+                    <div
+                      className={`p-4 rounded-xl border ${cardStyles} transition-opacity duration-300`}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-[var(--brand-ocean-2)]/20 to-[var(--brand-ocean-3)]/20 text-[var(--brand-ocean-2)]">
+                          {currentReplies[replyIndex]?.authorName
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
-                        <p className={`text-sm ${textSecondary}`}>
-                          {reply.content}
-                        </p>
+                        <div>
+                          <h5
+                            className={`text-sm font-semibold ${textPrimary}`}
+                          >
+                            {currentReplies[replyIndex]?.authorName}
+                          </h5>
+                          <p className={`text-xs ${textAccent}`}>
+                            {formatDate(currentReplies[replyIndex]?.$createdAt)}
+                          </p>
+                        </div>
                       </div>
-                    ))}
+                      <p className={`text-sm leading-relaxed ${textSecondary}`}>
+                        {currentReplies[replyIndex]?.content}
+                      </p>
+                    </div>
+
+                    {/* Reply Navigation */}
+                    {currentReplies.length > 1 && (
+                      <div className="flex items-center justify-center gap-3 mt-4">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setReplyIndex(
+                              (prev) =>
+                                (prev - 1 + currentReplies.length) %
+                                currentReplies.length
+                            );
+                          }}
+                          className={`p-1.5 rounded-full border transition-all ${cardStyles} hover:bg-[var(--brand-ocean-2)]/10 hover:border-[var(--brand-ocean-2)]/50`}
+                          aria-label="Previous reply"
+                        >
+                          <FaChevronLeft className={`w-3 h-3 ${textPrimary}`} />
+                        </button>
+
+                        {/* Reply Dots */}
+                        <div className="flex gap-1.5">
+                          {currentReplies.map((_, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setReplyIndex(idx);
+                              }}
+                              className={`w-2 h-2 rounded-full transition-all ${
+                                idx === replyIndex
+                                  ? "bg-[var(--brand-ocean-2)] scale-110"
+                                  : "bg-[var(--glass-border)] hover:bg-[var(--brand-ocean-2)]/50"
+                              }`}
+                              aria-label={`Go to reply ${idx + 1}`}
+                            />
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setReplyIndex(
+                              (prev) => (prev + 1) % currentReplies.length
+                            );
+                          }}
+                          className={`p-1.5 rounded-full border transition-all ${cardStyles} hover:bg-[var(--brand-ocean-2)]/10 hover:border-[var(--brand-ocean-2)]/50`}
+                          aria-label="Next reply"
+                        >
+                          <FaChevronRight
+                            className={`w-3 h-3 ${textPrimary}`}
+                          />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
