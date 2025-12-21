@@ -1,111 +1,71 @@
 // Service Worker for Oceaniccoder Portfolio PWA
-// Version 4 - Force cache refresh after major updates
-const CACHE_NAME = "oceaniccoder-v4";
-const IS_LOCALHOST =
-  self.location.hostname === "localhost" ||
-  self.location.hostname === "127.0.0.1";
+// Version 5 - Network-first strategy to fix corrupted cache issues
+const CACHE_NAME = "oceaniccoder-v5";
 
-const urlsToCache = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/favicon.ico",
-  "/images/logo/android-chrome-192x192.png",
-  "/images/logo/android-chrome-512x512.png",
-  "/images/logo/apple-touch-icon.png",
-];
-
-// Install event - cache static assets
+// Install event - skip waiting immediately to activate new SW
 self.addEventListener("install", (event) => {
-  // Skip caching entirely in development
-  if (IS_LOCALHOST) {
-    self.skipWaiting();
-    return;
-  }
-
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => {
-        console.log("Opened cache");
-        return cache.addAll(urlsToCache);
-      })
-      .catch((err) => {
-        console.log("Cache installation failed:", err);
-      })
-  );
+  console.log("SW v5: Installing...");
+  // Force immediate activation
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - DELETE ALL CACHES to fix corrupted content
 self.addEventListener("activate", (event) => {
+  console.log("SW v5: Activating and clearing ALL caches...");
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log("Deleting old cache:", cacheName);
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            console.log("SW v5: Deleting cache:", cacheName);
             return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+          })
+        );
+      })
+      .then(() => {
+        console.log("SW v5: All caches cleared, claiming clients...");
+        return self.clients.claim();
+      })
   );
-  self.clients.claim();
 });
 
-// Fetch event - serve from cache, fall back to network
+// Fetch event - NETWORK FIRST to always get fresh content
 self.addEventListener("fetch", (event) => {
-  // COMPLETELY BYPASS SERVICE WORKER IN DEVELOPMENT
-  // This prevents all caching issues with Vite dev server
-  if (IS_LOCALHOST) {
-    return; // Let the browser handle it normally
-  }
-
-  // Only cache in production
-  const url = new URL(event.request.url);
-
   // Skip non-GET requests
   if (event.request.method !== "GET") {
     return;
   }
 
   // Skip external requests
+  const url = new URL(event.request.url);
   if (!url.origin.includes(self.location.origin)) {
     return;
   }
 
+  // Network-first strategy - always try network, fall back to cache only if offline
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Cache hit - return response
-      if (response) {
+    fetch(event.request)
+      .then((response) => {
         return response;
-      }
-
-      // Clone the request
-      const fetchRequest = event.request.clone();
-
-      return fetch(fetchRequest).then((response) => {
-        // Check if we received a valid response
-        if (!response || response.status !== 200 || response.type !== "basic") {
-          return response;
-        }
-
-        // Clone the response
-        const responseToCache = response.clone();
-
-        // Only cache static assets in production
-        if (
-          event.request.url.includes("/assets/") ||
-          event.request.url.includes("/images/")
-        ) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-
-        return response;
-      });
-    })
+      })
+      .catch(() => {
+        // Only use cache as absolute last resort for offline
+        return caches.match(event.request);
+      })
   );
+});
+
+// Listen for messages to force update
+self.addEventListener("message", (event) => {
+  if (event.data === "skipWaiting") {
+    self.skipWaiting();
+  }
+  if (event.data === "clearCaches") {
+    caches.keys().then((cacheNames) => {
+      cacheNames.forEach((cacheName) => {
+        caches.delete(cacheName);
+      });
+    });
+  }
 });
