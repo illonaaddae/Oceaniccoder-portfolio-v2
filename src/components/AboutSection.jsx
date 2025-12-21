@@ -818,8 +818,12 @@ const AboutSection = () => {
                     Want to Know More?
                   </h4>
                   <a
-                    href="https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
-                    download
+                    href={
+                      about?.resumeUrl ||
+                      "https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="glass-btn bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-6 py-3 font-medium hover:scale-105 transition-all duration-300 inline-flex items-center gap-2"
                   >
                     <FaDownload className="w-4 h-4" />
