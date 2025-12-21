@@ -104,7 +104,13 @@ const ProjectsSection = () => {
         {/* Projects Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {filteredProjects.slice(0, visibleProjects).map((project) => (
-            <div key={project.id} className="card-hover group">
+            <Link
+              key={project.id}
+              to={`/projects/${
+                project.slug || project.title.toLowerCase().replace(/\s+/g, "-")
+              }`}
+              className="card-hover group block cursor-pointer"
+            >
               <div className="glass-card overflow-hidden h-full">
                 {/* Project Image */}
                 <div className="relative overflow-hidden h-48">
@@ -121,7 +127,8 @@ const ProjectsSection = () => {
                           href={project.githubUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="glass-btn p-2 text-white hover:text-cyan-400 transition-colors duration-300"
+                          onClick={(e) => e.stopPropagation()}
+                          className="glass-btn p-2 text-white hover:text-cyan-400 transition-colors duration-300 z-10"
                         >
                           <FaGithub className="w-5 h-5" />
                         </a>
@@ -131,7 +138,8 @@ const ProjectsSection = () => {
                           href={project.liveUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="glass-btn p-2 text-white hover:text-cyan-400 transition-colors duration-300"
+                          onClick={(e) => e.stopPropagation()}
+                          className="glass-btn p-2 text-white hover:text-cyan-400 transition-colors duration-300 z-10"
                         >
                           <FaExternalLinkAlt className="w-5 h-5" />
                         </a>
@@ -204,7 +212,8 @@ const ProjectsSection = () => {
                         href={project.liveUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 glass-btn bg-gradient-to-r from-cyan-600 to-blue-600 text-white py-2 px-4 text-sm font-medium text-center hover:scale-105 transition-transform duration-300 flex items-center justify-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 glass-btn bg-gradient-to-r from-cyan-600 to-blue-600 text-white py-2 px-4 text-sm font-medium text-center hover:scale-105 transition-transform duration-300 flex items-center justify-center gap-2 z-10"
                       >
                         <FaEye className="w-4 h-4" />
                         Live Demo
@@ -215,7 +224,8 @@ const ProjectsSection = () => {
                         href={project.githubUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 glass-btn border border-white/20 text-white py-2 px-4 text-sm font-medium text-center hover:scale-105 transition-transform duration-300 flex items-center justify-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 glass-btn border border-white/20 text-white py-2 px-4 text-sm font-medium text-center hover:scale-105 transition-transform duration-300 flex items-center justify-center gap-2 z-10"
                       >
                         <FaCode className="w-4 h-4" />
                         Code
@@ -223,20 +233,14 @@ const ProjectsSection = () => {
                     )}
                   </div>
 
-                  {/* View Case Study Link */}
-                  <Link
-                    to={`/projects/${
-                      project.slug ||
-                      project.title.toLowerCase().replace(/\s+/g, "-")
-                    }`}
-                    className="flex items-center justify-center gap-2 text-sm text-orange-400 hover:text-orange-300 transition-colors py-2 group/link"
-                  >
+                  {/* View Case Study indicator */}
+                  <div className="flex items-center justify-center gap-2 text-sm text-orange-400 group-hover:text-orange-300 transition-colors py-2">
                     View Case Study
-                    <FaArrowRight className="w-3 h-3 group-hover/link:translate-x-1 transition-transform" />
-                  </Link>
+                    <FaArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
