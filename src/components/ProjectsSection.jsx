@@ -245,7 +245,7 @@ const ProjectsSection = () => {
           <div className="text-center">
             <button
               onClick={loadMoreProjects}
-              className="glass-btn bg-gradient-to-r from-orange-600 to-red-600 text-white px-8 py-3 font-medium hover:scale-105 transition-transform duration-300"
+              className="glass-btn bg-gradient-to-r from-cyan-900 to-blue-900 text-white px-8 py-3 font-medium hover:scale-105 transition-transform duration-300"
             >
               Load More Projects
             </button>

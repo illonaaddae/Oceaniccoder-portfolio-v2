@@ -6,3 +6,4 @@ export { EducationFormModal } from "./EducationFormModal";
 export { JourneyFormModal } from "./JourneyFormModal";
 export { GalleryFormModal } from "./GalleryFormModal";
 export { MessageDetailModal } from "./MessageDetailModal";
+export { TestimonialFormModal } from "./TestimonialFormModal";

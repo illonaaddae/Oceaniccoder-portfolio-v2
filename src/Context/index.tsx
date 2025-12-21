@@ -136,13 +136,15 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     { id: "dashboard", label: "Dashboard", href: "/dashboard" },
   ];
 
-  // Project filters
+  // Project filters - match the actual categories used in admin dashboard
   const projectFilters = [
     "All",
-    "Web Apps",
-    "Mobile Apps",
+    "Web Development",
+    "Mobile App",
+    "Full Stack",
     "AI/ML",
-    "Open Source",
+    "Backend",
+    "Frontend",
   ];
 
   const value = {

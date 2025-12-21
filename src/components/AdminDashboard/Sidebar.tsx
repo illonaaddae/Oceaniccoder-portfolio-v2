@@ -18,6 +18,7 @@ import {
   FaTimes,
   FaBlog,
   FaComments,
+  FaQuoteRight,
 } from "react-icons/fa";
 import { useState } from "react";
 
@@ -33,6 +34,7 @@ type TabType =
   | "journey"
   | "about"
   | "blog"
+  | "testimonials"
   | "settings";
 
 interface SidebarProps {
@@ -68,6 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "projects", label: "Projects", icon: FaProjectDiagram },
     { id: "certifications", label: "Certifications", icon: FaFileAlt },
     { id: "blog", label: "Blog Posts", icon: FaBlog },
+    { id: "testimonials", label: "Testimonials", icon: FaQuoteRight },
     { id: "education", label: "Education", icon: FaGraduationCap },
     { id: "journey", label: "Journey", icon: FaRoad },
     { id: "gallery", label: "Gallery", icon: FaImage },

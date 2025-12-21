@@ -370,6 +370,7 @@ const ContactSection = () => {
                     email: formData.email,
                     subject: formData.subject,
                     message: formData.message,
+                    status: "new",
                   }).catch((dbError) => {
                     console.warn(
                       "Failed to save message to database:",

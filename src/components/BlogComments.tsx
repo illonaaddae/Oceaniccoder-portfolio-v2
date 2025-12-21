@@ -194,14 +194,17 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
           {/* Reply button */}
           {!isReply && (
             <button
-              onClick={() =>
-                setReplyingTo(replyingTo === comment.$id ? null : comment.$id)
-              }
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setReplyingTo(replyingTo === comment.$id ? null : comment.$id);
+              }}
               className="mt-3 flex items-center gap-1.5 text-sm font-medium transition-colors 
                 text-[var(--brand-ocean-2)] hover:text-[var(--brand-ocean-3)]"
             >
               <FaReply className="text-xs" />
-              Reply
+              {replyingTo === comment.$id ? "Cancel" : "Reply"}
             </button>
           )}
 
@@ -247,7 +250,11 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
               <div className="flex justify-end gap-2 mt-3">
                 <button
                   type="button"
-                  onClick={() => setReplyingTo(null)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setReplyingTo(null);
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${textAccent} hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]`}
                 >
                   Cancel
@@ -255,7 +262,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-[var(--brand-ocean-2)] to-[var(--brand-ocean-3)] text-white text-sm font-medium rounded-lg hover:from-[var(--brand-ocean-3)] hover:to-[var(--brand-ocean-4)] transition-all disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-cyan-500 hover:to-blue-500 transition-all disabled:opacity-50"
                 >
                   <FaPaperPlane className="text-xs" />
                   {submitting ? "Posting..." : "Post Reply"}
@@ -381,7 +388,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
             disabled={
               submitting || !form.authorName.trim() || !form.content.trim()
             }
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[var(--brand-ocean-2)] to-[var(--brand-ocean-3)] text-white font-semibold rounded-xl hover:from-[var(--brand-ocean-3)] hover:to-[var(--brand-ocean-4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--shadow-ocean)]"
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-[var(--brand-ocean-2)] dark:to-[var(--brand-ocean-3)] text-white font-semibold rounded-xl hover:from-cyan-500 hover:to-blue-500 dark:hover:from-[var(--brand-ocean-3)] dark:hover:to-[var(--brand-ocean-4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
             <FaPaperPlane />
             {submitting ? "Posting..." : "Post Comment"}

@@ -9,6 +9,7 @@ import type {
   Journey,
   About,
   BlogPost,
+  Testimonial,
 } from "@/types";
 import {
   getMessages,
@@ -44,6 +45,10 @@ import {
   createBlogPost,
   updateBlogPost,
   deleteBlogPost,
+  getTestimonials,
+  createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
 } from "@/services/api";
 
 export const useAdminData = () => {
@@ -56,6 +61,7 @@ export const useAdminData = () => {
   const [journey, setJourney] = useState<Journey[]>([]);
   const [about, setAbout] = useState<About | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +137,13 @@ export const useAdminData = () => {
         console.warn("Failed to load blog posts:", err);
       }
 
+      let testimonialsData: Testimonial[] = [];
+      try {
+        testimonialsData = await getTestimonials();
+      } catch (err) {
+        console.warn("Failed to load testimonials:", err);
+      }
+
       setMessages(messagesData);
       setSkills(skillsData);
       setProjects(projectsData);
@@ -140,6 +153,7 @@ export const useAdminData = () => {
       setJourney(journeyData);
       setAbout(aboutData);
       setBlogPosts(blogPostsData);
+      setTestimonials(testimonialsData);
       setError(null); // Clear any previous errors since data loaded
     } catch (err) {
       const errorMessage =
@@ -467,6 +481,42 @@ export const useAdminData = () => {
     }
   };
 
+  // Testimonial handlers
+  const handleAddTestimonial = async (
+    testimonialForm: Omit<Testimonial, "$id" | "$createdAt">
+  ) => {
+    try {
+      await createTestimonial(testimonialForm);
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to add testimonial:", err);
+      throw err;
+    }
+  };
+
+  const handleUpdateTestimonial = async (
+    testimonialId: string,
+    testimonialForm: Partial<Omit<Testimonial, "$id" | "$createdAt">>
+  ) => {
+    try {
+      await updateTestimonial(testimonialId, testimonialForm);
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to update testimonial:", err);
+      throw err;
+    }
+  };
+
+  const handleDeleteTestimonial = async (testimonialId: string) => {
+    try {
+      await deleteTestimonial(testimonialId);
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to delete testimonial:", err);
+      throw err;
+    }
+  };
+
   return {
     messages,
     skills,
@@ -477,6 +527,7 @@ export const useAdminData = () => {
     journey,
     about,
     blogPosts,
+    testimonials,
     loading,
     error,
     loadData,
@@ -506,5 +557,8 @@ export const useAdminData = () => {
     handleAddBlogPost,
     handleUpdateBlogPost,
     handleDeleteBlogPost,
+    handleAddTestimonial,
+    handleUpdateTestimonial,
+    handleDeleteTestimonial,
   };
 };

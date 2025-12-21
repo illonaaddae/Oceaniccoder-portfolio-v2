@@ -31,6 +31,7 @@ export const COLLECTIONS = {
   SKILLS: "skills",
   SETTINGS: "settings",
   ABOUT: "about",
+  TESTIMONIALS: "testimonials",
 } as const;
 
 export default client;

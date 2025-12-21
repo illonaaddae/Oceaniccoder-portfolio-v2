@@ -33,8 +33,8 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
     }
     setSelectedMessage(message);
     setIsModalOpen(true);
-    // Auto-mark as read when viewing
-    if (message.status === "new") {
+    // Auto-mark as read when viewing (messages without status or with "new" status)
+    if (!message.status || message.status === "new") {
       onStatusChange(message.$id, "read");
     }
   };
@@ -199,7 +199,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
                     <td className="px-6 py-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border transition-colors duration-300 ${
-                          msg.status === "new"
+                          !msg.status || msg.status === "new"
                             ? theme === "dark"
                               ? "bg-blue-500/30 text-blue-100 border-blue-400/30"
                               : "bg-blue-400/20 text-blue-700 border-blue-300/50"

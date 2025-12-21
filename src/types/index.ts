@@ -175,3 +175,17 @@ export interface Settings {
   $createdAt?: string;
   $updatedAt?: string;
 }
+
+// Testimonial Types
+export interface Testimonial {
+  $id: string;
+  name: string;
+  role: string;
+  company?: string;
+  content: string;
+  image?: string;
+  rating?: number;
+  featured?: boolean;
+  order?: number;
+  $createdAt?: string;
+}

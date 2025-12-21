@@ -14,6 +14,7 @@ import { EducationTab } from "./tabs/EducationTab";
 import { JourneyTab } from "./tabs/JourneyTab";
 import { AboutTab } from "./tabs/AboutTab";
 import BlogTab from "./tabs/BlogTab";
+import { TestimonialsTab } from "./tabs/TestimonialsTab";
 import {
   ProjectFormModal,
   SkillFormModal,
@@ -21,6 +22,7 @@ import {
   EducationFormModal,
   JourneyFormModal,
   GalleryFormModal,
+  TestimonialFormModal,
 } from "./modals";
 import { ToastContainer, useToast } from "./Toast";
 import { FaBell, FaSearch } from "react-icons/fa";
@@ -33,6 +35,7 @@ import type {
   Journey,
   About,
   BlogPost,
+  Testimonial,
 } from "@/types";
 
 type TabType =
@@ -47,6 +50,7 @@ type TabType =
   | "journey"
   | "about"
   | "blog"
+  | "testimonials"
   | "settings";
 
 interface AdminDashboardProps {
@@ -73,6 +77,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showEducationModal, setShowEducationModal] = useState(false);
   const [showJourneyModal, setShowJourneyModal] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [showTestimonialModal, setShowTestimonialModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [editingCertification, setEditingCertification] =
@@ -83,6 +88,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
   const [editingGalleryImage, setEditingGalleryImage] =
     useState<GalleryImage | null>(null);
+  const [editingTestimonial, setEditingTestimonial] =
+    useState<Testimonial | null>(null);
 
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -144,6 +151,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     handleAddBlogPost,
     handleUpdateBlogPost,
     handleDeleteBlogPost,
+    testimonials,
+    handleAddTestimonial,
+    handleUpdateTestimonial,
+    handleDeleteTestimonial,
   } = useAdminData();
 
   // Filtering functions
@@ -566,7 +577,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const newMessages = messages.filter((m) => m.status === "new").length;
+  // Count new messages - messages without status or with status "new" are considered new
+  const newMessages = messages.filter(
+    (m) => !m.status || m.status === "new"
+  ).length;
   const totalProjects = projects.length;
   const totalCertifications = certifications.length;
   const totalGallery = gallery.length;
@@ -804,6 +818,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           )}
 
+          {activeTab === "testimonials" && (
+            <TestimonialsTab
+              theme={theme}
+              loading={loading}
+              testimonials={testimonials}
+              onDelete={async (id) => {
+                try {
+                  await handleDeleteTestimonial(id);
+                  showSuccess("Testimonial deleted successfully");
+                } catch {
+                  showError("Failed to delete testimonial");
+                }
+              }}
+              onEdit={(testimonial) => {
+                setEditingTestimonial(testimonial);
+                setShowTestimonialModal(true);
+              }}
+              onShowForm={() => {
+                setEditingTestimonial(null);
+                setShowTestimonialModal(true);
+              }}
+              isReadOnly={isReadOnly}
+            />
+          )}
+
           {activeTab === "settings" && <SettingsTab theme={theme} />}
         </div>
       </main>
@@ -855,6 +894,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onSubmit={handleGallerySubmit}
         theme={theme}
         editingImage={editingGalleryImage}
+      />
+
+      <TestimonialFormModal
+        isOpen={showTestimonialModal}
+        onClose={() => {
+          setShowTestimonialModal(false);
+          setEditingTestimonial(null);
+        }}
+        onSubmit={async (testimonialData) => {
+          try {
+            if (editingTestimonial) {
+              await handleUpdateTestimonial(
+                editingTestimonial.$id,
+                testimonialData
+              );
+              showSuccess("Testimonial updated successfully");
+            } else {
+              await handleAddTestimonial(testimonialData);
+              showSuccess("Testimonial added successfully");
+            }
+          } catch {
+            showError("Failed to save testimonial");
+          }
+        }}
+        theme={theme}
+        editingTestimonial={editingTestimonial}
       />
 
       {/* Delete Confirmation Modal */}

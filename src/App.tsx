@@ -22,6 +22,9 @@ const Projects = React.lazy(() => import("./components/ProjectsSection"));
 const ProjectCaseStudy = React.lazy(
   () => import("./components/ProjectCaseStudy")
 );
+const Testimonials = React.lazy(
+  () => import("./components/TestimonialsSection")
+);
 const Blog = React.lazy(() => import("./components/BlogSection"));
 const BlogPost = React.lazy(() => import("./components/BlogPost"));
 const Contact = React.lazy(() => import("./components/ContactSection"));
@@ -83,6 +86,7 @@ const AnimatedRoutes: FC<{
               <Home />
               <Skills />
               <Projects />
+              <Testimonials />
             </motion.div>
           }
         />

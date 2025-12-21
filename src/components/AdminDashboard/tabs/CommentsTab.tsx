@@ -194,10 +194,27 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({
           className={`text-sm sm:text-base transition-colors duration-300 ${textSecondary}`}
         >
           {isReadOnly
-            ? "View blog post comments"
+            ? "Overview of blog comment activity"
             : "Manage blog post comments and moderation"}
         </p>
       </div>
+
+      {/* Read-only notice banner */}
+      {isReadOnly && (
+        <div
+          className={`rounded-xl p-4 border ${
+            theme === "dark"
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+              : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}
+        >
+          <p className="text-sm font-medium flex items-center gap-2">
+            <span className="text-lg">🔒</span>
+            Comment moderation is only available to the admin. This is a
+            read-only view of comment statistics.
+          </p>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -303,17 +320,31 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({
               {/* Comment Header */}
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-500">
-                    {comment.authorName.charAt(0).toUpperCase()}
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-500 ${
+                      isReadOnly ? "blur-sm" : ""
+                    }`}
+                  >
+                    {isReadOnly
+                      ? "•"
+                      : comment.authorName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className={`font-semibold ${textPrimary}`}>
-                      {comment.authorName}
+                    <h4
+                      className={`font-semibold ${textPrimary} ${
+                        isReadOnly ? "blur-sm select-none" : ""
+                      }`}
+                    >
+                      {isReadOnly ? "••••••••" : comment.authorName}
                     </h4>
                     <div className="flex items-center gap-2 flex-wrap">
                       {comment.authorEmail && (
-                        <span className={`text-xs ${textMuted}`}>
-                          {comment.authorEmail}
+                        <span
+                          className={`text-xs ${textMuted} ${
+                            isReadOnly ? "blur-sm select-none" : ""
+                          }`}
+                        >
+                          {isReadOnly ? "••••••@••••.•••" : comment.authorEmail}
                         </span>
                       )}
                       <span className={`text-xs ${textMuted}`}>
@@ -372,9 +403,13 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({
 
               {/* Comment Content */}
               <p
-                className={`text-sm md:text-base leading-relaxed whitespace-pre-wrap ${textSecondary}`}
+                className={`text-sm md:text-base leading-relaxed whitespace-pre-wrap ${textSecondary} ${
+                  isReadOnly ? "blur-sm select-none" : ""
+                }`}
               >
-                {comment.content}
+                {isReadOnly
+                  ? "Comment content is protected and only visible to admin..."
+                  : comment.content}
               </p>
 
               {/* Actions */}
