@@ -119,6 +119,7 @@ const ProjectsSection = () => {
                     alt={project.title}
                     className="w-full h-full group-hover:scale-110 transition-transform duration-500"
                     placeholderColor="from-slate-800 to-slate-900"
+                    displaySize="card"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="absolute bottom-4 left-4 right-4 flex gap-2">

@@ -146,6 +146,7 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     "AI/ML",
     "Backend",
     "Frontend",
+    "Other",
   ];
 
   const value = {

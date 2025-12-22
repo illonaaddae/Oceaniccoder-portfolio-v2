@@ -417,6 +417,7 @@ const AboutSection = () => {
                               className="gallery-main-image rounded-lg"
                               placeholderColor="from-cyan-900/30 to-slate-900"
                               fallbackSrc="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
+                              displaySize="hero"
                               style={{
                                 objectPosition: "center",
                                 maxHeight: "60vh",

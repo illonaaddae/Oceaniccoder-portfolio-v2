@@ -233,6 +233,7 @@ const ProjectCaseStudy: React.FC = () => {
               src={project.image}
               alt={`${project.title} preview`}
               className="w-full h-auto"
+              displaySize="hero"
             />
           </div>
         )}

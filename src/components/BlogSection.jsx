@@ -294,6 +294,7 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
                       alt={post.title}
                       className="w-full h-full group-hover:scale-105 transition-transform duration-500"
                       placeholderColor="from-emerald-900/50 to-slate-900"
+                      displaySize="card"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute top-4 left-4">
@@ -432,6 +433,7 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
                     alt={post.title}
                     className="w-full h-full group-hover:scale-105 transition-transform duration-500"
                     placeholderColor="from-emerald-900/50 to-slate-900"
+                    displaySize="card"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                   {post.category && (

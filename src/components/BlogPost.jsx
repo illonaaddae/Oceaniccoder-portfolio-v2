@@ -870,6 +870,7 @@ Now go create something beautiful! ✨`,
               alt={post.title}
               className="w-full h-full"
               placeholderColor="from-emerald-900/30 to-slate-900"
+              displaySize="blog"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </div>
@@ -1178,6 +1179,7 @@ Now go create something beautiful! ✨`,
                       alt={relatedPost.title}
                       className="w-full h-full group-hover:scale-110 transition-transform duration-500"
                       placeholderColor="from-emerald-900/30 to-slate-900"
+                      displaySize="thumbnail"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                   </div>

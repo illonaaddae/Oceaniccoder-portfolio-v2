@@ -1,4 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import {
+  getOptimizedImageUrl,
+  isAppwriteUrl,
+  generateSrcSet,
+} from "../../utils/imageOptimizer";
 
 interface LazyImageProps {
   src: string;
@@ -11,7 +16,20 @@ interface LazyImageProps {
   objectFit?: "cover" | "contain" | "fill" | "none" | "scale-down";
   onClick?: () => void;
   style?: React.CSSProperties;
+  /** Display context for automatic optimization */
+  displaySize?: "thumbnail" | "card" | "blog" | "hero" | "full";
+  /** Disable image optimization (use original URL) */
+  disableOptimization?: boolean;
 }
+
+// Size presets for optimization
+const SIZE_PRESETS = {
+  thumbnail: { width: 150, height: 150 },
+  card: { width: 400, height: 300 },
+  blog: { width: 800, height: 450 },
+  hero: { width: 1200, height: 675 },
+  full: { width: 1920, height: 1080 },
+};
 
 /**
  * LazyImage Component
@@ -22,6 +40,8 @@ interface LazyImageProps {
  * - Smooth fade-in animation
  * - Fallback image on error
  * - Supports custom placeholder colors
+ * - Automatic image optimization for Appwrite images
+ * - Responsive srcSet generation
  */
 export const LazyImage: React.FC<LazyImageProps> = ({
   src,
@@ -34,12 +54,28 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   objectFit = "cover",
   onClick,
   style,
+  displaySize = "card",
+  disableOptimization = false,
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const imgRef = useRef<HTMLDivElement>(null);
+
+  // Calculate optimized image URL based on display size
+  const optimizedSrc = useMemo(() => {
+    if (!src || disableOptimization || !isAppwriteUrl(src)) return src;
+
+    const preset = SIZE_PRESETS[displaySize];
+    return getOptimizedImageUrl(src, preset.width, preset.height, 80);
+  }, [src, displaySize, disableOptimization]);
+
+  // Generate srcSet for responsive images
+  const srcSet = useMemo(() => {
+    if (!src || disableOptimization || !isAppwriteUrl(src)) return "";
+    return generateSrcSet(src, [320, 640, 768, 1024, 1280]);
+  }, [src, disableOptimization]);
 
   // Intersection Observer to detect when image enters viewport
   useEffect(() => {
@@ -48,13 +84,13 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setIsInView(true);
-            setCurrentSrc(src);
+            setCurrentSrc(optimizedSrc);
             observer.disconnect();
           }
         });
       },
       {
-        rootMargin: "100px", // Start loading 100px before entering viewport
+        rootMargin: "200px", // Start loading 200px before entering viewport
         threshold: 0.01,
       }
     );
@@ -64,16 +100,16 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     }
 
     return () => observer.disconnect();
-  }, [src]);
+  }, [optimizedSrc]);
 
   // Reset state when src changes
   useEffect(() => {
     if (isInView) {
       setIsLoaded(false);
       setHasError(false);
-      setCurrentSrc(src);
+      setCurrentSrc(optimizedSrc);
     }
-  }, [src, isInView]);
+  }, [optimizedSrc, isInView]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -116,6 +152,12 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       {currentSrc && (
         <img
           src={currentSrc}
+          srcSet={srcSet || undefined}
+          sizes={
+            srcSet
+              ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              : undefined
+          }
           alt={alt}
           loading="lazy"
           decoding="async"
