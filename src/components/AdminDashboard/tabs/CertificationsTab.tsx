@@ -11,6 +11,39 @@ interface CertificationsTabProps {
   isReadOnly?: boolean;
 }
 
+// Format certification date - handles year-only, month-year, or full date formats
+const formatCertDate = (dateStr: string): string => {
+  if (!dateStr) return "N/A";
+
+  // Check if it's just a year (e.g., "2025", "2024")
+  if (/^\d{4}$/.test(dateStr.trim())) {
+    return dateStr.trim();
+  }
+
+  // Check if it's "Month Year" format (e.g., "December 2024")
+  const monthYearMatch = dateStr.match(
+    /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})$/i
+  );
+  if (monthYearMatch) {
+    return `${monthYearMatch[1]} ${monthYearMatch[2]}`;
+  }
+
+  // Try parsing as a date
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+      });
+    }
+  } catch {
+    // If parsing fails, return the original string
+  }
+
+  return dateStr;
+};
+
 export const CertificationsTab: React.FC<CertificationsTabProps> = ({
   theme,
   loading,
@@ -180,11 +213,7 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
                           : "text-slate-700/90"
                       }`}
                     >
-                      {new Date(cert.date).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {formatCertDate(cert.date)}
                     </td>
                     <td className="px-4 py-4">
                       <span

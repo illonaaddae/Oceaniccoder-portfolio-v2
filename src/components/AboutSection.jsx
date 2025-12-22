@@ -701,9 +701,24 @@ const AboutSection = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap mb-3">
-                          <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full border border-green-500/30 font-medium shadow-sm edu-badge">
-                            {edu.achievement}
-                          </div>
+                          {edu.achievement && edu.achievement !== "N/A" && (
+                            <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full border border-green-500/30 font-medium shadow-sm edu-badge">
+                              {edu.achievement}
+                            </div>
+                          )}
+                          {edu.classHonours && edu.classHonours !== "N/A" && (
+                            <div
+                              className={`inline-block text-xs px-3 py-1.5 rounded-full border font-medium shadow-sm ${
+                                edu.classHonours === "In Progress"
+                                  ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border-blue-500/30"
+                                  : edu.classHonours === "Pending"
+                                  ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-yellow-400 border-yellow-500/30"
+                                  : "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30"
+                              }`}
+                            >
+                              {edu.classHonours}
+                            </div>
+                          )}
                           {edu.universityLogo && (
                             <div className="inline-flex items-center gap-2 bg-gray-700/30 text-gray-300 text-xs px-3 py-1.5 rounded-full border border-gray-600/50 font-medium shadow-sm">
                               <img

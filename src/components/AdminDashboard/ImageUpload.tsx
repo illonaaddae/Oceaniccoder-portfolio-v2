@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { uploadImage } from "../../services/api";
 import { FaFilePdf, FaImage, FaTimes, FaExternalLinkAlt } from "react-icons/fa";
 
@@ -11,6 +11,8 @@ interface ImageUploadProps {
   maxSizeMB?: number;
   theme?: "light" | "dark";
   allowPdf?: boolean;
+  /** Pass true if the current value is a PDF */
+  isPdfValue?: boolean;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -22,18 +24,35 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   maxSizeMB = 5,
   theme = "dark",
   allowPdf = false,
+  isPdfValue = false,
 }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadedAsPdf, setUploadedAsPdf] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Determine file type from URL
+  // Reset states when value changes externally
+  useEffect(() => {
+    setImageLoadError(false);
+    // If value is cleared, reset uploadedAsPdf
+    if (!value) {
+      setUploadedAsPdf(false);
+    }
+  }, [value]);
+
+  // Determine if this is a PDF - check multiple indicators
   const isPdf =
-    value?.toLowerCase().includes(".pdf") || value?.includes("application/pdf");
+    isPdfValue ||
+    uploadedAsPdf ||
+    value?.toLowerCase().includes(".pdf") ||
+    value?.includes("application/pdf") ||
+    imageLoadError; // If image fails to load, it might be a PDF
 
   const handleFileSelect = async (file: File) => {
     setError(null);
+    setImageLoadError(false);
 
     // Validate file type
     const isImage = file.type.startsWith("image/");
@@ -58,6 +77,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     try {
       setUploading(true);
       const url = await uploadImage(file);
+      // Track if this upload was a PDF
+      setUploadedAsPdf(isPdfFile);
       onChange(url);
     } catch (err: unknown) {
       console.error("Upload error:", err);
@@ -103,6 +124,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const handleClear = () => {
     onChange("");
+    setUploadedAsPdf(false);
+    setImageLoadError(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -169,6 +192,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               src={value}
               alt="Preview"
               className="w-full h-40 object-cover"
+              onError={() => {
+                // If image fails to load, it might be a PDF
+                if (allowPdf) {
+                  setImageLoadError(true);
+                }
+              }}
             />
           )}
           <button

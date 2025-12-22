@@ -62,6 +62,9 @@ const months = [
 // Class Honours options
 const classHonoursOptions = [
   { value: "", label: "Select Honours (Optional)" },
+  { value: "In Progress", label: "In Progress (Currently Enrolled)" },
+  { value: "Pending", label: "Pending (Awaiting Results)" },
+  { value: "N/A", label: "Not Applicable" },
   { value: "First Class", label: "First Class Honours" },
   { value: "Second Class Upper", label: "Second Class Upper Division" },
   { value: "Second Class Lower", label: "Second Class Lower Division" },
