@@ -57,7 +57,7 @@ const dataCache: {
   timestamp?: number;
 } = {};
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 1 * 60 * 1000; // 1 minute
 
 export function usePortfolioData(): PortfolioData {
   const [projects, setProjects] = useState<Project[]>([]);
