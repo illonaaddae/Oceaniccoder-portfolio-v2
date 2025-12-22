@@ -1,4 +1,11 @@
-import { FaGraduationCap, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import {
+  FaGraduationCap,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
 import type { Education } from "@/types";
 
 interface EducationTabProps {
@@ -117,13 +124,26 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                     >
                       {edu.institution}
                     </p>
-                    <p
-                      className={`text-sm ${
-                        theme === "dark" ? "text-slate-400" : "text-slate-500"
-                      }`}
-                    >
-                      {edu.period}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p
+                        className={`text-sm ${
+                          theme === "dark" ? "text-slate-400" : "text-slate-500"
+                        }`}
+                      >
+                        {edu.period}
+                      </p>
+                      {edu.isVisible === false ? (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                          <FaEyeSlash className="text-xs" />
+                          Hidden
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                          <FaEye className="text-xs" />
+                          Visible
+                        </span>
+                      )}
+                    </div>
                     {edu.description && (
                       <p
                         className={`mt-2 text-sm ${

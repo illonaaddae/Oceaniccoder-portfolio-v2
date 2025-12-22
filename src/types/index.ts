@@ -60,6 +60,7 @@ export interface Education {
   isOngoing?: boolean;
   initials?: string;
   location?: string;
+  isVisible?: boolean;
 }
 
 // About Types

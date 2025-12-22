@@ -33,11 +33,12 @@ const formatPeriod = (
   return `${startYear} - ${endYear}`;
 };
 
-// Generate years for dropdown (current year to 50 years back)
+// Generate years for dropdown (5 years ahead to 50 years back)
 const generateYears = () => {
   const currentYear = new Date().getFullYear();
   const years: number[] = [];
-  for (let i = currentYear; i >= currentYear - 50; i--) {
+  // Include 5 years into the future for expected graduation dates
+  for (let i = currentYear + 5; i >= currentYear - 50; i--) {
     years.push(i);
   }
   return years;
@@ -101,6 +102,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
     endYear: "",
     isOngoing: false,
     location: "",
+    isVisible: true,
   });
 
   const years = useMemo(() => generateYears(), []);
@@ -144,6 +146,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         endYear: endParsed.year,
         isOngoing: editingEducation.isOngoing || false,
         location: editingEducation.location || "",
+        isVisible: editingEducation.isVisible !== false,
       });
     } else {
       setForm({
@@ -162,6 +165,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         endYear: "",
         isOngoing: false,
         location: "",
+        isVisible: true,
       });
     }
   }, [editingEducation, isOpen]);
@@ -200,6 +204,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         endDate,
         isOngoing: form.isOngoing,
         location: form.location,
+        isVisible: form.isVisible,
       };
 
       await onSubmit(submissionData);
@@ -382,28 +387,46 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
             </div>
           </div>
 
-          {/* Ongoing Toggle */}
+          {/* Status Selector - In Progress or Completed */}
           <div className="mb-4">
             <label
-              className={`flex items-center gap-3 cursor-pointer ${
-                theme === "dark" ? "text-slate-200" : "text-slate-700"
+              className={`text-xs font-medium mb-2 block ${
+                theme === "dark" ? "text-gray-400" : "text-slate-500"
               }`}
             >
-              <input
-                type="checkbox"
-                checked={form.isOngoing}
-                onChange={(e) =>
-                  setForm({ ...form, isOngoing: e.target.checked })
-                }
-                className="w-5 h-5 rounded border-2 border-cyan-500 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0 cursor-pointer"
-              />
-              <span className="text-sm font-medium">
-                Currently studying here (Ongoing)
-              </span>
+              Status
             </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, isOngoing: true })}
+                className={`px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 border ${
+                  form.isOngoing
+                    ? "bg-gradient-to-r from-blue-500 to-cyan-400 text-white border-blue-400 shadow-lg shadow-blue-500/20"
+                    : theme === "dark"
+                    ? "bg-gray-800/80 border-gray-700 text-gray-400 hover:border-gray-600"
+                    : "bg-white/50 border-blue-200/50 text-slate-600 hover:border-blue-300"
+                }`}
+              >
+                📚 In Progress
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, isOngoing: false })}
+                className={`px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 border ${
+                  !form.isOngoing
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-400 text-white border-emerald-400 shadow-lg shadow-emerald-500/20"
+                    : theme === "dark"
+                    ? "bg-gray-800/80 border-gray-700 text-gray-400 hover:border-gray-600"
+                    : "bg-white/50 border-blue-200/50 text-slate-600 hover:border-blue-300"
+                }`}
+              >
+                🎓 Completed
+              </button>
+            </div>
           </div>
 
-          {/* End Date - Only show if not ongoing */}
+          {/* End Date - Only show if completed */}
           {!form.isOngoing && (
             <div>
               <label
@@ -532,6 +555,46 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
             className={inputClass}
             placeholder="Brief description of your studies, achievements..."
           />
+        </div>
+
+        {/* Visibility Toggle */}
+        <div
+          className={`p-4 rounded-xl border ${
+            theme === "dark"
+              ? "bg-gray-800/50 border-gray-700"
+              : "bg-slate-50 border-slate-200"
+          }`}
+        >
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <span className={labelClass + " mb-0"}>Show on Public Site</span>
+              <p
+                className={`text-xs mt-1 ${
+                  theme === "dark" ? "text-gray-400" : "text-slate-500"
+                }`}
+              >
+                {form.isVisible
+                  ? "This education will be visible to visitors"
+                  : "This education is hidden from the public site"}
+              </p>
+            </div>
+            <div
+              className={`relative w-14 h-7 rounded-full transition-colors duration-200 ${
+                form.isVisible
+                  ? "bg-gradient-to-r from-green-500 to-emerald-400"
+                  : theme === "dark"
+                  ? "bg-gray-600"
+                  : "bg-slate-300"
+              }`}
+              onClick={() => setForm({ ...form, isVisible: !form.isVisible })}
+            >
+              <div
+                className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                  form.isVisible ? "translate-x-8" : "translate-x-1"
+                }`}
+              />
+            </div>
+          </label>
         </div>
 
         {/* Actions */}

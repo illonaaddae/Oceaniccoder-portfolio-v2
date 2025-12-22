@@ -553,6 +553,7 @@ export async function createEducation(
     if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials) cleanedData.initials = edu.initials;
     if (edu.location) cleanedData.location = edu.location;
+    if (edu.isVisible !== undefined) cleanedData.isVisible = edu.isVisible;
 
     const result = await databases.createDocument(
       DATABASE_ID,
@@ -597,6 +598,7 @@ export async function updateEducation(
     if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials !== undefined) cleanedData.initials = edu.initials || null;
     if (edu.location !== undefined) cleanedData.location = edu.location || null;
+    if (edu.isVisible !== undefined) cleanedData.isVisible = edu.isVisible;
 
     const result = await databases.updateDocument(
       DATABASE_ID,
