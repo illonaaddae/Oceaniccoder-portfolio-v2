@@ -17,14 +17,42 @@ export default defineConfig({
   build: {
     outDir: "build",
     sourcemap: false,
+    // Target modern browsers for smaller bundles
+    target: "es2020",
+    // Minify for production
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.logs in production
+        drop_debugger: true,
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          animation: ["framer-motion"],
+          // Core React runtime
+          "react-vendor": ["react", "react-dom"],
+          // Router separate for better caching
+          router: ["react-router-dom"],
+          // Animation library (large, cache separately)
+          "framer-motion": ["framer-motion"],
+          // Markdown/blog related
+          markdown: [
+            "react-markdown",
+            "remark-gfm",
+            "react-syntax-highlighter",
+          ],
+          // Icons
+          icons: ["react-icons"],
         },
       },
     },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 500,
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-router-dom", "framer-motion"],
   },
   test: {
     globals: true,

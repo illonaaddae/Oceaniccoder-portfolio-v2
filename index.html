@@ -2,14 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- DNS Prefetch and Preconnect -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#01b4e4" />
+
+    <!-- Critical: Preconnect to external resources (one each, no duplicates) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://fra.cloud.appwrite.io" crossorigin />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-    <link rel="dns-prefetch" href="https://fra.cloud.appwrite.io" />
-    <!-- Favicons / PWA manifest (using temporary designer-provided logo files) -->
+
+    <!-- Favicons -->
     <link rel="icon" href="/favicon.ico" />
     <link
       rel="icon"
@@ -23,8 +24,6 @@
       sizes="16x16"
       href="/images/logo/favicon-16x16.png"
     />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#01b4e4" />
     <meta
       name="description"
       content="Illona Addae (Oceaniccoder) - Full-Stack Developer & Tech Community Leader. Building inclusive tech spaces and innovative solutions."
@@ -67,13 +66,24 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Oceaniccoder" />
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Google Fonts - optimized with display=swap and preload -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
     <title>
       Illona Addae - Oceaniccoder | Full-Stack Developer & Tech Leader

@@ -30,6 +30,7 @@ const Blog = React.lazy(() => import("./components/BlogSection"));
 const BlogPost = React.lazy(() => import("./components/BlogPost"));
 const Contact = React.lazy(() => import("./components/ContactSection"));
 const AdminDashboard = React.lazy(() => import("./components/AdminDashboard"));
+const NotFound = React.lazy(() => import("./components/NotFound"));
 
 // Layout wrapper that conditionally shows Navbar/Footer based on route
 const MainLayout: FC<{
@@ -222,6 +223,21 @@ const AnimatedRoutes: FC<{
             <React.Suspense fallback={<div>Loading...</div>}>
               <AdminDashboard isReadOnly={true} />
             </React.Suspense>
+          }
+        />
+        {/* 404 catch-all route */}
+        <Route
+          path="*"
+          element={
+            <motion.div
+              variants={pageVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.35 }}
+            >
+              <NotFound />
+            </motion.div>
           }
         />
       </Routes>
