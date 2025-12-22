@@ -93,11 +93,27 @@ export async function getCertifications(): Promise<Certification[]> {
 export async function createCertification(
   cert: Omit<Certification, "$id" | "$createdAt">
 ): Promise<Certification> {
+  // Clean up data - only include fields with values
+  const cleanedData: Record<string, unknown> = {
+    title: cert.title,
+    issuer: cert.issuer,
+    date: cert.date,
+    platform: cert.platform,
+  };
+
+  // Only add optional fields if they have values
+  if (cert.credential) cleanedData.credential = cert.credential;
+  if (cert.skills && cert.skills.length > 0) cleanedData.skills = cert.skills;
+  if (cert.downloadLink) cleanedData.downloadLink = cert.downloadLink;
+  if (cert.verifyLink) cleanedData.verifyLink = cert.verifyLink;
+  if (cert.platformColor) cleanedData.platformColor = cert.platformColor;
+  if (cert.image) cleanedData.image = cert.image;
+
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.CERTIFICATIONS,
     ID.unique(),
-    cert as Record<string, unknown>
+    cleanedData
   ) as unknown as Certification;
 }
 
@@ -105,11 +121,31 @@ export async function updateCertification(
   certId: string,
   cert: Partial<Omit<Certification, "$id" | "$createdAt">>
 ): Promise<Certification> {
+  // Clean up data - only include fields with values, set empty URL fields to null
+  const cleanedData: Record<string, unknown> = {};
+
+  if (cert.title !== undefined) cleanedData.title = cert.title;
+  if (cert.issuer !== undefined) cleanedData.issuer = cert.issuer;
+  if (cert.date !== undefined) cleanedData.date = cert.date;
+  if (cert.platform !== undefined) cleanedData.platform = cert.platform;
+  if (cert.credential !== undefined)
+    cleanedData.credential = cert.credential || null;
+  if (cert.skills !== undefined) cleanedData.skills = cert.skills;
+  if (cert.platformColor !== undefined)
+    cleanedData.platformColor = cert.platformColor || null;
+
+  // URL fields - must be valid URL or null
+  if (cert.downloadLink !== undefined)
+    cleanedData.downloadLink = cert.downloadLink || null;
+  if (cert.verifyLink !== undefined)
+    cleanedData.verifyLink = cert.verifyLink || null;
+  if (cert.image !== undefined) cleanedData.image = cert.image || null;
+
   return databases.updateDocument(
     DATABASE_ID,
     COLLECTIONS.CERTIFICATIONS,
     certId,
-    cert as Record<string, unknown>
+    cleanedData
   ) as unknown as Certification;
 }
 
@@ -516,6 +552,7 @@ export async function createEducation(
     if (edu.endDate) cleanedData.endDate = edu.endDate;
     if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials) cleanedData.initials = edu.initials;
+    if (edu.location) cleanedData.location = edu.location;
 
     const result = await databases.createDocument(
       DATABASE_ID,
@@ -559,6 +596,7 @@ export async function updateEducation(
     if (edu.endDate !== undefined) cleanedData.endDate = edu.endDate || null;
     if (edu.isOngoing !== undefined) cleanedData.isOngoing = edu.isOngoing;
     if (edu.initials !== undefined) cleanedData.initials = edu.initials || null;
+    if (edu.location !== undefined) cleanedData.location = edu.location || null;
 
     const result = await databases.updateDocument(
       DATABASE_ID,

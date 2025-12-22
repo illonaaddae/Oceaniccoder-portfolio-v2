@@ -10,6 +10,7 @@ const education = [
     universityLogo:
       "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cdb00195a0cc8ab/view?project=6943431e00253c8f9883",
     gpa: null,
+    location: "Accra, Ghana",
   },
   {
     institution: "Accra Technical University",
@@ -21,6 +22,7 @@ const education = [
     universityLogo:
       "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cdb00195a0cc8ab/view?project=6943431e00253c8f9883",
     gpa: "N.A/5.0",
+    location: "Accra, Ghana",
   },
 ];
 

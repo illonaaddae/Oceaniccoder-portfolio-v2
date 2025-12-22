@@ -97,6 +97,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
     endMonth: "",
     endYear: "",
     isOngoing: false,
+    location: "",
   });
 
   const years = useMemo(() => generateYears(), []);
@@ -139,6 +140,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         endMonth: endParsed.month,
         endYear: endParsed.year,
         isOngoing: editingEducation.isOngoing || false,
+        location: editingEducation.location || "",
       });
     } else {
       setForm({
@@ -156,6 +158,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         endMonth: "",
         endYear: "",
         isOngoing: false,
+        location: "",
       });
     }
   }, [editingEducation, isOpen]);
@@ -193,6 +196,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
         startDate,
         endDate,
         isOngoing: form.isOngoing,
+        location: form.location,
       };
 
       await onSubmit(submissionData);
@@ -246,6 +250,20 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
             />
           </div>
 
+          {/* Location */}
+          <div>
+            <label className={labelClass}>Location</label>
+            <input
+              type="text"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              className={inputClass}
+              placeholder="e.g., Accra, Ghana"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Degree */}
           <div>
             <label className={labelClass}>Degree *</label>
@@ -258,9 +276,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
               placeholder="e.g., Bachelor of Science"
             />
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Field of Study */}
           <div>
             <label className={labelClass}>Field of Study</label>
@@ -272,18 +288,18 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
               placeholder="e.g., Computer Science"
             />
           </div>
+        </div>
 
-          {/* GPA */}
-          <div>
-            <label className={labelClass}>GPA</label>
-            <input
-              type="text"
-              value={form.gpa}
-              onChange={(e) => setForm({ ...form, gpa: e.target.value })}
-              className={inputClass}
-              placeholder="e.g., 3.8/4.0 or 3.8"
-            />
-          </div>
+        {/* GPA */}
+        <div>
+          <label className={labelClass}>GPA</label>
+          <input
+            type="text"
+            value={form.gpa}
+            onChange={(e) => setForm({ ...form, gpa: e.target.value })}
+            className={inputClass}
+            placeholder="e.g., 3.8/4.0 or 3.8"
+          />
         </div>
 
         {/* Class Honours */}

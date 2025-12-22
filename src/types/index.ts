@@ -59,6 +59,7 @@ export interface Education {
   endDate?: string;
   isOngoing?: boolean;
   initials?: string;
+  location?: string;
 }
 
 // About Types

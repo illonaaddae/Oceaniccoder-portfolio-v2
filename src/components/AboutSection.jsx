@@ -681,13 +681,25 @@ const AboutSection = () => {
                       <div className="flex-1">
                         <h4 className="text-lg font-bold text-white edu-title mb-1">
                           {edu.degree}
+                          {edu.field && (
+                            <span className="text-cyan-300 font-normal">
+                              {" "}
+                              in {edu.field}
+                            </span>
+                          )}
                         </h4>
                         <p className="text-cyan-400 font-medium edu-institution mb-1">
                           {edu.institution}
                         </p>
-                        <p className="text-sm text-gray-400 edu-period mb-3">
-                          {edu.period}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-400 edu-period mb-3">
+                          <span>{edu.period}</span>
+                          {edu.location && (
+                            <span className="flex items-center gap-1">
+                              <FaMapMarkerAlt className="text-red-400 text-xs" />
+                              {edu.location}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 flex-wrap mb-3">
                           <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full border border-green-500/30 font-medium shadow-sm edu-badge">
                             {edu.achievement}
