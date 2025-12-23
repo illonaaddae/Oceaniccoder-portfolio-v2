@@ -12,7 +12,7 @@ import {
 import { IMAGES } from "../utils/imageUrls";
 import { useNavigate } from "react-router-dom";
 
-const Footer = () => {
+const Footer = ({ theme }) => {
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
 
@@ -69,18 +69,21 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Brand Section */}
           <div className="lg:col-span-2">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">O</span>
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">
-                  <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                    Oceaniccoder
-                  </span>
-                </h3>
-                <p className="text-sm text-gray-400">Illona Addae</p>
-              </div>
+            <div className="mb-6">
+              <img
+                src={
+                  theme === "dark"
+                    ? "/images/logo/Oceaniccoder-croped.svg"
+                    : "/images/logo/Oceaniccoder-croped.png"
+                }
+                alt="Oceaniccoder"
+                className={`h-12 w-auto object-contain ${
+                  theme === "dark"
+                    ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]"
+                    : ""
+                }`}
+              />
+              <p className="text-sm text-gray-400 mt-2">Illona Addae</p>
             </div>
 
             <p className="text-gray-300 leading-relaxed mb-6 max-w-md">

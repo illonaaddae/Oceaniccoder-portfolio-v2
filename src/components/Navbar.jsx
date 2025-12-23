@@ -54,43 +54,24 @@ const Navbar = ({ theme, toggleTheme }) => {
     >
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* Enhanced Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="relative group">
-              {/* Enhanced Logo Container with Glass Effect */}
-              <div className="w-12 h-12 glass-card bg-gradient-to-r from-cyan-500/30 to-blue-500/30 backdrop-blur-md border border-cyan-400/40 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:from-cyan-500/40 group-hover:to-blue-500/40 transition-all duration-300 shadow-lg">
-                {/* Placeholder for Logo Image */}
-                <img
-                  src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf6002987c3841b/view?project=6943431e00253c8f9883"
-                  alt="Oceaniccoder Logo"
-                  className="w-8 h-8 object-contain filter brightness-0 invert"
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                  width="32"
-                  height="32"
-                  onError={(e) => {
-                    // Fallback to text if image doesn't exist
-                    e.target.style.display = "none";
-                    e.target.nextSibling.style.display = "block";
-                  }}
-                />
-                {/* Fallback Text Logo */}
-                <span className="text-white font-bold text-xl hidden">O</span>
-              </div>
-
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
-            </div>
-
-            {/* Brand Name Only */}
-            <div>
-              <h1 className="text-xl font-bold">
-                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent hover:from-cyan-300 hover:via-blue-300 hover:to-teal-300 transition-all duration-300">
-                  Oceaniccoder
-                </span>
-              </h1>
-            </div>
+          {/* Logo */}
+          <div className="group">
+            <img
+              src={
+                theme === "dark"
+                  ? "/images/logo/Oceaniccoder-croped.svg"
+                  : "/images/logo/Oceaniccoder-croped.png"
+              }
+              alt="Oceaniccoder"
+              className={`h-10 sm:h-12 lg:h-14 w-auto object-contain group-hover:scale-105 transition-transform duration-300 ${
+                theme === "dark"
+                  ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]"
+                  : ""
+              }`}
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+            />
           </div>
 
           {/* Desktop Navigation */}

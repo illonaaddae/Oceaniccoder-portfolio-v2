@@ -51,7 +51,7 @@ const MainLayout: FC<{
       <main id="main-content" tabIndex={-1} className="outline-none">
         {children}
       </main>
-      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && <Footer theme={theme} />}
       {!isAdminRoute && <ScrollToTop />}
       {!isAdminRoute && <SupportButton />}
     </>
