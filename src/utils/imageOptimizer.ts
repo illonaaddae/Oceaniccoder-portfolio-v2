@@ -1,9 +1,13 @@
-import { storage, STORAGE_BUCKET_ID } from "../lib/appwrite";
+import { STORAGE_BUCKET_ID } from "../lib/appwrite";
 
 /**
  * Image optimization utilities for Appwrite Storage
  * Uses Appwrite's built-in image transformation capabilities
  */
+
+// Appwrite configuration for URL building
+const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = "6943431e00253c8f9883";
 
 // Standard image sizes for different use cases
 export const IMAGE_SIZES = {
@@ -24,12 +28,14 @@ export function isAppwriteUrl(url: string): boolean {
 /**
  * Extract file ID from an Appwrite Storage URL
  * URL format: https://fra.cloud.appwrite.io/v1/storage/buckets/{bucketId}/files/{fileId}/view
+ * or: https://fra.cloud.appwrite.io/v1/storage/buckets/{bucketId}/files/{fileId}/preview
  */
 export function getFileIdFromUrl(url: string): string | null {
   if (!url || !isAppwriteUrl(url)) return null;
 
   try {
-    const match = url.match(/\/files\/([^/]+)\/view/);
+    // Match both /view and /preview endpoints
+    const match = url.match(/\/files\/([^/?]+)(?:\/(?:view|preview))?/);
     return match ? match[1] : null;
   } catch {
     return null;
@@ -56,17 +62,16 @@ export function getOptimizedImageUrl(
   if (!fileId) return url;
 
   try {
-    // Use Appwrite's getFilePreview for optimized images
-    // Parameters: bucketId, fileId, width, height, gravity, quality, borderWidth, borderColor, borderRadius, opacity, rotation, background, output
-    const previewUrl = storage.getFilePreview(
-      STORAGE_BUCKET_ID,
-      fileId,
-      width,
-      height,
-      undefined, // gravity - let Appwrite handle it
-      quality
-    );
-    return previewUrl.toString();
+    // Build the preview URL manually to ensure project parameter is included
+    // This ensures the URL works from any domain without authentication issues
+    const params = new URLSearchParams();
+    if (width) params.append("width", width.toString());
+    if (height) params.append("height", height.toString());
+    params.append("quality", quality.toString());
+    params.append("project", APPWRITE_PROJECT_ID);
+
+    const previewUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${STORAGE_BUCKET_ID}/files/${fileId}/preview?${params.toString()}`;
+    return previewUrl;
   } catch (error) {
     console.warn("Failed to generate optimized image URL:", error);
     return url;
