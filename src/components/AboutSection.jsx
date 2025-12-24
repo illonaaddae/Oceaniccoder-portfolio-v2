@@ -550,14 +550,16 @@ const AboutSection = () => {
                         <div className="w-8 h-8 rounded-full bg-blue-400/20 flex items-center justify-center">
                           <FaCalendarAlt className="text-blue-400 text-xs" />
                         </div>
-                        <span className="text-gray-300">2+ Years in Tech</span>
+                        <span className="text-gray-300">
+                          {about?.yearsExperience || 2}+ Years in Tech
+                        </span>
                       </div>
                       <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
                         <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center">
                           <FaUsers className="text-green-400 text-xs" />
                         </div>
                         <span className="text-gray-300">
-                          40+ Students Mentored
+                          {about?.studentsMentored || 40}+ Students Mentored
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-caption group hover:scale-105 transition-transform duration-200">
@@ -565,7 +567,7 @@ const AboutSection = () => {
                           <FaAward className="text-yellow-400 text-xs" />
                         </div>
                         <span className="text-gray-300">
-                          Multiple Certifications
+                          {certifications?.length || 0}+ Certifications
                         </span>
                       </div>
                     </div>
