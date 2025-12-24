@@ -365,7 +365,7 @@ const AboutSection = () => {
                     <blockquote className="text-cyan-300 quote-text text-sm sm:text-base leading-relaxed">
                       "In a society where women are often underestimated, I am
                       determined to shift the conversation. Technology is for
-                      everyone gender, wealth, or background should never limit
+                      everyone, gender, wealth, or background should never limit
                       one's potential to innovate and succeed."
                     </blockquote>
                     <cite className="text-caption text-gray-400 mt-2 block text-xs sm:text-sm">
