@@ -79,6 +79,26 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
   // Intersection Observer to detect when image enters viewport
   useEffect(() => {
+    // Check if element is already in viewport on mount (e.g., blog cover images at top)
+    const checkInitialVisibility = () => {
+      if (imgRef.current) {
+        const rect = imgRef.current.getBoundingClientRect();
+        const isVisible =
+          rect.top < window.innerHeight + 200 && rect.bottom > -200;
+        if (isVisible) {
+          setIsInView(true);
+          setCurrentSrc(optimizedSrc);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // If already visible, don't set up observer
+    if (checkInitialVisibility()) {
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

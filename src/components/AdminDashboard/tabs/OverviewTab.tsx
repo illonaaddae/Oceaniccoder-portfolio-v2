@@ -96,7 +96,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     {
       label: "Gallery Items",
       value: totalGallery,
-      change: `${storageStats.totalFiles} files`,
+      change: `${storageStats.totalFiles} files in storage`,
       icon: FaImage,
       bgGradient: "from-green-600 to-green-500",
       tabLink: "gallery",

@@ -171,7 +171,7 @@ export async function getGallery(): Promise<GalleryImage[]> {
   const response = await databases.listDocuments(
     DATABASE_ID,
     COLLECTIONS.GALLERY,
-    [Query.orderAsc("order")]
+    [Query.orderAsc("order"), Query.limit(100)] // Increase limit to fetch all gallery items
   );
   return response.documents as unknown as GalleryImage[];
 }
