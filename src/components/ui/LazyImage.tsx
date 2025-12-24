@@ -60,7 +60,6 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const imgRef = useRef<HTMLDivElement>(null);
 
   // Calculate optimized image URL based on display size
@@ -71,6 +70,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     return getOptimizedImageUrl(src, preset.width, preset.height, 80);
   }, [src, displaySize, disableOptimization]);
 
+  // Track the current source to display - initialize with src or optimized version
+  const [currentSrc, setCurrentSrc] = useState<string>(
+    optimizedSrc || src || ""
+  );
+
   // Generate srcSet for responsive images
   const srcSet = useMemo(() => {
     if (!src || disableOptimization || !isAppwriteUrl(src)) return "";
@@ -79,6 +83,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
   // Intersection Observer to detect when image enters viewport
   useEffect(() => {
+    // Always set currentSrc immediately - we'll still lazy load but won't block visible images
+    if (optimizedSrc && !currentSrc) {
+      setCurrentSrc(optimizedSrc);
+    }
+
     // Check if element is already in viewport on mount (e.g., blog cover images at top)
     const checkInitialVisibility = () => {
       if (imgRef.current) {
@@ -87,24 +96,24 @@ export const LazyImage: React.FC<LazyImageProps> = ({
           rect.top < window.innerHeight + 200 && rect.bottom > -200;
         if (isVisible) {
           setIsInView(true);
-          setCurrentSrc(optimizedSrc);
           return true;
         }
       }
       return false;
     };
 
-    // If already visible, don't set up observer
-    if (checkInitialVisibility()) {
-      return;
-    }
+    // Run visibility check with a small delay to ensure layout is complete
+    const timeoutId = setTimeout(() => {
+      if (checkInitialVisibility()) {
+        return;
+      }
+    }, 50);
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setIsInView(true);
-            setCurrentSrc(optimizedSrc);
             observer.disconnect();
           }
         });
@@ -119,23 +128,35 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       observer.observe(imgRef.current);
     }
 
-    return () => observer.disconnect();
-  }, [optimizedSrc]);
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [optimizedSrc, currentSrc]);
 
   // Reset state when src changes
   useEffect(() => {
-    if (isInView) {
-      setIsLoaded(false);
-      setHasError(false);
-      setCurrentSrc(optimizedSrc);
-    }
-  }, [optimizedSrc, isInView]);
+    setIsLoaded(false);
+    setHasError(false);
+    setCurrentSrc(optimizedSrc || src || "");
+  }, [optimizedSrc, src]);
 
   const handleLoad = () => {
     setIsLoaded(true);
   };
 
+  // Track if we've tried the original URL
+  const [triedOriginal, setTriedOriginal] = useState(false);
+
   const handleError = () => {
+    // First, try the original unoptimized URL if we were using an optimized one
+    if (!triedOriginal && optimizedSrc !== src && src) {
+      setTriedOriginal(true);
+      setCurrentSrc(src);
+      return;
+    }
+
+    // Then fall back to the fallback image
     if (!hasError && fallbackSrc) {
       setHasError(true);
       setCurrentSrc(fallbackSrc);
