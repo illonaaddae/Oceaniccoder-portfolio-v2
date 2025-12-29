@@ -592,7 +592,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
           </div>
 
           {/* Category & Read Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label
                 className={`block text-sm font-semibold mb-2 ${
@@ -682,7 +682,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
 
           {/* Content */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
               <label
                 className={`block text-sm font-semibold ${
                   theme === "dark" ? "text-slate-200" : "text-slate-700"
@@ -776,7 +776,7 @@ code blocks
             >
               Tags
             </label>
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-col sm:flex-row gap-2 mb-3">
               <input
                 type="text"
                 value={tagInput}
@@ -787,7 +787,7 @@ code blocks
                     handleAddTag();
                   }
                 }}
-                className={`flex-1 px-4 py-2.5 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
+                className={`flex-1 min-w-0 px-4 py-2.5 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
                   theme === "dark"
                     ? "bg-white/10 border-white/20 text-white placeholder-slate-400"
                     : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500"
@@ -799,7 +799,7 @@ code blocks
                 onClick={handleAddTag}
                 title="Add tag"
                 aria-label="Add tag"
-                className="px-4 py-2.5 bg-cyan-500/20 text-cyan-600 rounded-xl hover:bg-cyan-500/30 transition-colors font-medium border border-cyan-500/30"
+                className="w-full sm:w-auto px-4 py-2.5 bg-cyan-500/20 text-cyan-600 rounded-xl hover:bg-cyan-500/30 transition-colors font-medium border border-cyan-500/30 flex items-center justify-center"
               >
                 <FaPlus />
               </button>
@@ -868,7 +868,7 @@ code blocks
 
           {/* Toggles */}
           <div
-            className={`flex flex-wrap gap-6 p-4 rounded-xl border ${
+            className={`flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6 p-4 rounded-xl border ${
               theme === "dark"
                 ? "bg-white/5 border-white/10"
                 : "bg-slate-50 border-blue-200/30"
@@ -926,7 +926,7 @@ code blocks
 
           {/* Actions */}
           <div
-            className={`flex justify-end gap-3 pt-4 border-t ${
+            className={`flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t ${
               theme === "dark" ? "border-white/10" : "border-blue-200/30"
             }`}
           >
@@ -937,7 +937,7 @@ code blocks
                 setEditingPost(null);
                 resetForm();
               }}
-              className={`px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2 border ${
+              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 border ${
                 theme === "dark"
                   ? "bg-white/10 text-white hover:bg-white/20 border-white/20"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300"
@@ -947,7 +947,7 @@ code blocks
             </button>
             <button
               type="submit"
-              className={`px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-xl hover:from-cyan-600 hover:to-emerald-600 transition-all font-medium shadow-lg shadow-cyan-500/20 flex items-center gap-2 ${
+              className={`w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-xl hover:from-cyan-600 hover:to-emerald-600 transition-all font-medium shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 ${
                 submitting ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={submitting}
