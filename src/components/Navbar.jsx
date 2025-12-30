@@ -46,7 +46,7 @@ const Navbar = ({ theme, toggleTheme }) => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 overflow-visible ${
         scrolled
           ? "glass-navbar-solid backdrop-blur-xl bg-black/40 border-b border-white/10"
           : "glass-navbar-transparent backdrop-blur-sm bg-black/20"
@@ -157,7 +157,7 @@ const Navbar = ({ theme, toggleTheme }) => {
 
         {/* Enhanced Mobile Navigation */}
         {isMenuOpen && (
-          <div className="lg:hidden mt-4 glass-card bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
+          <div className="lg:hidden mt-4 glass-card bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl relative z-50 max-h-[70vh] overflow-y-auto">
             <div className="flex flex-col space-y-2">
               {navItems.map((item) => {
                 const isInternal = item.href && item.href.startsWith("/");
@@ -171,7 +171,7 @@ const Navbar = ({ theme, toggleTheme }) => {
                       setIsMenuOpen(false);
                     }}
                     className={({ isActive }) =>
-                      `nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 ${
+                      `nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 block ${
                         isActive
                           ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
                           : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
@@ -184,7 +184,7 @@ const Navbar = ({ theme, toggleTheme }) => {
                   <button
                     key={item.id}
                     onClick={() => handleNavClick(item.href, item.id)}
-                    className={`nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 ${
+                    className={`nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 w-full ${
                       activeSection === item.id
                         ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
                         : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
