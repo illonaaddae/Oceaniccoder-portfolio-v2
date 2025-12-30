@@ -352,12 +352,12 @@ const BlogTab: React.FC<BlogTabProps> = ({
                   : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40 hover:border-blue-300/60 hover:bg-gradient-to-br hover:from-white/70 hover:to-white/50"
               }`}
             >
-              {/* Mobile: Stack vertically, Desktop: Side by side */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Image - Full width on mobile, fixed on desktop */}
+              {/* Always side by side layout */}
+              <div className="flex flex-row gap-3 sm:gap-4">
+                {/* Image - Square thumbnail */}
                 {post.image && (
                   <div
-                    className={`w-full sm:w-24 h-40 sm:h-24 flex-shrink-0 rounded-xl overflow-hidden border ${
+                    className={`w-16 h-16 sm:w-24 sm:h-24 flex-shrink-0 rounded-xl overflow-hidden border ${
                       theme === "dark"
                         ? "border-gray-700"
                         : "border-blue-200/30"
@@ -376,16 +376,16 @@ const BlogTab: React.FC<BlogTabProps> = ({
                 )}
 
                 {/* Content */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   {/* Title and Actions row */}
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-start gap-2 mb-1">
                         {post.featured && (
-                          <FaStar className="text-yellow-400 text-sm flex-shrink-0" />
+                          <FaStar className="text-yellow-400 text-sm flex-shrink-0 mt-1" />
                         )}
                         <h3
-                          className={`font-semibold text-base sm:text-lg truncate transition-colors duration-300 ${
+                          className={`font-semibold text-base sm:text-lg line-clamp-2 sm:truncate transition-colors duration-300 ${
                             theme === "dark" ? "text-white" : "text-slate-900"
                           }`}
                         >
@@ -394,68 +394,68 @@ const BlogTab: React.FC<BlogTabProps> = ({
                       </div>
                     </div>
 
-                    {/* Actions - Always visible on mobile */}
-                    <div className="flex items-center gap-1 sm:gap-1 flex-shrink-0">
+                    {/* Actions - Compact on mobile */}
+                    <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                       <a
                         href={`/blog/${post.slug || post.$id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
+                        className={`p-1.5 sm:p-2.5 rounded-lg transition-all duration-200 ${
                           theme === "dark"
                             ? "text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/15"
                             : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-100"
                         }`}
                         title="View"
                       >
-                        <FaEye className="text-sm sm:text-base" />
+                        <FaEye className="text-xs sm:text-base" />
                       </a>
                       {!isReadOnly && (
                         <>
                           <button
                             onClick={() => openEditModal(post)}
-                            className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
+                            className={`p-1.5 sm:p-2.5 rounded-lg transition-all duration-200 ${
                               theme === "dark"
                                 ? "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/15"
                                 : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-100"
                             }`}
                             title="Edit"
                           >
-                            <FaEdit className="text-sm sm:text-base" />
+                            <FaEdit className="text-xs sm:text-base" />
                           </button>
                           <button
                             onClick={() => handleDelete(post.$id)}
-                            className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
+                            className={`p-1.5 sm:p-2.5 rounded-lg transition-all duration-200 ${
                               theme === "dark"
                                 ? "text-slate-400 hover:text-red-400 hover:bg-red-500/15"
                                 : "text-slate-500 hover:text-red-600 hover:bg-red-100"
                             }`}
                             title="Delete"
                           >
-                            <FaTrash className="text-sm sm:text-base" />
+                            <FaTrash className="text-xs sm:text-base" />
                           </button>
                         </>
                       )}
                     </div>
                   </div>
 
-                  {/* Excerpt */}
+                  {/* Excerpt - hide on very small screens */}
                   <p
-                    className={`text-sm line-clamp-2 mb-2 transition-colors duration-300 ${
+                    className={`hidden sm:block text-sm line-clamp-2 mb-2 transition-colors duration-300 ${
                       theme === "dark" ? "text-slate-400" : "text-slate-600"
                     }`}
                   >
                     {post.excerpt}
                   </p>
 
-                  {/* Meta info - wrap on mobile */}
+                  {/* Meta info - simplified on mobile */}
                   <div
-                    className={`flex flex-wrap items-center gap-2 sm:gap-3 text-xs transition-colors duration-300 ${
+                    className={`flex flex-wrap items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs transition-colors duration-300 ${
                       theme === "dark" ? "text-slate-500" : "text-slate-500"
                     }`}
                   >
                     {post.category && (
                       <span
-                        className={`px-2 py-1 rounded-lg font-medium ${
+                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg font-medium ${
                           theme === "dark"
                             ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                             : "bg-cyan-100 text-cyan-700 border border-cyan-200"
@@ -464,19 +464,19 @@ const BlogTab: React.FC<BlogTabProps> = ({
                         {post.category}
                       </span>
                     )}
-                    <span className="flex items-center gap-1">
+                    <span className="hidden sm:flex items-center gap-1">
                       <FaCalendarAlt />
                       {formatDate(post.publishedAt)}
                     </span>
                     {post.readTime && (
-                      <span className="flex items-center gap-1">
+                      <span className="hidden sm:flex items-center gap-1">
                         <FaClock />
                         {post.readTime}
                       </span>
                     )}
                     {!post.published && (
                       <span
-                        className={`px-2 py-1 rounded-lg font-medium ${
+                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg font-medium ${
                           theme === "dark"
                             ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                             : "bg-amber-100 text-amber-700 border border-amber-200"
