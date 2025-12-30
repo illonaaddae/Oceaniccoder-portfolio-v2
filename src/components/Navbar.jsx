@@ -45,120 +45,128 @@ const Navbar = ({ theme, toggleTheme }) => {
   };
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 overflow-visible ${
-        scrolled
-          ? "glass-navbar-solid backdrop-blur-xl bg-black/40 border-b border-white/10"
-          : "glass-navbar-transparent backdrop-blur-sm bg-black/20"
-      }`}
-    >
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="group">
-            <img
-              src={
-                theme === "dark"
-                  ? "/images/logo/Oceaniccoder-croped.svg"
-                  : "/images/logo/Oceaniccoder-croped.png"
-              }
-              alt="Oceaniccoder"
-              className={`h-10 sm:h-12 lg:h-14 w-auto object-contain group-hover:scale-105 transition-transform duration-300 ${
-                theme === "dark"
-                  ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]"
-                  : ""
-              }`}
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-            />
-          </div>
+    <>
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "glass-navbar-solid backdrop-blur-xl bg-black/40 border-b border-white/10"
+            : "glass-navbar-transparent backdrop-blur-sm bg-black/20"
+        }`}
+      >
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="group">
+              <img
+                src={
+                  theme === "dark"
+                    ? "/images/logo/Oceaniccoder-croped.svg"
+                    : "/images/logo/Oceaniccoder-croped.png"
+                }
+                alt="Oceaniccoder"
+                className={`h-10 sm:h-12 lg:h-14 w-auto object-contain group-hover:scale-105 transition-transform duration-300 ${
+                  theme === "dark"
+                    ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]"
+                    : ""
+                }`}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
+            </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-1">
-            {navItems.map((item) => {
-              const isInternal = item.href && item.href.startsWith("/");
-              const base =
-                "nav-link-enhanced px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 relative inline-block";
-              const activeCls =
-                "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30";
-              const inactiveCls =
-                "text-gray-300 hover:text-cyan-400 hover:bg-white/5";
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-1">
+              {navItems.map((item) => {
+                const isInternal = item.href && item.href.startsWith("/");
+                const base =
+                  "nav-link-enhanced px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 relative inline-block";
+                const activeCls =
+                  "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30";
+                const inactiveCls =
+                  "text-gray-300 hover:text-cyan-400 hover:bg-white/5";
 
-              return isInternal ? (
-                <NavLink
-                  key={item.id}
-                  to={item.href}
-                  end={item.href === "/"}
-                  onClick={() => {
-                    // still update context for scroll spy and close menus
-                    setActiveSection(item.id);
-                    setIsMenuOpen(false);
-                  }}
-                  className={({ isActive }) =>
-                    `${base} ${isActive ? activeCls : inactiveCls}`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {item.label}
-                      {isActive && (
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ) : (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.href, item.id)}
-                  className={`${base} ${
-                    activeSection === item.id ? activeCls : inactiveCls
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  {activeSection === item.id && (
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                return isInternal ? (
+                  <NavLink
+                    key={item.id}
+                    to={item.href}
+                    end={item.href === "/"}
+                    onClick={() => {
+                      // still update context for scroll spy and close menus
+                      setActiveSection(item.id);
+                      setIsMenuOpen(false);
+                    }}
+                    className={({ isActive }) =>
+                      `${base} ${isActive ? activeCls : inactiveCls}`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {item.label}
+                        {isActive && (
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ) : (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.href, item.id)}
+                    className={`${base} ${
+                      activeSection === item.id ? activeCls : inactiveCls
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    {activeSection === item.id && (
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Enhanced Controls */}
-          <div className="flex items-center space-x-3">
-            {/* Enhanced Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? (
-                <FaSun className="w-4 h-4 text-yellow-400" />
-              ) : (
-                <FaMoon className="w-4 h-4 text-blue-600" />
-              )}
-            </button>
+            {/* Enhanced Controls */}
+            <div className="flex items-center space-x-3">
+              {/* Enhanced Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <FaSun className="w-4 h-4 text-yellow-400" />
+                ) : (
+                  <FaMoon className="w-4 h-4 text-blue-600" />
+                )}
+              </button>
 
-            {/* Enhanced Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? (
-                <FaTimes className="w-4 h-4 text-white" />
-              ) : (
-                <FaBars className="w-4 h-4 text-white" />
-              )}
-            </button>
+              {/* Enhanced Mobile Menu Button */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="lg:hidden glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
+                aria-label="Toggle menu"
+                aria-expanded={isMenuOpen}
+              >
+                {isMenuOpen ? (
+                  <FaTimes className="w-4 h-4 text-white" />
+                ) : (
+                  <FaBars className="w-4 h-4 text-white" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
+      </nav>
 
-        {/* Enhanced Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="lg:hidden mt-4 glass-card bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl relative z-50 max-h-[70vh] overflow-y-auto">
-            <div className="flex flex-col space-y-2">
+      {/* Mobile Navigation - Rendered outside nav for proper stacking */}
+      {isMenuOpen && (
+        <div
+          className="lg:hidden fixed top-[72px] left-0 right-0 z-[60] px-4 pb-4"
+          style={{ touchAction: "manipulation" }}
+        >
+          <div className="glass-card bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl max-h-[calc(100vh-100px)] overflow-y-auto">
+            <div className="flex flex-col space-y-1">
               {navItems.map((item) => {
                 const isInternal = item.href && item.href.startsWith("/");
                 return isInternal ? (
@@ -166,15 +174,15 @@ const Navbar = ({ theme, toggleTheme }) => {
                     key={item.id}
                     to={item.href}
                     end={item.href === "/"}
-                    onClick={() => {
+                    onClick={(e) => {
                       setActiveSection(item.id);
                       setIsMenuOpen(false);
                     }}
                     className={({ isActive }) =>
-                      `nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 block ${
+                      `nav-link-mobile text-left py-4 px-4 rounded-lg transition-all duration-300 block w-full ${
                         isActive
-                          ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
-                          : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
+                          ? "text-cyan-400 bg-cyan-500/20 border border-cyan-500/30"
+                          : "text-gray-200 hover:text-cyan-400 hover:bg-white/10 active:bg-white/20"
                       }`
                     }
                   >
@@ -183,22 +191,34 @@ const Navbar = ({ theme, toggleTheme }) => {
                 ) : (
                   <button
                     key={item.id}
-                    onClick={() => handleNavClick(item.href, item.id)}
-                    className={`nav-link-mobile text-left py-3 px-4 rounded-lg transition-all duration-300 w-full ${
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavClick(item.href, item.id);
+                    }}
+                    className={`nav-link-mobile text-left py-4 px-4 rounded-lg transition-all duration-300 w-full ${
                       activeSection === item.id
-                        ? "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30"
-                        : "text-gray-300 hover:text-cyan-400 hover:bg-white/5"
+                        ? "text-cyan-400 bg-cyan-500/20 border border-cyan-500/30"
+                        : "text-gray-200 hover:text-cyan-400 hover:bg-white/10 active:bg-white/20"
                     }`}
                   >
-                    <span>{item.label}</span>
+                    {item.label}
                   </button>
                 );
               })}
             </div>
           </div>
-        )}
-      </div>
-    </nav>
+        </div>
+      )}
+
+      {/* Backdrop overlay to close menu when clicking outside */}
+      {isMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-[55] bg-black/50"
+          onClick={() => setIsMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+    </>
   );
 };
 

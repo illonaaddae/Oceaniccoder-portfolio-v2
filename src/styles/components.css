@@ -889,20 +889,31 @@ body[data-theme="light"] footer,
   background-clip: padding-box;
   display: block;
   width: 100%;
-  min-height: 44px; /* Minimum touch target size */
+  min-height: 48px; /* Larger touch target for mobile */
   cursor: pointer;
-  -webkit-tap-highlight-color: rgba(20, 184, 166, 0.2);
+  -webkit-tap-highlight-color: rgba(20, 184, 166, 0.3);
   touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .nav-link-mobile:hover,
-.nav-link-mobile:active {
+.nav-link-mobile:active,
+.nav-link-mobile:focus {
   border-color: rgba(20, 184, 166, 0.3);
   background: linear-gradient(
     135deg,
-    rgba(20, 184, 166, 0.05),
-    rgba(255, 255, 255, 0.02)
+    rgba(20, 184, 166, 0.1),
+    rgba(255, 255, 255, 0.05)
   );
+}
+
+/* Ensure mobile menu is properly clickable */
+@media (max-width: 1023px) {
+  .nav-link-mobile {
+    pointer-events: auto !important;
+    z-index: 1;
+  }
 }
 
 /* ✅ Enhanced Typography with Ysabeau Office */
