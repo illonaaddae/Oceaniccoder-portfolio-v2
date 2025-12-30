@@ -11,12 +11,13 @@ import {
   FaArrowDown,
 } from "react-icons/fa";
 import type { GalleryImage } from "@/types";
+import { ToastContainer, useToast } from "../Toast";
 
 interface GalleryTabProps {
   theme: "light" | "dark";
   loading: boolean;
   gallery: GalleryImage[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
   onEdit?: (image: GalleryImage) => void;
   onShowForm?: () => void;
   onUpdateOrder?: (id: string, newOrder: number) => Promise<void>;
@@ -41,6 +42,8 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
   const [updatingVisibility, setUpdatingVisibility] = useState<string | null>(
     null
   );
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const toast = useToast();
 
   // Sort gallery by order
   const sortedGallery = [...gallery].sort(
@@ -55,8 +58,10 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
       const prevImage = sortedGallery[currentIndex - 1];
       await onUpdateOrder(image.$id, prevImage.order ?? currentIndex - 1);
       await onUpdateOrder(prevImage.$id, image.order ?? currentIndex);
+      toast.success("Image moved up successfully!");
     } catch (err) {
       console.error("Failed to update order:", err);
+      toast.error("Failed to move image. Please try again.");
     } finally {
       setUpdatingOrder(null);
     }
@@ -70,8 +75,10 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
       const nextImage = sortedGallery[currentIndex + 1];
       await onUpdateOrder(image.$id, nextImage.order ?? currentIndex + 1);
       await onUpdateOrder(nextImage.$id, image.order ?? currentIndex);
+      toast.success("Image moved down successfully!");
     } catch (err) {
       console.error("Failed to update order:", err);
+      toast.error("Failed to move image. Please try again.");
     } finally {
       setUpdatingOrder(null);
     }
@@ -82,9 +89,14 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
     if (!onToggleVisibility) return;
     setUpdatingVisibility(image.$id);
     try {
-      await onToggleVisibility(image.$id, !(image.isPublic ?? true));
+      const newVisibility = !(image.isPublic ?? true);
+      await onToggleVisibility(image.$id, newVisibility);
+      toast.success(
+        newVisibility ? "Image is now public!" : "Image is now hidden."
+      );
     } catch (err) {
       console.error("Failed to toggle visibility:", err);
+      toast.error("Failed to update visibility. Please try again.");
     } finally {
       setUpdatingVisibility(null);
     }
@@ -322,12 +334,30 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
                       <FaEdit />
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (window.confirm("Delete this image?")) {
-                          onDelete(image.$id);
+                          setDeletingId(image.$id);
+                          try {
+                            await onDelete(image.$id);
+                            toast.success(
+                              `Image "${
+                                image.alt || "Untitled"
+                              }" deleted successfully!`
+                            );
+                          } catch (err) {
+                            console.error("Failed to delete image:", err);
+                            toast.error(
+                              "Failed to delete image. Please try again."
+                            );
+                          } finally {
+                            setDeletingId(null);
+                          }
                         }
                       }}
-                      className="p-2 rounded-lg bg-red-500/50 text-white hover:bg-red-500/70 transition"
+                      disabled={deletingId === image.$id}
+                      className={`p-2 rounded-lg bg-red-500/50 text-white hover:bg-red-500/70 transition ${
+                        deletingId === image.$id ? "opacity-50 cursor-wait" : ""
+                      }`}
                       title="Delete"
                     >
                       <FaTrash />
@@ -412,6 +442,13 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
           ))}
         </div>
       )}
+
+      {/* Toast notifications */}
+      <ToastContainer
+        toasts={toast.toasts}
+        onRemove={toast.removeToast}
+        theme={theme}
+      />
     </div>
   );
 };
