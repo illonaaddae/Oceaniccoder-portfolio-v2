@@ -91,7 +91,7 @@ const ServicesSection: React.FC = () => {
       priceNote: "Starting from",
       popular: true,
       icon: <FaCode className="text-2xl" />,
-      color: "from-purple-500 to-pink-500",
+      color: "from-cyan-500 to-blue-500",
       deliveryTime: "2-4 weeks",
       revisions: "4 rounds",
       support: "1 month post-launch",
@@ -124,7 +124,7 @@ const ServicesSection: React.FC = () => {
       price: "$1,999",
       priceNote: "Starting from",
       icon: <FaServer className="text-2xl" />,
-      color: "from-orange-500 to-red-500",
+      color: "from-blue-500 to-green-500",
       deliveryTime: "4-8 weeks",
       revisions: "Unlimited",
       support: "3 months post-launch",
@@ -244,8 +244,8 @@ const ServicesSection: React.FC = () => {
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="liquid-morph absolute top-20 left-20 w-96 h-96 bg-gradient-to-r from-cyan-500/8 to-blue-500/10 blur-3xl"></div>
-        <div className="liquid-morph absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-r from-purple-500/6 to-pink-500/8 blur-3xl"></div>
-        <div className="liquid-morph absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 blur-3xl"></div>
+        <div className="liquid-morph absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-r from-cyan-500/6 to-blue-500/8 blur-3xl"></div>
+        <div className="liquid-morph absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-cyan-500/5 to-green-500/5 blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
@@ -258,7 +258,7 @@ const ServicesSection: React.FC = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
                 Services & Pricing
               </span>
             </h2>
@@ -313,15 +313,15 @@ const ServicesSection: React.FC = () => {
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     className={`relative glass-card border rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] ${
                       pkg.popular
-                        ? "border-purple-500/50 shadow-xl shadow-purple-500/20"
+                        ? "border-cyan-500/50 shadow-xl shadow-cyan-500/20"
                         : "border-[var(--glass-border)] hover:border-cyan-500/50"
                     }`}
                   >
                     {/* Popular Badge */}
                     {pkg.popular && (
                       <div className="absolute top-0 right-0">
-                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl flex items-center gap-1">
-                          <FaStar className="text-yellow-300" /> MOST POPULAR
+                        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl flex items-center gap-1">
+                          <FaStar className="text-white" /> MOST POPULAR
                         </div>
                       </div>
                     )}
@@ -418,9 +418,7 @@ const ServicesSection: React.FC = () => {
                         className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r ${
                           pkg.color
                         } text-white hover:scale-105 shadow-lg ${
-                          pkg.popular
-                            ? "shadow-purple-500/30"
-                            : "shadow-black/20"
+                          pkg.popular ? "shadow-cyan-500/30" : "shadow-black/20"
                         }`}
                       >
                         Get Started <FaArrowRight className="text-sm" />
@@ -506,7 +504,7 @@ const ServicesSection: React.FC = () => {
                 className="mt-8 text-center"
               >
                 <p className="text-[var(--text-secondary)] text-sm flex items-center justify-center gap-2">
-                  <FaLightbulb className="w-4 h-4 text-yellow-500" />
+                  <FaLightbulb className="w-4 h-4 text-cyan-400" />
                   <strong>Pro tip:</strong> Bundle add-ons with any package and
                   get 10% off the total!
                 </p>

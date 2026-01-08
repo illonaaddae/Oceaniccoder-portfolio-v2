@@ -243,7 +243,7 @@ const TestimonialsSection: React.FC = () => {
       >
         {/* Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="liquid-morph absolute top-20 right-20 w-96 h-96 bg-gradient-to-r from-purple-500/8 to-pink-500/10 blur-3xl"></div>
+          <div className="liquid-morph absolute top-20 right-20 w-96 h-96 bg-gradient-to-r from-cyan-500/8 to-blue-500/10 blur-3xl"></div>
           <div className="liquid-morph absolute bottom-20 left-20 w-80 h-80 bg-gradient-to-r from-cyan-500/6 to-blue-500/8 blur-3xl"></div>
         </div>
 
@@ -251,7 +251,7 @@ const TestimonialsSection: React.FC = () => {
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-5xl md:text-6xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 dark:from-purple-400 dark:via-pink-400 dark:to-red-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
                 Testimonials
               </span>
             </h2>
@@ -265,7 +265,7 @@ const TestimonialsSection: React.FC = () => {
             <button
               onClick={() => setShowForm(true)}
               type="button"
-              className="glass-btn bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 font-medium hover:scale-105 active:scale-95 transition-transform duration-300 rounded-xl shadow-lg shadow-purple-500/30 touch-manipulation"
+              className="glass-btn bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-8 py-3 font-medium hover:scale-105 active:scale-95 transition-transform duration-300 rounded-xl shadow-lg shadow-cyan-500/30 touch-manipulation"
             >
               Share Your Experience
             </button>
@@ -366,14 +366,14 @@ const TestimonialsSection: React.FC = () => {
                                 htmlFor="testimonial-image-upload-empty"
                                 className={`flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all touch-manipulation ${
                                   uploadingImage
-                                    ? "border-purple-500 bg-purple-500/10"
-                                    : "border-[var(--glass-border)] hover:border-purple-500 hover:bg-[var(--glass-border)]/50"
+                                    ? "border-cyan-500 bg-cyan-500/10"
+                                    : "border-[var(--glass-border)] hover:border-cyan-500 hover:bg-[var(--glass-border)]/50"
                                 }`}
                               >
                                 {uploadingImage ? (
                                   <>
-                                    <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                                    <span className="text-purple-400 text-sm">
+                                    <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-cyan-400 text-sm">
                                       Uploading...
                                     </span>
                                   </>
@@ -403,7 +403,7 @@ const TestimonialsSection: React.FC = () => {
                                     });
                                     setImagePreview(null);
                                   }}
-                                  className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                                  className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                                   placeholder="https://..."
                                 />
                               </div>
@@ -425,7 +425,7 @@ const TestimonialsSection: React.FC = () => {
                             onChange={(e) =>
                               setFormData({ ...formData, name: e.target.value })
                             }
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                             placeholder="John Doe"
                           />
                         </div>
@@ -445,7 +445,7 @@ const TestimonialsSection: React.FC = () => {
                                   role: e.target.value,
                                 })
                               }
-                              className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                              className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                               placeholder="CEO"
                             />
                           </div>
@@ -462,7 +462,7 @@ const TestimonialsSection: React.FC = () => {
                                   company: e.target.value,
                                 })
                               }
-                              className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                              className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                               placeholder="Acme Inc"
                             />
                           </div>
@@ -511,7 +511,7 @@ const TestimonialsSection: React.FC = () => {
                                 content: e.target.value,
                               })
                             }
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none resize-none"
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none resize-none"
                             placeholder="Share your experience working with me..."
                           />
                         </div>
@@ -519,7 +519,7 @@ const TestimonialsSection: React.FC = () => {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-500 hover:to-pink-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                          className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium hover:from-cyan-500 hover:to-blue-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                         >
                           {submitting ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -553,7 +553,7 @@ const TestimonialsSection: React.FC = () => {
     >
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="liquid-morph absolute top-20 right-20 w-96 h-96 bg-gradient-to-r from-purple-500/8 to-pink-500/10 blur-3xl"></div>
+        <div className="liquid-morph absolute top-20 right-20 w-96 h-96 bg-gradient-to-r from-cyan-500/8 to-blue-500/10 blur-3xl"></div>
         <div className="liquid-morph absolute bottom-20 left-20 w-80 h-80 bg-gradient-to-r from-cyan-500/6 to-blue-500/8 blur-3xl"></div>
       </div>
 
@@ -561,7 +561,7 @@ const TestimonialsSection: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 dark:from-purple-400 dark:via-pink-400 dark:to-red-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
               Testimonials
             </span>
           </h2>
@@ -581,7 +581,7 @@ const TestimonialsSection: React.FC = () => {
             >
               {/* Quote Icon - Positioned at top-left corner */}
               <div className="absolute -top-6 left-6 md:left-8">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 flex items-center justify-center">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 shadow-lg shadow-cyan-500/30 flex items-center justify-center">
                   <FaQuoteLeft className="text-white text-lg md:text-xl" />
                 </div>
               </div>
@@ -603,10 +603,10 @@ const TestimonialsSection: React.FC = () => {
                     <img
                       src={currentTestimonial.image}
                       alt={currentTestimonial.name}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-purple-500/50"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-cyan-500/50"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
                       <FaUser className="text-white text-xl" />
                     </div>
                   )}
@@ -630,14 +630,14 @@ const TestimonialsSection: React.FC = () => {
               <>
                 <button
                   onClick={goToPrev}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 p-3 rounded-full glass-card border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-purple-500/20 hover:border-purple-500/50 transition-all"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 p-3 rounded-full glass-card border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all"
                   aria-label="Previous testimonial"
                 >
                   <FaChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={goToNext}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 p-3 rounded-full glass-card border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-purple-500/20 hover:border-purple-500/50 transition-all"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 p-3 rounded-full glass-card border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all"
                   aria-label="Next testimonial"
                 >
                   <FaChevronRight className="w-5 h-5" />
@@ -655,8 +655,8 @@ const TestimonialsSection: React.FC = () => {
                   onClick={() => goToSlide(index)}
                   className={`w-3 h-3 rounded-full transition-all duration-300 ${
                     index === currentIndex
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 w-8"
-                      : "bg-[var(--glass-border)] hover:bg-purple-500/50"
+                      ? "bg-gradient-to-r from-cyan-500 to-blue-500 w-8"
+                      : "bg-[var(--glass-border)] hover:bg-cyan-500/50"
                   }`}
                   aria-label={`Go to testimonial ${index + 1}`}
                 />
@@ -671,8 +671,8 @@ const TestimonialsSection: React.FC = () => {
             {testimonials.slice(0, 3).map((testimonial, index) => (
               <div
                 key={testimonial.$id}
-                className={`glass-card border border-[var(--glass-border)] rounded-2xl p-6 transition-all duration-300 hover:border-purple-500/50 ${
-                  index === currentIndex ? "ring-2 ring-purple-500/50" : ""
+                className={`glass-card border border-[var(--glass-border)] rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/50 ${
+                  index === currentIndex ? "ring-2 ring-cyan-500/50" : ""
                 }`}
                 onClick={() => goToSlide(index)}
                 role="button"
@@ -687,7 +687,7 @@ const TestimonialsSection: React.FC = () => {
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
                       <FaUser className="text-white text-sm" />
                     </div>
                   )}
@@ -713,7 +713,7 @@ const TestimonialsSection: React.FC = () => {
           <button
             onClick={() => setShowForm(true)}
             type="button"
-            className="glass-btn bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 font-medium hover:scale-105 active:scale-95 transition-transform duration-300 rounded-xl shadow-lg shadow-purple-500/30 touch-manipulation"
+            className="glass-btn bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-8 py-3 font-medium hover:scale-105 active:scale-95 transition-transform duration-300 rounded-xl shadow-lg shadow-cyan-500/30 touch-manipulation"
           >
             Share Your Experience
           </button>
@@ -816,14 +816,14 @@ const TestimonialsSection: React.FC = () => {
                               htmlFor="testimonial-image-upload"
                               className={`flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all ${
                                 uploadingImage
-                                  ? "border-purple-500 bg-purple-500/10"
-                                  : "border-[var(--glass-border)] hover:border-purple-500 hover:bg-[var(--glass-border)]/50"
+                                  ? "border-cyan-500 bg-cyan-500/10"
+                                  : "border-[var(--glass-border)] hover:border-cyan-500 hover:bg-[var(--glass-border)]/50"
                               }`}
                             >
                               {uploadingImage ? (
                                 <>
-                                  <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                                  <span className="text-purple-400 text-sm">
+                                  <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                                  <span className="text-cyan-400 text-sm">
                                     Uploading...
                                   </span>
                                 </>
@@ -854,7 +854,7 @@ const TestimonialsSection: React.FC = () => {
                                   });
                                   setImagePreview(null);
                                 }}
-                                className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                                className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                                 placeholder="https://..."
                               />
                             </div>
@@ -876,7 +876,7 @@ const TestimonialsSection: React.FC = () => {
                           onChange={(e) =>
                             setFormData({ ...formData, name: e.target.value })
                           }
-                          className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                          className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                           placeholder="John Doe"
                         />
                       </div>
@@ -893,7 +893,7 @@ const TestimonialsSection: React.FC = () => {
                             onChange={(e) =>
                               setFormData({ ...formData, role: e.target.value })
                             }
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                             placeholder="CEO"
                           />
                         </div>
@@ -910,7 +910,7 @@ const TestimonialsSection: React.FC = () => {
                                 company: e.target.value,
                               })
                             }
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
                             placeholder="Acme Inc"
                           />
                         </div>
@@ -959,7 +959,7 @@ const TestimonialsSection: React.FC = () => {
                               content: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none resize-none"
+                          className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder-[var(--text-accent)] focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none resize-none"
                           placeholder="Share your experience working with me..."
                         />
                       </div>
@@ -967,7 +967,7 @@ const TestimonialsSection: React.FC = () => {
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-500 hover:to-pink-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium hover:from-cyan-500 hover:to-blue-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                       >
                         {submitting ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
