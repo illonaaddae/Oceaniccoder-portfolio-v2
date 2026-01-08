@@ -49,6 +49,7 @@ import {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
+  getSiteViews,
 } from "@/services/api";
 
 export const useAdminData = () => {
@@ -62,6 +63,7 @@ export const useAdminData = () => {
   const [about, setAbout] = useState<About | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [siteViews, setSiteViews] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,6 +146,13 @@ export const useAdminData = () => {
         console.warn("Failed to load testimonials:", err);
       }
 
+      let siteViewsData = 0;
+      try {
+        siteViewsData = await getSiteViews();
+      } catch (err) {
+        console.warn("Failed to load site views:", err);
+      }
+
       setMessages(messagesData);
       setSkills(skillsData);
       setProjects(projectsData);
@@ -154,6 +163,7 @@ export const useAdminData = () => {
       setAbout(aboutData);
       setBlogPosts(blogPostsData);
       setTestimonials(testimonialsData);
+      setSiteViews(siteViewsData);
       setError(null); // Clear any previous errors since data loaded
     } catch (err) {
       const errorMessage =
@@ -530,6 +540,7 @@ export const useAdminData = () => {
     about,
     blogPosts,
     testimonials,
+    siteViews,
     loading,
     error,
     loadData,

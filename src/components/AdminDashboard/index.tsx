@@ -155,6 +155,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     handleAddTestimonial,
     handleUpdateTestimonial,
     handleDeleteTestimonial,
+    siteViews,
   } = useAdminData();
 
   // Filtering functions
@@ -420,6 +421,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setEditingGalleryImage(null);
   };
 
+  // Message status change handler with toast feedback
+  const handleMessageStatusChange = async (
+    messageId: string,
+    status: "new" | "read" | "replied"
+  ) => {
+    if (isReadOnly) {
+      showError(
+        "This feature is for admin only. You are viewing in read-only mode."
+      );
+      return;
+    }
+    try {
+      await handleStatusChange(messageId, status);
+      const statusMessages: Record<string, string> = {
+        new: "Message marked as new",
+        read: "Message marked as read",
+        replied: "Message marked as replied",
+      };
+      showSuccess(statusMessages[status] || "Message status updated");
+    } catch (err) {
+      console.error("Failed to update message status:", err);
+      showError("Failed to update message status");
+    }
+  };
+
   // Delete confirmation handlers
   const requestDeleteMessage = (messageId: string) => {
     if (isReadOnly) {
@@ -464,7 +490,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } catch (err) {
       console.error("Delete failed:", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      showError(`Failed to delete: ${errorMessage}`);
+      // Check if it's a "not found" error - item was already deleted
+      if (errorMessage.includes("could not be found")) {
+        showSuccess("Item was already deleted. Refreshing data...");
+        await loadData(false);
+      } else {
+        showError(`Failed to delete: ${errorMessage}`);
+      }
     } finally {
       setDeleteConfirm({ show: false, type: null, id: null });
     }
@@ -704,6 +736,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onAddCertification={openNewCertification}
               onNavigateToTab={(tab) => setActiveTab(tab as TabType)}
               isReadOnly={isReadOnly}
+              loading={loading}
+              siteViews={siteViews}
             />
           )}
 
@@ -712,7 +746,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               theme={theme}
               loading={loading}
               filteredMessages={filteredMessages}
-              onStatusChange={handleStatusChange}
+              onStatusChange={handleMessageStatusChange}
               onDelete={requestDeleteMessage}
               isReadOnly={isReadOnly}
             />

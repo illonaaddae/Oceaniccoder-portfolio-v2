@@ -33,8 +33,11 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
     });
   };
 
-  const handleReply = () => {
-    window.location.href = `mailto:${message.email}?subject=Re: ${message.subject}`;
+  const getMailtoUrl = () => {
+    const subject = encodeURIComponent(
+      `Re: ${message.subject || "Your Message"}`
+    );
+    return `mailto:${message.email}?subject=${subject}`;
   };
 
   return (
@@ -148,9 +151,9 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
         {/* Actions */}
         {!isReadOnly && (
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              onClick={handleReply}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 ${
+            <a
+              href={getMailtoUrl()}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 no-underline ${
                 theme === "dark"
                   ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25"
                   : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25"
@@ -158,7 +161,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
             >
               <FaReply />
               Reply via Email
-            </button>
+            </a>
             {message.status === "new" && onMarkAsRead && (
               <button
                 onClick={() => onMarkAsRead(message.$id)}
