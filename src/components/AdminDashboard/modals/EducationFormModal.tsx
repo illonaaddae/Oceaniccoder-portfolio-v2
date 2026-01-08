@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Modal } from "./Modal";
-import { FaSave, FaCalendarAlt } from "react-icons/fa";
+import { FaSave, FaCalendarAlt, FaGraduationCap, FaBook } from "react-icons/fa";
 import type { Education } from "@/types";
 import { ImageUpload } from "../ImageUpload";
 
@@ -408,7 +408,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
                     : "bg-white/50 border-blue-200/50 text-slate-600 hover:border-blue-300"
                 }`}
               >
-                📚 In Progress
+                <FaBook className="inline-block mr-1" /> In Progress
               </button>
               <button
                 type="button"
@@ -421,7 +421,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
                     : "bg-white/50 border-blue-200/50 text-slate-600 hover:border-blue-300"
                 }`}
               >
-                🎓 Completed
+                <FaGraduationCap className="inline-block mr-1" /> Completed
               </button>
             </div>
           </div>

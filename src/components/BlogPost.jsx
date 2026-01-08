@@ -233,7 +233,7 @@ I started with the official React documentation, which is excellent. Then I buil
 
 I'm now diving into Next.js and TypeScript. The learning never stops, and that's what makes this field exciting.
 
-Happy coding! 🚀`,
+Happy coding!`,
       category: "Development",
       tags: ["React", "JavaScript", "Frontend", "Web Development"],
       publishedAt: "2025-01-15",
@@ -551,7 +551,7 @@ Glass morphism is used in:
 
 Glass morphism, when used thoughtfully, creates interfaces that feel modern, elegant, and dimensional. The key is subtlety—let the effect enhance your design without overwhelming it.
 
-Now go create something beautiful! ✨`,
+Now go create something beautiful!`,
       category: "Development",
       tags: ["CSS", "UI Design", "Frontend", "Tutorial"],
       publishedAt: "2024-12-20",

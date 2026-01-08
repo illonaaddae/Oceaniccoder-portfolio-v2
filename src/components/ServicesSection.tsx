@@ -13,6 +13,7 @@ import {
   FaArrowRight,
   FaEnvelope,
   FaQuestionCircle,
+  FaLightbulb,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
@@ -504,9 +505,10 @@ const ServicesSection: React.FC = () => {
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="mt-8 text-center"
               >
-                <p className="text-[var(--text-secondary)] text-sm">
-                  💡 <strong>Pro tip:</strong> Bundle add-ons with any package
-                  and get 10% off the total!
+                <p className="text-[var(--text-secondary)] text-sm flex items-center justify-center gap-2">
+                  <FaLightbulb className="w-4 h-4 text-yellow-500" />
+                  <strong>Pro tip:</strong> Bundle add-ons with any package and
+                  get 10% off the total!
                 </p>
               </motion.div>
             </motion.div>

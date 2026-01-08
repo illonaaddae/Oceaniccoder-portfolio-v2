@@ -9,6 +9,7 @@ import {
   FaExternalLinkAlt,
   FaCheckCircle,
   FaExclamationCircle,
+  FaLock,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import type { Comment, BlogPost } from "@/types";
@@ -209,7 +210,7 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({
           }`}
         >
           <p className="text-sm font-medium flex items-center gap-2">
-            <span className="text-lg">🔒</span>
+            <FaLock className="w-4 h-4 flex-shrink-0" />
             Comment moderation is only available to the admin. This is a
             read-only view of comment statistics.
           </p>

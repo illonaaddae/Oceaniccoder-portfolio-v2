@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiHome, FiArrowLeft, FiMail, FiCode } from "react-icons/fi";
+import { FaRocket } from "react-icons/fa";
 
 const NotFound: React.FC = () => {
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ const NotFound: React.FC = () => {
         >
           <div className="relative">
             <motion.div
-              className="text-6xl"
+              className="text-6xl text-oceanic-500"
               animate={{
                 rotate: [0, 10, -10, 0],
                 y: [0, -5, 5, 0],
@@ -105,7 +106,7 @@ const NotFound: React.FC = () => {
                 ease: "easeInOut",
               }}
             >
-              🚀
+              <FaRocket className="w-12 h-12" />
             </motion.div>
             <motion.div
               className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-2xl"
@@ -163,7 +164,7 @@ const NotFound: React.FC = () => {
           className="mt-10 text-xs text-[var(--text-accent)] opacity-60"
         >
           Fun fact: 404 errors are named after room 404 at CERN where the
-          original web servers were located! 🌐
+          original web servers were located.
         </motion.p>
       </motion.div>
     </div>

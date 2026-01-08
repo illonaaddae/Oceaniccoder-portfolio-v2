@@ -34,10 +34,10 @@ const EVENTS: Event[] = [
   // January
   {
     id: "new-year",
-    title: "🎉 Happy New Year!",
+    title: "Happy New Year!",
     message:
       "Wishing you an amazing year ahead filled with success and happiness!",
-    mobileMessage: "Happy New Year! 🎊",
+    mobileMessage: "Happy New Year! ",
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 1, day: 1 },
     endDate: { month: 1, day: 3 },
@@ -46,10 +46,10 @@ const EVENTS: Event[] = [
   },
   {
     id: "mlk-day",
-    title: "✊ MLK Day",
+    title: "MLK Day",
     message:
       "Honoring Dr. Martin Luther King Jr. and his dream of equality for all.",
-    mobileMessage: "Honoring Dr. King's legacy ✊",
+    mobileMessage: "Honoring Dr. King's legacy",
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 1, day: 20 },
     endDate: { month: 1, day: 20 },
@@ -59,10 +59,10 @@ const EVENTS: Event[] = [
   // February
   {
     id: "valentines",
-    title: "💕 Happy Valentine's Day!",
+    title: "Happy Valentine's Day!",
     message:
       "Spreading love and appreciation to all visitors! Thanks for being here.",
-    mobileMessage: "Spreading love! 💕",
+    mobileMessage: "Spreading love!",
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 2, day: 14 },
     endDate: { month: 2, day: 14 },
@@ -71,10 +71,10 @@ const EVENTS: Event[] = [
   },
   {
     id: "black-history",
-    title: "✊ Black History Month",
+    title: "Black History Month",
     message:
       "Celebrating the achievements and contributions of Black Americans.",
-    mobileMessage: "Celebrating Black history ✊",
+    mobileMessage: "Celebrating Black history",
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 2, day: 1 },
     endDate: { month: 2, day: 28 },
@@ -84,10 +84,10 @@ const EVENTS: Event[] = [
   // March
   {
     id: "ghana-independence",
-    title: "🇬🇭 Ghana Independence Day!",
+    title: "Ghana Independence Day!",
     message:
       "Celebrating Ghana's freedom since 1957! The first sub-Saharan African nation to gain independence.",
-    mobileMessage: "Ghana's freedom day! 🇬🇭",
+    mobileMessage: "Ghana's freedom day!",
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 3, day: 6 },
     endDate: { month: 3, day: 6 },
@@ -96,10 +96,10 @@ const EVENTS: Event[] = [
   },
   {
     id: "womens-day",
-    title: "💪 International Women's Day",
+    title: "International Women's Day",
     message:
       "Celebrating women's achievements and advocating for gender equality.",
-    mobileMessage: "Celebrating women! 💪",
+    mobileMessage: "Celebrating women!",
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 3, day: 8 },
     endDate: { month: 3, day: 8 },
@@ -108,9 +108,9 @@ const EVENTS: Event[] = [
   },
   {
     id: "st-patricks",
-    title: "🍀 Happy St. Patrick's Day!",
+    title: "Happy St. Patrick's Day!",
     message: "May luck be on your side! Celebrating the luck of the Irish.",
-    mobileMessage: "Luck of the Irish! 🍀",
+    mobileMessage: "Luck of the Irish!",
     icon: <FaLeaf className="text-xl md:text-2xl" />,
     startDate: { month: 3, day: 17 },
     endDate: { month: 3, day: 17 },
@@ -120,9 +120,9 @@ const EVENTS: Event[] = [
   // April
   {
     id: "easter",
-    title: "🐰 Happy Easter!",
+    title: "Happy Easter!",
     message: "Wishing you a joyful Easter filled with hope and renewal!",
-    mobileMessage: "Happy Easter! 🐰🥚",
+    mobileMessage: "Happy Easter!",
     icon: <FaEgg className="text-xl md:text-2xl" />,
     startDate: { month: 4, day: 20 },
     endDate: { month: 4, day: 21 },
@@ -131,10 +131,10 @@ const EVENTS: Event[] = [
   },
   {
     id: "birthday",
-    title: "🎂 It's My Birthday!",
+    title: "It's My Birthday!",
     message:
       "April 28th is my special day! Thanks for visiting my portfolio. Feel free to leave a birthday wish!",
-    mobileMessage: "It's my birthday! 🎂🎁",
+    mobileMessage: "It's my birthday!",
     icon: <FaBirthdayCake className="text-xl md:text-2xl" />,
     startDate: { month: 4, day: 28 },
     endDate: { month: 4, day: 28 },
@@ -144,9 +144,9 @@ const EVENTS: Event[] = [
   // May
   {
     id: "mothers-day",
-    title: "💐 Happy Mother's Day!",
+    title: "Happy Mother's Day!",
     message: "Celebrating all the amazing moms out there! You are appreciated.",
-    mobileMessage: "Love to all moms! 💐",
+    mobileMessage: "Love to all moms!",
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 5, day: 11 },
     endDate: { month: 5, day: 11 },
@@ -155,9 +155,9 @@ const EVENTS: Event[] = [
   },
   {
     id: "memorial-day",
-    title: "🇺🇸 Memorial Day",
+    title: "Memorial Day",
     message: "Honoring those who made the ultimate sacrifice for our freedom.",
-    mobileMessage: "Honoring our heroes 🇺🇸",
+    mobileMessage: "Honoring our heroes",
     icon: <FaFlag className="text-xl md:text-2xl" />,
     startDate: { month: 5, day: 26 },
     endDate: { month: 5, day: 26 },
@@ -167,9 +167,9 @@ const EVENTS: Event[] = [
   // June
   {
     id: "fathers-day",
-    title: "👔 Happy Father's Day!",
+    title: "Happy Father's Day!",
     message: "Celebrating all the wonderful dads! Thank you for everything.",
-    mobileMessage: "Love to all dads! 👔",
+    mobileMessage: "Love to all dads!",
     icon: <FaGift className="text-xl md:text-2xl" />,
     startDate: { month: 6, day: 15 },
     endDate: { month: 6, day: 15 },
@@ -178,9 +178,9 @@ const EVENTS: Event[] = [
   },
   {
     id: "pride-month",
-    title: "🏳️‍🌈 Happy Pride Month!",
+    title: "Happy Pride Month!",
     message: "Celebrating love, diversity, and equality for all!",
-    mobileMessage: "Love is love! 🏳️‍🌈",
+    mobileMessage: "Love is love!",
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 6, day: 1 },
     endDate: { month: 6, day: 30 },
@@ -190,9 +190,9 @@ const EVENTS: Event[] = [
   },
   {
     id: "juneteenth",
-    title: "✊ Juneteenth",
+    title: "Juneteenth",
     message: "Celebrating freedom and the end of slavery in America.",
-    mobileMessage: "Celebrating freedom ✊",
+    mobileMessage: "Celebrating freedom",
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 6, day: 19 },
     endDate: { month: 6, day: 19 },
@@ -202,10 +202,10 @@ const EVENTS: Event[] = [
   // July
   {
     id: "independence-day",
-    title: "🇺🇸 Happy 4th of July!",
+    title: "Happy 4th of July!",
     message:
       "Celebrating Independence Day! Land of the free, home of the brave.",
-    mobileMessage: "Happy 4th! 🎆🇺🇸",
+    mobileMessage: "Happy 4th!",
     icon: <FaFlag className="text-xl md:text-2xl" />,
     startDate: { month: 7, day: 4 },
     endDate: { month: 7, day: 4 },
@@ -215,10 +215,10 @@ const EVENTS: Event[] = [
   // September
   {
     id: "labor-day",
-    title: "💼 Happy Labor Day!",
+    title: "Happy Labor Day!",
     message:
       "Celebrating the hard work and achievements of workers everywhere!",
-    mobileMessage: "Celebrating workers! 💼",
+    mobileMessage: "Celebrating workers!",
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 9, day: 1 },
     endDate: { month: 9, day: 1 },
@@ -228,9 +228,9 @@ const EVENTS: Event[] = [
   // October
   {
     id: "halloween",
-    title: "🎃 Happy Halloween!",
+    title: "Happy Halloween!",
     message: "Spooky season is here! Hope your Halloween is frighteningly fun!",
-    mobileMessage: "Spooky season! 👻🎃",
+    mobileMessage: "Spooky season!",
     icon: <FaGhost className="text-xl md:text-2xl" />,
     startDate: { month: 10, day: 31 },
     endDate: { month: 10, day: 31 },
@@ -243,7 +243,7 @@ const EVENTS: Event[] = [
     title: "🎖️ Veterans Day",
     message:
       "Honoring all who served. Thank you for your sacrifice and service.",
-    mobileMessage: "Thank you, veterans 🎖️",
+    mobileMessage: "Thank you, veterans",
     icon: <FaFlag className="text-xl md:text-2xl" />,
     startDate: { month: 11, day: 11 },
     endDate: { month: 11, day: 11 },
@@ -252,10 +252,10 @@ const EVENTS: Event[] = [
   },
   {
     id: "thanksgiving",
-    title: "🦃 Happy Thanksgiving!",
+    title: "Happy Thanksgiving!",
     message:
       "Grateful for visitors like you! Wishing you a wonderful Thanksgiving.",
-    mobileMessage: "Grateful for you! 🦃",
+    mobileMessage: "Grateful for you!",
     icon: <FaLeaf className="text-xl md:text-2xl" />,
     startDate: { month: 11, day: 27 },
     endDate: { month: 11, day: 28 },
@@ -265,9 +265,9 @@ const EVENTS: Event[] = [
   // December
   {
     id: "christmas",
-    title: "🎄 Merry Christmas!",
+    title: "Merry Christmas!",
     message: "Wishing you a magical holiday season filled with joy and warmth!",
-    mobileMessage: "Merry Christmas! 🎄🎁",
+    mobileMessage: "Merry Christmas!",
     icon: <FaTree className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 24 },
     endDate: { month: 12, day: 26 },
@@ -276,9 +276,9 @@ const EVENTS: Event[] = [
   },
   {
     id: "hanukkah",
-    title: "🕎 Happy Hanukkah!",
+    title: "Happy Hanukkah!",
     message: "Wishing you a bright and joyful Festival of Lights!",
-    mobileMessage: "Happy Hanukkah! 🕎",
+    mobileMessage: "Happy Hanukkah!",
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 14 },
     endDate: { month: 12, day: 22 },
@@ -287,9 +287,9 @@ const EVENTS: Event[] = [
   },
   {
     id: "kwanzaa",
-    title: "🕯️ Happy Kwanzaa!",
+    title: "Happy Kwanzaa!",
     message: "Celebrating African heritage, culture, and community!",
-    mobileMessage: "Happy Kwanzaa! 🕯️",
+    mobileMessage: "Happy Kwanzaa!",
     icon: <FaDrum className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 26 },
     endDate: { month: 12, day: 31 },
@@ -298,9 +298,9 @@ const EVENTS: Event[] = [
   },
   {
     id: "new-years-eve",
-    title: "🥂 Happy New Year's Eve!",
+    title: "Happy New Year's Eve!",
     message: "Cheers to new beginnings! See you in the new year!",
-    mobileMessage: "Cheers to 2026! 🥂",
+    mobileMessage: "Cheers to 2026!",
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 31 },
     endDate: { month: 12, day: 31 },

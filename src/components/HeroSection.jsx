@@ -4,6 +4,8 @@ import {
   FaDownload,
   FaHeart,
   FaChevronDown,
+  FaRocket,
+  FaBriefcase,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { usePortfolioData } from "../hooks/usePortfolioData";
@@ -36,7 +38,7 @@ const HeroSection = () => {
       "WordPress & Web Experience Designer",
       "UI/UX Thinker",
       "Continuous Learner",
-      "Oceaniccoder 🌊",
+      "Oceaniccoder",
     ],
     []
   );
@@ -319,7 +321,7 @@ const HeroSection = () => {
             className="glass-btn bg-gradient-to-r from-cyan-500/30 to-blue-500/30 backdrop-blur-md border border-cyan-400/40 text-white px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-cyan-500/40 hover:to-blue-500/40 transition-all duration-300 shadow-lg"
             aria-label="Navigate to projects section"
           >
-            <span>🚀</span>
+            {/* <FaRocket className="w-4 h-4" /> */}
             View My Projects
             <FaArrowRight className="w-4 h-4" />
           </button>
@@ -329,9 +331,9 @@ const HeroSection = () => {
             className="glass-btn bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md border border-green-400/40 text-green-300 px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-green-500/30 hover:to-emerald-500/30 transition-all duration-300"
             aria-label="Navigate to contact section"
           >
-            <span>💼</span>
+            <FaBriefcase className="w-4 h-4" />
             Hire Me
-            <FaHeart className="w-4 h-4 text-red-400" />
+            {/* <FaHeart className="w-4 h-4 text-red-400" /> */}
           </button>
         </div>
 

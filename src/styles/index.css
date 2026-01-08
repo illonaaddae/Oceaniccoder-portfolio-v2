@@ -18,7 +18,7 @@
   }
 }
 
-/* ✅ Optimized CSS Variables */
+/* Optimized CSS Variables */
 :root {
   --bg-primary: #0a1628;
   --bg-secondary: #0f2027;
@@ -120,7 +120,7 @@ body[data-theme="light"] .hero-section {
   color: var(--text-primary) !important;
 }
 
-/* ✅ Performance Optimized Base */
+/* Performance Optimized Base */
 * {
   margin: 0;
   padding: 0;
@@ -159,7 +159,7 @@ body {
   backface-visibility: hidden;
 }
 
-/* ✅ Optimized Scrollbar */
+/* Optimized Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -185,18 +185,18 @@ body {
   );
 }
 
-/* ✅ Smooth Scrolling */
+/* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* ✅ Selection */
+/* Selection */
 ::selection {
   background: var(--shadow-ocean);
   color: var(--text-primary);
 }
 
-/* ✅ Focus Styles */
+/* Focus Styles */
 button:focus,
 a:focus,
 input:focus,
@@ -205,7 +205,7 @@ textarea:focus {
   outline-offset: 2px;
 }
 
-/* ✅ Optimized Hero Background */
+/* Optimized Hero Background */
 .hero-section {
   position: relative;
   background: linear-gradient(
@@ -220,7 +220,7 @@ textarea:focus {
   animation: gradientShift 15s ease infinite;
 }
 
-/* ✅ Optimized Liquid Morphing - GPU accelerated */
+/* Optimized Liquid Morphing - GPU accelerated */
 .liquid-morph {
   position: absolute;
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
@@ -244,7 +244,7 @@ textarea:focus {
   border-radius: 70% 30% 60% 40% / 40% 70% 30% 60%;
 }
 
-/* ✅ Optimized Keyframes */
+/* Optimized Keyframes */
 @keyframes gradientShift {
   0%,
   100% {
@@ -459,7 +459,7 @@ textarea:focus {
   }
 }
 
-/* ✅ Responsive Optimizations */
+/* Responsive Optimizations */
 @media (max-width: 768px) {
   .liquid-morph {
     transform: scale(0.7);
@@ -483,7 +483,7 @@ textarea:focus {
   }
 }
 
-/* ✅ Performance Utilities */
+/* Performance Utilities */
 .fade-in-up {
   animation: fadeInUp 0.6s ease-out forwards;
   opacity: 0;
@@ -529,7 +529,7 @@ textarea:focus {
   animation: slideIn 0.3s ease-out forwards;
 }
 
-/* ✅ Reduced Motion */
+/* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   .liquid-morph {
     animation: none;
@@ -546,7 +546,7 @@ textarea:focus {
   }
 }
 
-/* ✅ Accessibility - Skip to Content Link */
+/* Accessibility - Skip to Content Link */
 .skip-to-content {
   position: absolute;
   transform: translateY(-200%);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaEnvelope, FaCheck, FaTrash, FaEye } from "react-icons/fa";
+import { FaEnvelope, FaCheck, FaTrash, FaEye, FaLock } from "react-icons/fa";
 import type { Message } from "@/types";
 import { MessageDetailModal } from "../modals";
 
@@ -79,7 +79,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
           }`}
         >
           <p className="text-sm font-medium flex items-center gap-2">
-            <span className="text-lg">🔒</span>
+            <FaLock className="w-4 h-4 flex-shrink-0" />
             Message content is protected for privacy. Contact the portfolio
             owner directly if you'd like to discuss opportunities.
           </p>

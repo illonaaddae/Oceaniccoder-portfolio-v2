@@ -128,10 +128,7 @@ export default function Splash({ exiting = false }) {
                   : "opacity-0 -translate-y-2"
               }`}
             >
-              <span className="mr-2">Welcome</span>
-              <span aria-hidden className="text-2xl">
-                😊
-              </span>
+              <span>Welcome</span>
             </div>
           </div>
         </div>

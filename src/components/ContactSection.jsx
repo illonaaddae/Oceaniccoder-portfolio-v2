@@ -9,6 +9,7 @@ import {
   FaInstagram,
   FaPaperPlane,
   FaCheckCircle,
+  FaLightbulb,
 } from "react-icons/fa";
 import { createMessage } from "../services/api";
 import { usePortfolioData } from "../hooks/usePortfolioData";
@@ -387,7 +388,7 @@ const ContactSection = () => {
                   lastSubmissionRef.current = now;
                   setStatus("success");
                   setResponseMessage(
-                    "Thanks, I received your message. I'll get back to you within 24 hours! ❤️"
+                    "Thanks, I received your message. I'll get back to you within 24 hours!"
                   );
                   // Reset form start time for next submission
                   formStartTimeRef.current = Date.now();
@@ -590,10 +591,13 @@ const ContactSection = () => {
             {/* Response Time Note */}
             <div className="mt-6 space-y-3">
               <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg border border-cyan-500/20">
-                <p className="text-sm text-cyan-300">
-                  💡 <strong>Quick Response:</strong> I typically respond to
-                  messages within 24 hours. For urgent inquiries, feel free to
-                  reach out via LinkedIn or email directly.
+                <p className="text-sm text-cyan-300 flex items-start gap-2">
+                  <FaLightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>Quick Response:</strong> I typically respond to
+                    messages within 24 hours. For urgent inquiries, feel free to
+                    reach out via LinkedIn or email directly.
+                  </span>
                 </p>
               </div>
               <div className="p-3 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-lg border border-purple-500/10">

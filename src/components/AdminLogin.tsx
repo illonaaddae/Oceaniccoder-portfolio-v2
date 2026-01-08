@@ -240,12 +240,12 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           }`}
         >
           <p
-            className={`text-xs text-center transition-colors duration-300 ${
+            className={`text-xs text-center transition-colors duration-300 flex items-center justify-center gap-2 ${
               theme === "dark" ? "text-slate-400" : "text-slate-600"
             }`}
           >
-            🔒 This dashboard is password protected. Only you should have
-            access.
+            <FaLock className="w-3 h-3" />
+            This dashboard is password protected. Only you should have access.
           </p>
         </div>
       </div>

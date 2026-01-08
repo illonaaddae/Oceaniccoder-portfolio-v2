@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { FaLaptopCode, FaTools, FaUsers, FaArrowRight } from "react-icons/fa";
 import { usePortfolio } from "../Context"; // Fixed path
 import { usePortfolioData } from "../hooks/usePortfolioData";
 
@@ -146,8 +147,8 @@ const SkillsSection = () => {
         {/* Skills Summary */}
         <div className="mt-16 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           <div className="glass-card p-6 text-center group hover:scale-105 transition-all duration-300">
-            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
-              💻
+            <div className="flex justify-center mb-3">
+              <FaLaptopCode className="text-3xl text-cyan-400 group-hover:scale-110 transition-transform duration-300" />
             </div>
             <h4 className="text-xl font-bold text-white mb-2">
               {projects?.length || 15}+ Projects
@@ -156,8 +157,8 @@ const SkillsSection = () => {
           </div>
 
           <div className="glass-card p-6 text-center group hover:scale-105 transition-all duration-300">
-            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
-              🛠️
+            <div className="flex justify-center mb-3">
+              <FaTools className="text-3xl text-cyan-400 group-hover:scale-110 transition-transform duration-300" />
             </div>
             <h4 className="text-xl font-bold text-white mb-2">
               {totalTechnologies}+ Technologies
@@ -166,8 +167,8 @@ const SkillsSection = () => {
           </div>
 
           <div className="glass-card p-6 text-center group hover:scale-105 transition-all duration-300">
-            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
-              👥
+            <div className="flex justify-center mb-3">
+              <FaUsers className="text-3xl text-cyan-400 group-hover:scale-110 transition-transform duration-300" />
             </div>
             <h4 className="text-xl font-bold text-white mb-2">
               {about?.studentsMentored || 40}+ Students
@@ -182,11 +183,8 @@ const SkillsSection = () => {
             to="/about"
             className="inline-flex items-center gap-3 px-6 py-3 glass-btn font-semibold mt-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 hover:scale-110 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50 group"
           >
-            <span className="text-lg">✨</span>
             <span>Want to know more? Read my About</span>
-            <span className="group-hover:translate-x-1 transition-transform duration-300">
-              →
-            </span>
+            <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
           </Link>
         </div>
       </div>

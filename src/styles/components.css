@@ -1,4 +1,4 @@
-/* ✅ Enhanced Glass Morphism Effects */
+/* Enhanced Glass Morphism Effects */
 /* Light-mode utility color overrides: ensure high contrast for body text and muted text */
 html[data-theme="light"] .text-white,
 body[data-theme="light"] .text-white,
@@ -81,7 +81,7 @@ body[data-theme="light"] svg.text-white,
   fill: currentColor !important;
 }
 
-/* ✅ Enhanced Glass Morphism Effects */
+/* Enhanced Glass Morphism Effects */
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(16px) saturate(180%);
@@ -173,7 +173,7 @@ body[data-theme="light"] svg.text-white,
   background: rgba(20, 184, 166, 0.1) !important;
 }
 
-/* ✅ Enhanced Glass Progress Bar */
+/* Enhanced Glass Progress Bar */
 .glass-progress {
   background: rgba(20, 184, 166, 0.1);
   backdrop-filter: blur(8px);
@@ -238,7 +238,7 @@ body[data-theme="light"] svg.text-white,
   }
 }
 
-/* ✅ Enhanced Navigation Styles */
+/* Enhanced Navigation Styles */
 .nav-link {
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -278,7 +278,7 @@ body[data-theme="light"] svg.text-white,
   width: 80%;
 }
 
-/* ✅ Enhanced Mobile Menu */
+/* Enhanced Mobile Menu */
 .mobile-menu-open {
   background: rgba(10, 22, 40, 0.98);
   backdrop-filter: blur(24px);
@@ -286,7 +286,7 @@ body[data-theme="light"] svg.text-white,
   box-shadow: 0 8px 32px var(--shadow-ocean);
 }
 
-/* ✅ Enhanced Theme Toggle */
+/* Enhanced Theme Toggle */
 .theme-toggle {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -327,7 +327,7 @@ body[data-theme="light"] svg.text-white,
   box-shadow: 0 8px 24px var(--shadow-ocean);
 }
 
-/* ✅ Enhanced Button Animations */
+/* Enhanced Button Animations */
 .btn-primary {
   background: linear-gradient(
     135deg,
@@ -372,7 +372,7 @@ body[data-theme="light"] svg.text-white,
     0 24px 64px rgba(20, 184, 166, 0.2);
 }
 
-/* ✅ Enhanced Card Hover Effects */
+/* Enhanced Card Hover Effects */
 .card-hover {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -690,7 +690,7 @@ body[data-theme="light"] svg.text-white,
   background: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* ✅ Enhanced Text Animations */
+/* Enhanced Text Animations */
 .text-gradient {
   background: linear-gradient(
     135deg,
@@ -720,7 +720,7 @@ body[data-theme="light"] svg.text-white,
     0 0 60px var(--brand-ocean-4);
 }
 
-/* ✅ Enhanced Form Styles */
+/* Enhanced Form Styles */
 .glass-input {
   background: var(--glass-bg);
   backdrop-filter: blur(12px) saturate(160%);
@@ -754,7 +754,7 @@ body[data-theme="light"] svg.text-white,
   color: rgba(0, 0, 0, 0.5);
 }
 
-/* ✅ Enhanced Loading Animations */
+/* Enhanced Loading Animations */
 .loading-dots {
   display: inline-block;
 }
@@ -782,7 +782,7 @@ body[data-theme="light"] svg.text-white,
   }
 }
 
-/* ✅ Enhanced Ocean Pulse Effect */
+/* Enhanced Ocean Pulse Effect */
 .ocean-pulse {
   animation: oceanPulse 4s ease-in-out infinite;
 }
@@ -916,7 +916,7 @@ body[data-theme="light"] footer,
   }
 }
 
-/* ✅ Enhanced Typography with Ysabeau Office */
+/* Enhanced Typography with Ysabeau Office */
 .text-story-lg {
   font-family: "Ysabeau Office", sans-serif;
   font-size: 1.125rem; /* 18px */
