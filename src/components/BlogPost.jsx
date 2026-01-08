@@ -31,6 +31,7 @@ import {
   getPostReactions,
   getVisitorReaction,
   addReaction,
+  getBlogPostBySlug,
 } from "../services/api";
 import { LazyImage } from "./ui/LazyImage";
 import BlogComments from "./BlogComments";
@@ -154,6 +155,7 @@ const BlogPost = () => {
   const [copied, setCopied] = useState(false);
   const [relatedPosts, setRelatedPosts] = useState([]);
   const [postNotFound, setPostNotFound] = useState(false);
+  const [isSearching, setIsSearching] = useState(true); // Track if we're still searching for the post
 
   // Reactions state
   const [reactions, setReactions] = useState({ likes: 0, dislikes: 0 });
@@ -567,28 +569,47 @@ Now go create something beautiful! ✨`,
 
   useEffect(() => {
     // Don't search while still loading
-    if (loading) return;
-
-    const foundPost = allPosts.find((p) => p.slug === slug || p.$id === slug);
-
-    if (foundPost) {
-      setPost(foundPost);
-      setPostNotFound(false);
-
-      // Find related posts (same category, excluding current)
-      const related = allPosts
-        .filter(
-          (p) =>
-            p.$id !== foundPost.$id &&
-            (p.category === foundPost.category ||
-              p.tags?.some((t) => foundPost.tags?.includes(t)))
-        )
-        .slice(0, 3);
-      setRelatedPosts(related);
-    } else {
-      setPost(null);
-      setPostNotFound(true);
+    if (loading) {
+      setIsSearching(true);
+      return;
     }
+
+    const findPost = async () => {
+      // First try to find in already loaded posts
+      let foundPost = allPosts.find((p) => p.slug === slug || p.$id === slug);
+
+      // If not found in cached posts, try fetching directly from API
+      if (!foundPost && slug) {
+        try {
+          foundPost = await getBlogPostBySlug(slug);
+        } catch (err) {
+          console.warn("Could not fetch blog post by slug:", err);
+        }
+      }
+
+      if (foundPost) {
+        setPost(foundPost);
+        setPostNotFound(false);
+
+        // Find related posts (same category, excluding current)
+        const related = allPosts
+          .filter(
+            (p) =>
+              p.$id !== foundPost.$id &&
+              (p.category === foundPost.category ||
+                p.tags?.some((t) => foundPost.tags?.includes(t)))
+          )
+          .slice(0, 3);
+        setRelatedPosts(related);
+      } else {
+        setPost(null);
+        setPostNotFound(true);
+      }
+
+      setIsSearching(false);
+    };
+
+    findPost();
   }, [slug, allPosts, loading]);
 
   // Load reactions for the current post
@@ -715,7 +736,7 @@ Now go create something beautiful! ✨`,
   const nextPost =
     currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
 
-  if (loading) {
+  if (loading || isSearching) {
     return (
       <section
         className="min-h-screen pt-28 pb-20 flex items-center justify-center"

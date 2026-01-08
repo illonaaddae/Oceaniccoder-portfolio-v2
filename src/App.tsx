@@ -12,7 +12,11 @@ import AdminLogin from "./components/AdminLogin";
 import EventBanner from "./components/EventBanner";
 import SupportButton from "./components/SupportButton";
 import SkipToContent from "./components/SkipToContent";
-import { verifyAdminPassword, hashPassword } from "./services/api";
+import {
+  verifyAdminPassword,
+  hashPassword,
+  incrementSiteViews,
+} from "./services/api";
 
 // Code-split heavy routes
 const Home = React.lazy(() => import("./components/HeroSection"));
@@ -304,6 +308,18 @@ function App() {
     if (!showSplash) {
       // start in next frame so CSS transition runs
       requestAnimationFrame(() => setAppVisible(true));
+    }
+  }, [showSplash]);
+
+  // Track site views when app loads (only once per session)
+  useEffect(() => {
+    const hasTrackedView = sessionStorage.getItem("viewTracked");
+    if (!hasTrackedView && !showSplash) {
+      incrementSiteViews()
+        .then(() => {
+          sessionStorage.setItem("viewTracked", "true");
+        })
+        .catch(console.warn);
     }
   }, [showSplash]);
 

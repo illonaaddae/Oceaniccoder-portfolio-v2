@@ -8,10 +8,49 @@ import {
   FaCheck,
   FaChartLine,
   FaEnvelope,
+  FaEye,
 } from "react-icons/fa";
 import type { Skill, Message, Project } from "@/types";
 import { getStorageStats, type StorageStats } from "@/services/api";
 import { formatRelativeTime } from "@/utils/formatters";
+
+// Skeleton loader component for stats
+const StatSkeleton: React.FC<{ theme: "light" | "dark" }> = ({ theme }) => (
+  <div
+    className={`glass-card border rounded-xl sm:rounded-2xl p-4 xs:p-3 sm:p-5 lg:p-6 animate-pulse ${
+      theme === "dark"
+        ? "bg-gray-800/50 border-gray-700/80"
+        : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
+    }`}
+  >
+    <div className="flex items-start justify-between mb-3 xs:mb-2 sm:mb-4">
+      <div className="min-w-0 flex-1">
+        <div
+          className={`h-3 w-20 rounded mb-2 ${
+            theme === "dark" ? "bg-gray-700" : "bg-gray-300"
+          }`}
+        />
+        <div
+          className={`h-8 w-12 rounded mt-2 ${
+            theme === "dark" ? "bg-gray-700" : "bg-gray-300"
+          }`}
+        />
+      </div>
+      <div
+        className={`p-2 xs:p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl ${
+          theme === "dark" ? "bg-gray-700" : "bg-gray-300"
+        }`}
+      >
+        <div className="w-5 h-5" />
+      </div>
+    </div>
+    <div
+      className={`h-5 w-24 rounded ${
+        theme === "dark" ? "bg-gray-700" : "bg-gray-300"
+      }`}
+    />
+  </div>
+);
 
 interface OverviewTabProps {
   theme: "light" | "dark";
@@ -29,6 +68,8 @@ interface OverviewTabProps {
   onAddCertification?: () => void;
   onNavigateToTab?: (tab: string) => void;
   isReadOnly?: boolean;
+  loading?: boolean;
+  siteViews?: number;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -47,6 +88,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onAddCertification,
   onNavigateToTab,
   isReadOnly = false,
+  loading = false,
+  siteViews = 0,
 }) => {
   // Storage stats state
   const [storageStats, setStorageStats] = useState<StorageStats>({
@@ -94,12 +137,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       tabLink: "certifications",
     },
     {
-      label: "Gallery Items",
-      value: totalGallery,
-      change: `${storageStats.totalFiles} files in storage`,
-      icon: FaImage,
-      bgGradient: "from-green-600 to-green-500",
-      tabLink: "gallery",
+      label: "Site Views",
+      value: siteViews,
+      change: "Total page visits",
+      icon: FaEye,
+      bgGradient: "from-cyan-600 to-cyan-500",
+      tabLink: null,
     },
   ];
 
@@ -154,78 +197,88 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-        {stats.map((stat, idx) => {
-          const IconComponent = stat.icon;
-          return (
-            <div
-              key={idx}
-              onClick={() => stat.tabLink && onNavigateToTab?.(stat.tabLink)}
-              className={`glass-card border rounded-xl sm:rounded-2xl p-4 xs:p-3 sm:p-5 lg:p-6 transition-all duration-200 ${
-                stat.tabLink ? "cursor-pointer hover:scale-[1.02]" : ""
-              } ${
-                theme === "dark"
-                  ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600 hover:bg-gray-800/70"
-                  : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3 xs:mb-2 sm:mb-4">
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`text-[11px] xs:text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 truncate ${
-                      theme === "dark" ? "text-gray-400" : "text-slate-700/80"
-                    }`}
-                  >
-                    {stat.label}
-                  </p>
-                  <p
-                    className={`text-2xl xs:text-xl sm:text-3xl lg:text-4xl font-bold mt-1 sm:mt-2 transition-colors duration-300 ${
-                      theme === "dark" ? "text-white/98" : "text-slate-900"
-                    }`}
-                  >
-                    {stat.value}
-                  </p>
-                </div>
-                <div
-                  className={`p-2 xs:p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl backdrop-blur-md bg-gradient-to-br ${stat.bgGradient} shadow-lg flex-shrink-0 ml-2`}
-                >
-                  <IconComponent className="text-white text-base xs:text-sm sm:text-lg lg:text-xl font-bold" />
-                </div>
-              </div>
+        {loading ? (
+          // Show skeleton loaders while loading
+          <>
+            <StatSkeleton theme={theme} />
+            <StatSkeleton theme={theme} />
+            <StatSkeleton theme={theme} />
+            <StatSkeleton theme={theme} />
+          </>
+        ) : (
+          stats.map((stat, idx) => {
+            const IconComponent = stat.icon;
+            return (
               <div
-                className={`inline-flex items-center gap-1 px-2 xs:px-2 sm:px-3 py-1 xs:py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] xs:text-[10px] sm:text-xs font-semibold transition-all duration-300 backdrop-blur-sm border ${
-                  idx === 0
-                    ? theme === "dark"
-                      ? "bg-blue-500/20 text-blue-300 border-blue-400/30 hover:bg-blue-500/30"
-                      : "bg-blue-100 text-blue-700 border-blue-200/60 hover:bg-blue-150"
-                    : idx === 1
-                    ? theme === "dark"
-                      ? "bg-purple-500/20 text-purple-300 border-purple-400/30 hover:bg-purple-500/30"
-                      : "bg-purple-100 text-purple-700 border-purple-200/60 hover:bg-purple-150"
-                    : idx === 2
-                    ? theme === "dark"
-                      ? "bg-amber-500/20 text-amber-300 border-amber-400/30 hover:bg-amber-500/30"
-                      : "bg-amber-100 text-amber-700 border-amber-200/60 hover:bg-amber-150"
-                    : theme === "dark"
-                    ? "bg-green-500/20 text-green-300 border-green-400/30 hover:bg-green-500/30"
-                    : "bg-green-100 text-green-700 border-green-200/60 hover:bg-green-150"
+                key={idx}
+                onClick={() => stat.tabLink && onNavigateToTab?.(stat.tabLink)}
+                className={`glass-card border rounded-xl sm:rounded-2xl p-4 xs:p-3 sm:p-5 lg:p-6 transition-all duration-200 ${
+                  stat.tabLink ? "cursor-pointer hover:scale-[1.02]" : ""
+                } ${
+                  theme === "dark"
+                    ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600 hover:bg-gray-800/70"
+                    : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
                 }`}
               >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
+                <div className="flex items-start justify-between mb-3 xs:mb-2 sm:mb-4">
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`text-[11px] xs:text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 truncate ${
+                        theme === "dark" ? "text-gray-400" : "text-slate-700/80"
+                      }`}
+                    >
+                      {stat.label}
+                    </p>
+                    <p
+                      className={`text-2xl xs:text-xl sm:text-3xl lg:text-4xl font-bold mt-1 sm:mt-2 transition-colors duration-300 ${
+                        theme === "dark" ? "text-white/98" : "text-slate-900"
+                      }`}
+                    >
+                      {stat.value.toLocaleString()}
+                    </p>
+                  </div>
+                  <div
+                    className={`p-2 xs:p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl backdrop-blur-md bg-gradient-to-br ${stat.bgGradient} shadow-lg flex-shrink-0 ml-2`}
+                  >
+                    <IconComponent className="text-white text-base xs:text-sm sm:text-lg lg:text-xl font-bold" />
+                  </div>
+                </div>
+                <div
+                  className={`inline-flex items-center gap-1 px-2 xs:px-2 sm:px-3 py-1 xs:py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] xs:text-[10px] sm:text-xs font-semibold transition-all duration-300 backdrop-blur-sm border ${
                     idx === 0
-                      ? "bg-blue-400"
+                      ? theme === "dark"
+                        ? "bg-blue-500/20 text-blue-300 border-blue-400/30 hover:bg-blue-500/30"
+                        : "bg-blue-100 text-blue-700 border-blue-200/60 hover:bg-blue-150"
                       : idx === 1
-                      ? "bg-purple-400"
+                      ? theme === "dark"
+                        ? "bg-purple-500/20 text-purple-300 border-purple-400/30 hover:bg-purple-500/30"
+                        : "bg-purple-100 text-purple-700 border-purple-200/60 hover:bg-purple-150"
                       : idx === 2
-                      ? "bg-amber-400"
-                      : "bg-green-400"
+                      ? theme === "dark"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-400/30 hover:bg-amber-500/30"
+                        : "bg-amber-100 text-amber-700 border-amber-200/60 hover:bg-amber-150"
+                      : theme === "dark"
+                      ? "bg-cyan-500/20 text-cyan-300 border-cyan-400/30 hover:bg-cyan-500/30"
+                      : "bg-cyan-100 text-cyan-700 border-cyan-200/60 hover:bg-cyan-150"
                   }`}
-                />
-                {stat.change}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      idx === 0
+                        ? "bg-blue-400"
+                        : idx === 1
+                        ? "bg-purple-400"
+                        : idx === 2
+                        ? "bg-amber-400"
+                        : "bg-cyan-400"
+                    }`}
+                  />
+                  {stat.change}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Recent Activity and Storage/Views - 2 Column Layout */}
