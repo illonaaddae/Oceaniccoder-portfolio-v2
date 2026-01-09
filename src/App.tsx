@@ -2,6 +2,7 @@ import React, { useState, useEffect, FC, useCallback } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { PortfolioProvider } from "./Context";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
@@ -12,6 +13,7 @@ import AdminLogin from "./components/AdminLogin";
 import EventBanner from "./components/EventBanner";
 import SupportButton from "./components/SupportButton";
 import SkipToContent from "./components/SkipToContent";
+import { logger } from "./utils/logger";
 import {
   verifyAdminPassword,
   hashPassword,
@@ -338,40 +340,49 @@ function App() {
   }, [showSplash]);
 
   return (
-    <PortfolioProvider>
-      <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
-        {showSplash ? (
-          <Splash exiting={splashExiting} />
-        ) : (
-          <div
-            className={`min-h-screen transition-opacity duration-500 ${
-              appVisible ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <BrowserRouter>
-              <MainLayout theme={theme} toggleTheme={toggleTheme}>
-                <React.Suspense
-                  fallback={
-                    <div className="p-8 text-center text-sm opacity-70">
-                      Loading…
-                    </div>
-                  }
-                >
-                  {/* Animated route transitions using Framer Motion */}
-                  <AnimatedRoutes
-                    isAdminLoggedIn={isAdminLoggedIn}
-                    onAdminLogin={handleAdminLogin}
-                    onAdminLogout={handleAdminLogout}
-                  />
-                  {/* Manage scroll behavior on route changes */}
-                  <RouteChangeHandler />
-                </React.Suspense>
-              </MainLayout>
-            </BrowserRouter>
-          </div>
-        )}
-      </div>
-    </PortfolioProvider>
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        logger.error("Application Error", {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+        });
+      }}
+    >
+      <PortfolioProvider>
+        <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
+          {showSplash ? (
+            <Splash exiting={splashExiting} />
+          ) : (
+            <div
+              className={`min-h-screen transition-opacity duration-500 ${
+                appVisible ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <BrowserRouter>
+                <MainLayout theme={theme} toggleTheme={toggleTheme}>
+                  <React.Suspense
+                    fallback={
+                      <div className="p-8 text-center text-sm opacity-70">
+                        Loading…
+                      </div>
+                    }
+                  >
+                    {/* Animated route transitions using Framer Motion */}
+                    <AnimatedRoutes
+                      isAdminLoggedIn={isAdminLoggedIn}
+                      onAdminLogin={handleAdminLogin}
+                      onAdminLogout={handleAdminLogout}
+                    />
+                    {/* Manage scroll behavior on route changes */}
+                    <RouteChangeHandler />
+                  </React.Suspense>
+                </MainLayout>
+              </BrowserRouter>
+            </div>
+          )}
+        </div>
+      </PortfolioProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -424,7 +424,7 @@ Contributions are welcome! This is an open-source portfolio that others can lear
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
