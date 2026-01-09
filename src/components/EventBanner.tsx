@@ -29,6 +29,11 @@ interface Event {
   showConfetti?: boolean;
 }
 
+// Brand colors for consistent theming
+// Primary: teal/cyan oceanic colors
+// from-teal-600 to-cyan-500 = main brand gradient
+// from-brand-ocean-1 (#0d253f) = dark ocean blue
+
 // Define your special events here
 const EVENTS: Event[] = [
   // January
@@ -41,7 +46,7 @@ const EVENTS: Event[] = [
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 1, day: 1 },
     endDate: { month: 1, day: 3 },
-    bgGradient: "from-yellow-500/90 via-orange-500/90 to-red-500/90",
+    bgGradient: "from-teal-600 via-cyan-600 to-teal-500",
     showConfetti: true,
   },
   {
@@ -53,7 +58,7 @@ const EVENTS: Event[] = [
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 1, day: 20 },
     endDate: { month: 1, day: 20 },
-    bgGradient: "from-blue-600/90 via-indigo-600/90 to-purple-600/90",
+    bgGradient: "from-slate-700 via-teal-700 to-slate-800",
     showConfetti: false,
   },
   // February
@@ -66,7 +71,7 @@ const EVENTS: Event[] = [
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 2, day: 14 },
     endDate: { month: 2, day: 14 },
-    bgGradient: "from-pink-500/90 via-red-500/90 to-rose-500/90",
+    bgGradient: "from-rose-500 via-pink-500 to-teal-500",
     showConfetti: true,
   },
   {
@@ -78,7 +83,7 @@ const EVENTS: Event[] = [
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 2, day: 1 },
     endDate: { month: 2, day: 28 },
-    bgGradient: "from-red-600/90 via-yellow-500/90 to-green-600/90",
+    bgGradient: "from-amber-600 via-teal-600 to-emerald-600",
     showConfetti: false,
   },
   // March
@@ -91,7 +96,7 @@ const EVENTS: Event[] = [
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 3, day: 6 },
     endDate: { month: 3, day: 6 },
-    bgGradient: "from-red-600/90 via-yellow-500/90 to-green-600/90",
+    bgGradient: "from-red-600 via-amber-500 to-emerald-600",
     showConfetti: true,
   },
   {
@@ -103,7 +108,7 @@ const EVENTS: Event[] = [
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 3, day: 8 },
     endDate: { month: 3, day: 8 },
-    bgGradient: "from-purple-500/90 via-pink-500/90 to-rose-500/90",
+    bgGradient: "from-purple-600 via-teal-500 to-cyan-500",
     showConfetti: false,
   },
   {
@@ -114,7 +119,7 @@ const EVENTS: Event[] = [
     icon: <FaLeaf className="text-xl md:text-2xl" />,
     startDate: { month: 3, day: 17 },
     endDate: { month: 3, day: 17 },
-    bgGradient: "from-green-500/90 via-emerald-500/90 to-teal-500/90",
+    bgGradient: "from-emerald-600 via-teal-500 to-cyan-500",
     showConfetti: true,
   },
   // April
@@ -126,7 +131,7 @@ const EVENTS: Event[] = [
     icon: <FaEgg className="text-xl md:text-2xl" />,
     startDate: { month: 4, day: 20 },
     endDate: { month: 4, day: 21 },
-    bgGradient: "from-yellow-400/90 via-pink-400/90 to-purple-400/90",
+    bgGradient: "from-violet-500 via-teal-400 to-cyan-400",
     showConfetti: true,
   },
   {
@@ -138,7 +143,7 @@ const EVENTS: Event[] = [
     icon: <FaBirthdayCake className="text-xl md:text-2xl" />,
     startDate: { month: 4, day: 28 },
     endDate: { month: 4, day: 28 },
-    bgGradient: "from-pink-500/90 via-purple-500/90 to-indigo-500/90",
+    bgGradient: "from-cyan-600 via-teal-500 to-emerald-500",
     showConfetti: true,
   },
   // May
@@ -150,7 +155,7 @@ const EVENTS: Event[] = [
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 5, day: 11 },
     endDate: { month: 5, day: 11 },
-    bgGradient: "from-pink-400/90 via-rose-400/90 to-red-400/90",
+    bgGradient: "from-pink-500 via-rose-400 to-teal-400",
     showConfetti: true,
   },
   {
@@ -161,7 +166,7 @@ const EVENTS: Event[] = [
     icon: <FaFlag className="text-xl md:text-2xl" />,
     startDate: { month: 5, day: 26 },
     endDate: { month: 5, day: 26 },
-    bgGradient: "from-red-600/90 via-white/70 to-blue-600/90",
+    bgGradient: "from-slate-700 via-teal-600 to-slate-700",
     showConfetti: false,
   },
   // June
@@ -173,7 +178,7 @@ const EVENTS: Event[] = [
     icon: <FaGift className="text-xl md:text-2xl" />,
     startDate: { month: 6, day: 15 },
     endDate: { month: 6, day: 15 },
-    bgGradient: "from-blue-500/90 via-indigo-500/90 to-purple-500/90",
+    bgGradient: "from-cyan-600 via-teal-500 to-blue-500",
     showConfetti: true,
   },
   {
@@ -184,8 +189,7 @@ const EVENTS: Event[] = [
     icon: <FaHeart className="text-xl md:text-2xl" />,
     startDate: { month: 6, day: 1 },
     endDate: { month: 6, day: 30 },
-    bgGradient:
-      "from-red-500/90 via-yellow-500/90 to-green-500/90 bg-gradient-to-r",
+    bgGradient: "from-rose-500 via-amber-400 to-teal-500",
     showConfetti: true,
   },
   {
@@ -196,7 +200,7 @@ const EVENTS: Event[] = [
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 6, day: 19 },
     endDate: { month: 6, day: 19 },
-    bgGradient: "from-red-600/90 via-black/80 to-green-600/90",
+    bgGradient: "from-emerald-700 via-teal-600 to-slate-700",
     showConfetti: false,
   },
   // July
@@ -209,7 +213,7 @@ const EVENTS: Event[] = [
     icon: <FaFlag className="text-xl md:text-2xl" />,
     startDate: { month: 7, day: 4 },
     endDate: { month: 7, day: 4 },
-    bgGradient: "from-red-600/90 via-white/80 to-blue-600/90",
+    bgGradient: "from-blue-600 via-teal-400 to-rose-500",
     showConfetti: true,
   },
   // September
@@ -222,7 +226,7 @@ const EVENTS: Event[] = [
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 9, day: 1 },
     endDate: { month: 9, day: 1 },
-    bgGradient: "from-blue-600/90 via-indigo-500/90 to-purple-600/90",
+    bgGradient: "from-teal-600 via-cyan-500 to-blue-500",
     showConfetti: false,
   },
   // October
@@ -234,20 +238,20 @@ const EVENTS: Event[] = [
     icon: <FaGhost className="text-xl md:text-2xl" />,
     startDate: { month: 10, day: 31 },
     endDate: { month: 10, day: 31 },
-    bgGradient: "from-orange-500/90 via-purple-600/90 to-black/90",
+    bgGradient: "from-orange-500 via-teal-600 to-slate-800",
     showConfetti: true,
   },
   // November
   {
     id: "veterans-day",
-    title: "🎖️ Veterans Day",
+    title: "Veterans Day",
     message:
       "Honoring all who served. Thank you for your sacrifice and service.",
     mobileMessage: "Thank you, veterans",
     icon: <FaFlag className="text-xl md:text-2xl" />,
     startDate: { month: 11, day: 11 },
     endDate: { month: 11, day: 11 },
-    bgGradient: "from-red-600/90 via-white/70 to-blue-600/90",
+    bgGradient: "from-slate-700 via-teal-600 to-slate-700",
     showConfetti: false,
   },
   {
@@ -259,7 +263,7 @@ const EVENTS: Event[] = [
     icon: <FaLeaf className="text-xl md:text-2xl" />,
     startDate: { month: 11, day: 27 },
     endDate: { month: 11, day: 28 },
-    bgGradient: "from-orange-500/90 via-amber-500/90 to-yellow-500/90",
+    bgGradient: "from-amber-500 via-teal-500 to-emerald-500",
     showConfetti: true,
   },
   // December
@@ -271,7 +275,7 @@ const EVENTS: Event[] = [
     icon: <FaTree className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 24 },
     endDate: { month: 12, day: 26 },
-    bgGradient: "from-red-600/90 via-green-600/90 to-red-600/90",
+    bgGradient: "from-emerald-600 via-teal-500 to-cyan-500",
     showConfetti: true,
   },
   {
@@ -282,7 +286,7 @@ const EVENTS: Event[] = [
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 14 },
     endDate: { month: 12, day: 22 },
-    bgGradient: "from-blue-500/90 via-white/80 to-blue-600/90",
+    bgGradient: "from-blue-500 via-cyan-400 to-teal-400",
     showConfetti: true,
   },
   {
@@ -293,7 +297,7 @@ const EVENTS: Event[] = [
     icon: <FaDrum className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 26 },
     endDate: { month: 12, day: 31 },
-    bgGradient: "from-red-600/90 via-black/80 to-green-600/90",
+    bgGradient: "from-emerald-700 via-teal-600 to-amber-500",
     showConfetti: true,
   },
   {
@@ -304,7 +308,7 @@ const EVENTS: Event[] = [
     icon: <FaStar className="text-xl md:text-2xl" />,
     startDate: { month: 12, day: 31 },
     endDate: { month: 12, day: 31 },
-    bgGradient: "from-purple-600/90 via-pink-500/90 to-yellow-500/90",
+    bgGradient: "from-teal-600 via-cyan-500 to-emerald-500",
     showConfetti: true,
   },
 ];
