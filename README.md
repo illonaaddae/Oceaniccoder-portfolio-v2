@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🌊 Oceaniccoder Portfolio v2
+# Oceaniccoder Portfolio v2
 
 ### A Full-Stack Developer Portfolio with Admin Dashboard & Cloud Infrastructure
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-oceaniccoder.dev-0891b2?style=for-the-badge)](https://oceaniccoder.dev)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-oceaniccoder.dev-0891b2?style=for-the-badge)](https://oceaniccoder.dev)
 [![Azure](https://img.shields.io/badge/Hosted_on-Azure_Static_Web_Apps-0078D4?style=for-the-badge&logo=microsoft-azure)](https://azure.microsoft.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
@@ -23,7 +23,7 @@
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### Portfolio Homepage
 
@@ -43,9 +43,9 @@
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🎨 Frontend Excellence
+### Frontend Excellence
 
 - **Modern React 18** with TypeScript for type-safe development
 - **Responsive Design** — Mobile-first approach with Tailwind CSS
@@ -53,7 +53,7 @@
 - **Performance Optimized** — Code splitting, lazy loading, WebP images
 - **Accessible** — WCAG compliant with keyboard navigation & ARIA labels
 
-### 🛠️ Admin Dashboard (Custom CMS)
+### Admin Dashboard (Custom CMS)
 
 - **Secure Authentication** — Protected admin routes with Appwrite Auth
 - **Content Management** — Full CRUD for projects, blogs, skills, certifications
@@ -62,14 +62,14 @@
 - **Message Center** — View and manage contact form submissions
 - **Real-time Updates** — Instant data synchronization
 
-### ☁️ Cloud Infrastructure
+### Cloud Infrastructure
 
 - **Azure Static Web Apps** — Global CDN, SSL, custom domain
 - **Appwrite Backend** — Database, Storage, Authentication, Functions
 - **Serverless Functions** — Email notifications on contact form submissions
 - **CI/CD Pipeline** — Automated deployments via GitHub Actions
 
-### 📬 Contact System
+### Contact System
 
 - **Dual Submission** — Netlify Forms + Appwrite Database backup
 - **Email Notifications** — Automated alerts via Appwrite Messaging
@@ -78,7 +78,7 @@
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -97,7 +97,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      APPWRITE CLOUD                             │
 ├─────────────────────────────────────────────────────────────────┤
-│  📊 Databases    │  🗄️ Storage    │  🔐 Auth    │  📧 Messaging  │
+│  Databases    │  Storage    │  Auth    │  Messaging  │
 │  - Projects      │  - Images      │  - Admin    │  - Email SMTP  │
 │  - Blog Posts    │  - Documents   │  - Sessions │  - Notifications│
 │  - Skills        │  - Media       │             │                │
@@ -114,7 +114,7 @@
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 
@@ -148,7 +148,7 @@
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 oceanicoder-portfolio-v2/
@@ -163,7 +163,7 @@ oceanicoder-portfolio-v2/
 │   └── images/                          # Static assets
 ├── src/
 │   ├── components/
-│   │   ├── AdminDashboard/              # 🎛️ CMS Components
+│   │   ├── AdminDashboard/              # CMS Components
 │   │   │   ├── index.tsx                # Dashboard layout
 │   │   │   ├── Sidebar.tsx              # Navigation
 │   │   │   ├── ImageUpload.tsx          # Media management (images + PDFs)
@@ -173,8 +173,8 @@ oceanicoder-portfolio-v2/
 │   │   │   └── modals/                  # CRUD modals
 │   │   ├── ui/                          # Reusable UI components
 │   │   ├── Confetti.tsx                 # 🎊 Celebration animation
-│   │   ├── EventBanner.tsx              # 🎂 Special event banners
-│   │   ├── SupportButton.tsx            # 💝 Floating support links
+│   │   ├── EventBanner.tsx              # Special event banners
+│   │   ├── SupportButton.tsx            # Floating support links
 │   │   └── *.jsx                        # Page sections
 │   ├── Context/
 │   │   └── index.tsx                    # Theme & App context
@@ -201,7 +201,7 @@ oceanicoder-portfolio-v2/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -252,28 +252,28 @@ oceanicoder-portfolio-v2/
 
 ---
 
-## 🔐 Admin Dashboard
+## Admin Dashboard
 
 The admin dashboard is accessible at `/admin` with authentication.
 
 ### Dashboard Features
 
-| Feature               | Description                               |
-| --------------------- | ----------------------------------------- |
-| 📊 **Overview**       | Quick stats and recent activity           |
-| 📁 **Projects**       | Manage portfolio projects with images     |
-| 📝 **Blog**           | Create and edit blog posts with rich text |
-| 🎓 **Education**      | Academic credentials management           |
-| 🏆 **Certifications** | Professional certificates                 |
-| 💼 **Journey**        | Career timeline entries                   |
-| 🛠️ **Skills**         | Technical skills with proficiency levels  |
-| 📸 **Gallery**        | Image management and uploads              |
-| 📬 **Messages**       | Contact form submissions                  |
-| ⚙️ **Settings**       | Site configuration                        |
+| Feature            | Description                               |
+| ------------------ | ----------------------------------------- |
+| **Overview**       | Quick stats and recent activity           |
+| **Projects**       | Manage portfolio projects with images     |
+| **Blog**           | Create and edit blog posts with rich text |
+| **Education**      | Academic credentials management           |
+| **Certifications** | Professional certificates                 |
+| **Journey**        | Career timeline entries                   |
+| **Skills**         | Technical skills with proficiency levels  |
+| **Gallery**        | Image management and uploads              |
+| **Messages**       | Contact form submissions                  |
+| **Settings**       | Site configuration                        |
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
 ### Azure Static Web Apps (Production)
 
@@ -290,11 +290,11 @@ on:
 
 **Pipeline Steps:**
 
-1. ✅ Checkout code
-2. ✅ Setup Node.js 20
-3. ✅ Install dependencies (`npm ci`)
-4. ✅ Build (`npm run build`)
-5. ✅ Deploy to Azure Static Web Apps
+1. Checkout code
+2. Setup Node.js 20
+3. Install dependencies (`npm ci`)
+4. Build (`npm run build`)
+5. Deploy to Azure Static Web Apps
 
 ### Environment Variables (GitHub Secrets)
 
@@ -304,7 +304,7 @@ on:
 
 ---
 
-## 🗄️ Database Schema (Appwrite)
+## Database Schema (Appwrite)
 
 ### Collections
 
@@ -331,86 +331,86 @@ on:
 
 ---
 
-## 📈 Performance Metrics
+## Performance Metrics
 
-| Metric                       | Score |
-| ---------------------------- | ----- |
-| 🟢 Lighthouse Performance    | 95+   |
-| 🟢 Lighthouse Accessibility  | 100   |
-| 🟢 Lighthouse Best Practices | 100   |
-| 🟢 Lighthouse SEO            | 100   |
+| Metric                    | Score |
+| ------------------------- | ----- |
+| Lighthouse Performance    | 95+   |
+| Lighthouse Accessibility  | 100   |
+| Lighthouse Best Practices | 100   |
+| Lighthouse SEO            | 100   |
 
 ### Optimizations Implemented
 
-- ⚡ Code splitting with `React.lazy()` and `Suspense`
-- 🖼️ WebP image format with fallbacks
-- 📦 Tree-shaking with Vite
-- 🗜️ Gzip/Brotli compression
-- 🌐 CDN caching via Azure
-- 🎯 Prefetching critical resources
+- Code splitting with `React.lazy()` and `Suspense`
+- WebP image format with fallbacks
+- Tree-shaking with Vite
+- Gzip/Brotli compression
+- CDN caching via Azure
+- Prefetching critical resources
 
 ---
 
-## 🔄 Recent Updates
+## Recent Updates
 
 ### v2.1.0 — Enhanced User Experience & Engagement Features
 
-- 💝 **Support Button** — Floating button (bottom-left) with Buy Me a Coffee & Scrimba links
-- 🎂 **Event Banner System** — Automatic celebration banners (birthday, New Year) with confetti
-- 👍 **Blog Reactions** — Like/dislike system for blog posts with Appwrite storage
-- 🔔 **Toast Notifications** — User feedback for blog CRUD operations
-- 📄 **PDF Upload Support** — Upload PDF certificates alongside images
-- 🎨 **Theme-aware Components** — Improved dark/light mode support for forms
-- 📱 **Enhanced Mobile UI** — Better responsiveness for admin dashboard & modals
-- 🎓 **Scrimba Ambassador** — 20% discount promotion in footer
+- **Support Button** — Floating button (bottom-left) with Buy Me a Coffee & Scrimba links
+- **Event Banner System** — Automatic celebration banners (birthday, New Year) with confetti
+- **Blog Reactions** — Like/dislike system for blog posts with Appwrite storage
+- **Toast Notifications** — User feedback for blog CRUD operations
+- **PDF Upload Support** — Upload PDF certificates alongside images
+- **Theme-aware Components** — Improved dark/light mode support for forms
+- **Enhanced Mobile UI** — Better responsiveness for admin dashboard & modals
+- **Scrimba Ambassador** — 20% discount promotion in footer
 
 ### v2.0.0 — Cloud Migration & Dashboard
 
-- ✨ Migrated from Netlify to **Azure Static Web Apps**
-- 🛠️ Built full **Admin Dashboard** with Appwrite backend
-- 📊 Implemented **10+ database collections** for content management
-- 📧 Added **serverless email notifications** via Appwrite Functions
-- 🔐 Secure **authentication system** for admin access
-- 📱 Enhanced **mobile responsiveness** across all pages
-- 🎨 Improved **dark/light theme** with system preference detection
-- ⚡ **TypeScript migration** for type safety
+- Migrated from Netlify to **Azure Static Web Apps**
+- Built full **Admin Dashboard** with Appwrite backend
+- Implemented **10+ database collections** for content management
+- Added **serverless email notifications** via Appwrite Functions
+- Secure **authentication system** for admin access
+- Enhanced **mobile responsiveness** across all pages
+- Improved **dark/light theme** with system preference detection
+- **TypeScript migration** for type safety
 
 ---
 
-## 🎉 Special Features
+## Special Features
 
-### 💝 Support & Promotion Links
+### Support & Promotion Links
 
 A floating heart button in the bottom-left corner provides quick access to:
 
-| Link                   | Description                          |
-| ---------------------- | ------------------------------------ |
-| ☕ **Buy Me a Coffee** | Support the developer's work         |
-| 🎓 **Scrimba Pro**     | Get 20% OFF with ambassador discount |
+| Link                | Description                          |
+| ------------------- | ------------------------------------ |
+| **Buy Me a Coffee** | Support the developer's work         |
+| **Scrimba Pro**     | Get 20% OFF with ambassador discount |
 
-### 🎂 Event Banner System
+### Event Banner System
 
 Automatic celebration banners appear on special dates:
 
-| Event       | Date     | Features                                  |
-| ----------- | -------- | ----------------------------------------- |
-| 🎂 Birthday | April 28 | Pink gradient banner + confetti animation |
-| 🎉 New Year | Jan 1-3  | Gold gradient banner + confetti animation |
+| Event    | Date     | Features                                  |
+| -------- | -------- | ----------------------------------------- |
+| Birthday | April 28 | Pink gradient banner + confetti animation |
+| New Year | Jan 1-3  | Gold gradient banner + confetti animation |
 
 _Banners can be dismissed and won't reappear for the same day._
 
-### 👍 Blog Reactions
+### Blog Reactions
 
 Visitors can interact with blog posts:
 
-- 👍 Like and 👎 Dislike buttons on each blog post
+- Like and Dislike buttons on each blog post
 - Reactions stored in Appwrite `blog_reactions` collection
 - Anonymous tracking via localStorage visitor ID
 - Real-time reaction counts displayed
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! This is an open-source portfolio that others can learn from and adapt.
 
@@ -422,17 +422,17 @@ Contributions are welcome! This is an open-source portfolio that others can lear
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 👩🏾‍💻 About the Developer
+## About the Developer
 
 <div align="center">
 
-**Illona Addae** — _Software Engineer & Tech Leader_
+**Illona Addae** - _Software Engineer & Tech Leader_
 
 Building products that uplift communities through technology.
 
@@ -447,14 +447,14 @@ Building products that uplift communities through technology.
 
 <div align="center">
 
-### 💬 Let's Connect!
+### Let's Connect!
 
 I'm always open to discussing new opportunities, collaborations, or just chatting about tech.
 
-**"Technology should not only solve problems. It should uplift people."** 🌊
+**"Technology should not only solve problems. It should uplift people."**
 
 ---
 
-⭐ **Star this repo** if you found it helpful!
+**Star this repo** if you found it helpful!
 
 </div>
