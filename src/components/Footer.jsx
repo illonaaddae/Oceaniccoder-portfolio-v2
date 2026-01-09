@@ -61,7 +61,7 @@ const Footer = ({ theme }) => {
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="liquid-morph absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-cyan-500/5 to-blue-500/5 blur-3xl"></div>
-        <div className="liquid-morph absolute bottom-0 right-1/4 w-80 h-80 bg-gradient-to-r from-purple-500/3 to-pink-500/3 blur-3xl"></div>
+        <div className="liquid-morph absolute bottom-0 right-1/4 w-80 h-80 bg-gradient-to-r from-cyan-500/3 to-green-500/3 blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-6 py-12 relative z-10">
@@ -91,12 +91,6 @@ const Footer = ({ theme }) => {
               creating inclusive tech spaces and building innovative solutions
               that make a difference.
             </p>
-
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <span>Made with</span>
-              <FaHeart className="text-red-400 animate-pulse" />
-              <span>and lots of ☕ in Ghana</span>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -209,7 +203,7 @@ const Footer = ({ theme }) => {
               © {currentYear} Illona Addae (Oceaniccoder). All rights reserved.
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Building the future, one line of code at a time 🌊
+              Building the future, one line of code at a time.
             </p>
           </div>
 
