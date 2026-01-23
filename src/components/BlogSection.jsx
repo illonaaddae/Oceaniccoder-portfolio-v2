@@ -25,7 +25,7 @@ const BlogSection = () => {
   // Local state
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState(
-    searchParams.get("category") || "All"
+    searchParams.get("category") || "All",
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -176,7 +176,7 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.excerpt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.tags?.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase())
+          tag.toLowerCase().includes(searchQuery.toLowerCase()),
         );
 
       const matchesCategory =
@@ -189,14 +189,14 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
   // Featured posts
   const featuredPosts = useMemo(
     () => posts.filter((post) => post.featured),
-    [posts]
+    [posts],
   );
 
   // Pagination
   const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
   const paginatedPosts = filteredPosts.slice(
     (currentPage - 1) * POSTS_PER_PAGE,
-    currentPage * POSTS_PER_PAGE
+    currentPage * POSTS_PER_PAGE,
   );
 
   // Update URL params
@@ -264,8 +264,9 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-green-400 via-emerald-500 to-cyan-500 bg-clip-text text-transparent inline-block">
-              Blog & Insights
+            <span className="text-gray-700 dark:text-gray-100">Blog & </span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+              Insights
             </span>
           </h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
@@ -532,7 +533,7 @@ Glass morphism creates a frosted glass effect that adds depth and elegance to yo
                   >
                     {page}
                   </button>
-                )
+                ),
               )}
             </div>
 
