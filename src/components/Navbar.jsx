@@ -46,17 +46,34 @@ const Navbar = ({ theme, toggleTheme }) => {
 
   return (
     <>
+      {/* Floating Pill Navigation */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "glass-navbar-solid backdrop-blur-xl bg-black/40 border-b border-white/10"
-            : "glass-navbar-transparent backdrop-blur-sm bg-black/20"
+        className={`fixed top-0 left-0 right-0 z-50 flex justify-center transition-all duration-300 ${
+          scrolled ? "pt-4" : "pt-6"
         }`}
       >
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div
+          className={`
+            px-6 py-3 rounded-full
+            backdrop-blur-xl
+            border
+            shadow-lg
+            transition-all duration-300
+            max-w-fit
+            ${
+              scrolled
+                ? theme === "dark"
+                  ? "bg-black/60 border-white/20 text-white"
+                  : "bg-white/80 border-gray-200/50 text-slate-900"
+                : theme === "dark"
+                  ? "bg-black/40 border-white/10 text-white"
+                  : "bg-white/60 border-gray-200/30 text-slate-900"
+            }
+          `}
+        >
+          <div className="flex items-center gap-2">
             {/* Logo */}
-            <div className="group">
+            <div className="group mr-4">
               <img
                 src={
                   theme === "dark"
@@ -64,7 +81,7 @@ const Navbar = ({ theme, toggleTheme }) => {
                     : "/images/logo/Oceaniccoder-croped.png"
                 }
                 alt="Oceaniccoder"
-                className={`h-10 sm:h-12 lg:h-14 w-auto object-contain group-hover:scale-105 transition-transform duration-300 ${
+                className={`h-8 w-auto object-contain group-hover:scale-105 transition-transform duration-300 ${
                   theme === "dark"
                     ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]"
                     : ""
@@ -76,15 +93,19 @@ const Navbar = ({ theme, toggleTheme }) => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-1">
+            <div className="hidden lg:flex items-center gap-1">
               {navItems.map((item) => {
                 const isInternal = item.href && item.href.startsWith("/");
                 const base =
-                  "nav-link-enhanced px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 relative inline-block";
+                  "px-3 py-2 text-sm font-medium rounded-full transition-all duration-300";
                 const activeCls =
-                  "text-cyan-400 bg-cyan-500/10 border border-cyan-500/30";
+                  theme === "dark"
+                    ? "text-cyan-400 bg-cyan-500/20"
+                    : "text-cyan-600 bg-cyan-50";
                 const inactiveCls =
-                  "text-gray-300 hover:text-cyan-400 hover:bg-white/5";
+                  theme === "dark"
+                    ? "text-gray-300 hover:text-cyan-400 hover:bg-white/10"
+                    : "text-slate-900 hover:text-cyan-600 hover:bg-gray-100";
 
                 return isInternal ? (
                   <NavLink
@@ -92,22 +113,15 @@ const Navbar = ({ theme, toggleTheme }) => {
                     to={item.href}
                     end={item.href === "/"}
                     onClick={() => {
-                      // still update context for scroll spy and close menus
                       setActiveSection(item.id);
                       setIsMenuOpen(false);
                     }}
                     className={({ isActive }) =>
                       `${base} ${isActive ? activeCls : inactiveCls}`
                     }
+                    style={theme === "light" ? { color: "#0f172a" } : undefined}
                   >
-                    {({ isActive }) => (
-                      <>
-                        {item.label}
-                        {isActive && (
-                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
-                        )}
-                      </>
-                    )}
+                    {item.label}
                   </NavLink>
                 ) : (
                   <button
@@ -116,90 +130,115 @@ const Navbar = ({ theme, toggleTheme }) => {
                     className={`${base} ${
                       activeSection === item.id ? activeCls : inactiveCls
                     }`}
+                    style={theme === "light" ? { color: "#0f172a" } : undefined}
                   >
-                    <span>{item.label}</span>
-                    {activeSection === item.id && (
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
-                    )}
+                    {item.label}
                   </button>
                 );
               })}
             </div>
 
-            {/* Enhanced Controls */}
-            <div className="flex items-center space-x-3">
-              {/* Enhanced Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
-                aria-label="Toggle theme"
-              >
-                {theme === "dark" ? (
-                  <FaSun className="w-4 h-4 text-yellow-400" />
-                ) : (
-                  <FaMoon className="w-4 h-4 text-blue-600" />
-                )}
-              </button>
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`
+                ml-2 w-9 h-9 rounded-full flex items-center justify-center
+                transition-all duration-300 hover:scale-110
+                ${
+                  theme === "dark"
+                    ? "bg-white/10 hover:bg-white/20 text-yellow-400"
+                    : "bg-gray-100 hover:bg-gray-200 text-blue-600"
+                }
+              `}
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? (
+                <FaSun className="w-4 h-4" />
+              ) : (
+                <FaMoon className="w-4 h-4" />
+              )}
+            </button>
 
-              {/* Enhanced Mobile Menu Button */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden glass-btn bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md border border-white/20 w-10 h-10 rounded-lg flex items-center justify-center hover:scale-110 hover:from-white/15 hover:to-white/10 transition-all duration-300 shadow-lg"
-                aria-label="Toggle menu"
-                aria-expanded={isMenuOpen}
-              >
-                {isMenuOpen ? (
-                  <FaTimes className="w-4 h-4 text-white" />
-                ) : (
-                  <FaBars className="w-4 h-4 text-white" />
-                )}
-              </button>
-            </div>
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`
+                lg:hidden ml-1 w-9 h-9 rounded-full flex items-center justify-center
+                transition-all duration-300 hover:scale-110
+                ${
+                  theme === "dark"
+                    ? "bg-white/10 hover:bg-white/20 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }
+              `}
+              aria-label="Toggle menu"
+              aria-expanded={isMenuOpen}
+            >
+              {isMenuOpen ? (
+                <FaTimes className="w-4 h-4" />
+              ) : (
+                <FaBars className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Navigation - Rendered outside nav for proper stacking */}
+      {/* Mobile Navigation Dropdown */}
       {isMenuOpen && (
         <div
-          className="lg:hidden fixed top-[72px] left-0 right-0 z-[60] px-4 pb-4"
+          className="lg:hidden fixed top-20 left-0 right-0 z-[60] px-4"
           style={{ touchAction: "manipulation" }}
         >
-          <div className="glass-card bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl max-h-[calc(100vh-100px)] overflow-y-auto">
+          <div
+            className={`
+              rounded-2xl p-4 shadow-2xl max-h-[calc(100vh-100px)] overflow-y-auto
+              backdrop-blur-xl border
+              ${
+                theme === "dark"
+                  ? "bg-black/90 border-white/10"
+                  : "bg-white/95 border-gray-200/50"
+              }
+            `}
+          >
             <div className="flex flex-col space-y-1">
               {navItems.map((item) => {
                 const isInternal = item.href && item.href.startsWith("/");
+                const activeCls =
+                  theme === "dark"
+                    ? "text-cyan-400 bg-cyan-500/20 border border-cyan-500/30"
+                    : "text-cyan-600 bg-cyan-50 border border-cyan-200";
+                const inactiveCls =
+                  theme === "dark"
+                    ? "text-gray-200 hover:text-cyan-400 hover:bg-white/10"
+                    : "text-slate-900 hover:text-cyan-600 hover:bg-gray-100";
+
                 return isInternal ? (
                   <NavLink
                     key={item.id}
                     to={item.href}
                     end={item.href === "/"}
-                    onClick={(e) => {
+                    onClick={() => {
                       setActiveSection(item.id);
                       setIsMenuOpen(false);
                     }}
                     className={({ isActive }) =>
-                      `nav-link-mobile text-left py-4 px-4 rounded-lg transition-all duration-300 block w-full ${
-                        isActive
-                          ? "text-cyan-400 bg-cyan-500/20 border border-cyan-500/30"
-                          : "text-gray-200 hover:text-cyan-400 hover:bg-white/10 active:bg-white/20"
+                      `text-left py-3 px-4 rounded-xl transition-all duration-300 ${
+                        isActive ? activeCls : inactiveCls
                       }`
                     }
+                    style={theme === "light" ? { color: "#0f172a" } : undefined}
                   >
                     {item.label}
                   </NavLink>
                 ) : (
                   <button
                     key={item.id}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleNavClick(item.href, item.id);
-                    }}
-                    className={`nav-link-mobile text-left py-4 px-4 rounded-lg transition-all duration-300 w-full ${
-                      activeSection === item.id
-                        ? "text-cyan-400 bg-cyan-500/20 border border-cyan-500/30"
-                        : "text-gray-200 hover:text-cyan-400 hover:bg-white/10 active:bg-white/20"
+                    onClick={() => handleNavClick(item.href, item.id)}
+                    className={`text-left py-3 px-4 rounded-xl transition-all duration-300 w-full ${
+                      activeSection === item.id ? activeCls : inactiveCls
                     }`}
+                    style={theme === "light" ? { color: "#0f172a" } : undefined}
                   >
                     {item.label}
                   </button>
@@ -210,10 +249,10 @@ const Navbar = ({ theme, toggleTheme }) => {
         </div>
       )}
 
-      {/* Backdrop overlay to close menu when clicking outside */}
+      {/* Mobile Backdrop */}
       {isMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-[55] bg-black/50"
+          className="lg:hidden fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm"
           onClick={() => setIsMenuOpen(false)}
           aria-hidden="true"
         />
