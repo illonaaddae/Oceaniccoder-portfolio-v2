@@ -94,7 +94,7 @@ const TestimonialsSection: React.FC = () => {
     if (isAnimating) return;
     setIsAnimating(true);
     setCurrentIndex(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length
+      (prev) => (prev - 1 + testimonials.length) % testimonials.length,
     );
     setTimeout(() => setIsAnimating(false), 500);
   };
@@ -183,7 +183,7 @@ const TestimonialsSection: React.FC = () => {
   const renderStars = (
     rating: number = 5,
     interactive = false,
-    onSelect?: (r: number) => void
+    onSelect?: (r: number) => void,
   ) => {
     return (
       <div className="flex gap-1">
@@ -251,7 +251,7 @@ const TestimonialsSection: React.FC = () => {
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-5xl md:text-6xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
+              <span className="text-cyan-600 dark:text-cyan-400 font-bold">
                 Testimonials
               </span>
             </h2>
@@ -535,7 +535,7 @@ const TestimonialsSection: React.FC = () => {
                   )}
                 </div>
               </div>,
-              document.body
+              document.body,
             )}
         </div>
       </section>
@@ -561,7 +561,7 @@ const TestimonialsSection: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
+            <span className="text-cyan-600 dark:text-cyan-400">
               Testimonials
             </span>
           </h2>
@@ -983,7 +983,7 @@ const TestimonialsSection: React.FC = () => {
                 )}
               </div>
             </div>,
-            document.body
+            document.body,
           )}
       </div>
     </section>

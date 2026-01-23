@@ -112,8 +112,9 @@ const ContactSection = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
-              Let's Connect
+            <span className="text-gray-700 dark:text-gray-100">Let's </span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+              Connect
             </span>
           </h2>
           <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-300">
@@ -229,7 +230,7 @@ const ContactSection = () => {
                 ) {
                   setStatus("error");
                   setResponseMessage(
-                    "Please wait a few seconds before submitting again."
+                    "Please wait a few seconds before submitting again.",
                   );
                   return;
                 }
@@ -239,7 +240,7 @@ const ContactSection = () => {
                 if (formFillTime < 3000) {
                   setStatus("error");
                   setResponseMessage(
-                    "Please take your time filling out the form."
+                    "Please take your time filling out the form.",
                   );
                   return;
                 }
@@ -250,7 +251,7 @@ const ContactSection = () => {
                 if (message.length < 10) {
                   setStatus("error");
                   setResponseMessage(
-                    "Please provide a more detailed message (at least 10 characters)."
+                    "Please provide a more detailed message (at least 10 characters).",
                   );
                   return;
                 }
@@ -262,7 +263,7 @@ const ContactSection = () => {
                   if (!formDataToSend.has("access_key")) {
                     formDataToSend.append(
                       "access_key",
-                      "e0faddf8-32ef-4a92-b097-8aec3e900163"
+                      "e0faddf8-32ef-4a92-b097-8aec3e900163",
                     );
                   }
 
@@ -319,7 +320,7 @@ const ContactSection = () => {
                     // Handle network errors specifically
                     if (fetchError.name === "AbortError") {
                       throw new Error(
-                        "Request timed out. Please check your internet connection and try again."
+                        "Request timed out. Please check your internet connection and try again.",
                       );
                     }
 
@@ -328,7 +329,7 @@ const ContactSection = () => {
                       fetchError.message.includes("Failed to fetch")
                     ) {
                       throw new Error(
-                        "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at info@illonaaddae.com"
+                        "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at info@illonaaddae.com",
                       );
                     }
 
@@ -352,7 +353,7 @@ const ContactSection = () => {
                       (json && json.message) || `Status ${res.status}`;
                     if (errorMsg.toLowerCase().includes("spam")) {
                       throw new Error(
-                        "Your message was flagged as spam. Please ensure your message is genuine and try again, or contact me directly via email."
+                        "Your message was flagged as spam. Please ensure your message is genuine and try again, or contact me directly via email.",
                       );
                     }
                     throw new Error(errorMsg || `Server error: ${res.status}`);
@@ -362,7 +363,7 @@ const ContactSection = () => {
                   if (json && json.success === false) {
                     throw new Error(
                       json.message ||
-                        "The form submission was not successful. Please try again or contact me directly at info@illonaaddae.com"
+                        "The form submission was not successful. Please try again or contact me directly at info@illonaaddae.com",
                     );
                   }
 
@@ -379,7 +380,7 @@ const ContactSection = () => {
                   }).catch((dbError) => {
                     console.warn(
                       "Failed to save message to database:",
-                      dbError
+                      dbError,
                     );
                     // Don't fail the submission if database save fails
                   });
@@ -388,7 +389,7 @@ const ContactSection = () => {
                   lastSubmissionRef.current = now;
                   setStatus("success");
                   setResponseMessage(
-                    "Thanks, I received your message. I'll get back to you within 24 hours!"
+                    "Thanks, I received your message. I'll get back to you within 24 hours!",
                   );
                   // Reset form start time for next submission
                   formStartTimeRef.current = Date.now();

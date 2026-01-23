@@ -47,7 +47,7 @@ interface AddonService {
 
 const ServicesSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"packages" | "addons" | "faq">(
-    "packages"
+    "packages",
   );
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
@@ -258,8 +258,11 @@ const ServicesSection: React.FC = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
-                Services & Pricing
+              <span className="text-gray-700 dark:text-gray-100">
+                Services &{" "}
+              </span>
+              <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+                Pricing
               </span>
             </h2>
             <p className="text-lg md:text-xl leading-relaxed max-w-3xl mx-auto text-[var(--text-secondary)]">

@@ -15,7 +15,7 @@ const SkillsSection = () => {
     if (!skills) return 20;
     return skills.reduce(
       (total, category) => total + (category.skills?.length || 0),
-      0
+      0,
     );
   }, [skills]);
 
@@ -59,8 +59,10 @@ const SkillsSection = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
-              Skills & Expertise
+            <span className="text-gray-700 dark:text-gray-100">Skills &</span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+              {" "}
+              Expertise
             </span>
           </h2>
           <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-300">

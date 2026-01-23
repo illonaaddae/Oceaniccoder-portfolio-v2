@@ -40,7 +40,7 @@ const HeroSection = () => {
       "Continuous Learner",
       "Oceaniccoder",
     ],
-    []
+    [],
   );
 
   useEffect(() => {
@@ -62,7 +62,7 @@ const HeroSection = () => {
       } else if (!isDeleting && displayText.length === currentString.length) {
         pauseTimeoutRef.current = setTimeout(
           () => setIsDeleting(true),
-          pauseTime
+          pauseTime,
         );
       } else if (isDeleting && displayText.length > 0) {
         setDisplayText(currentString.substring(0, displayText.length - 1));
@@ -212,153 +212,154 @@ const HeroSection = () => {
         <div className="liquid-morph absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-r from-green-500/6 to-blue-500/8 blur-2xl"></div>
       </div>
 
-      <div className="container mx-auto px-6 text-center relative z-10 flex flex-col min-h-screen justify-center">
-        {/* Profile Image - Enhanced Mobile Size */}
-        <div className="mb-8 lg:mb-12 flex justify-center">
-          <div className="relative group">
-            <div className="absolute -inset-4 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+      <div className="container mx-auto px-6 relative z-10 flex flex-col min-h-screen justify-center">
+        {/* Main Grid - Side by Side on Large Screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-7xl mx-auto w-full">
+          {/* Left Column - Content (on large screens) */}
+          <div className="text-center lg:text-left order-2 lg:order-1 space-y-6 lg:space-y-8">
+            {/* Name */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-heading font-bold leading-tight tracking-tight">
+              <span className="text-cyan-600 dark:text-cyan-400 font-bold tracking-wide">
+                Illona{" "}
+              </span>
+              <span className="text-gray-700 dark:text-gray-100">Addae</span>
+            </h1>
 
-            <div className="relative">
-              <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-[22rem] md:h-[22rem] lg:w-96 lg:h-96 xl:w-[25rem] xl:h-[25rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
-                <img
-                  ref={imgRef}
-                  src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
-                  alt="Illona Addae - Professional Developer Portrait"
-                  className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${
-                    imageReady ? "loaded" : ""
-                  }`}
-                  onLoad={() => {
-                    // Only set if not already set (prevents double-setting if cache check already set it)
-                    if (!profileLoaded) {
+            {/* Oceaniccoder */}
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-display font-bold leading-tight tracking-wide">
+              <span className="text-gray-700 dark:text-gray-100">Oceanic</span>
+              <span className="text-cyan-600 dark:text-cyan-400 font-bold tracking-wide">
+                coder
+              </span>
+            </h2>
+
+            {/* Tagline */}
+            <p className="text-base sm:text-lg lg:text-xl max-w-2xl lg:max-w-none leading-relaxed text-gray-200 dark:text-gray-300 font-light">
+              <span className="text-white font-medium">
+                "In a world of can'ts, she whispers I can, and in doing so, she
+                became an unstoppable force."
+              </span>
+            </p>
+
+            {/* Role Display */}
+            <div className="flex justify-center lg:justify-start">
+              <div className="glass-card bg-gradient-to-r from-white/10 to-white/5 border border-teal-600/25 rounded-xl px-6 py-3 backdrop-blur-md inline-block">
+                <h3 className="text-lg lg:text-xl font-bold">
+                  <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+                    {displayText}
+                  </span>
+                  <span className="ml-1 text-teal-500 dark:text-teal-300 animate-pulse text-xl">
+                    |
+                  </span>
+                </h3>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-5 flex-wrap justify-center lg:justify-start">
+              <button
+                onClick={scrollToProjects}
+                className="glass-btn bg-gradient-to-r from-teal-600/25 to-blue-600/25 backdrop-blur-md border border-teal-600/35 text-white px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-teal-600/35 hover:to-blue-600/35 transition-all duration-300 shadow-lg"
+                aria-label="Navigate to projects section"
+              >
+                View My Projects
+                <FaArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={scrollToContact}
+                className="glass-btn bg-gradient-to-r from-emerald-700/20 to-emerald-600/20 backdrop-blur-md border border-emerald-600/35 text-emerald-100 px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-emerald-700/30 hover:to-emerald-600/30 transition-all duration-300"
+                aria-label="Navigate to contact section"
+              >
+                <FaBriefcase className="w-4 h-4" />
+                Hire Me
+              </button>
+            </div>
+
+            {/* Download CV */}
+            <div>
+              <a
+                href={
+                  about?.resumeUrl ||
+                  "https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 text-gray-300 hover:text-teal-400 transition-colors duration-300 group text-base font-medium"
+                aria-label="Download CV resume"
+              >
+                <FaDownload className="w-4 h-4 group-hover:animate-bounce" />
+                <span>Download CV</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Right Column - Profile Image (on large screens) */}
+          <div className="flex justify-center lg:justify-start order-1 lg:order-2">
+            <div className="relative group">
+              <div className="absolute -inset-4 bg-gradient-to-r from-teal-600/15 to-blue-600/15 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+
+              <div className="relative">
+                <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[26rem] lg:h-[26rem] xl:w-[28rem] xl:h-[28rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
+                  <img
+                    ref={imgRef}
+                    src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
+                    alt="Illona Addae - Professional Developer Portrait"
+                    className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${
+                      imageReady ? "loaded" : ""
+                    }`}
+                    onLoad={() => {
+                      if (!profileLoaded) {
+                        setProfileLoaded(true);
+                      }
+                      if (!imageReady) {
+                        requestAnimationFrame(() => {
+                          setImageReady(true);
+                        });
+                      }
+                    }}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                    width="1200"
+                    height="1200"
+                    onError={(e) => {
                       setProfileLoaded(true);
-                    }
-                    // Use requestAnimationFrame for smoother transition
-                    if (!imageReady) {
-                      requestAnimationFrame(() => {
-                        setImageReady(true);
-                      });
-                    }
-                  }}
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                  width="1200"
-                  height="1200"
-                  onError={(e) => {
-                    // Still show container even if image fails
-                    setProfileLoaded(true);
-                    setImageReady(true);
-                  }}
-                  style={{
-                    // Prevent flash by using will-change and GPU acceleration
-                    willChange: imageReady ? "transform" : "opacity",
-                    transform: "translateZ(0)",
-                    WebkitTransform: "translateZ(0)",
-                    backfaceVisibility: "hidden",
-                    WebkitBackfaceVisibility: "hidden",
-                    // Always set opacity explicitly for mobile browsers
-                    opacity: imageReady ? 1 : 0,
-                    transition: imageReady
-                      ? "opacity 0ms ease-out, transform 300ms ease-out"
-                      : "opacity 300ms ease-out, transform 300ms ease-out",
-                  }}
-                />
+                      setImageReady(true);
+                    }}
+                    style={{
+                      willChange: imageReady ? "transform" : "opacity",
+                      transform: "translateZ(0)",
+                      WebkitTransform: "translateZ(0)",
+                      backfaceVisibility: "hidden",
+                      WebkitBackfaceVisibility: "hidden",
+                      opacity: imageReady ? 1 : 0,
+                      transition: imageReady
+                        ? "opacity 0ms ease-out, transform 300ms ease-out"
+                        : "opacity 300ms ease-out, transform 300ms ease-out",
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Status Badge */}
-            <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
-              <div className="glass-card bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md border border-green-400/30 rounded-xl px-5 py-2 shadow-xl">
-                <span className="text-white text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                  Available for Hire
-                </span>
+              {/* Status Badge */}
+              <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
+                <div className="glass-card bg-gradient-to-r from-emerald-700/15 to-emerald-600/15 backdrop-blur-md border border-emerald-600/25 rounded-xl px-5 py-2 shadow-xl">
+                  <span className="text-emerald-900 dark:text-emerald-50 text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    Available for Hire
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="mb-8 lg:mb-10 space-y-4 lg:space-y-6">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-heading font-bold leading-tight tracking-tight">
-            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
-              Illona Addae
-            </span>
-          </h1>
-
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-display font-bold leading-tight tracking-wide">
-            <span className="bg-gradient-to-r from-purple-600 via-cyan-600 to-blue-600 dark:from-purple-400 dark:via-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
-              Oceaniccoder
-            </span>
-          </h2>
-
-          <p className="text-base sm:text-lg lg:text-xl xl:text-2xl max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto leading-relaxed text-gray-200 dark:text-gray-300 font-light">
-            <span className="text-white font-medium">
-              "In a world of can'ts, she whispers I can, and in doing so, she
-              became an unstoppable force."
-            </span>
-          </p>
-        </div>
-
-        {/* Role Display */}
-        <div className="mb-8 lg:mb-10 h-16 flex items-center justify-center">
-          <div className="glass-card bg-gradient-to-r from-white/10 to-white/5 border border-cyan-500/30 rounded-xl px-6 py-3 backdrop-blur-md">
-            <h3 className="text-lg lg:text-xl xl:text-2xl font-bold">
-              <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                {displayText}
-              </span>
-              <span className="ml-1 text-cyan-400 animate-pulse text-xl">
-                |
-              </span>
-            </h3>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-5 flex-wrap justify-center mb-8">
-          <button
-            onClick={scrollToProjects}
-            className="glass-btn bg-gradient-to-r from-cyan-500/30 to-blue-500/30 backdrop-blur-md border border-cyan-400/40 text-white px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-cyan-500/40 hover:to-blue-500/40 transition-all duration-300 shadow-lg"
-            aria-label="Navigate to projects section"
-          >
-            {/* <FaRocket className="w-4 h-4" /> */}
-            View My Projects
-            <FaArrowRight className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={scrollToContact}
-            className="glass-btn bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md border border-green-400/40 text-green-300 px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 hover:from-green-500/30 hover:to-emerald-500/30 transition-all duration-300"
-            aria-label="Navigate to contact section"
-          >
-            <FaBriefcase className="w-4 h-4" />
-            Hire Me
-            {/* <FaHeart className="w-4 h-4 text-red-400" /> */}
-          </button>
-        </div>
-
-        {/* Download CV */}
-        <div className="mb-12">
-          <a
-            href={
-              about?.resumeUrl ||
-              "https://drive.google.com/file/d/1ewZVJPLATbvO5X0tgceWuGKgQIXSxBRX/view?usp=sharing"
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 text-gray-300 hover:text-cyan-400 transition-colors duration-300 group text-base font-medium"
-            aria-label="Download CV resume"
-          >
-            <FaDownload className="w-4 h-4 group-hover:animate-bounce" />
-            <span>Download CV</span>
-          </a>
-        </div>
-
-        {/* Scroll Indicator - Positioned Under Download */}
-        <div className="mt-8 pb-8">
+        {/* Scroll Indicator - Outside Grid, Centered */}
+        <div className="mt-12 lg:mt-16 pb-8 flex justify-center">
           <button
             onClick={scrollToSkills}
-            className="flex flex-col items-center space-y-2 text-cyan-400/70 hover:text-cyan-400 transition-all duration-300 group animate-bounce mx-auto"
+            className="flex flex-col items-center space-y-2 text-teal-500/70 dark:text-teal-400/70 hover:text-teal-500 dark:hover:text-teal-400 transition-all duration-300 group animate-bounce"
             aria-label="Explore skills section"
           >
             <div className="flex flex-col items-center">

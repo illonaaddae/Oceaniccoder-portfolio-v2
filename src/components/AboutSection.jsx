@@ -88,7 +88,7 @@ const AboutSection = () => {
         color: "text-orange-400",
       },
     ],
-    [projects, about]
+    [projects, about],
   );
 
   const values = [
@@ -138,7 +138,7 @@ const AboutSection = () => {
   const prevImage = () => {
     if (!galleryImages || galleryImages.length === 0) return;
     setCurrentImageIndex(
-      (prev) => (prev - 1 + galleryImages.length) % galleryImages.length
+      (prev) => (prev - 1 + galleryImages.length) % galleryImages.length,
     );
   };
 
@@ -147,24 +147,7 @@ const AboutSection = () => {
     setCurrentImageIndex(index);
   };
 
-  // Show loading state or handle empty gallery
-  if (dataLoading) {
-    return (
-      <section
-        id="about"
-        className="min-h-screen pt-28 pb-20 flex items-center justify-center"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%)",
-        }}
-      >
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading...</p>
-        </div>
-      </section>
-    );
-  }
+  // Data loads with fallbacks, no need for loading screen
 
   return (
     <section
@@ -254,8 +237,9 @@ const AboutSection = () => {
           }`}
         >
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
-              About Me
+            <span className="text-gray-700 dark:text-gray-100">About </span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+              Me
             </span>
           </h2>
           <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-300">

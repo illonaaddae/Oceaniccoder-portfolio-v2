@@ -26,7 +26,7 @@ const ProjectsSection = () => {
       setFilteredProjects(projects);
     } else {
       setFilteredProjects(
-        projects.filter((project) => project.category === activeProjectFilter)
+        projects.filter((project) => project.category === activeProjectFilter),
       );
     }
   }, [activeProjectFilter, projects]);
@@ -74,8 +74,9 @@ const ProjectsSection = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-green-600 dark:from-cyan-400 dark:via-blue-400 dark:to-green-400 bg-clip-text text-transparent">
-              Featured Projects
+            <span className="text-gray-700 dark:text-gray-100">Featured </span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+              Projects
             </span>
           </h2>
           <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-300">
@@ -161,7 +162,7 @@ const ProjectsSection = () => {
                   <div className="absolute top-4 right-4">
                     <span
                       className={`text-xs px-3 py-1 rounded-full font-medium border ${getStatusColor(
-                        project.status
+                        project.status,
                       )}`}
                     >
                       {project.status}

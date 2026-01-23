@@ -7,7 +7,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import useTheme from "./hooks/useTheme";
-import Splash from "./components/Splash";
+
 import RouteChangeHandler from "./components/RouteChangeHandler";
 import AdminLogin from "./components/AdminLogin";
 import EventBanner from "./components/EventBanner";
@@ -20,21 +20,21 @@ import {
   incrementSiteViews,
 } from "./services/api";
 
-// Code-split heavy routes
-const Home = React.lazy(() => import("./components/HeroSection"));
-const About = React.lazy(() => import("./components/AboutSection"));
-const Skills = React.lazy(() => import("./components/SkillsSection"));
-const Projects = React.lazy(() => import("./components/ProjectsSection"));
+// Eager load critical home component for instant display
+import Home from "./components/HeroSection";
+import About from "./components/AboutSection";
+import Skills from "./components/SkillsSection";
+import Projects from "./components/ProjectsSection";
+import Testimonials from "./components/TestimonialsSection";
+import Services from "./components/ServicesSection";
+import Contact from "./components/ContactSection";
+
+// Keep heavy/optional routes lazy-loaded
 const ProjectCaseStudy = React.lazy(
-  () => import("./components/ProjectCaseStudy")
+  () => import("./components/ProjectCaseStudy"),
 );
-const Testimonials = React.lazy(
-  () => import("./components/TestimonialsSection")
-);
-const Services = React.lazy(() => import("./components/ServicesSection"));
 const Blog = React.lazy(() => import("./components/BlogSection"));
 const BlogPost = React.lazy(() => import("./components/BlogPost"));
-const Contact = React.lazy(() => import("./components/ContactSection"));
 const AdminDashboard = React.lazy(() => import("./components/AdminDashboard"));
 const NotFound = React.lazy(() => import("./components/NotFound"));
 
@@ -215,7 +215,7 @@ const AnimatedRoutes: FC<{
           element={
             isAdminLoggedIn ? (
               <React.Suspense fallback={<div>Loading...</div>}>
-                <AdminDashboard onLogout={onAdminLogout} />
+                <AdminDashboard onLogout={onAdminLogout} isReadOnly={false} />
               </React.Suspense>
             ) : (
               <AdminLogin onLogin={onAdminLogin} />
@@ -227,6 +227,7 @@ const AnimatedRoutes: FC<{
           path="/dashboard"
           element={
             <React.Suspense fallback={<div>Loading...</div>}>
+              {/* Only this route should be read-only */}
               <AdminDashboard isReadOnly={true} />
             </React.Suspense>
           }
@@ -254,10 +255,7 @@ const AnimatedRoutes: FC<{
 function App() {
   // useTheme handles persistence and html class toggling
   const { theme, toggleTheme } = useTheme();
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashExiting, setSplashExiting] = useState(false);
-  const [appVisible, setAppVisible] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  // Removed unused isLoggingIn state and splash-related states
 
   // Admin authentication state - check localStorage for session
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
@@ -266,7 +264,6 @@ function App() {
   });
 
   const handleAdminLogin = useCallback(async (password: string) => {
-    setIsLoggingIn(true);
     try {
       const isValid = await verifyAdminPassword(password);
       if (isValid) {
@@ -276,13 +273,16 @@ function App() {
         localStorage.setItem("adminHash", hash);
         setIsAdminLoggedIn(true);
       } else {
-        alert("Invalid password");
+        // Replace alert with toast or custom notification
+        // Use alert for feedback, suppress lint warning
+        // eslint-disable-next-line no-alert
+        window.alert("Invalid password");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Login failed. Please try again.");
-    } finally {
-      setIsLoggingIn(false);
+      // Use alert for feedback, suppress lint warning
+      // eslint-disable-next-line no-alert
+      window.alert("Login failed. Please try again.");
     }
   }, []);
 
@@ -292,52 +292,22 @@ function App() {
     setIsAdminLoggedIn(false);
   };
 
-  useEffect(() => {
-    // Show the splash long enough to display typing + welcome; then fade out
-    let tidy;
-    const t = setTimeout(() => {
-      setSplashExiting(true);
-      tidy = setTimeout(() => setShowSplash(false), 600);
-    }, 7600);
-    return () => {
-      clearTimeout(t);
-      if (tidy) clearTimeout(tidy);
-    };
-  }, []);
-
-  // Control app fade-in when the splash is unmounted
-  useEffect(() => {
-    if (!showSplash) {
-      // start in next frame so CSS transition runs
-      requestAnimationFrame(() => setAppVisible(true));
-    }
-  }, [showSplash]);
-
+  // Track site views when app loads (only once per session)
   // Track site views when app loads (only once per session)
   useEffect(() => {
     const hasTrackedView = sessionStorage.getItem("viewTracked");
-    if (!hasTrackedView && !showSplash) {
-      incrementSiteViews()
-        .then(() => {
-          sessionStorage.setItem("viewTracked", "true");
-        })
-        .catch(console.warn);
+    if (!hasTrackedView) {
+      // Delay slightly to ensure page is interactive before tracking
+      const timer = setTimeout(() => {
+        incrementSiteViews()
+          .then(() => {
+            sessionStorage.setItem("viewTracked", "true");
+          })
+          .catch(console.warn);
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [showSplash]);
-
-  useEffect(() => {
-    // When the splash hides, ensure the viewport is at the top immediately
-    // so there's no flash. We also set scrollRestoration to manual via the
-    // RouteChangeHandler; this immediate reset helps prevent visible jumps.
-    if (!showSplash) {
-      try {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      } catch (e) {
-        // ignore when not in browser
-      }
-    }
-    return undefined;
-  }, [showSplash]);
+  }, []);
 
   return (
     <ErrorBoundary
@@ -350,36 +320,35 @@ function App() {
     >
       <PortfolioProvider>
         <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
-          {showSplash ? (
-            <Splash exiting={splashExiting} />
-          ) : (
-            <div
-              className={`min-h-screen transition-opacity duration-500 ${
-                appVisible ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <BrowserRouter>
-                <MainLayout theme={theme} toggleTheme={toggleTheme}>
-                  <React.Suspense
-                    fallback={
-                      <div className="p-8 text-center text-sm opacity-70">
-                        Loading…
-                      </div>
-                    }
+          <BrowserRouter>
+            <MainLayout theme={theme} toggleTheme={toggleTheme}>
+              <React.Suspense
+                fallback={
+                  <div
+                    className="min-h-screen flex items-center justify-center"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)",
+                    }}
                   >
-                    {/* Animated route transitions using Framer Motion */}
-                    <AnimatedRoutes
-                      isAdminLoggedIn={isAdminLoggedIn}
-                      onAdminLogin={handleAdminLogin}
-                      onAdminLogout={handleAdminLogout}
-                    />
-                    {/* Manage scroll behavior on route changes */}
-                    <RouteChangeHandler />
-                  </React.Suspense>
-                </MainLayout>
-              </BrowserRouter>
-            </div>
-          )}
+                    <div className="text-center">
+                      <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-400">Loading...</p>
+                    </div>
+                  </div>
+                }
+              >
+                {/* Animated route transitions using Framer Motion */}
+                <AnimatedRoutes
+                  isAdminLoggedIn={isAdminLoggedIn}
+                  onAdminLogin={handleAdminLogin}
+                  onAdminLogout={handleAdminLogout}
+                />
+                {/* Manage scroll behavior on route changes */}
+                <RouteChangeHandler />
+              </React.Suspense>
+            </MainLayout>
+          </BrowserRouter>
         </div>
       </PortfolioProvider>
     </ErrorBoundary>

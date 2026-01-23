@@ -128,8 +128,12 @@ body[data-theme="light"] .hero-section {
 }
 
 body {
-  font-family: "Ysabeau Office", "Space Grotesk", -apple-system,
-    BlinkMacSystemFont, sans-serif;
+  font-family:
+    "Ysabeau Office",
+    "Space Grotesk",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -143,20 +147,6 @@ body {
   /* Avoid large background repaints on theme/variable change which can flash on mobile */
   transition: color 0.2s ease;
   min-height: 100vh;
-}
-
-/* Force GPU compositing for loader and animated elements to avoid mobile repaint flicker */
-html,
-body {
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Splash container */
-.splash-root {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
 }
 
 /* Optimized Scrollbar */
@@ -255,159 +245,12 @@ textarea:focus {
   }
 }
 
-/* Spinner keyframes with WebKit prefix for broader mobile support */
-@-webkit-keyframes spin {
-  from {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  to {
-    -webkit-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* utility to apply spinner animation */
-.spin-anim {
-  -webkit-animation: spin 14s linear infinite;
-  animation: spin 14s linear infinite;
-  transform-origin: center center;
-}
-
-/* Ensure spinning images are compositor-friendly on mobile */
-.spin-anim,
-.splash-root img {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* Mobile-friendly loader rings animation */
-.loader-ring {
-  -webkit-transform: translateZ(0) rotate(0deg);
-  transform: translateZ(0) rotate(0deg);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  -webkit-perspective: 1000px;
-  perspective: 1000px;
-  transform-origin: center center;
-}
-
-/* Outer ring - slowest rotation */
-.loader-ring-outer {
-  -webkit-animation: loader-rotate 8s linear infinite;
-  animation: loader-rotate 8s linear infinite;
-  border-top-color: transparent;
-  border-right-color: transparent;
-  border-bottom-color: transparent;
-}
-
-/* Middle ring - medium rotation (opposite direction) */
-.loader-ring-middle {
-  -webkit-animation: loader-rotate-reverse 6s linear infinite;
-  animation: loader-rotate-reverse 6s linear infinite;
-  border-top-color: transparent;
-  border-left-color: transparent;
-  border-bottom-color: transparent;
-}
-
-/* Inner ring - fastest rotation */
-.loader-ring-inner {
-  -webkit-animation: loader-rotate 4s linear infinite;
-  animation: loader-rotate 4s linear infinite;
-  border-top-color: transparent;
-  border-right-color: transparent;
-}
-
-/* Smooth pulse animation for background glow */
-.loader-pulse {
-  -webkit-animation: loader-pulse 2s ease-in-out infinite;
-  animation: loader-pulse 2s ease-in-out infinite;
-}
-
-/* Keyframes for ring rotation (clockwise) */
-@-webkit-keyframes loader-rotate {
-  from {
-    -webkit-transform: translateZ(0) rotate(0deg);
-    transform: translateZ(0) rotate(0deg);
-  }
-  to {
-    -webkit-transform: translateZ(0) rotate(360deg);
-    transform: translateZ(0) rotate(360deg);
-  }
-}
-
-@keyframes loader-rotate {
-  from {
-    transform: translateZ(0) rotate(0deg);
-  }
-  to {
-    transform: translateZ(0) rotate(360deg);
-  }
-}
-
-/* Keyframes for ring rotation (counter-clockwise) */
-@-webkit-keyframes loader-rotate-reverse {
-  from {
-    -webkit-transform: translateZ(0) rotate(0deg);
-    transform: translateZ(0) rotate(0deg);
-  }
-  to {
-    -webkit-transform: translateZ(0) rotate(-360deg);
-    transform: translateZ(0) rotate(-360deg);
-  }
-}
-
-@keyframes loader-rotate-reverse {
-  from {
-    transform: translateZ(0) rotate(0deg);
-  }
-  to {
-    transform: translateZ(0) rotate(-360deg);
-  }
-}
-
-/* Keyframes for pulse animation */
-@-webkit-keyframes loader-pulse {
-  0%,
-  100% {
-    opacity: 0.2;
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    -webkit-transform: translateZ(0) scale(1.05);
-    transform: translateZ(0) scale(1.05);
-  }
-}
-
-@keyframes loader-pulse {
-  0%,
-  100% {
-    opacity: 0.2;
-    transform: translateZ(0) scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: translateZ(0) scale(1.05);
-  }
-}
-
 /* Hero image fade-in to prevent sudden repaint flash on mobile */
 .hero-img {
   opacity: 0;
-  transition: opacity 200ms ease-out, transform 300ms ease-out;
+  transition:
+    opacity 200ms ease-out,
+    transform 300ms ease-out;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
@@ -416,7 +259,9 @@ textarea:focus {
 .hero-img.loaded {
   opacity: 1;
   /* Instant transition if image is already cached */
-  transition: opacity 0ms ease-out, transform 300ms ease-out;
+  transition:
+    opacity 0ms ease-out,
+    transform 300ms ease-out;
 }
 
 @keyframes liquid1 {
