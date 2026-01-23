@@ -47,8 +47,12 @@ export default defineConfig({
         },
       },
     },
+    // CSS code splitting for better caching
+    cssCodeSplit: true,
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 500,
+    // Optimize CSS minification
+    cssMinify: true,
   },
   // Optimize dependencies
   optimizeDeps: {

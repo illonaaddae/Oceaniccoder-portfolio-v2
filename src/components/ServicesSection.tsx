@@ -258,11 +258,9 @@ const ServicesSection: React.FC = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              <span className="text-gray-700 dark:text-gray-100">
-                Services &{" "}
-              </span>
+              <span className="text-gray-700 dark:text-gray-100">My </span>
               <span className="text-cyan-600 dark:text-cyan-400 font-bold">
-                Pricing
+                Services
               </span>
             </h2>
             <p className="text-lg md:text-xl leading-relaxed max-w-3xl mx-auto text-[var(--text-secondary)]">
@@ -323,7 +321,7 @@ const ServicesSection: React.FC = () => {
                     {/* Popular Badge */}
                     {pkg.popular && (
                       <div className="absolute top-0 right-0">
-                        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl flex items-center gap-1">
+                        <div className="bg-cyan-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl flex items-center gap-1">
                           <FaStar className="text-white" /> MOST POPULAR
                         </div>
                       </div>
@@ -331,9 +329,7 @@ const ServicesSection: React.FC = () => {
 
                     {/* Header */}
                     <div className={`p-6 pb-0 ${pkg.popular ? "pt-10" : ""}`}>
-                      <div
-                        className={`inline-flex p-3 rounded-2xl bg-gradient-to-r ${pkg.color} text-white mb-4`}
-                      >
+                      <div className="inline-flex p-3 rounded-2xl bg-cyan-600 text-white mb-4">
                         {pkg.icon}
                       </div>
                       <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
@@ -342,16 +338,6 @@ const ServicesSection: React.FC = () => {
                       <p className="text-[var(--text-secondary)] text-sm mb-4 min-h-[60px]">
                         {pkg.description}
                       </p>
-                      <div className="flex items-baseline gap-2 mb-6">
-                        <span className="text-4xl font-bold text-[var(--text-primary)]">
-                          {pkg.price}
-                        </span>
-                        {pkg.priceNote && (
-                          <span className="text-sm text-[var(--text-accent)]">
-                            {pkg.priceNote}
-                          </span>
-                        )}
-                      </div>
                     </div>
 
                     {/* Quick Info */}
@@ -403,11 +389,6 @@ const ServicesSection: React.FC = () => {
                               }`}
                             >
                               {feature.name}
-                              {!feature.included && feature.additionalCost && (
-                                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500">
-                                  {feature.additionalCost}
-                                </span>
-                              )}
                             </span>
                           </li>
                         ))}
@@ -418,11 +399,7 @@ const ServicesSection: React.FC = () => {
                     <div className="p-6 pt-0">
                       <Link
                         to="/contact"
-                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r ${
-                          pkg.color
-                        } text-white hover:scale-105 shadow-lg ${
-                          pkg.popular ? "shadow-cyan-500/30" : "shadow-black/20"
-                        }`}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all duration-300 bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-cyan-500/30"
                       >
                         Get Started <FaArrowRight className="text-sm" />
                       </Link>
@@ -483,15 +460,12 @@ const ServicesSection: React.FC = () => {
                     <p className="text-sm text-[var(--text-secondary)] mb-4 min-h-[48px]">
                       {addon.description}
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
-                        {addon.price}
-                      </span>
+                    <div className="mt-4">
                       <Link
                         to="/contact"
-                        className="text-sm text-[var(--text-accent)] hover:text-cyan-500 transition-colors flex items-center gap-1"
+                        className="text-sm text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors flex items-center gap-1 font-semibold"
                       >
-                        Add <FaArrowRight className="text-xs" />
+                        Get Started <FaArrowRight className="text-xs" />
                       </Link>
                     </div>
                   </motion.div>
