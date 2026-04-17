@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { FaEnvelope, FaCheck, FaTrash, FaEye, FaLock } from "react-icons/fa";
+import { FaEnvelope } from "react-icons/fa";
 import type { Message } from "@/types";
 import { MessageDetailModal } from "../modals";
+import { ReadOnlyBanner } from "./Messages/ReadOnlyBanner";
+import { MessagesTable } from "./Messages/MessagesTable";
 
 interface MessagesTabProps {
   theme: "light" | "dark";
@@ -9,7 +11,7 @@ interface MessagesTabProps {
   filteredMessages: Message[];
   onStatusChange: (
     messageId: string,
-    status: "new" | "read" | "replied"
+    status: "new" | "read" | "replied",
   ) => void;
   onDelete: (messageId: string) => void;
   isReadOnly?: boolean;
@@ -27,13 +29,9 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleViewMessage = (message: Message) => {
-    // Prevent viewing messages in read-only mode
-    if (isReadOnly) {
-      return;
-    }
+    if (isReadOnly) return;
     setSelectedMessage(message);
     setIsModalOpen(true);
-    // Auto-mark as read when viewing (messages without status or with "new" status)
     if (!message.status || message.status === "new") {
       onStatusChange(message.$id, "read");
     }
@@ -42,10 +40,6 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedMessage(null);
-  };
-
-  const handleMarkAsRead = (messageId: string) => {
-    onStatusChange(messageId, "read");
   };
 
   return (
@@ -69,22 +63,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
         </p>
       </div>
 
-      {/* Read-only notice banner */}
-      {isReadOnly && (
-        <div
-          className={`rounded-xl p-4 border ${
-            theme === "dark"
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
-              : "bg-amber-50 border-amber-200 text-amber-800"
-          }`}
-        >
-          <p className="text-sm font-medium flex items-center gap-2">
-            <FaLock className="w-4 h-4 flex-shrink-0" />
-            Message content is protected for privacy. Contact the portfolio
-            owner directly if you'd like to discuss opportunities.
-          </p>
-        </div>
-      )}
+      {isReadOnly && <ReadOnlyBanner theme={theme} />}
 
       {loading ? (
         <div className="text-center py-12">
@@ -118,173 +97,22 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
           </p>
         </div>
       ) : (
-        <div
-          className={`glass-card border rounded-2xl overflow-hidden transition-colors duration-200 ${
-            theme === "dark"
-              ? "bg-gray-800/50 border-gray-700/80"
-              : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-          }`}
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead
-                className={`border-b transition-colors duration-200 ${
-                  theme === "dark"
-                    ? "bg-gray-900/50 border-gray-700"
-                    : "bg-white/20 border-blue-200/30"
-                }`}
-              >
-                <tr>
-                  <th
-                    className={`px-6 py-4 text-left font-semibold transition-colors duration-300 ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    Subject
-                  </th>
-                  <th
-                    className={`px-6 py-4 text-left font-semibold transition-colors duration-300 ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    From
-                  </th>
-                  <th
-                    className={`px-6 py-4 text-left font-semibold transition-colors duration-300 ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    Status
-                  </th>
-                  <th
-                    className={`px-6 py-4 text-left font-semibold transition-colors duration-300 ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody
-                className={`divide-y transition-colors duration-300 ${
-                  theme === "dark" ? "divide-white/5" : "divide-blue-200/20"
-                }`}
-              >
-                {filteredMessages.map((msg) => (
-                  <tr
-                    key={msg.$id}
-                    onClick={() => handleViewMessage(msg)}
-                    className={`transition-all duration-300 ${
-                      isReadOnly ? "cursor-default" : "cursor-pointer"
-                    } ${
-                      theme === "dark"
-                        ? "hover:bg-white/5"
-                        : "hover:bg-white/20"
-                    }`}
-                  >
-                    <td
-                      className={`px-6 py-4 font-medium transition-colors duration-300 ${
-                        theme === "dark" ? "text-white" : "text-slate-900"
-                      } ${isReadOnly ? "blur-sm select-none" : ""}`}
-                    >
-                      {isReadOnly ? "••••••••••" : msg.subject}
-                    </td>
-                    <td
-                      className={`px-6 py-4 transition-colors duration-300 ${
-                        theme === "dark" ? "text-slate-300" : "text-slate-700"
-                      } ${isReadOnly ? "blur-sm select-none" : ""}`}
-                    >
-                      {isReadOnly ? "••••••" : msg.name}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border transition-colors duration-300 ${
-                          !msg.status || msg.status === "new"
-                            ? theme === "dark"
-                              ? "bg-blue-500/30 text-blue-100 border-blue-400/30"
-                              : "bg-blue-400/20 text-blue-700 border-blue-300/50"
-                            : msg.status === "read"
-                            ? theme === "dark"
-                              ? "bg-yellow-500/30 text-yellow-100 border-yellow-400/30"
-                              : "bg-yellow-400/20 text-yellow-700 border-yellow-300/50"
-                            : theme === "dark"
-                            ? "bg-green-500/30 text-green-100 border-green-400/30"
-                            : "bg-green-400/20 text-green-700 border-green-300/50"
-                        }`}
-                      >
-                        {msg.status?.toUpperCase() || "NEW"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {!isReadOnly && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewMessage(msg);
-                            }}
-                            className={`p-2 rounded transition duration-300 ${
-                              theme === "dark"
-                                ? "text-cyan-300 hover:bg-cyan-500/20"
-                                : "text-blue-600 hover:bg-blue-400/20"
-                            }`}
-                            title="View message"
-                          >
-                            <FaEye className="text-sm" />
-                          </button>
-                        )}
-                        {!isReadOnly && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onStatusChange(
-                                  msg.$id,
-                                  msg.status === "read" ? "new" : "read"
-                                );
-                              }}
-                              className={`p-2 rounded transition duration-300 ${
-                                theme === "dark"
-                                  ? "text-cyan-300 hover:bg-cyan-500/20"
-                                  : "text-blue-600 hover:bg-blue-400/20"
-                              }`}
-                              title="Toggle read status"
-                            >
-                              <FaCheck className="text-sm" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(msg.$id);
-                              }}
-                              className={`p-2 rounded transition duration-300 ${
-                                theme === "dark"
-                                  ? "text-red-400 hover:bg-red-500/20"
-                                  : "text-red-600 hover:bg-red-400/20"
-                              }`}
-                              title="Delete message"
-                            >
-                              <FaTrash className="text-sm" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <MessagesTable
+          messages={filteredMessages}
+          theme={theme}
+          isReadOnly={isReadOnly}
+          onView={handleViewMessage}
+          onStatusChange={onStatusChange}
+          onDelete={onDelete}
+        />
       )}
 
-      {/* Message Detail Modal */}
       <MessageDetailModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         theme={theme}
         message={selectedMessage}
-        onMarkAsRead={handleMarkAsRead}
+        onMarkAsRead={(id) => onStatusChange(id, "read")}
         isReadOnly={isReadOnly}
       />
     </div>

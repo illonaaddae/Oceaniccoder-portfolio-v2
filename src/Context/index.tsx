@@ -10,45 +10,11 @@ import { PROJECTS_DATA } from "../utils/data/projects";
 import { BLOGS_DATA } from "../utils/data/blogs";
 import { getProjects, getCertifications } from "../services/api";
 import type { Project, Certification } from "../types";
-
-interface ProjectData {
-  id?: number;
-  $id?: string;
-  title: string;
-  description: string;
-  longDescription?: string;
-  category: string;
-  technologies: string[];
-  image?: string;
-  liveUrl?: string;
-  githubUrl?: string;
-  featured?: boolean;
-  status?: string;
-  year?: string;
-}
-
-interface PortfolioContextType {
-  activeSection: string;
-  setActiveSection: (section: string) => void;
-  activeSkillCategory: number;
-  setActiveSkillCategory: (index: number) => void;
-  activeProjectFilter: string;
-  setActiveProjectFilter: (filter: string) => void;
-  isMenuOpen: boolean;
-  setIsMenuOpen: (open: boolean) => void;
-  skills: typeof SKILLS_DATA;
-  projects: ProjectData[];
-  blogs: typeof BLOGS_DATA;
-  certifications: Certification[];
-  navigationItems: { label: string; href: string }[];
-  projectFilters: string[];
-  navItems: { id: string; label: string; href: string }[];
-  loading: boolean;
-  refetchData: () => Promise<void>;
-}
+import type { ProjectData, PortfolioContextType } from "./types";
+import { navItems, projectFilters } from "./navData";
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const usePortfolio = () => {
@@ -65,18 +31,14 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
   const [activeProjectFilter, setActiveProjectFilter] = useState("All");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Dynamic data from Appwrite (with static fallbacks)
   const [projects, setProjects] = useState<ProjectData[]>(
-    PROJECTS_DATA as ProjectData[]
+    PROJECTS_DATA as ProjectData[],
   );
   const [certifications, setCertifications] = useState<Certification[]>([]);
 
-  // Static data
   const skills = SKILLS_DATA;
   const blogs = BLOGS_DATA;
 
-  // Fetch data from Appwrite
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -89,8 +51,7 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
         projectsData.status === "fulfilled" &&
         projectsData.value.length > 0
       ) {
-        // Transform Appwrite data to match expected format
-        const transformedProjects: ProjectData[] = projectsData.value.map(
+        const transformed: ProjectData[] = projectsData.value.map(
           (p: Project) => ({
             id: parseInt(p.$id.replace(/\D/g, "")) || Math.random() * 1000,
             $id: p.$id,
@@ -105,17 +66,19 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
             featured: p.featured,
             status: p.status,
             year: p.year,
-          })
+            $createdAt: p.$createdAt,
+          }),
         );
-        setProjects(transformedProjects);
+        // Sort newest first (API already orders this way, but guard the fallback too)
+        transformed.sort((a, b) =>
+          (b.$createdAt || "").localeCompare(a.$createdAt || ""),
+        );
+        setProjects(transformed);
       }
 
-      if (certsData.status === "fulfilled") {
-        setCertifications(certsData.value);
-      }
+      if (certsData.status === "fulfilled") setCertifications(certsData.value);
     } catch (err) {
       console.error("Failed to fetch data from Appwrite:", err);
-      // Keep static fallback data
     } finally {
       setLoading(false);
     }
@@ -125,32 +88,7 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     fetchData();
   }, []);
 
-  // Navigation items
-  const navItems = [
-    { id: "home", label: "Home", href: "/" },
-    { id: "about", label: "About", href: "/about" },
-    { id: "skills", label: "Skills", href: "/skills" },
-    { id: "projects", label: "Projects", href: "/projects" },
-    { id: "services", label: "Services", href: "/services" },
-    { id: "blog", label: "Blog", href: "/blog" },
-    { id: "contact", label: "Contact", href: "/contact" },
-    { id: "dashboard", label: "Dashboard", href: "/dashboard" },
-  ];
-
-  // Project filters - match the actual categories used in admin dashboard
-  const projectFilters = [
-    "All",
-    "Web App",
-    "Mobile App",
-    "Full Stack",
-    "AI/ML",
-    "Backend",
-    "Frontend",
-    "Other",
-  ];
-
   const value = {
-    // State
     activeSection,
     setActiveSection,
     activeSkillCategory,
@@ -159,8 +97,6 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     setActiveProjectFilter,
     isMenuOpen,
     setIsMenuOpen,
-
-    // Data
     skills,
     projects,
     blogs,

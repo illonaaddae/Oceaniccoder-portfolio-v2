@@ -44,8 +44,8 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
             onClick={onShowForm}
             className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
               theme === "dark"
-                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
-                : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
+                ? "bg-gradient-to-r from-oceanic-600 to-oceanic-900 border-oceanic-500/50 text-white hover:from-oceanic-500 hover:to-oceanic-900 shadow-oceanic-500/20"
+                : "bg-gradient-to-r from-oceanic-500 to-oceanic-900 border-oceanic-500/50 text-white hover:from-oceanic-400 hover:to-oceanic-800 shadow-oceanic-500/20"
             }`}
           >
             <FaPlus className="text-sm" />
@@ -116,7 +116,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded-lg ${
                     theme === "dark"
-                      ? "bg-cyan-500/30 text-cyan-100"
+                      ? "bg-oceanic-500/30 text-oceanic-100"
                       : "bg-blue-400/20 text-blue-700"
                   }`}
                 >
@@ -133,8 +133,8 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       theme === "dark"
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-400"
-                        : "bg-gradient-to-r from-blue-400 to-cyan-400"
+                        ? "bg-gradient-to-r from-oceanic-500 to-oceanic-400"
+                        : "bg-gradient-to-r from-blue-400 to-oceanic-400"
                     }`}
                     style={{ width: `${skill.percentage}%` }}
                   />
@@ -147,7 +147,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                     onClick={() => onEdit(skill)}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition text-sm ${
                       theme === "dark"
-                        ? "bg-cyan-500/20 border-cyan-400/30 text-cyan-200 hover:bg-cyan-500/30"
+                        ? "bg-oceanic-500/20 border-oceanic-500/30 text-oceanic-200 hover:bg-oceanic-500/30"
                         : "bg-blue-400/20 border-blue-300/30 text-blue-700 hover:bg-blue-400/30"
                     }`}
                   >

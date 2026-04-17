@@ -1,0 +1,17 @@
+export { default as AboutBackground } from "./AboutBackground";
+export { default as IntroHero } from "./IntroHero";
+export { default as SectionHeader } from "./SectionHeader";
+export { default as TabNavigation } from "./TabNavigation";
+export { default as StoryTab } from "./StoryTab";
+export { default as StoryContent } from "./StoryContent";
+export { default as ImageGallery } from "./ImageGallery";
+export { default as GalleryThumbnails } from "./GalleryThumbnails";
+export { default as QuickFacts } from "./QuickFacts";
+export { default as JourneyTab } from "./JourneyTab";
+export { default as JourneyItem } from "./JourneyItem";
+export { default as EducationTab } from "./EducationTab";
+export { default as EducationCard } from "./EducationCard";
+export { default as CertificationCard } from "./CertificationCard";
+export { default as DownloadCVCard } from "./DownloadCVCard";
+export { default as ValuesTab } from "./ValuesTab";
+export { values, tabs } from "./constants";
