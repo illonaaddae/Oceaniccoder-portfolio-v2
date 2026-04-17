@@ -14,29 +14,29 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          "ocean-1": "#0d253f",
-          "ocean-2": "#01b4e4",
-          "ocean-3": "#90cea1",
-          "ocean-4": "#1a5f3f", // ✅ Added ocean green
-          "ocean-5": "#2d8659", // ✅ Added deeper ocean green
+          "ocean-1": "#04333B",
+          "ocean-2": "#0C8599",
+          "ocean-3": "#26a9c5",
+          "ocean-4": "#085866",
+          "ocean-5": "#064350",
           "dark-1": "#000b21",
           "dark-2": "#001321",
-          "dark-3": "#10162f",
+          "dark-3": "#04333B",
           "dark-4": "#1d2340",
           "text-light": "#F2FAFD",
           "text-gray": "#EAEAEB",
         },
         oceanic: {
-          50: "#f0fdfa",
-          100: "#ccfbf1",
-          200: "#99f6e4",
-          300: "#5eead4",
-          400: "#2dd4bf",
-          500: "#14b8a6", // ✅ Main oceanic green
-          600: "#0d9488",
-          700: "#0f766e",
-          800: "#115e59",
-          900: "#134e4a",
+          50: "#e6f7fa",
+          100: "#c1ecf4",
+          200: "#8dd7e7",
+          300: "#52bfd7",
+          400: "#26a9c5",
+          500: "#0C8599", // brand light shade
+          600: "#0a6e7d",
+          700: "#085866",
+          800: "#064350",
+          900: "#04333B", // brand dark shade
         },
       },
       fontFamily: {
@@ -98,10 +98,10 @@ module.exports = {
         },
         glow: {
           from: {
-            boxShadow: "0 0 20px #14b8a6, 0 0 40px #14b8a6",
+            boxShadow: "0 0 20px #0C8599, 0 0 40px #0C8599",
           },
           to: {
-            boxShadow: "0 0 30px #14b8a6, 0 0 60px #14b8a6, 0 0 80px #14b8a6",
+            boxShadow: "0 0 30px #0C8599, 0 0 60px #0C8599, 0 0 80px #0C8599",
           },
         },
       },

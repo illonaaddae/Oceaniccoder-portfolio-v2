@@ -20,8 +20,8 @@ const SUPPORT_LINKS: SupportLink[] = [
     description: "Book a time to chat with me!",
     url: "https://calendly.com/addaeillona",
     icon: <FaCalendarAlt className="text-xl" />,
-    bgColor: "bg-gradient-to-r from-cyan-500 to-blue-500",
-    hoverColor: "hover:from-cyan-600 hover:to-blue-600",
+    bgColor: "bg-gradient-to-r from-oceanic-500 to-oceanic-900",
+    hoverColor: "hover:from-oceanic-600 hover:to-oceanic-900",
   },
   {
     id: "buymeacoffee",

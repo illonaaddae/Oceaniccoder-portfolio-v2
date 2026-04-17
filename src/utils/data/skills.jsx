@@ -87,7 +87,7 @@ export const SKILLS_DATA = [
       {
         name: "Tailwind CSS",
         level: 85,
-        icon: <SiTailwindcss className="text-cyan-400" />,
+        icon: <SiTailwindcss className="text-oceanic-500" />,
       },
     ],
   },
@@ -182,7 +182,7 @@ export const SKILLS_DATA = [
         level: 95,
         icon: <FaCode className="text-blue-500" />,
       },
-      { name: "Canva", level: 85, icon: <SiCanva className="text-cyan-400" /> },
+      { name: "Canva", level: 85, icon: <SiCanva className="text-oceanic-500" /> },
       {
         name: "Adobe Photoshop",
         level: 70,
@@ -221,7 +221,7 @@ export const SKILLS_DATA = [
       {
         name: "Computer Vision",
         level: 2,
-        icon: <FaEye className="text-cyan-400" />,
+        icon: <FaEye className="text-oceanic-500" />,
       },
       {
         name: "D3.js",
@@ -261,7 +261,7 @@ export const SKILLS_DATA = [
       {
         name: "Technical Writing",
         level: 87,
-        icon: <FaEdit className="text-cyan-400" />,
+        icon: <FaEdit className="text-oceanic-500" />,
       },
     ],
   },

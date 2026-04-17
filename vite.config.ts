@@ -17,44 +17,87 @@ export default defineConfig({
   build: {
     outDir: "build",
     sourcemap: false,
-    // Target modern browsers for smaller bundles
     target: "es2020",
-    // Minify for production
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.logs in production
+        drop_console: true,
         drop_debugger: true,
       },
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React runtime
-          "react-vendor": ["react", "react-dom"],
-          // Router separate for better caching
-          router: ["react-router-dom"],
-          // Animation library (large, cache separately)
-          "framer-motion": ["framer-motion"],
-          // Markdown/blog related
-          markdown: [
-            "react-markdown",
-            "remark-gfm",
-            "react-syntax-highlighter",
-          ],
-          // Icons
-          icons: ["react-icons"],
+        manualChunks(id: string) {
+          // ── Core React runtime ──────────────────────────────────────────
+          if (
+            id.includes("/node_modules/react/") ||
+            id.includes("/node_modules/react-dom/") ||
+            id.includes("/node_modules/scheduler/")
+          ) {
+            return "react-vendor";
+          }
+
+          // ── Router ──────────────────────────────────────────────────────
+          if (
+            id.includes("/node_modules/react-router") ||
+            id.includes("/node_modules/@remix-run/")
+          ) {
+            return "router";
+          }
+
+          // ── Animation ───────────────────────────────────────────────────
+          if (id.includes("/node_modules/framer-motion/")) {
+            return "framer-motion";
+          }
+
+          // ── Syntax highlighting (loaded only with blog posts) ───────────
+          // Kept separate from markdown AST processing so each can be
+          // cached independently and the syntax chunk benefits from
+          // PrismLight tree-shaking.
+          if (
+            id.includes("/node_modules/react-syntax-highlighter/") ||
+            id.includes("/node_modules/prismjs/") ||
+            id.includes("/node_modules/highlight.js/") ||
+            id.includes("/node_modules/refractor/")
+          ) {
+            return "syntax-highlighter";
+          }
+
+          // ── Markdown AST processing (loaded only with blog posts) ───────
+          if (
+            id.includes("/node_modules/react-markdown/") ||
+            id.includes("/node_modules/remark") ||
+            id.includes("/node_modules/rehype") ||
+            id.includes("/node_modules/unified/") ||
+            id.includes("/node_modules/micromark") ||
+            id.includes("/node_modules/mdast") ||
+            id.includes("/node_modules/hast") ||
+            id.includes("/node_modules/vfile") ||
+            id.includes("/node_modules/unist")
+          ) {
+            return "markdown";
+          }
+
+          // ── Appwrite SDK ─────────────────────────────────────────────────
+          // The SDK is imported by services/api which is pulled in by
+          // eagerly-loaded home components via usePortfolioData.
+          // Isolating it keeps the main bundle lean and lets the SDK
+          // be cached separately (it never changes between deploys).
+          if (id.includes("/node_modules/appwrite/")) {
+            return "appwrite";
+          }
+
+          // ── Icons ────────────────────────────────────────────────────────
+          if (id.includes("/node_modules/react-icons/")) {
+            return "icons";
+          }
         },
       },
     },
-    // CSS code splitting for better caching
     cssCodeSplit: true,
-    // Increase chunk size warning limit
     chunkSizeWarningLimit: 500,
-    // Optimize CSS minification
     cssMinify: true,
   },
-  // Optimize dependencies
   optimizeDeps: {
     include: ["react", "react-dom", "react-router-dom", "framer-motion"],
   },

@@ -10,7 +10,7 @@ export type Theme = "light" | "dark";
  */
 export const getCardStyles = (
   theme: Theme,
-  variant: "default" | "hover" | "empty" | "stat" = "default"
+  variant: "default" | "hover" | "empty" | "stat" = "default",
 ): string => {
   const variants = {
     default:
@@ -38,7 +38,7 @@ export const getCardStyles = (
  */
 export const getTextStyles = (
   theme: Theme,
-  variant: "primary" | "secondary" | "muted" = "primary"
+  variant: "primary" | "secondary" | "muted" = "primary",
 ): string => {
   const variants = {
     primary: theme === "dark" ? "text-white" : "text-slate-900",
@@ -53,7 +53,7 @@ export const getTextStyles = (
  */
 export const getTitleStyles = (
   theme: Theme,
-  size: "sm" | "md" | "lg" | "xl" = "lg"
+  size: "sm" | "md" | "lg" | "xl" = "lg",
 ): string => {
   const sizes = {
     sm: "text-lg sm:text-xl",
@@ -69,11 +69,11 @@ export const getTitleStyles = (
  */
 export const getButtonStyles = (
   theme: Theme,
-  variant: "primary" | "secondary" | "danger" | "success" | "ghost" = "primary"
+  variant: "primary" | "secondary" | "danger" | "success" | "ghost" = "primary",
 ): string => {
   const variants = {
     primary:
-      "bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/20",
+      "bg-gradient-to-r from-oceanic-500 to-oceanic-900 text-white hover:from-oceanic-400 hover:to-oceanic-800 shadow-lg shadow-oceanic-500/20",
     secondary:
       theme === "dark"
         ? "bg-gray-700/80 text-gray-200 hover:bg-gray-600/80"
@@ -95,7 +95,7 @@ export const getButtonStyles = (
  */
 export const getInputStyles = (theme: Theme): string => {
   return theme === "dark"
-    ? "bg-gray-700/50 border-gray-600/80 text-white placeholder-gray-400 focus:border-cyan-500/50 focus:ring-cyan-500/30"
+    ? "bg-gray-700/50 border-gray-600/80 text-white placeholder-gray-400 focus:border-oceanic-500/50 focus:ring-oceanic-500/30"
     : "bg-white/80 border-slate-300/80 text-slate-900 placeholder-slate-400 focus:border-blue-500/50 focus:ring-blue-500/30";
 };
 
@@ -104,11 +104,11 @@ export const getInputStyles = (theme: Theme): string => {
  */
 export const getIconColor = (
   theme: Theme,
-  variant: "default" | "primary" | "muted" = "default"
+  variant: "default" | "primary" | "muted" = "default",
 ): string => {
   const variants = {
-    default: theme === "dark" ? "text-cyan-400" : "text-blue-600",
-    primary: theme === "dark" ? "text-cyan-300" : "text-blue-500",
+    default: theme === "dark" ? "text-oceanic-500" : "text-oceanic-600",
+    primary: theme === "dark" ? "text-oceanic-500" : "text-oceanic-600",
     muted: theme === "dark" ? "text-gray-600" : "text-slate-400/60",
   };
   return variants[variant];
@@ -118,10 +118,10 @@ export const getIconColor = (
  * Get stat card gradient based on color scheme
  */
 export const getStatGradient = (
-  color: "cyan" | "green" | "purple" | "orange" | "pink"
+  color: "cyan" | "green" | "purple" | "orange" | "pink",
 ): string => {
   const gradients = {
-    cyan: "from-cyan-500/20 to-blue-500/20 border-cyan-500/30",
+    cyan: "from-oceanic-500/20 to-oceanic-900/20 border-oceanic-500/30",
     green: "from-green-500/20 to-emerald-500/20 border-green-500/30",
     purple: "from-purple-500/20 to-pink-500/20 border-purple-500/30",
     orange: "from-orange-500/20 to-amber-500/20 border-orange-500/30",

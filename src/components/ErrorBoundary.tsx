@@ -127,7 +127,7 @@ class ErrorBoundary extends Component<Props, State> {
               If this problem persists, please{" "}
               <a
                 href="mailto:illona@oceaniccoder.dev"
-                className="text-oceanic-400 hover:underline"
+                className="text-oceanic-500 hover:underline"
               >
                 contact support
               </a>

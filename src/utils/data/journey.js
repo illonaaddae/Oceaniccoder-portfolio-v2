@@ -9,7 +9,7 @@ const journey = [
     description:
       "Building beautiful, interactive user interfaces for web and mobile applications.",
     achievements: ["AmaliTech AWS re/Start Programme"],
-    color: "from-cyan-500 to-blue-500",
+    color: "from-oceanic-500 to-oceanic-900",
   },
   {
     role: "Executive Director",
@@ -37,7 +37,7 @@ const journey = [
       "Maintained 98% client satisfaction rate",
       "Mentored 100+ junior developers",
     ],
-    color: "from-green-500 to-cyan-500",
+    color: "from-green-500 to-oceanic-500",
   },
 
   {
