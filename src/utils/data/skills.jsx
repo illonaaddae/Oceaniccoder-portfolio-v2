@@ -23,6 +23,8 @@ import {
   FaEye,
   FaPalette,
   FaTools,
+  FaRobot,
+  FaMagic,
 } from "react-icons/fa";
 import {
   SiTypescript,
@@ -198,6 +200,16 @@ export const SKILLS_DATA = [
   {
     category: "AI & Data Science",
     skills: [
+      {
+        name: "AI Engineering",
+        level: 35,
+        icon: <FaRobot className="text-violet-400" />,
+      },
+      {
+        name: "Prompt Engineering",
+        level: 40,
+        icon: <FaMagic className="text-pink-400" />,
+      },
       {
         name: "OpenAI",
         level: 20,
