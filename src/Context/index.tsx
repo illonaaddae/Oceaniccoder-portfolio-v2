@@ -7,7 +7,6 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { SKILLS_DATA } from "../utils/data/skills.jsx";
 import { transformAppwriteSkills } from "../utils/data/skillsTransformer.js";
 import { PROJECTS_DATA } from "../utils/data/projects";
 import { BLOGS_DATA } from "../utils/data/blogs";
