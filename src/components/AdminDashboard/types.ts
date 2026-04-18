@@ -1,6 +1,7 @@
 export type TabType =
   | "overview"
   | "messages"
+  | "bookings"
   | "comments"
   | "skills"
   | "projects"

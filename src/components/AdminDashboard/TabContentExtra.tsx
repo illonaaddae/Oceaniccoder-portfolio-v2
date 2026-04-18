@@ -1,4 +1,5 @@
 import React from "react";
+import { BookingsTab } from "./tabs/BookingsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GalleryTab } from "./tabs/GalleryTab";
 import { EducationTab } from "./tabs/EducationTab";
@@ -93,6 +94,7 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
           isReadOnly={isReadOnly}
         />
       )}
+      {activeTab === "bookings" && <BookingsTab theme={theme} />}
       {activeTab === "settings" && <SettingsTab theme={theme} />}
     </>
   );
