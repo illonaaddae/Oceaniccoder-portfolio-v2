@@ -47,7 +47,7 @@ export const eventsJanMar: Event[] = [
     iconName: "star",
     startDate: { month: 2, day: 1 },
     endDate: { month: 2, day: 28 },
-    bgGradient: "from-amber-600 via-teal-600 to-emerald-600",
+    bgGradient: "from-slate-800 via-teal-600 to-emerald-600",
     showConfetti: false,
   },
   {

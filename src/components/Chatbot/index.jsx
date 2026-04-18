@@ -104,7 +104,7 @@ export default function Chatbot() {
             style={{
               background: "var(--bg-primary)",
               borderColor: "var(--border-subtle)",
-              height: "500px",
+              height: "min(500px, calc(100dvh - 120px))",
             }}
           >
             {/* Header */}
@@ -202,9 +202,11 @@ export default function Chatbot() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKey}
+                  onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 350)}
                   placeholder="Ask me anything..."
                   className="flex-1 bg-transparent outline-none text-sm"
                   style={{ color: "var(--text-primary)" }}
+                  enterKeyHint="send"
                   maxLength={500}
                 />
                 <button

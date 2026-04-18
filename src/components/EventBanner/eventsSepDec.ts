@@ -1,7 +1,19 @@
 import type { Event } from "./types";
 
-/** September – December events */
+/** August – December events */
 export const eventsSepDec: Event[] = [
+  {
+    id: "ghana-founders-day",
+    title: "Ghana Founders' Day!",
+    message:
+      "Honoring the founders and freedom fighters who shaped Ghana's independence and legacy!",
+    mobileMessage: "Happy Founders' Day!",
+    iconName: "star",
+    startDate: { month: 8, day: 4 },
+    endDate: { month: 8, day: 4 },
+    bgGradient: "from-red-600 via-amber-500 to-emerald-600",
+    showConfetti: true,
+  },
   {
     id: "labor-day",
     title: "Happy Labor Day!",
@@ -46,7 +58,7 @@ export const eventsSepDec: Event[] = [
     iconName: "leaf",
     startDate: { month: 11, day: 27 },
     endDate: { month: 11, day: 28 },
-    bgGradient: "from-amber-500 via-teal-500 to-emerald-500",
+    bgGradient: "from-teal-600 via-oceanic-500 to-emerald-500",
     showConfetti: true,
   },
   {
@@ -79,7 +91,7 @@ export const eventsSepDec: Event[] = [
     iconName: "drum",
     startDate: { month: 12, day: 26 },
     endDate: { month: 12, day: 31 },
-    bgGradient: "from-emerald-700 via-teal-600 to-amber-500",
+    bgGradient: "from-emerald-700 via-teal-700 to-red-800",
     showConfetti: true,
   },
   {

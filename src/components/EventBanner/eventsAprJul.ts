@@ -26,6 +26,18 @@ export const eventsAprJul: Event[] = [
     showConfetti: true,
   },
   {
+    id: "workers-day-ghana",
+    title: "Ghana Workers' Day!",
+    message:
+      "Celebrating the dignity of work and the contributions of workers in Ghana and beyond!",
+    mobileMessage: "Happy Workers' Day!",
+    iconName: "star",
+    startDate: { month: 5, day: 1 },
+    endDate: { month: 5, day: 1 },
+    bgGradient: "from-teal-600 via-oceanic-500 to-emerald-600",
+    showConfetti: false,
+  },
+  {
     id: "mothers-day",
     title: "Happy Mother's Day!",
     message: "Celebrating all the amazing moms out there! You are appreciated.",
@@ -66,7 +78,7 @@ export const eventsAprJul: Event[] = [
     iconName: "heart",
     startDate: { month: 6, day: 1 },
     endDate: { month: 6, day: 30 },
-    bgGradient: "from-rose-500 via-amber-400 to-teal-500",
+    bgGradient: "from-rose-500 via-violet-500 to-teal-500",
     showConfetti: true,
   },
   {
@@ -79,6 +91,18 @@ export const eventsAprJul: Event[] = [
     endDate: { month: 6, day: 19 },
     bgGradient: "from-emerald-700 via-teal-600 to-slate-700",
     showConfetti: false,
+  },
+  {
+    id: "ghana-republic-day",
+    title: "Ghana Republic Day!",
+    message:
+      "Celebrating Ghana's first Republic in 1960 — a proud milestone in African democracy!",
+    mobileMessage: "Ghana Republic Day!",
+    iconName: "star",
+    startDate: { month: 7, day: 1 },
+    endDate: { month: 7, day: 1 },
+    bgGradient: "from-red-600 via-amber-500 to-emerald-600",
+    showConfetti: true,
   },
   {
     id: "independence-day",
