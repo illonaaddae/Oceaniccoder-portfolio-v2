@@ -194,7 +194,7 @@ export default function BookingSection() {
                           ? "border-teal-500 bg-teal-500/10"
                           : "border-transparent hover:border-teal-500/40 hover:bg-teal-500/5"
                       }`}
-                      style={{ borderColor: form.meetingType === m.id ? "var(--accent-teal)" : undefined }}
+                      style={{ borderColor: form.meetingType === m.id ? "var(--accent-teal)" : undefined, touchAction: "manipulation" }}
                     >
                       <div className="flex items-center gap-3">
                         <span
@@ -314,7 +314,7 @@ export default function BookingSection() {
                   ))}
                 </div>
 
-                <div className="p-6 sm:p-8">
+                <div className="p-6 sm:p-8 pb-24 sm:pb-8">
                   <AnimatePresence mode="wait">
                     {/* Step 1 — Contact Info */}
                     {step === 1 && (
@@ -360,7 +360,7 @@ export default function BookingSection() {
                           disabled={!canProceedStep1}
                           onClick={() => setStep(2)}
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ background: "var(--accent-teal)" }}
+                          style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                         >
                           Continue <FaArrowRight />
                         </button>
@@ -437,7 +437,7 @@ export default function BookingSection() {
                             min={getTodayMin()}
                             value={form.preferredDate}
                             onChange={(e) => handleChange("preferredDate", e.target.value)}
-                            className="w-full rounded-xl px-4 py-3 border text-sm outline-none focus:ring-2 transition"
+                            className="w-full rounded-xl px-4 py-3 border text-base outline-none focus:ring-2 transition"
                             style={{
                               background: "var(--bg-secondary)",
                               borderColor: "var(--border-subtle)",
@@ -460,7 +460,7 @@ export default function BookingSection() {
                               <button
                                 key={slot}
                                 onClick={() => handleChange("preferredTime", slot)}
-                                className="py-2 rounded-lg text-sm font-medium border transition-all duration-150"
+                                className="py-3 rounded-lg text-sm font-medium border transition-all duration-150"
                                 style={{
                                   background:
                                     form.preferredTime === slot
@@ -474,6 +474,8 @@ export default function BookingSection() {
                                     form.preferredTime === slot
                                       ? "var(--accent-teal)"
                                       : "var(--border-subtle)",
+                                  touchAction: "manipulation",
+                                  minHeight: "44px",
                                 }}
                               >
                                 {slot}
@@ -492,7 +494,7 @@ export default function BookingSection() {
                           disabled={!canProceedStep2}
                           onClick={() => setStep(3)}
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ background: "var(--accent-teal)" }}
+                          style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                         >
                           Continue <FaArrowRight />
                         </button>
@@ -551,7 +553,7 @@ export default function BookingSection() {
                             value={form.message}
                             onChange={(e) => handleChange("message", e.target.value)}
                             placeholder="Tell me briefly what you'd like to discuss, any specific questions, or anything I should know before our meeting..."
-                            className="w-full rounded-xl px-4 py-3 border text-sm outline-none focus:ring-2 resize-none transition"
+                            className="w-full rounded-xl px-4 py-3 border text-base outline-none focus:ring-2 resize-none transition"
                             style={{
                               background: "var(--bg-secondary)",
                               borderColor: "var(--border-subtle)",
@@ -579,7 +581,7 @@ export default function BookingSection() {
                           onClick={handleSubmit}
                           disabled={submitting}
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
-                          style={{ background: "var(--accent-teal)" }}
+                          style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                         >
                           {submitting ? (
                             <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -729,7 +731,7 @@ function FormField({ icon, label, required, type = "text", value, onChange, plac
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-xl pl-10 pr-4 py-3 border text-sm outline-none focus:ring-2 transition"
+          className="w-full rounded-xl pl-10 pr-4 py-3 border text-base outline-none focus:ring-2 transition"
           style={{
             background: "var(--bg-secondary)",
             borderColor: "var(--border-subtle)",
