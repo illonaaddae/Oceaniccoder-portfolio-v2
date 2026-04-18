@@ -64,7 +64,7 @@ const ProjectCardContent = React.memo(({ project }) => (
       )}
     </div>
 
-    <div className="flex items-center justify-center gap-2 text-sm proj-case-study-link text-orange-400 group-hover:brightness-125 transition-all py-2">
+    <div className="flex items-center justify-center gap-2 text-sm proj-case-study-link text-oceanic-400 group-hover:brightness-125 transition-all py-2">
       View Case Study
       <FaArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
     </div>

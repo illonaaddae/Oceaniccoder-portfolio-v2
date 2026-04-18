@@ -41,7 +41,7 @@ const ProjectCardImage = React.memo(({ project }) => (
 
     {project.featured && (
       <div className="absolute top-4 left-4">
-        <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-medium">
+        <span className="bg-gradient-to-r from-oceanic-500 to-teal-500 text-white text-xs px-3 py-1 rounded-full font-medium">
           Featured
         </span>
       </div>
