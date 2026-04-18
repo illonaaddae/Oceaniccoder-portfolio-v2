@@ -89,26 +89,26 @@ export default function BookingSection() {
     setError("");
     setSubmitting(true);
     try {
-      // 1. Save booking to Appwrite
+      // 1. Check availability + create calendar event (must succeed before saving to Appwrite)
+      const meetRes = await fetch("/api/create-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const meetData = await meetRes.json();
+
+      if (meetRes.status === 409) {
+        setError(meetData.message || "That time slot is already booked. Please choose a different time.");
+        return;
+      }
+
+      // 2. Save booking to Appwrite (only after confirming no conflict)
       const result = await createBooking({ ...form, status: "pending" });
       const ref = result.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
       setBookingRef(ref);
 
-      // 2. Create Google Calendar event + Meet link (non-blocking — booking succeeds either way)
-      try {
-        const meetRes = await fetch("/api/create-booking", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
-        if (meetRes.ok) {
-          const meetData = await meetRes.json();
-          if (meetData.meetLink) setMeetLink(meetData.meetLink);
-          if (meetData.calendarEventLink) setCalendarLink(meetData.calendarEventLink);
-        }
-      } catch (meetErr) {
-        console.warn("Meet link generation failed (booking still saved):", meetErr);
-      }
+      if (meetData.meetLink) setMeetLink(meetData.meetLink);
+      if (meetData.calendarEventLink) setCalendarLink(meetData.calendarEventLink);
 
       setStep(4);
       sectionTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -561,7 +561,18 @@ export default function BookingSection() {
                         </div>
 
                         {error && (
-                          <p className="text-red-400 text-sm">{error}</p>
+                          <div className="rounded-xl p-3 border border-red-500/30 bg-red-500/10">
+                            <p className="text-red-400 text-sm mb-2">{error}</p>
+                            {error.includes("already booked") && (
+                              <button
+                                onClick={() => { setError(""); setStep(2); }}
+                                className="text-xs font-semibold underline"
+                                style={{ color: "var(--accent-teal)" }}
+                              >
+                                ← Choose a different time
+                              </button>
+                            )}
+                          </div>
                         )}
 
                         <button

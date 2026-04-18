@@ -77,6 +77,46 @@ async function getAccessToken() {
   return data.access_token;
 }
 
+/** Convert a local datetime (date string + hours + minutes) in a given IANA timezone to a UTC ISO string. */
+function localToUTCISO(dateStr, hours, minutes, tz) {
+  const naive = `${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+  // Treat naive as UTC temporarily, then measure the tz offset at that instant
+  const asUTC = new Date(naive + "Z");
+  const formatted = asUTC.toLocaleString("en-CA", {
+    timeZone: tz || "UTC",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }); // e.g. "2025-04-18, 13:00:00"
+  const localParsed = new Date(formatted.replace(", ", "T") + "Z");
+  const offset = asUTC.getTime() - localParsed.getTime(); // tz offset in ms
+  return new Date(asUTC.getTime() + offset).toISOString();
+}
+
+/** Returns true if the slot is already busy on Google Calendar. Fails open (returns false) on any error. */
+async function isSlotBusy(accessToken, calendarId, preferredDate, hours, minutes, duration, tz) {
+  try {
+    const startISO = localToUTCISO(preferredDate, hours, minutes, tz);
+    const endISO = new Date(new Date(startISO).getTime() + duration * 60 * 1000).toISOString();
+    const res = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ timeMin: startISO, timeMax: endISO, items: [{ id: calendarId }] }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return (data.calendars?.[calendarId]?.busy ?? []).length > 0;
+  } catch {
+    return false; // fail open — don't block booking on check error
+  }
+}
+
+const conflict = (message) => ({
+  statusCode: 409,
+  headers: { ...CORS, "Content-Type": "application/json" },
+  body: JSON.stringify({ error: "slot_taken", message }),
+});
+
 const ok = (body) => ({
   statusCode: 200,
   headers: { ...CORS, "Content-Type": "application/json" },
@@ -125,6 +165,13 @@ export const handler = async (event) => {
     const duration = MEETING_DURATIONS[meetingType] ?? 30;
     const end = addMinutes(hours, minutes, duration);
     const label = MEETING_LABELS[meetingType] ?? meetingType;
+
+    const busy = await isSlotBusy(accessToken, calendarId, preferredDate, hours, minutes, duration, timezone);
+    if (busy) {
+      return conflict(
+        `${preferredTime} on that day is already booked. Please choose a different time slot.`,
+      );
+    }
 
     const description = [
       `Meeting Type: ${label} (${duration} min)`,
