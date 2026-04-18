@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { FaCalendarAlt, FaEnvelope, FaPhone, FaClock, FaSync, FaGlobe } from "react-icons/fa";
-import { getBookings } from "@/services/api/bookings";
+import React, { useEffect, useState, useCallback } from "react";
+import { FaCalendarAlt, FaEnvelope, FaPhone, FaClock, FaSync, FaGlobe, FaCheck, FaTimes } from "react-icons/fa";
+import { getBookings, updateBookingStatus } from "@/services/api/bookings";
 import type { Booking } from "@/services/api/bookings";
 
 interface BookingsTabProps {
@@ -24,23 +24,42 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updating, setUpdating] = useState<string | null>(null);
 
   const isDark = theme === "dark";
 
-  const load = async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
     try {
       const data = await getBookings();
-      setBookings(data.sort((a, b) => (b.$createdAt ?? "").localeCompare(a.$createdAt ?? "")));
+      setBookings(data);
     } catch {
       setError("Failed to load bookings.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(() => load(true), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  const handleStatus = async (id: string, status: "confirmed" | "cancelled") => {
+    setUpdating(id);
+    try {
+      await updateBookingStatus(id, status);
+      setBookings((prev) =>
+        prev.map((b) => (b.$id === id ? { ...b, status } : b)),
+      );
+    } catch {
+      setError("Failed to update booking status.");
+    } finally {
+      setUpdating(null);
     }
   };
-
-  useEffect(() => { load(); }, []);
 
   return (
     <div className="space-y-6">
@@ -55,7 +74,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
           </p>
         </div>
         <button
-          onClick={load}
+          onClick={() => load()}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
             isDark
               ? "border-slate-700 text-slate-300 hover:bg-slate-800"
@@ -85,13 +104,13 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
         ))}
       </div>
 
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+
       {/* Content */}
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-8 h-8 border-2 border-oceanic-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : error ? (
-        <p className="text-red-400 text-center py-10">{error}</p>
       ) : bookings.length === 0 ? (
         <div className={`text-center py-20 rounded-xl border ${isDark ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-500"}`}>
           <FaCalendarAlt className="mx-auto text-4xl mb-3 opacity-30" />
@@ -154,14 +173,53 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
                   )}
                 </div>
 
-                {/* Right: submitted date */}
-                {b.$createdAt && (
-                  <p className={`text-xs shrink-0 ${isDark ? "text-slate-500" : "text-slate-400"}`}>
-                    {new Date(b.$createdAt).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
-                  </p>
-                )}
+                {/* Right: date + actions */}
+                <div className="flex flex-col items-end gap-3 shrink-0">
+                  {b.$createdAt && (
+                    <p className={`text-xs ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+                      {new Date(b.$createdAt).toLocaleDateString("en-GB", {
+                        day: "numeric", month: "short", year: "numeric",
+                      })}
+                    </p>
+                  )}
+
+                  {/* Action buttons — only show when not already in a final state */}
+                  {b.status !== "confirmed" && b.status !== "cancelled" && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={updating === b.$id}
+                        onClick={() => handleStatus(b.$id!, "confirmed")}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-all disabled:opacity-50"
+                      >
+                        <FaCheck className="text-[10px]" />
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        disabled={updating === b.$id}
+                        onClick={() => handleStatus(b.$id!, "cancelled")}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all disabled:opacity-50"
+                      >
+                        <FaTimes className="text-[10px]" />
+                        Decline
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Allow reverting a confirmed booking to pending */}
+                  {b.status === "confirmed" && (
+                    <button
+                      type="button"
+                      disabled={updating === b.$id}
+                      onClick={() => handleStatus(b.$id!, "cancelled")}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all disabled:opacity-50"
+                    >
+                      <FaTimes className="text-[10px]" />
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

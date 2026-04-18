@@ -41,13 +41,15 @@ export function useDashboardCore() {
 
   const [pendingBookings, setPendingBookings] = useState(0);
   const prevPendingRef = useRef<number | null>(null);
+  const showSuccessRef = useRef(showSuccess);
+  showSuccessRef.current = showSuccess;
   useEffect(() => {
     const check = () => {
       getBookings()
         .then((b) => {
           const count = b.filter((x) => x.status === "pending").length;
           if (prevPendingRef.current !== null && count > prevPendingRef.current) {
-            showSuccess(`New booking received! ${count} pending.`);
+            showSuccessRef.current(`New booking received! ${count} pending.`);
           }
           prevPendingRef.current = count;
           setPendingBookings(count);
@@ -55,7 +57,7 @@ export function useDashboardCore() {
         .catch(() => {});
     };
     check();
-    const id = setInterval(check, 60_000);
+    const id = setInterval(check, 30_000);
     return () => clearInterval(id);
   }, []);
 

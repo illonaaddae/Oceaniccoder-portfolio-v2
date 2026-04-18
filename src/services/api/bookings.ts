@@ -35,3 +35,10 @@ export async function getBookings(): Promise<Booking[]> {
   ]);
   return response.documents as unknown as Booking[];
 }
+
+export async function updateBookingStatus(
+  id: string,
+  status: "confirmed" | "cancelled" | "pending",
+): Promise<void> {
+  await databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status });
+}
