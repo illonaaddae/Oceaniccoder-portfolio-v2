@@ -1,11 +1,16 @@
-/**
- * Portfolio Context Types
- * @module Context/types
- */
-
-import { SKILLS_DATA } from "../utils/data/skills.jsx";
 import { BLOGS_DATA } from "../utils/data/blogs";
 import type { Certification } from "../types";
+
+export interface SkillEntry {
+  name: string;
+  level: number;
+  icon: React.ReactNode;
+}
+
+export interface SkillCategory {
+  category: string;
+  skills: SkillEntry[];
+}
 
 export interface ProjectData {
   id?: number;
@@ -33,7 +38,7 @@ export interface PortfolioContextType {
   setActiveProjectFilter: (filter: string) => void;
   isMenuOpen: boolean;
   setIsMenuOpen: (open: boolean) => void;
-  skills: typeof SKILLS_DATA;
+  skills: SkillCategory[];
   projects: ProjectData[];
   blogs: typeof BLOGS_DATA;
   certifications: Certification[];

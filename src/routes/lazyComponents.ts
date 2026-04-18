@@ -17,6 +17,7 @@ const Blog = React.lazy(() => import("@/components/BlogSection"));
 const BlogPost = React.lazy(() => import("@/components/BlogPost"));
 const AdminDashboard = React.lazy(() => import("@/components/AdminDashboard"));
 const NotFound = React.lazy(() => import("@/components/NotFound"));
+const Booking = React.lazy(() => import("@/components/BookingSection"));
 
 export {
   Home,
@@ -31,4 +32,5 @@ export {
   BlogPost,
   AdminDashboard,
   NotFound,
+  Booking,
 };

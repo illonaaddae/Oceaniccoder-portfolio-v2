@@ -1,14 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PROFILE_IMAGE_URL } from "./heroData";
+import { PROFILE_IMAGE_DARK_URL, PROFILE_IMAGE_LIGHT_URL } from "./heroData";
 
 const ProfileImage = React.memo(function ProfileImage() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [imageReady, setImageReady] = useState(false);
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains("dark"),
+  );
   const imgRef = useRef(null);
 
+  // Track theme changes by observing the html element's class list
   useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const imageUrl = isDark ? PROFILE_IMAGE_DARK_URL : PROFILE_IMAGE_LIGHT_URL;
+
+  useEffect(() => {
+    setProfileLoaded(false);
+    setImageReady(false);
+
     const img = new Image();
-    img.src = PROFILE_IMAGE_URL;
+    img.src = imageUrl;
     let checkTimeout = null;
 
     const checkImgElement = () => {
@@ -39,7 +59,7 @@ const ProfileImage = React.memo(function ProfileImage() {
       img.onload = null;
       img.onerror = null;
     };
-  }, []);
+  }, [imageUrl]);
 
   const handleLoad = () => {
     if (!profileLoaded) setProfileLoaded(true);
@@ -70,7 +90,7 @@ const ProfileImage = React.memo(function ProfileImage() {
           <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[26rem] lg:h-[26rem] xl:w-[28rem] xl:h-[28rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
             <img
               ref={imgRef}
-              src={PROFILE_IMAGE_URL}
+              src={imageUrl}
               alt="Illona Addae - Professional Developer Portrait"
               className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${imageReady ? "loaded" : ""}`}
               onLoad={handleLoad}

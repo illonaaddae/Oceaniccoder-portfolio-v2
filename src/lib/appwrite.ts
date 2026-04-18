@@ -33,6 +33,7 @@ export const COLLECTIONS = {
   ABOUT: "about",
   TESTIMONIALS: "testimonials",
   SITE_VIEWS: "site_views",
+  BOOKINGS: "bookings",
 } as const;
 
 export default client;

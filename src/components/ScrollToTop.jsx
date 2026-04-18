@@ -29,7 +29,7 @@ const ScrollToTop = () => {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-8 right-8 z-50 glass-btn p-4 bg-gradient-to-r from-oceanic-600 to-oceanic-900 text-white hover:scale-110 transition-all duration-300 group shadow-lg"
+      className="fixed bottom-24 right-6 z-40 glass-btn p-4 bg-gradient-to-r from-oceanic-600 to-oceanic-900 text-white hover:scale-110 transition-all duration-300 group shadow-lg"
       aria-label="Scroll to top"
     >
       <FaArrowUp className="w-5 h-5 group-hover:animate-bounce" />

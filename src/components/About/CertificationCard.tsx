@@ -49,7 +49,7 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
 
     {/* Skills */}
     <div className="flex flex-wrap gap-2 mt-3 mb-4">
-      {cert.skills.map((skill: string) => (
+      {(cert.skills ?? []).map((skill: string) => (
         <span
           key={skill}
           className="text-xs bg-gray-700/50 text-gray-300 px-2.5 py-1 rounded border border-gray-600/30 font-medium shadow-sm skill-tag"

@@ -14,6 +14,7 @@ import {
   Blog,
   BlogPost,
   NotFound,
+  Booking,
 } from "./lazyComponents";
 
 const Fallback = () => <LoadingSpinner />;
@@ -103,6 +104,16 @@ const publicRoutes = (
         <React.Suspense fallback={<Fallback />}>
           <PageWrapper>
             <Contact />
+          </PageWrapper>
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/booking"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <PageWrapper>
+            <Booking />
           </PageWrapper>
         </React.Suspense>
       }

@@ -10,9 +10,16 @@
       "/*.png",
       "/*.webp",
       "/*.json",
-      "/*.txt"
+      "/*.txt",
+      "/api/*"
     ]
   },
+  "routes": [
+    {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous"]
+    }
+  ],
   "mimeTypes": {
     ".js": "application/javascript",
     ".mjs": "application/javascript",

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { FaCoffee, FaTimes, FaHeart, FaCalendarAlt } from "react-icons/fa";
 import { IMAGES } from "../utils/imageUrls";
 
@@ -11,17 +12,19 @@ interface SupportLink {
   bgColor: string;
   hoverColor: string;
   badge?: string;
+  internal?: boolean;
 }
 
 const SUPPORT_LINKS: SupportLink[] = [
   {
-    id: "calendly",
-    name: "Schedule a Meeting",
-    description: "Book a time to chat with me!",
-    url: "https://calendly.com/addaeillona",
+    id: "booking",
+    name: "Book a Meeting",
+    description: "Schedule time with me!",
+    url: "/booking",
     icon: <FaCalendarAlt className="text-xl" />,
     bgColor: "bg-gradient-to-r from-oceanic-500 to-oceanic-900",
     hoverColor: "hover:from-oceanic-600 hover:to-oceanic-900",
+    internal: true,
   },
   {
     id: "buymeacoffee",
@@ -63,7 +66,21 @@ const SupportButton: React.FC = () => {
             : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
-        {SUPPORT_LINKS.map((link) => (
+        {SUPPORT_LINKS.map((link) =>
+          link.internal ? (
+          <Link
+            key={link.id}
+            to={link.url}
+            onClick={() => setIsExpanded(false)}
+            className={`group flex items-center gap-3 px-4 py-3 rounded-full ${link.bgColor} ${link.hoverColor} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+          >
+            <span className="text-white">{link.icon}</span>
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm text-white">{link.name}</span>
+              <span className="text-xs text-gray-300">{link.description}</span>
+            </div>
+          </Link>
+          ) : (
           <a
             key={link.id}
             href={link.url}
@@ -100,7 +117,8 @@ const SupportButton: React.FC = () => {
               </span>
             )}
           </a>
-        ))}
+          )
+        )}
       </div>
 
       {/* Main toggle button */}
