@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useTheme from "@/hooks/useTheme";
 import { useAdminData } from "./useAdminData";
 import { useFilteredData } from "./useFilteredData";
 import { useToast } from "./Toast";
+import { getBookings } from "@/services/api/bookings";
 import type { TabType } from "./types";
 
 export function useDashboardCore() {
@@ -38,6 +39,13 @@ export function useDashboardCore() {
     (m) => !m.status || m.status === "new",
   ).length;
 
+  const [pendingBookings, setPendingBookings] = useState(0);
+  useEffect(() => {
+    getBookings()
+      .then((b) => setPendingBookings(b.filter((x) => x.status === "pending").length))
+      .catch(() => {});
+  }, []);
+
   return {
     activeTab,
     setActiveTab,
@@ -57,5 +65,6 @@ export function useDashboardCore() {
     gallery,
     loading,
     newMessages,
+    pendingBookings,
   };
 }

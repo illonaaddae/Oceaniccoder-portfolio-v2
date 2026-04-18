@@ -31,6 +31,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onThemeToggle={s.toggleTheme}
         onLogout={onLogout}
         isReadOnly={isReadOnly}
+        pendingBookings={s.pendingBookings}
       />
       <main className="flex-1 flex flex-col h-screen overflow-hidden ml-0 lg:ml-64 transition-all duration-300 relative z-0">
         <DashboardHeader

@@ -14,6 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onThemeToggle,
   onLogout,
   isReadOnly = false,
+  pendingBookings = 0,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -70,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           activeTab={activeTab}
           theme={theme}
           onTabChange={handleTabChange}
+          pendingBookings={pendingBookings}
         />
         <SidebarFooter
           theme={theme}

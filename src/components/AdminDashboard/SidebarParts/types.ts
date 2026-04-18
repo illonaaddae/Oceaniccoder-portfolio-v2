@@ -21,4 +21,5 @@ export interface SidebarProps {
   onThemeToggle: () => void;
   onLogout?: () => void;
   isReadOnly?: boolean;
+  pendingBookings?: number;
 }

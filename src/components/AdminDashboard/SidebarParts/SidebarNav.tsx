@@ -6,6 +6,7 @@ interface SidebarNavProps {
   activeTab: string;
   theme: string;
   onTabChange: (tab: TabType) => void;
+  pendingBookings?: number;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -13,12 +14,14 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   activeTab,
   theme,
   onTabChange,
+  pendingBookings = 0,
 }) => {
   return (
     <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 overflow-y-auto overflow-x-hidden min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
+        const badge = tab.id === "bookings" && pendingBookings > 0 ? pendingBookings : 0;
         return (
           <button
             key={tab.id}
@@ -42,7 +45,12 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                   : ""
               }`}
             />
-            <span className="font-medium text-sm">{tab.label}</span>
+            <span className="font-medium text-sm flex-1 text-left">{tab.label}</span>
+            {badge > 0 && (
+              <span className="ml-auto min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full flex items-center justify-center bg-yellow-500 text-white">
+                {badge}
+              </span>
+            )}
           </button>
         );
       })}
