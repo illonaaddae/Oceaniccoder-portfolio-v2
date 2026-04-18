@@ -15,3 +15,4 @@ export * from "./about";
 export * from "./storage";
 export * from "./testimonials";
 export * from "./siteViews";
+export * from "./bookings";

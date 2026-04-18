@@ -18,7 +18,7 @@ const ContactSection = () => {
       className="min-h-screen py-20 relative"
       style={{
         background:
-          "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-primary) 100%)",
+          "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
       }}
     >
       <BackgroundElements />

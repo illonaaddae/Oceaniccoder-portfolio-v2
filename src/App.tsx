@@ -6,6 +6,7 @@ import MainLayout from "./components/MainLayout";
 import AnimatedRoutes from "./components/AnimatedRoutes";
 import RouteChangeHandler from "./components/RouteChangeHandler";
 import TerminalLoader from "./components/TerminalLoader";
+import Chatbot from "./components/Chatbot";
 import useTheme from "./hooks/useTheme";
 import { logger } from "./utils/logger";
 import {
@@ -82,6 +83,7 @@ function App() {
                   onAdminLogout={handleAdminLogout}
                 />
                 <RouteChangeHandler />
+                <Chatbot />
               </React.Suspense>
             </MainLayout>
           </BrowserRouter>

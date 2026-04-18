@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { FaCalendarAlt } from "react-icons/fa";
 import { IMAGES } from "../../utils/imageUrls";
 import { socialLinks } from "./footerData";
@@ -32,15 +33,13 @@ const SocialLinks = React.memo(() => (
             Available for hire
           </span>
         </div>
-        <a
-          href="https://calendly.com/addaeillona"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to="/booking"
           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-medium rounded-lg transition-all duration-300 hover:scale-105"
         >
           <FaCalendarAlt className="text-xs" />
           Schedule
-        </a>
+        </Link>
       </div>
     </div>
 

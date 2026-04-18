@@ -10,7 +10,7 @@ const ContactForm = () => {
 
   return (
     <div className="glass-card p-8">
-      <h3 className="text-2xl font-bold text-white mb-6">Send a Message</h3>
+      <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Send a Message</h3>
 
       <form
         action="https://api.web3forms.com/submit"

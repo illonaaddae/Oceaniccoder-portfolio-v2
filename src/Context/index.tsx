@@ -1,15 +1,18 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useEffect,
+  useMemo,
+  useCallback,
   ReactNode,
 } from "react";
 import { SKILLS_DATA } from "../utils/data/skills.jsx";
+import { transformAppwriteSkills } from "../utils/data/skillsTransformer.js";
 import { PROJECTS_DATA } from "../utils/data/projects";
 import { BLOGS_DATA } from "../utils/data/blogs";
-import { getProjects, getCertifications } from "../services/api";
-import type { Project, Certification } from "../types";
+import { getProjects, getCertifications, getSkills } from "../services/api";
+import type { Project, Certification, Skill } from "../types";
 import type { ProjectData, PortfolioContextType } from "./types";
 import { navItems, projectFilters } from "./navData";
 
@@ -35,16 +38,23 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     PROJECTS_DATA as ProjectData[],
   );
   const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [appwriteSkills, setAppwriteSkills] = useState<Skill[]>([]);
 
-  const skills = SKILLS_DATA;
   const blogs = BLOGS_DATA;
 
-  const fetchData = async () => {
+  // Derive grouped skills: prefer live Appwrite data, fall back to static file
+  const skills = useMemo(
+    () => transformAppwriteSkills(appwriteSkills),
+    [appwriteSkills],
+  );
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [projectsData, certsData] = await Promise.allSettled([
+      const [projectsData, certsData, skillsData] = await Promise.allSettled([
         getProjects(),
         getCertifications(),
+        getSkills(),
       ]);
 
       if (
@@ -69,7 +79,6 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
             $createdAt: p.$createdAt,
           }),
         );
-        // Sort newest first (API already orders this way, but guard the fallback too)
         transformed.sort((a, b) =>
           (b.$createdAt || "").localeCompare(a.$createdAt || ""),
         );
@@ -77,16 +86,23 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (certsData.status === "fulfilled") setCertifications(certsData.value);
+
+      if (skillsData.status === "fulfilled" && skillsData.value.length > 0) {
+        setAppwriteSkills(skillsData.value);
+      } else {
+        // Keep empty so useMemo falls back to SKILLS_DATA
+        setAppwriteSkills([]);
+      }
     } catch (err) {
       console.error("Failed to fetch data from Appwrite:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const value = {
     activeSection,

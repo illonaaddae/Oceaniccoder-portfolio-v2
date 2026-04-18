@@ -34,6 +34,10 @@
     --glass-bg: rgba(12, 133, 153, 0.08);
     --glass-border: rgba(12, 133, 153, 0.15);
     --shadow-ocean: rgba(12, 133, 153, 0.2);
+    --accent-teal: #0c8599;
+    --accent-teal-subtle: rgba(12, 133, 153, 0.1);
+    --accent-teal-border: rgba(12, 133, 153, 0.2);
+    --border-subtle: rgba(12, 133, 153, 0.15);
 }
 
 [data-theme="light"] {
@@ -55,6 +59,10 @@
     --glass-bg: rgba(255, 255, 255, 0.85);
     --glass-border: rgba(12, 133, 153, 0.12);
     --shadow-ocean: rgba(12, 133, 153, 0.08);
+    --accent-teal: #085866;
+    --accent-teal-subtle: rgba(8, 88, 102, 0.08);
+    --accent-teal-border: rgba(8, 88, 102, 0.15);
+    --border-subtle: rgba(12, 133, 153, 0.12);
 }
 
 /* Wider light-theme selectors so theme works when set on html or body */
@@ -78,6 +86,10 @@ body[data-theme="light"],
     --glass-bg: rgba(255, 255, 255, 0.95);
     --glass-border: rgba(12, 133, 153, 0.12);
     --shadow-ocean: rgba(16, 24, 32, 0.06);
+    --accent-teal: #085866;
+    --accent-teal-subtle: rgba(8, 88, 102, 0.08);
+    --accent-teal-border: rgba(8, 88, 102, 0.15);
+    --border-subtle: rgba(12, 133, 153, 0.12);
 }
 
 /* Global light-mode overrides: force a white page background and dark text */
