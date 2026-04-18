@@ -66,10 +66,9 @@ const ServicesSection: React.FC = () => {
               ))}
             </div>
             <div className="mt-8 text-center">
-              <p className="text-[var(--text-secondary)] text-sm flex items-center justify-center gap-2">
-                <FaLightbulb className="w-4 h-4 text-oceanic-500" />
-                <strong>Pro tip:</strong> Bundle add-ons with any package and
-                get 10% off the total!
+              <p className="text-[var(--text-secondary)] text-sm text-center px-4">
+                <FaLightbulb className="inline-block w-4 h-4 text-oceanic-500 mr-1.5 shrink-0" />
+                <strong>Pro tip:</strong> Bundle add-ons with any package and get 10% off the total!
               </p>
             </div>
           </motion.div>

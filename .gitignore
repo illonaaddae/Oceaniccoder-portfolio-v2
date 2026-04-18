@@ -18,3 +18,7 @@ TYPESCRIPT_MIGRATION.md
 
 # Local Netlify folder
 .netlify
+
+# Generated files
+coverage/
+deno.lock

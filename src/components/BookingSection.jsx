@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaCalendarAlt,
@@ -72,6 +72,7 @@ export default function BookingSection() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const sectionTopRef = useRef(null);
   const [bookingRef, setBookingRef] = useState("");
   const [meetLink, setMeetLink] = useState("");
   const [calendarLink, setCalendarLink] = useState("");
@@ -110,6 +111,7 @@ export default function BookingSection() {
       }
 
       setStep(4);
+      sectionTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       console.error(err);
       setError("Booking failed. Please try again or contact me directly.");
@@ -120,6 +122,7 @@ export default function BookingSection() {
 
   return (
     <section
+      ref={sectionTopRef}
       className="min-h-screen py-20 relative"
       style={{
         background:
