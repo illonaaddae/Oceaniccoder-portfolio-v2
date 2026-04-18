@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useTheme from "@/hooks/useTheme";
 import { useAdminData } from "./useAdminData";
 import { useFilteredData } from "./useFilteredData";
@@ -40,10 +40,23 @@ export function useDashboardCore() {
   ).length;
 
   const [pendingBookings, setPendingBookings] = useState(0);
+  const prevPendingRef = useRef<number | null>(null);
   useEffect(() => {
-    getBookings()
-      .then((b) => setPendingBookings(b.filter((x) => x.status === "pending").length))
-      .catch(() => {});
+    const check = () => {
+      getBookings()
+        .then((b) => {
+          const count = b.filter((x) => x.status === "pending").length;
+          if (prevPendingRef.current !== null && count > prevPendingRef.current) {
+            showSuccess(`New booking received! ${count} pending.`);
+          }
+          prevPendingRef.current = count;
+          setPendingBookings(count);
+        })
+        .catch(() => {});
+    };
+    check();
+    const id = setInterval(check, 60_000);
+    return () => clearInterval(id);
   }, []);
 
   return {

@@ -30,6 +30,37 @@ function toDateTime(date, hours, minutes) {
   return `${date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
 }
 
+async function sendNotificationEmail({ name, email, phone, meetingType, preferredDate, preferredTime, timezone, message, meetLink, label }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return;
+
+  const adminEmail = process.env.GOOGLE_CALENDAR_ID || "addaeillona@gmail.com";
+
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "OceanicCoder Bookings <onboarding@resend.dev>",
+      to: adminEmail,
+      subject: `New Booking: ${label} with ${name}`,
+      html: `
+        <h2 style="color:#0ea5e9">New Booking Request</h2>
+        <table style="border-collapse:collapse;width:100%;font-family:sans-serif">
+          <tr><td style="padding:8px;font-weight:bold">Name</td><td style="padding:8px">${name}</td></tr>
+          <tr style="background:#f8fafc"><td style="padding:8px;font-weight:bold">Email</td><td style="padding:8px"><a href="mailto:${email}">${email}</a></td></tr>
+          ${phone ? `<tr><td style="padding:8px;font-weight:bold">Phone</td><td style="padding:8px">${phone}</td></tr>` : ""}
+          <tr style="background:#f8fafc"><td style="padding:8px;font-weight:bold">Meeting Type</td><td style="padding:8px">${label}</td></tr>
+          <tr><td style="padding:8px;font-weight:bold">Date & Time</td><td style="padding:8px">${preferredDate} at ${preferredTime}</td></tr>
+          ${timezone ? `<tr style="background:#f8fafc"><td style="padding:8px;font-weight:bold">Timezone</td><td style="padding:8px">${timezone}</td></tr>` : ""}
+          ${message ? `<tr><td style="padding:8px;font-weight:bold">Message</td><td style="padding:8px">${message}</td></tr>` : ""}
+          ${meetLink ? `<tr style="background:#f0fdf4"><td style="padding:8px;font-weight:bold">Meet Link</td><td style="padding:8px"><a href="${meetLink}">${meetLink}</a></td></tr>` : ""}
+        </table>
+        <p style="margin-top:16px;color:#64748b;font-size:12px">View all bookings in your <a href="https://oceaniccoder.com/admin">admin dashboard</a></p>
+      `,
+    }),
+  }).catch((e) => console.warn("Email send failed:", e.message));
+}
+
 async function getAccessToken() {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -146,6 +177,8 @@ export const handler = async (event) => {
     const meetLink =
       ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
     const calendarEventLink = ev.htmlLink ?? null;
+
+    await sendNotificationEmail({ name, email, phone, meetingType, preferredDate, preferredTime, timezone, message, meetLink, label });
 
     return ok({ success: true, meetLink, calendarEventLink });
   } catch (err) {
