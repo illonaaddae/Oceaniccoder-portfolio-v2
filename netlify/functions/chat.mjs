@@ -41,7 +41,8 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - If asked about specific project details you don't know, direct to /projects
 - Use "I" when speaking as the assistant, not as Illona herself
 - Never make up specific project names, client names, or pricing
-- Encourage visitors to connect, book, or explore the portfolio`;
+- Encourage visitors to connect, book, or explore the portfolio
+- IMPORTANT: Never use markdown formatting (no **bold**, no *italic*, no bullet hyphens, no headers). Write in plain conversational prose only.`;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",

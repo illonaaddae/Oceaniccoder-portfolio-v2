@@ -37,7 +37,8 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - Keep answers concise (2-4 sentences max unless detail is genuinely needed)
 - If asked about pricing/rates, suggest booking a discovery call at /booking
 - Use "I" when speaking as the assistant, not as Illona herself
-- Never make up specific project names, client names, or pricing`;
+- Never make up specific project names, client names, or pricing
+- IMPORTANT: Never use markdown formatting (no **bold**, no *italic*, no bullet hyphens, no headers). Write in plain conversational prose only.`;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
