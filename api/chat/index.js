@@ -50,7 +50,12 @@ function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
     const req = https.request(
-      { hostname, path, method: "POST", headers: { ...headers, "Content-Length": Buffer.byteLength(data) } },
+      {
+        hostname,
+        path,
+        method: "POST",
+        headers: { ...headers, "Content-Length": Buffer.byteLength(data) },
+      },
       (res) => {
         let raw = "";
         res.on("data", (chunk) => { raw += chunk; });
@@ -69,7 +74,7 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     context.res = { status: 503, headers: CORS, body: JSON.stringify({ error: "Chatbot not configured" }) };
     return;
@@ -88,29 +93,30 @@ module.exports = async function (context, req) {
 
   try {
     const result = await httpsPost(
-      "api.anthropic.com",
-      "/v1/messages",
+      "api.openai.com",
+      "/v1/chat/completions",
       {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       {
-        model: "claude-haiku-4-5-20251001",
+        model: "gpt-4o-mini",
         max_tokens: 512,
-        system: SYSTEM_PROMPT,
-        messages: safeMessages,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...safeMessages],
       },
     );
 
     if (result.status !== 200) {
-      context.log.error("Anthropic API error:", result.body);
+      context.log.error("OpenAI API error:", result.body);
       context.res = { status: 502, headers: CORS, body: JSON.stringify({ error: "AI service unavailable" }) };
       return;
     }
 
     const data = JSON.parse(result.body);
-    const reply = data.content?.[0]?.text ?? "I'm not sure how to help — please use the contact form!";
+    const reply =
+      data.choices?.[0]?.message?.content ??
+      "I'm not sure how to help — please use the contact form!";
+
     context.res = { status: 200, headers: CORS, body: JSON.stringify({ reply }) };
   } catch (err) {
     context.log.error("Chat error:", err);

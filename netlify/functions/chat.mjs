@@ -23,9 +23,8 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - AI-powered web solutions
 
 ## Contact & Booking
-- **Book a meeting**: /booking (custom booking page on this site)
+- **Book a meeting**: /booking
 - **Contact form**: /contact
-- **Email**: available via contact form
 - **Availability**: Open to freelance projects, collaborations, and mentorship
 
 ## Portfolio
@@ -59,7 +58,7 @@ export const handler = async (event) => {
     return { statusCode: 405, headers: CORS, body: "Method not allowed" };
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return {
       statusCode: 503,
@@ -94,24 +93,22 @@ export const handler = async (event) => {
   }));
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "gpt-4o-mini",
         max_tokens: 512,
-        system: SYSTEM_PROMPT,
-        messages: safeMessages,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...safeMessages],
       }),
     });
 
     if (!response.ok) {
       const err = await response.text();
-      console.error("Anthropic API error:", err);
+      console.error("OpenAI API error:", err);
       return {
         statusCode: 502,
         headers: { ...CORS, "Content-Type": "application/json" },
@@ -121,7 +118,7 @@ export const handler = async (event) => {
 
     const data = await response.json();
     const reply =
-      data.content?.[0]?.text ??
+      data.choices?.[0]?.message?.content ??
       "I'm not sure how to help with that — please use the contact form!";
 
     return {
