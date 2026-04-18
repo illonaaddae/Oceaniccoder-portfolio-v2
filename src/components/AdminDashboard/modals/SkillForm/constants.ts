@@ -1,20 +1,10 @@
 export const categories: string[] = [
-  "Frontend",
-  "Backend",
-  "Database",
-  "DevOps",
-  "Cloud",
-  "Mobile",
-  "AI/ML",
-  "Data Science",
-  "Cybersecurity",
-  "Blockchain",
-  "Game Dev",
-  "Design",
-  "Testing/QA",
-  "Tools",
-  "Soft Skills",
-  "Other",
+  "Frontend Development",
+  "Backend Development",
+  "Cloud & DevOps",
+  "AI & Data Science",
+  "Design & Tools",
+  "Leadership & Soft Skills",
 ];
 
 export const iconOptions: { value: string; label: string }[] = [
