@@ -1,3 +1,6 @@
+const https = require("https");
+const querystring = require("querystring");
+
 const MEETING_DURATIONS = { discovery: 30, project: 60, mentorship: 45, general: 30 };
 const MEETING_LABELS = {
   discovery: "Discovery Call",
@@ -5,6 +8,30 @@ const MEETING_LABELS = {
   mentorship: "Mentorship Session",
   general: "General Chat",
 };
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Content-Type": "application/json",
+};
+
+function httpsRequest(hostname, path, method, headers, body) {
+  return new Promise((resolve, reject) => {
+    const data = typeof body === "string" ? body : JSON.stringify(body);
+    const req = https.request(
+      { hostname, path, method, headers: { ...headers, "Content-Length": Buffer.byteLength(data) } },
+      (res) => {
+        let raw = "";
+        res.on("data", (chunk) => { raw += chunk; });
+        res.on("end", () => resolve({ status: res.statusCode, body: raw }));
+      },
+    );
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
 
 function parseTime(timeStr) {
   const [time, period] = timeStr.split(" ");
@@ -25,42 +52,49 @@ function toDateTime(date, hours, minutes) {
 }
 
 async function getAccessToken() {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-      grant_type: "refresh_token",
-    }).toString(),
+  const body = querystring.stringify({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+    grant_type: "refresh_token",
   });
-  const data = await res.json();
-  if (!data.access_token) throw new Error(`Token error: ${JSON.stringify(data)}`);
+  const result = await httpsRequest(
+    "oauth2.googleapis.com",
+    "/token",
+    "POST",
+    { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  );
+  const data = JSON.parse(result.body);
+  if (!data.access_token) throw new Error(`Token error: ${result.body}`);
   return data.access_token;
 }
 
-module.exports = async function (context, req) {
-  const headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-  };
+const ok = (context, body) => {
+  context.res = { status: 200, headers: CORS, body: JSON.stringify(body) };
+};
 
+module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
-    context.res = { status: 204, headers: { ...headers, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" }, body: "" };
+    context.res = { status: 204, headers: CORS, body: "" };
     return;
   }
 
-  const { name, email, meetingType, preferredDate, preferredTime, timezone, message, phone } = req.body || {};
+  const { name, email, meetingType, preferredDate, preferredTime, timezone, message, phone } =
+    req.body || {};
 
   if (!name || !email || !meetingType || !preferredDate || !preferredTime) {
-    context.res = { status: 400, headers, body: JSON.stringify({ error: "Missing required fields" }) };
+    context.res = {
+      status: 400,
+      headers: CORS,
+      body: JSON.stringify({ error: "Missing required fields" }),
+    };
     return;
   }
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   if (!process.env.GOOGLE_CLIENT_ID || !calendarId) {
-    context.res = { status: 200, headers, body: JSON.stringify({ success: true, meetLink: null, calendarEventLink: null }) };
+    ok(context, { success: true, meetLink: null, calendarEventLink: null });
     return;
   }
 
@@ -77,9 +111,11 @@ module.exports = async function (context, req) {
       phone ? `Phone: ${phone}` : "",
       message ? `\nMessage from ${name}:\n${message}` : "",
       "\nBooked via OceanicCoder Portfolio · oceaniccoder.com",
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    const event = {
+    const calEvent = {
       summary: `${label} with ${name}`,
       description,
       start: { dateTime: toDateTime(preferredDate, hours, minutes), timeZone: timezone || "UTC" },
@@ -103,28 +139,32 @@ module.exports = async function (context, req) {
       },
     };
 
-    const calRes = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1&sendUpdates=all`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify(event),
-      },
+    const calPath =
+      `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events` +
+      `?conferenceDataVersion=1&sendUpdates=all`;
+
+    const calRes = await httpsRequest(
+      "www.googleapis.com",
+      calPath,
+      "POST",
+      { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      calEvent,
     );
 
-    if (!calRes.ok) {
-      context.log.error("Calendar API error:", await calRes.text());
-      context.res = { status: 200, headers, body: JSON.stringify({ success: true, meetLink: null, calendarEventLink: null }) };
+    if (calRes.status !== 200) {
+      context.log.error("Calendar API error:", calRes.body);
+      ok(context, { success: true, meetLink: null, calendarEventLink: null });
       return;
     }
 
-    const ev = await calRes.json();
-    const meetLink = ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
+    const ev = JSON.parse(calRes.body);
+    const meetLink =
+      ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
     const calendarEventLink = ev.htmlLink ?? null;
 
-    context.res = { status: 200, headers, body: JSON.stringify({ success: true, meetLink, calendarEventLink }) };
+    ok(context, { success: true, meetLink, calendarEventLink });
   } catch (err) {
     context.log.error("create-booking error:", err);
-    context.res = { status: 200, headers, body: JSON.stringify({ success: true, meetLink: null, calendarEventLink: null }) };
+    ok(context, { success: true, meetLink: null, calendarEventLink: null });
   }
 };

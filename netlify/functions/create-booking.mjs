@@ -6,6 +6,12 @@ const MEETING_LABELS = {
   general: "General Chat",
 };
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 function parseTime(timeStr) {
   const [time, period] = timeStr.split(" ");
   const [h, m] = time.split(":").map(Number);
@@ -40,37 +46,44 @@ async function getAccessToken() {
   return data.access_token;
 }
 
-const ok = (body) =>
-  new Response(JSON.stringify(body), {
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-  });
+const ok = (body) => ({
+  statusCode: 200,
+  headers: { ...CORS, "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
 
-export default async (request) => {
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+export const handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers: CORS, body: "" };
   }
 
-  if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers: CORS, body: "Method not allowed" };
+  }
 
   let body;
-  try { body = await request.json(); }
-  catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 }); }
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return {
+      statusCode: 400,
+      headers: { ...CORS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Invalid JSON" }),
+    };
+  }
 
   const { name, email, meetingType, preferredDate, preferredTime, timezone, message, phone } = body;
 
   if (!name || !email || !meetingType || !preferredDate || !preferredTime) {
-    return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
+    return {
+      statusCode: 400,
+      headers: { ...CORS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Missing required fields" }),
+    };
   }
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   if (!process.env.GOOGLE_CLIENT_ID || !calendarId) {
-    // Google not configured — booking still works, just no Meet link
     return ok({ success: true, meetLink: null, calendarEventLink: null });
   }
 
@@ -87,9 +100,11 @@ export default async (request) => {
       phone ? `Phone: ${phone}` : "",
       message ? `\nMessage from ${name}:\n${message}` : "",
       "\nBooked via OceanicCoder Portfolio · oceaniccoder.com",
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    const event = {
+    const calEvent = {
       summary: `${label} with ${name}`,
       description,
       start: { dateTime: toDateTime(preferredDate, hours, minutes), timeZone: timezone || "UTC" },
@@ -118,7 +133,7 @@ export default async (request) => {
       {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify(event),
+        body: JSON.stringify(calEvent),
       },
     );
 
@@ -138,5 +153,3 @@ export default async (request) => {
     return ok({ success: true, meetLink: null, calendarEventLink: null });
   }
 };
-
-export const config = { path: "/api/create-booking" };

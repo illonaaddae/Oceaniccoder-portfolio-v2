@@ -7,6 +7,16 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+
+[[redirects]]
+  from = "/api/create-booking"
+  to = "/.netlify/functions/create-booking"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

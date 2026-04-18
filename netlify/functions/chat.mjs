@@ -44,48 +44,50 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - Never make up specific project names, client names, or pricing
 - Encourage visitors to connect, book, or explore the portfolio`;
 
-export default async (request) => {
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export const handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers: CORS, body: "" };
   }
 
-  if (request.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers: CORS, body: "Method not allowed" };
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "Chatbot not configured" }),
-      { status: 503, headers: { "Content-Type": "application/json" } },
-    );
+    return {
+      statusCode: 503,
+      headers: { ...CORS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Chatbot not configured" }),
+    };
   }
 
-  let body;
+  let parsed;
   try {
-    body = await request.json();
+    parsed = JSON.parse(event.body || "{}");
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return {
+      statusCode: 400,
+      headers: { ...CORS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Invalid JSON" }),
+    };
   }
 
-  const { messages } = body;
+  const { messages } = parsed;
   if (!Array.isArray(messages) || messages.length === 0) {
-    return new Response(JSON.stringify({ error: "messages required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return {
+      statusCode: 400,
+      headers: { ...CORS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "messages required" }),
+    };
   }
 
-  // Sanitise: only allow role/content, cap history at 20 turns
   const safeMessages = messages.slice(-20).map(({ role, content }) => ({
     role: role === "assistant" ? "assistant" : "user",
     content: String(content).slice(0, 2000),
@@ -110,28 +112,29 @@ export default async (request) => {
     if (!response.ok) {
       const err = await response.text();
       console.error("Anthropic API error:", err);
-      return new Response(
-        JSON.stringify({ error: "AI service unavailable" }),
-        { status: 502, headers: { "Content-Type": "application/json" } },
-      );
+      return {
+        statusCode: 502,
+        headers: { ...CORS, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "AI service unavailable" }),
+      };
     }
 
     const data = await response.json();
-    const reply = data.content?.[0]?.text ?? "I'm not sure how to help with that — please use the contact form!";
+    const reply =
+      data.content?.[0]?.text ??
+      "I'm not sure how to help with that — please use the contact form!";
 
-    return new Response(JSON.stringify({ reply }), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return {
+      statusCode: 200,
+      headers: { ...CORS, "Content-Type": "application/json" },
+      body: JSON.stringify({ reply }),
+    };
   } catch (err) {
     console.error("Chat function error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return {
+      statusCode: 500,
+      headers: { ...CORS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Internal error" }),
+    };
   }
 };
-
-export const config = { path: "/api/chat" };

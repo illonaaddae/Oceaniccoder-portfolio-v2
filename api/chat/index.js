@@ -1,3 +1,5 @@
+const https = require("https");
+
 const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, knowledgeable AI helper on Illona Addae's developer portfolio website (oceaniccoder.com).
 
 ## About Illona Addae
@@ -23,7 +25,7 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - AI-powered web solutions
 
 ## Contact & Booking
-- **Book a meeting**: /booking (custom booking page on this site)
+- **Book a meeting**: /booking
 - **Contact form**: /contact
 - **Availability**: Open to freelance projects, collaborations, and mentorship
 
@@ -31,46 +33,51 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - Projects: /projects | Blog: /blog | Skills: /skills | About: /about | Services: /services
 
 ## Personality Guidelines
-- Be warm, helpful, and enthusiastic — reflect Illona's energetic personality
+- Be warm, helpful, and enthusiastic
 - Keep answers concise (2-4 sentences max unless detail is genuinely needed)
 - If asked about pricing/rates, suggest booking a discovery call at /booking
-- If asked about specific project details you don't know, direct to /projects
 - Use "I" when speaking as the assistant, not as Illona herself
-- Never make up specific project names, client names, or pricing
-- Encourage visitors to connect, book, or explore the portfolio`;
+- Never make up specific project names, client names, or pricing`;
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Content-Type": "application/json",
+};
+
+function httpsPost(hostname, path, headers, body) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(body);
+    const req = https.request(
+      { hostname, path, method: "POST", headers: { ...headers, "Content-Length": Buffer.byteLength(data) } },
+      (res) => {
+        let raw = "";
+        res.on("data", (chunk) => { raw += chunk; });
+        res.on("end", () => resolve({ status: res.statusCode, body: raw }));
+      },
+    );
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
 
 module.exports = async function (context, req) {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    context.res = {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-      body: "",
-    };
+    context.res = { status: 204, headers: CORS, body: "" };
     return;
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    context.res = {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Chatbot not configured" }),
-    };
+    context.res = { status: 503, headers: CORS, body: JSON.stringify({ error: "Chatbot not configured" }) };
     return;
   }
 
   const { messages } = req.body || {};
   if (!Array.isArray(messages) || messages.length === 0) {
-    context.res = {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "messages required" }),
-    };
+    context.res = { status: 400, headers: CORS, body: JSON.stringify({ error: "messages required" }) };
     return;
   }
 
@@ -80,51 +87,33 @@ module.exports = async function (context, req) {
   }));
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
+    const result = await httpsPost(
+      "api.anthropic.com",
+      "/v1/messages",
+      {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
-      body: JSON.stringify({
+      {
         model: "claude-haiku-4-5-20251001",
         max_tokens: 512,
         system: SYSTEM_PROMPT,
         messages: safeMessages,
-      }),
-    });
+      },
+    );
 
-    if (!response.ok) {
-      const err = await response.text();
-      context.log.error("Anthropic API error:", err);
-      context.res = {
-        status: 502,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "AI service unavailable" }),
-      };
+    if (result.status !== 200) {
+      context.log.error("Anthropic API error:", result.body);
+      context.res = { status: 502, headers: CORS, body: JSON.stringify({ error: "AI service unavailable" }) };
       return;
     }
 
-    const data = await response.json();
-    const reply =
-      data.content?.[0]?.text ??
-      "I'm not sure how to help with that — please use the contact form!";
-
-    context.res = {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify({ reply }),
-    };
+    const data = JSON.parse(result.body);
+    const reply = data.content?.[0]?.text ?? "I'm not sure how to help — please use the contact form!";
+    context.res = { status: 200, headers: CORS, body: JSON.stringify({ reply }) };
   } catch (err) {
-    context.log.error("Chat function error:", err);
-    context.res = {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Internal error" }),
-    };
+    context.log.error("Chat error:", err);
+    context.res = { status: 500, headers: CORS, body: JSON.stringify({ error: "Internal error" }) };
   }
 };
