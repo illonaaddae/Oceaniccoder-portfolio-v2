@@ -9,13 +9,20 @@ interface JourneyItemProps {
   isLast: boolean;
 }
 
-const JourneyItem = React.memo(({ item, isLast }: JourneyItemProps) => (
+const DOT_GRADIENTS = [
+  "from-oceanic-400 to-teal-400",
+  "from-teal-400 to-emerald-400",
+  "from-violet-400 to-oceanic-400",
+  "from-oceanic-500 to-emerald-500",
+];
+
+const JourneyItem = React.memo(({ item, index, isLast }: JourneyItemProps) => (
   <div className="relative journey-item">
     <div className="flex flex-row flex-wrap gap-6 items-start">
       {/* Timeline column */}
       <div className="w-8 sm:w-12 flex-shrink-0 relative flex items-start justify-center self-stretch">
         <div
-          className={`absolute left-1/2 -translate-x-1/2 top-5 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r ${item.color} rounded-full shadow-lg z-20 journey-dot`}
+          className={`absolute left-1/2 -translate-x-1/2 top-5 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r ${DOT_GRADIENTS[index % DOT_GRADIENTS.length]} rounded-full shadow-lg z-20 journey-dot`}
         />
         {!isLast && (
           <div className="absolute left-1/2 -translate-x-1/2 top-11 bottom-4 w-[2px] bg-gradient-to-b from-oceanic-400/70 to-transparent opacity-95 z-10 journey-line" />
