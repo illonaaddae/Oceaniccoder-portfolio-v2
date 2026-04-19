@@ -36,6 +36,16 @@ export async function getBookings(): Promise<Booking[]> {
   return response.documents as unknown as Booking[];
 }
 
+export async function isSlotBooked(preferredDate: string, preferredTime: string): Promise<boolean> {
+  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
+    Query.equal("preferredDate", preferredDate),
+    Query.equal("preferredTime", preferredTime),
+    Query.notEqual("status", "cancelled"),
+    Query.limit(1),
+  ]);
+  return response.documents.length > 0;
+}
+
 export async function updateBookingStatus(
   id: string,
   status: "confirmed" | "cancelled" | "pending",

@@ -15,7 +15,7 @@ import {
   FaGlobe,
   FaExternalLinkAlt,
 } from "react-icons/fa";
-import { createBooking } from "../services/api/bookings";
+import { createBooking, isSlotBooked } from "../services/api/bookings";
 
 const MEETING_TYPES = [
   {
@@ -110,8 +110,19 @@ export default function BookingSection() {
   const handleSubmit = async () => {
     setError("");
     setSubmitting(true);
+    // 1. Check Appwrite for existing booking at this slot (works locally + in production)
     try {
-      // 1. Try calendar event creation — best-effort, don't block booking if unavailable
+      const taken = await isSlotBooked(form.preferredDate, form.preferredTime);
+      if (taken) {
+        setError(`${form.preferredTime} on that day is already booked. Please choose a different time slot.`);
+        return;
+      }
+    } catch {
+      // Appwrite unavailable — continue, calendar API will catch conflicts
+    }
+
+    try {
+      // 2. Try calendar event creation — best-effort, don't block booking if unavailable
       let calMeetLink = null;
       let calEventLink = null;
 
@@ -137,7 +148,7 @@ export default function BookingSection() {
         // API unavailable locally (run `netlify dev` for full local testing) — continue to save
       }
 
-      // 2. Save booking to Appwrite
+      // 3. Save booking to Appwrite
       const result = await createBooking({ ...form, status: "pending" });
       const ref = result.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
       setBookingRef(ref);
