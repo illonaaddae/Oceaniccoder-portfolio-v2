@@ -73,7 +73,10 @@ async function getAccessToken() {
     }),
   });
   const data = await res.json();
-  if (!data.access_token) throw new Error(`Token error: ${JSON.stringify(data)}`);
+  if (!data.access_token) {
+    console.error("[create-booking] OAuth token error:", JSON.stringify(data));
+    throw new Error(`Token error: ${data.error} — ${data.error_description || ""}`);
+  }
   return data.access_token;
 }
 
@@ -158,6 +161,8 @@ export const handler = async (event) => {
     return ok({ success: true, meetLink: null, calendarEventLink: null });
   }
 
+  console.log("[create-booking] Starting for", name, preferredDate, preferredTime, timezone);
+
   try {
     const accessToken = await getAccessToken();
 
@@ -216,7 +221,8 @@ export const handler = async (event) => {
     );
 
     if (!calRes.ok) {
-      console.error("Calendar API error:", await calRes.text());
+      const errText = await calRes.text();
+      console.error("[create-booking] Calendar API error:", calRes.status, errText);
       return ok({ success: true, meetLink: null, calendarEventLink: null });
     }
 
@@ -229,7 +235,7 @@ export const handler = async (event) => {
 
     return ok({ success: true, meetLink, calendarEventLink });
   } catch (err) {
-    console.error("create-booking error:", err);
+    console.error("[create-booking] Fatal error:", err.message);
     return ok({ success: true, meetLink: null, calendarEventLink: null });
   }
 };
