@@ -481,7 +481,7 @@ export default function BookingSection() {
                           >
                             Preferred Date <span className="text-red-400">*</span>
                           </label>
-                          <div className="relative">
+                          <div className="relative w-full">
                             <span
                               className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none"
                               style={{ color: "var(--accent-teal)" }}
@@ -494,7 +494,7 @@ export default function BookingSection() {
                               min={getTodayMin()}
                               value={form.preferredDate}
                               onChange={(e) => handleChange("preferredDate", e.target.value)}
-                              className="w-full rounded-xl pl-10 pr-4 py-3 border outline-none focus:ring-2 transition"
+                              className="w-full min-w-0 rounded-xl pl-10 pr-10 py-3 border outline-none focus:ring-2 transition"
                               style={{
                                 background: "var(--bg-secondary)",
                                 borderColor: "var(--border-subtle)",
@@ -502,6 +502,7 @@ export default function BookingSection() {
                                 colorScheme: isDark ? "dark" : "light",
                                 fontSize: "16px",
                                 minHeight: "48px",
+                                boxSizing: "border-box",
                               }}
                             />
                           </div>
