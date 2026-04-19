@@ -508,7 +508,7 @@ export default function BookingSection() {
                               onChange={(e) => handleChange("preferredDate", e.target.value)}
                               className="w-full min-w-0 rounded-xl pl-10 pr-10 py-3 border outline-none focus:ring-2 transition"
                               style={{
-                                background: "var(--bg-secondary)",
+                                background: "var(--glass-bg)",
                                 borderColor: "var(--border-subtle)",
                                 color: "var(--text-primary)",
                                 colorScheme: isDark ? "dark" : "light",
@@ -660,7 +660,7 @@ export default function BookingSection() {
                             placeholder="Tell me briefly what you'd like to discuss, any specific questions, or anything I should know before our meeting..."
                             className="w-full rounded-xl px-4 py-3 border text-base outline-none focus:ring-2 resize-none transition"
                             style={{
-                              background: "var(--bg-secondary)",
+                              background: "var(--glass-bg)",
                               borderColor: "var(--border-subtle)",
                               color: "var(--text-primary)",
                             }}
@@ -841,7 +841,7 @@ function FormField({ icon, label, required, type = "text", value, onChange, plac
           placeholder={placeholder}
           className="w-full rounded-xl pl-10 pr-4 py-3 border text-base outline-none focus:ring-2 transition"
           style={{
-            background: "var(--bg-secondary)",
+            background: "var(--glass-bg)",
             borderColor: "var(--border-subtle)",
             color: "var(--text-primary)",
           }}
