@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaCalendarAlt,
@@ -76,6 +76,19 @@ export default function BookingSection() {
   const [bookingRef, setBookingRef] = useState("");
   const [meetLink, setMeetLink] = useState("");
   const [calendarLink, setCalendarLink] = useState("");
+  const [slotAvailability, setSlotAvailability] = useState({});
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  useEffect(() => {
+    if (!form.preferredDate) return;
+    setLoadingSlots(true);
+    setSlotAvailability({});
+    fetch(`/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`)
+      .then((r) => r.json())
+      .then((data) => setSlotAvailability(data.available || {}))
+      .catch(() => {})
+      .finally(() => setLoadingSlots(false));
+  }, [form.preferredDate, form.timezone]);
 
   const handleChange = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -449,39 +462,68 @@ export default function BookingSection() {
 
                         {/* Time slots */}
                         <div className="space-y-2">
-                          <label
-                            className="block text-sm font-semibold"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            Preferred Time <span className="text-red-400">*</span>
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label
+                              className="block text-sm font-semibold"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              Preferred Time <span className="text-red-400">*</span>
+                            </label>
+                            {loadingSlots && (
+                              <span className="text-xs flex items-center gap-1" style={{ color: "var(--text-secondary)" }}>
+                                <span className="inline-block w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent-teal)", borderTopColor: "transparent" }} />
+                                Checking availability…
+                              </span>
+                            )}
+                          </div>
                           <div className="grid grid-cols-3 gap-2">
-                            {TIME_SLOTS.map((slot) => (
-                              <button
-                                key={slot}
-                                onClick={() => handleChange("preferredTime", slot)}
-                                className="py-3 rounded-lg text-sm font-medium border transition-all duration-150"
-                                style={{
-                                  background:
-                                    form.preferredTime === slot
+                            {TIME_SLOTS.map((slot) => {
+                              const isBooked = slotAvailability[slot] === false;
+                              const isSelected = form.preferredTime === slot;
+                              return (
+                                <button
+                                  key={slot}
+                                  disabled={isBooked}
+                                  onClick={() => !isBooked && handleChange("preferredTime", slot)}
+                                  className="rounded-lg text-sm font-medium border transition-all duration-150 flex flex-col items-center justify-center"
+                                  style={{
+                                    background: isBooked
+                                      ? "var(--bg-secondary)"
+                                      : isSelected
                                       ? "var(--accent-teal)"
                                       : "var(--bg-secondary)",
-                                  color:
-                                    form.preferredTime === slot
+                                    color: isBooked
+                                      ? "var(--text-secondary)"
+                                      : isSelected
                                       ? "#fff"
                                       : "var(--text-secondary)",
-                                  borderColor:
-                                    form.preferredTime === slot
+                                    borderColor: isBooked
+                                      ? "var(--border-subtle)"
+                                      : isSelected
                                       ? "var(--accent-teal)"
                                       : "var(--border-subtle)",
-                                  touchAction: "manipulation",
-                                  minHeight: "44px",
-                                }}
-                              >
-                                {slot}
-                              </button>
-                            ))}
+                                    opacity: isBooked ? 0.45 : 1,
+                                    cursor: isBooked ? "not-allowed" : "pointer",
+                                    touchAction: "manipulation",
+                                    minHeight: "52px",
+                                    padding: "6px 4px",
+                                  }}
+                                >
+                                  <span>{slot}</span>
+                                  {isBooked && (
+                                    <span className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                                      Booked
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
+                          {Object.keys(slotAvailability).length > 0 && Object.values(slotAvailability).every((v) => !v) && (
+                            <p className="text-xs text-center pt-1" style={{ color: "var(--text-secondary)" }}>
+                              All slots on this day are taken. Please choose a different date.
+                            </p>
+                          )}
                         </div>
 
                         {/* Timezone */}
