@@ -94,8 +94,8 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
           isReadOnly={isReadOnly}
         />
       )}
-      {activeTab === "bookings" && <BookingsTab theme={theme} />}
-      {activeTab === "settings" && <SettingsTab theme={theme} />}
+      {activeTab === "bookings" && !isReadOnly && <BookingsTab theme={theme} />}
+      {activeTab === "settings" && !isReadOnly && <SettingsTab theme={theme} />}
     </>
   );
 };

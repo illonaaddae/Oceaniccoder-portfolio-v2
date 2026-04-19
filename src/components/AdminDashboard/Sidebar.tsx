@@ -19,7 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isOpen, setIsOpen] = useState(false);
 
   const tabs = isReadOnly
-    ? allTabs.filter((tab) => tab.id !== "settings")
+    ? allTabs.filter((tab) => tab.id !== "settings" && tab.id !== "bookings")
     : allTabs;
 
   const handleTabChange = (tab: TabType) => {
