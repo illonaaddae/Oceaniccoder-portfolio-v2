@@ -1,9 +1,10 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { LOGO_PATHS } from "./navData";
 
 const Logo = React.memo(function Logo({ theme }) {
   return (
-    <div className="group mr-4">
+    <Link to="/" aria-label="Go to homepage" className="group mr-4">
       <img
         src={theme === "dark" ? LOGO_PATHS.dark : LOGO_PATHS.light}
         alt="Oceaniccoder"
@@ -16,7 +17,7 @@ const Logo = React.memo(function Logo({ theme }) {
         decoding="async"
         fetchPriority="high"
       />
-    </div>
+    </Link>
   );
 });
 

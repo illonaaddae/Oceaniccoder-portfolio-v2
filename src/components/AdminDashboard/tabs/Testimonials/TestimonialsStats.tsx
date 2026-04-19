@@ -10,8 +10,8 @@ interface TestimonialsStatsProps {
 const cardClass = (theme: "light" | "dark") =>
   `glass-card border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-200 ${
     theme === "dark"
-      ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
-      : "bg-gradient-to-br from-white/40 to-white/20 border-purple-200/40 hover:border-purple-200/60"
+      ? "bg-gray-800/50 border-gray-700/80 hover:border-oceanic-500/50"
+      : "bg-gradient-to-br from-white/40 to-white/20 border-oceanic-200/40 hover:border-oceanic-300/60"
   }`;
 
 export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({
@@ -47,7 +47,7 @@ export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({
               {testimonials.length}
             </p>
           </div>
-          <div className="p-3 rounded-xl backdrop-blur-md bg-gradient-to-br from-purple-600 to-pink-500 shadow-lg">
+          <div className="p-3 rounded-xl backdrop-blur-md bg-gradient-to-br from-oceanic-500 to-teal-500 shadow-lg">
             <FaQuoteRight className="text-white text-xl font-bold" />
           </div>
         </div>
@@ -72,7 +72,7 @@ export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({
               {testimonials.filter((t) => t.featured).length}
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 shadow-lg">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500 to-oceanic-600 shadow-lg">
             <FaStar className="text-white text-xl font-bold" />
           </div>
         </div>
@@ -97,7 +97,7 @@ export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({
               {avgRating}
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-oceanic-400 to-emerald-500 shadow-lg">
             <FaStar className="text-white text-xl font-bold" />
           </div>
         </div>

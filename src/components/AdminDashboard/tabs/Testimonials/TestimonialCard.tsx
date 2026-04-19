@@ -21,8 +21,8 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
   <div
     className={`glass-card border rounded-xl p-4 sm:p-6 transition-all duration-200 ${
       theme === "dark"
-        ? "bg-gray-800/50 border-gray-700/80 hover:border-purple-500/50"
-        : "bg-white/50 border-purple-200/40 hover:border-purple-300/60"
+        ? "bg-gray-800/50 border-gray-700/80 hover:border-oceanic-500/50"
+        : "bg-white/50 border-oceanic-200/40 hover:border-oceanic-300/60"
     }`}
   >
     <div className="flex flex-col sm:flex-row gap-4">
@@ -32,10 +32,10 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
           <img
             src={testimonial.image}
             alt={testimonial.name}
-            className="w-16 h-16 rounded-full object-cover border-2 border-purple-500/50"
+            className="w-16 h-16 rounded-full object-cover border-2 border-oceanic-500/50"
           />
         ) : (
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-oceanic-500 to-teal-500 flex items-center justify-center">
             <FaUser className="text-white text-xl" />
           </div>
         )}
@@ -52,7 +52,7 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
             >
               {testimonial.name}
               {testimonial.featured && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-500 rounded-full">
+                <span className="ml-2 px-2 py-0.5 text-xs bg-oceanic-500/20 text-oceanic-400 rounded-full">
                   Featured
                 </span>
               )}
@@ -86,8 +86,8 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
               onClick={() => onEdit?.(testimonial)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 theme === "dark"
-                  ? "bg-purple-500/20 text-purple-300 hover:bg-purple-500/30"
-                  : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                  ? "bg-oceanic-500/20 text-oceanic-300 hover:bg-oceanic-500/30"
+                  : "bg-oceanic-100 text-oceanic-700 hover:bg-oceanic-200"
               }`}
             >
               <FaEdit className="w-3 h-3" />

@@ -46,8 +46,8 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
           onClick={onShowForm}
           className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
             theme === "dark"
-              ? "bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500/50 text-white hover:from-purple-500 hover:to-pink-500 shadow-purple-500/20"
-              : "bg-gradient-to-r from-purple-500 to-pink-400 border-purple-400/50 text-white hover:from-purple-600 hover:to-pink-500 shadow-purple-400/30"
+              ? "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-500 shadow-oceanic-500/20"
+              : "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-700 shadow-oceanic-500/30"
           }`}
         >
           <FaPlus className="text-sm" />
@@ -60,14 +60,14 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
 
     {loading ? (
       <div className="flex items-center justify-center h-48">
-        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-oceanic-500 border-t-transparent rounded-full animate-spin" />
       </div>
     ) : testimonials.length === 0 ? (
       <div
         className={`text-center py-12 rounded-2xl border ${
           theme === "dark"
-            ? "bg-gray-800/30 border-gray-700/50"
-            : "bg-white/30 border-purple-200/30"
+            ? "bg-gray-800/30 border-oceanic-500/20"
+            : "bg-white/30 border-oceanic-200/30"
         }`}
       >
         <FaQuoteRight
@@ -85,7 +85,7 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
         {!isReadOnly && (
           <button
             onClick={onShowForm}
-            className="mt-4 px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all"
+            className="mt-4 px-6 py-2 bg-oceanic-600 text-white rounded-xl hover:bg-oceanic-700 transition-all"
           >
             Add Your First Testimonial
           </button>
