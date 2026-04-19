@@ -15,7 +15,7 @@ import {
   FaGlobe,
   FaExternalLinkAlt,
 } from "react-icons/fa";
-import { createBooking, isSlotBooked } from "../services/api/bookings";
+import { createBooking, isSlotBooked, getBookedTimesForDate } from "../services/api/bookings";
 
 const MEETING_TYPES = [
   {
@@ -77,6 +77,7 @@ export default function BookingSection() {
   const [meetLink, setMeetLink] = useState("");
   const [calendarLink, setCalendarLink] = useState("");
   const [slotAvailability, setSlotAvailability] = useState({});
+  const [appwriteBookedSlots, setAppwriteBookedSlots] = useState(new Set());
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
@@ -88,11 +89,17 @@ export default function BookingSection() {
     if (!form.preferredDate) return;
     setLoadingSlots(true);
     setSlotAvailability({});
+    setAppwriteBookedSlots(new Set());
+    // Fetch Google Calendar availability
     fetch(`/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`)
       .then((r) => r.json())
       .then((data) => setSlotAvailability(data.available || {}))
       .catch(() => {})
       .finally(() => setLoadingSlots(false));
+    // Fetch Appwrite bookings for this date so already-booked slots show disabled immediately
+    getBookedTimesForDate(form.preferredDate)
+      .then((booked) => setAppwriteBookedSlots(booked))
+      .catch(() => {});
   }, [form.preferredDate, form.timezone]);
 
   // iOS Safari keeps the keyboard open on the first tap of a button, consuming it.
@@ -100,7 +107,12 @@ export default function BookingSection() {
   const blurActive = () => document.activeElement?.blur();
 
   const handleChange = (field, value) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+      // Clear selected time whenever date changes so user must re-pick from fresh availability
+      ...(field === "preferredDate" ? { preferredTime: "" } : {}),
+    }));
 
   const canProceedStep1 =
     form.name.trim() && form.email.trim() && form.email.includes("@");
@@ -110,18 +122,18 @@ export default function BookingSection() {
   const handleSubmit = async () => {
     setError("");
     setSubmitting(true);
-    // 1. Check Appwrite for existing booking at this slot (works locally + in production)
     try {
-      const taken = await isSlotBooked(form.preferredDate, form.preferredTime);
-      if (taken) {
-        setError(`${form.preferredTime} on that day is already booked. Please choose a different time slot.`);
-        return;
+      // 1. Final double-booking guard (race-condition safety — UI already shows taken slots)
+      try {
+        const taken = await isSlotBooked(form.preferredDate, form.preferredTime);
+        if (taken) {
+          setError(`${form.preferredTime} on that day is already booked. Please choose a different time slot.`);
+          return;
+        }
+      } catch {
+        // Appwrite unavailable — proceed
       }
-    } catch {
-      // Appwrite unavailable — continue, calendar API will catch conflicts
-    }
 
-    try {
       // 2. Try calendar event creation — best-effort, don't block booking if unavailable
       let calMeetLink = null;
       let calEventLink = null;
@@ -526,7 +538,7 @@ export default function BookingSection() {
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             {TIME_SLOTS.map((slot) => {
-                              const isBooked = slotAvailability[slot] === false;
+                              const isBooked = slotAvailability[slot] === false || appwriteBookedSlots.has(slot);
                               const isSelected = form.preferredTime === slot;
                               return (
                                 <button
