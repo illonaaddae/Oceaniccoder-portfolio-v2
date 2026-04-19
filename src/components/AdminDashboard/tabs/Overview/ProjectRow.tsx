@@ -39,7 +39,7 @@ export const ProjectRow: React.FC<ProjectRowProps> = ({ project, theme }) => (
     <td className="px-3 sm:px-4 py-2 sm:py-3">
       <div className="flex gap-1 sm:gap-1.5 flex-wrap">
         {project.featured && (
-          <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium">
+          <span className="bg-gradient-to-r from-oceanic-500 to-teal-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium">
             Featured
           </span>
         )}
