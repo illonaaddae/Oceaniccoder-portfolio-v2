@@ -78,6 +78,11 @@ export default function BookingSection() {
   const [calendarLink, setCalendarLink] = useState("");
   const [slotAvailability, setSlotAvailability] = useState({});
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+  }, []);
 
   useEffect(() => {
     if (!form.preferredDate) return;
@@ -205,7 +210,7 @@ export default function BookingSection() {
                   {MEETING_TYPES.map((m) => (
                     <button
                       key={m.id}
-                      onClick={() => { handleChange("meetingType", m.id); if (step === 1) setStep(2); }}
+                      onClick={() => handleChange("meetingType", m.id)}
                       className={`w-full text-left rounded-xl p-4 border transition-all duration-200 ${
                         form.meetingType === m.id
                           ? "border-teal-500 bg-teal-500/10"
@@ -451,20 +456,30 @@ export default function BookingSection() {
                           >
                             Preferred Date <span className="text-red-400">*</span>
                           </label>
-                          <input
-                            id="booking-date"
-                            type="date"
-                            min={getTodayMin()}
-                            value={form.preferredDate}
-                            onChange={(e) => handleChange("preferredDate", e.target.value)}
-                            className="w-full rounded-xl px-4 py-3 border text-base outline-none focus:ring-2 transition"
-                            style={{
-                              background: "var(--bg-secondary)",
-                              borderColor: "var(--border-subtle)",
-                              color: "var(--text-primary)",
-                              colorScheme: document.documentElement.classList.contains("dark") ? "dark" : "light",
-                            }}
-                          />
+                          <div className="relative">
+                            <span
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none"
+                              style={{ color: "var(--accent-teal)" }}
+                            >
+                              <FaCalendarAlt />
+                            </span>
+                            <input
+                              id="booking-date"
+                              type="date"
+                              min={getTodayMin()}
+                              value={form.preferredDate}
+                              onChange={(e) => handleChange("preferredDate", e.target.value)}
+                              className="w-full rounded-xl pl-10 pr-4 py-3 border outline-none focus:ring-2 transition"
+                              style={{
+                                background: "var(--bg-secondary)",
+                                borderColor: "var(--border-subtle)",
+                                color: "var(--text-primary)",
+                                colorScheme: isDark ? "dark" : "light",
+                                fontSize: "16px",
+                                minHeight: "48px",
+                              }}
+                            />
+                          </div>
                         </div>
 
                         {/* Time slots */}
