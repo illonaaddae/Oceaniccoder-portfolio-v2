@@ -131,6 +131,7 @@ export default function BookingSection() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
+          signal: AbortSignal.timeout(10000),
         });
 
         if (meetRes.status === 409) {

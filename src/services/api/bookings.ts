@@ -37,13 +37,13 @@ export async function getBookings(): Promise<Booking[]> {
 }
 
 export async function isSlotBooked(preferredDate: string, preferredTime: string): Promise<boolean> {
+  // Fetch all bookings and filter client-side — avoids requiring attribute indexes in Appwrite
   const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
-    Query.equal("preferredDate", preferredDate),
-    Query.equal("preferredTime", preferredTime),
-    Query.notEqual("status", "cancelled"),
-    Query.limit(1),
+    Query.limit(500),
   ]);
-  return response.documents.length > 0;
+  return response.documents.some(
+    (doc) => doc.preferredDate === preferredDate && doc.preferredTime === preferredTime,
+  );
 }
 
 export async function updateBookingStatus(
@@ -51,4 +51,8 @@ export async function updateBookingStatus(
   status: "confirmed" | "cancelled" | "pending",
 ): Promise<void> {
   await databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status });
+}
+
+export async function deleteBooking(id: string): Promise<void> {
+  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id);
 }

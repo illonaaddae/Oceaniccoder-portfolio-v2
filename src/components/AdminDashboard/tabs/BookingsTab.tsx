@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { FaCalendarAlt, FaEnvelope, FaPhone, FaClock, FaSync, FaGlobe, FaCheck, FaTimes } from "react-icons/fa";
-import { getBookings, updateBookingStatus } from "@/services/api/bookings";
+import { FaCalendarAlt, FaEnvelope, FaPhone, FaClock, FaSync, FaGlobe, FaCheck, FaTimes, FaTrash } from "react-icons/fa";
+import { getBookings, updateBookingStatus, deleteBooking } from "@/services/api/bookings";
 import type { Booking } from "@/services/api/bookings";
 
 interface BookingsTabProps {
@@ -46,6 +46,19 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
     const id = setInterval(() => load(true), 30_000);
     return () => clearInterval(id);
   }, [load]);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this booking permanently?")) return;
+    setUpdating(id);
+    try {
+      await deleteBooking(id);
+      setBookings((prev) => prev.filter((b) => b.$id !== id));
+    } catch {
+      setError("Failed to delete booking.");
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   const handleStatus = async (id: string, status: "confirmed" | "cancelled") => {
     setUpdating(id);
@@ -219,6 +232,17 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
                       Cancel
                     </button>
                   )}
+
+                  {/* Delete — always visible */}
+                  <button
+                    type="button"
+                    disabled={updating === b.$id}
+                    onClick={() => handleDelete(b.$id!)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-900/30 text-red-400 border border-red-800/40 hover:bg-red-900/50 transition-all disabled:opacity-50"
+                  >
+                    <FaTrash className="text-[10px]" />
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
