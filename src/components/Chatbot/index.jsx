@@ -204,16 +204,19 @@ export default function Chatbot() {
                   onKeyDown={handleKey}
                   onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 350)}
                   placeholder="Ask me anything..."
-                  className="flex-1 bg-transparent outline-none text-sm"
-                  style={{ color: "var(--text-primary)" }}
+                  className="flex-1 bg-transparent outline-none"
+                  style={{ color: "var(--text-primary)", fontSize: "16px" }}
                   enterKeyHint="send"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="sentences"
                   maxLength={500}
                 />
                 <button
                   onClick={() => sendMessage()}
                   disabled={!input.trim() || loading}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-40"
-                  style={{ background: "var(--accent-teal)" }}
+                  style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                   aria-label="Send"
                 >
                   <FaPaperPlane className="text-white text-xs" />
