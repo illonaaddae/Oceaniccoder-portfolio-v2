@@ -56,7 +56,7 @@ export function createTagHandlers(
 export function createImageInserter(
   formData: Partial<BlogPost>,
   setFormData: (data: Partial<BlogPost>) => void,
-  contentTextareaRef: React.RefObject<HTMLTextAreaElement>,
+  contentTextareaRef: React.RefObject<HTMLTextAreaElement | null>,
   setShowContentImageUpload: (v: boolean) => void,
 ) {
   return (imageUrl: string) => {

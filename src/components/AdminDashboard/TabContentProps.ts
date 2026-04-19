@@ -63,7 +63,7 @@ export interface TabContentProps {
   handleDeleteEducation: (id: string) => Promise<void>;
   handleDeleteJourney: (id: string) => Promise<void>;
   about: About | null;
-  handleSaveAbout: (data: About) => Promise<void>;
+  handleSaveAbout: (data: Partial<About>) => Promise<void>;
   handleAddBlogPost: (post: Partial<BlogPost>) => Promise<void>;
   handleUpdateBlogPost: (id: string, data: Partial<BlogPost>) => Promise<void>;
   handleDeleteBlogPost: (id: string) => Promise<void>;

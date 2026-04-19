@@ -1,6 +1,6 @@
 import type { TabContentProps } from "./TabContentProps";
 import type { DashboardState } from "./useDashboardState";
-import type { BlogPost } from "@/types";
+import type { BlogPost, Testimonial } from "@/types";
 
 export function buildTabContentProps(
   s: DashboardState,
@@ -60,7 +60,7 @@ export function buildTabContentProps(
     handleDeleteTestimonial: s.adminData.handleDeleteTestimonial,
     handleUpdateTestimonial: s.adminData.handleUpdateTestimonial,
     handleAddTestimonial: s.adminData.handleAddTestimonial,
-    setEditingTestimonial: s.modals.openEditTestimonial,
+    setEditingTestimonial: (t: Testimonial | null) => { if (t) s.modals.openEditTestimonial(t); },
     setShowTestimonialModal: (show: boolean) => {
       if (show) s.modals.openNewTestimonial();
     },

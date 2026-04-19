@@ -404,9 +404,9 @@ export default function BookingSection() {
                         {/* Meeting type (if not yet selected) */}
                         {!form.meetingType && (
                           <div className="space-y-2">
-                            <label className="block text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
+                            <p className="block text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
                               Meeting Type <span className="text-red-400">*</span>
-                            </label>
+                            </p>
                             <div className="grid grid-cols-2 gap-2">
                               {MEETING_TYPES.map((m) => (
                                 <button
@@ -445,12 +445,14 @@ export default function BookingSection() {
                         {/* Date */}
                         <div className="space-y-2">
                           <label
+                            htmlFor="booking-date"
                             className="block text-sm font-semibold"
                             style={{ color: "var(--text-secondary)" }}
                           >
                             Preferred Date <span className="text-red-400">*</span>
                           </label>
                           <input
+                            id="booking-date"
                             type="date"
                             min={getTodayMin()}
                             value={form.preferredDate}
@@ -468,12 +470,12 @@ export default function BookingSection() {
                         {/* Time slots */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <label
+                            <p
                               className="block text-sm font-semibold"
                               style={{ color: "var(--text-secondary)" }}
                             >
                               Preferred Time <span className="text-red-400">*</span>
-                            </label>
+                            </p>
                             {loadingSlots && (
                               <span className="text-xs flex items-center gap-1" style={{ color: "var(--text-secondary)" }}>
                                 <span className="inline-block w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent-teal)", borderTopColor: "transparent" }} />
@@ -591,12 +593,14 @@ export default function BookingSection() {
 
                         <div className="space-y-2">
                           <label
+                            htmlFor="booking-message"
                             className="block text-sm font-semibold"
                             style={{ color: "var(--text-secondary)" }}
                           >
                             Message (optional)
                           </label>
                           <textarea
+                            id="booking-message"
                             rows={5}
                             value={form.message}
                             onChange={(e) => handleChange("message", e.target.value)}
@@ -763,9 +767,10 @@ export default function BookingSection() {
 }
 
 function FormField({ icon, label, required, type = "text", value, onChange, placeholder }) {
+  const inputId = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
+      <label htmlFor={inputId} className="block text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       <div className="relative">
@@ -776,6 +781,7 @@ function FormField({ icon, label, required, type = "text", value, onChange, plac
           {icon}
         </span>
         <input
+          id={inputId}
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}

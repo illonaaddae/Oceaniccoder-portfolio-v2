@@ -8,7 +8,7 @@ interface DropZoneProps {
   allowPdf: boolean;
   maxSizeMB: number;
   acceptTypes: string;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onClick: () => void;
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;

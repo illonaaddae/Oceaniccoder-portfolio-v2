@@ -53,7 +53,7 @@ const JourneyItem = React.memo(({ item, isLast }: JourneyItemProps) => (
             Key Achievements:
           </h5>
           <ul className="space-y-1">
-            {item.achievements.map((achievement: string) => (
+            {item.achievements?.map((achievement: string) => (
               <li
                 key={achievement}
                 className="text-caption text-gray-300 flex items-start gap-2 journey-achievement"

@@ -43,7 +43,7 @@ export interface UseImageUploadReturn {
   dragOver: boolean;
   uploadedAsPdf: boolean;
   imageLoadError: boolean;
-  fileInputRef: RefObject<HTMLInputElement>;
+  fileInputRef: RefObject<HTMLInputElement | null>;
   isPdf: boolean;
   acceptTypes: string;
   handleFileSelect: (file: File) => Promise<void>;

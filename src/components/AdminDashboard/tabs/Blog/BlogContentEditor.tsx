@@ -10,7 +10,7 @@ interface BlogContentEditorProps {
   showContentImageUpload: boolean;
   setShowContentImageUpload: (show: boolean) => void;
   insertImageToContent: (url: string) => void;
-  contentTextareaRef: React.RefObject<HTMLTextAreaElement>;
+  contentTextareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export const BlogContentEditor: React.FC<BlogContentEditorProps> = ({

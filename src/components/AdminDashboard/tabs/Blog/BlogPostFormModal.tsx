@@ -19,7 +19,7 @@ interface BlogPostFormModalProps {
   showContentImageUpload: boolean;
   setShowContentImageUpload: (show: boolean) => void;
   submitting: boolean;
-  contentTextareaRef: React.RefObject<HTMLTextAreaElement>;
+  contentTextareaRef: React.RefObject<HTMLTextAreaElement | null>;
   onSubmit: (e: React.FormEvent) => void;
   onAddTag: () => void;
   onRemoveTag: (tag: string) => void;

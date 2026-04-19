@@ -21,7 +21,7 @@
 
     /* Type checking - gradual */
     "noImplicitAny": false,
-    "strict": false,
+    "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
