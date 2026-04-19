@@ -45,6 +45,7 @@ export default [
         MutationObserver: "readonly",
         IntersectionObserver: "readonly",
         AbortController: "readonly",
+        AbortSignal: "readonly",
         URLSearchParams: "readonly",
         caches: "readonly",
         performance: "readonly",

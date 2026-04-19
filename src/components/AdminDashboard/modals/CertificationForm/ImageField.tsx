@@ -16,7 +16,7 @@ export const ImageField: React.FC<ImageFieldProps> = ({
   labelClass,
 }) => (
   <div>
-    <label className={labelClass}>Certificate File (Optional)</label>
+    <p className={labelClass}>Certificate File (Optional)</p>
     <p
       className={`text-xs mb-2 ${
         theme === "dark" ? "text-slate-400" : "text-slate-500"
