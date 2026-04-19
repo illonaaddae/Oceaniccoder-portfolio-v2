@@ -111,26 +111,39 @@ export default function BookingSection() {
     setError("");
     setSubmitting(true);
     try {
-      // 1. Check availability + create calendar event (must succeed before saving to Appwrite)
-      const meetRes = await fetch("/api/create-booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const meetData = await meetRes.json();
+      // 1. Try calendar event creation — best-effort, don't block booking if unavailable
+      let calMeetLink = null;
+      let calEventLink = null;
 
-      if (meetRes.status === 409) {
-        setError(meetData.message || "That time slot is already booked. Please choose a different time.");
-        return;
+      try {
+        const meetRes = await fetch("/api/create-booking", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+
+        if (meetRes.status === 409) {
+          const meetData = await meetRes.json();
+          setError(meetData.message || "That time slot is already booked. Please choose a different time.");
+          return;
+        }
+
+        if (meetRes.ok) {
+          const meetData = await meetRes.json();
+          calMeetLink = meetData.meetLink ?? null;
+          calEventLink = meetData.calendarEventLink ?? null;
+        }
+      } catch {
+        // API unavailable locally (run `netlify dev` for full local testing) — continue to save
       }
 
-      // 2. Save booking to Appwrite (only after confirming no conflict)
+      // 2. Save booking to Appwrite
       const result = await createBooking({ ...form, status: "pending" });
       const ref = result.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
       setBookingRef(ref);
 
-      if (meetData.meetLink) setMeetLink(meetData.meetLink);
-      if (meetData.calendarEventLink) setCalendarLink(meetData.calendarEventLink);
+      if (calMeetLink) setMeetLink(calMeetLink);
+      if (calEventLink) setCalendarLink(calEventLink);
 
       setStep(4);
       sectionTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
