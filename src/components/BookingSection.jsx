@@ -90,6 +90,10 @@ export default function BookingSection() {
       .finally(() => setLoadingSlots(false));
   }, [form.preferredDate, form.timezone]);
 
+  // iOS Safari keeps the keyboard open on the first tap of a button, consuming it.
+  // Blurring on touchStart forces the keyboard to dismiss so the click fires immediately.
+  const blurActive = () => document.activeElement?.blur();
+
   const handleChange = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -371,6 +375,7 @@ export default function BookingSection() {
                         />
                         <button
                           disabled={!canProceedStep1}
+                          onTouchStart={blurActive}
                           onClick={() => setStep(2)}
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                           style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
@@ -534,6 +539,7 @@ export default function BookingSection() {
 
                         <button
                           disabled={!canProceedStep2}
+                          onTouchStart={blurActive}
                           onClick={() => setStep(3)}
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                           style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
@@ -620,6 +626,7 @@ export default function BookingSection() {
                         )}
 
                         <button
+                          onTouchStart={blurActive}
                           onClick={handleSubmit}
                           disabled={submitting}
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
