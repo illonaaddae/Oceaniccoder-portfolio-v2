@@ -1,5 +1,5 @@
 import React from "react";
-import { iconOptions } from "./constants";
+import { iconGroups, iconOptions } from "./constants";
 import type { SkillFormState } from "./types";
 
 interface IconSelectorProps {
@@ -32,10 +32,14 @@ export const IconSelector: React.FC<IconSelectorProps> = ({
         aria-label="Select skill icon"
       >
         <option value="">Select Icon (Optional)</option>
-        {iconOptions.map((opt) => (
-          <option key={`${opt.value}-${opt.label}`} value={opt.value}>
-            {opt.label}
-          </option>
+        {iconGroups.map((g) => (
+          <optgroup key={g.group} label={g.group}>
+            {g.options.map((opt) => (
+              <option key={`${g.group}-${opt.value}-${opt.label}`} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </select>
 
