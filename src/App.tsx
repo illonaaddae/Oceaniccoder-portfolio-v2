@@ -13,6 +13,8 @@ import {
   verifyAdminPassword,
   hashPassword,
   incrementSiteViews,
+  hasAppwriteSession,
+  logoutAdmin,
 } from "./services/api";
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -21,6 +23,17 @@ function App() {
     const stored = localStorage.getItem("adminAuth");
     return stored === "authenticated";
   });
+
+  // Verify Appwrite session on mount — overrides stale localStorage flag
+  useEffect(() => {
+    hasAppwriteSession().then((hasSession) => {
+      if (hasSession) {
+        localStorage.setItem("adminAuth", "authenticated");
+        setIsAdminLoggedIn(true);
+      }
+      // Don't auto-clear localStorage on no session — legacy hash-based login still uses it
+    });
+  }, []);
 
   const handleAdminLogin = useCallback(async (password: string) => {
     try {
@@ -41,7 +54,8 @@ function App() {
     }
   }, []);
 
-  const handleAdminLogout = useCallback(() => {
+  const handleAdminLogout = useCallback(async () => {
+    await logoutAdmin();
     localStorage.removeItem("adminAuth");
     localStorage.removeItem("adminHash");
     setIsAdminLoggedIn(false);

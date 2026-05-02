@@ -1,3 +1,4 @@
+import { account } from "../../lib/appwrite";
 import { getSetting, setSetting } from "./settings";
 
 export async function hashPassword(password: string): Promise<string> {
@@ -13,16 +14,45 @@ export async function setAdminPassword(newPassword: string): Promise<void> {
   await setSetting("admin_password_hash", hash);
 }
 
+// True if an active Appwrite session exists for this browser
+export async function hasAppwriteSession(): Promise<boolean> {
+  try {
+    await account.get();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Tries Appwrite Auth first (if VITE_ADMIN_EMAIL is set & user exists in Appwrite Console)
+// Falls back to the legacy SHA-256 hash check so existing setups keep working
 export async function verifyAdminPassword(password: string): Promise<boolean> {
+  // Path 1 — real Appwrite Auth (preferred)
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  if (adminEmail) {
+    try {
+      // Clear any stale session before creating a new one
+      try { await account.deleteSession("current"); } catch { /* no session — fine */ }
+      // Newer Appwrite SDKs: createEmailPasswordSession; older: createEmailSession
+      const acc = account as unknown as Record<string, (e: string, p: string) => Promise<unknown>>;
+      const fn = acc.createEmailPasswordSession || acc.createEmailSession;
+      if (typeof fn === "function") {
+        await fn.call(account, adminEmail, password);
+        return true;
+      }
+    } catch {
+      // Fall through to legacy auth
+    }
+  }
+
+  // Path 2 — legacy SHA-256 hash (settings collection or env var)
   try {
     const storedHash = await getSetting("admin_password_hash");
     if (!storedHash) {
-      // Fall back to env hash (never plaintext)
       const envHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH;
       if (envHash) {
         const inputHash = await hashPassword(password);
         if (inputHash === envHash) {
-          // Migrate to DB-stored hash on first successful login
           await setAdminPassword(password);
           return true;
         }
@@ -37,4 +67,8 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
     const inputHash = await hashPassword(password);
     return inputHash === envHash;
   }
+}
+
+export async function logoutAdmin(): Promise<void> {
+  try { await account.deleteSession("current"); } catch { /* no session */ }
 }
