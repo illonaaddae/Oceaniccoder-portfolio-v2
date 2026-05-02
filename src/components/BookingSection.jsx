@@ -161,8 +161,13 @@ export default function BookingSection() {
         // API unavailable locally (run `netlify dev` for full local testing) — continue to save
       }
 
-      // 3. Save booking to Appwrite
-      const result = await createBooking({ ...form, status: "pending" });
+      // 3. Save booking to Appwrite (include meet link so admin can resend it on confirm)
+      const result = await createBooking({
+        ...form,
+        status: "pending",
+        meetingLink: calMeetLink ?? undefined,
+        calendarEventLink: calEventLink ?? undefined,
+      });
       const ref = result.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
       setBookingRef(ref);
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { FaCalendarAlt, FaEnvelope, FaPhone, FaClock, FaSync, FaGlobe, FaCheck, FaTimes, FaTrash } from "react-icons/fa";
-import { getBookings, updateBookingStatus, deleteBooking } from "@/services/api/bookings";
+import { getBookings, confirmBooking, deleteBooking } from "@/services/api/bookings";
 import type { Booking } from "@/services/api/bookings";
 
 interface BookingsTabProps {
@@ -60,13 +60,20 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
     }
   };
 
-  const handleStatus = async (id: string, status: "confirmed" | "cancelled") => {
-    setUpdating(id);
+  const handleStatus = async (booking: Booking, status: "confirmed" | "cancelled") => {
+    setUpdating(booking.$id!);
     try {
-      await updateBookingStatus(id, status);
+      const result = await confirmBooking(booking, status);
       setBookings((prev) =>
-        prev.map((b) => (b.$id === id ? { ...b, status } : b)),
+        prev.map((b) => (b.$id === booking.$id ? { ...b, status } : b)),
       );
+      if (!result.emailSent) {
+        setError(
+          status === "confirmed"
+            ? "Booking confirmed, but email to visitor failed to send."
+            : "Booking cancelled, but email to visitor failed to send.",
+        );
+      }
     } catch {
       setError("Failed to update booking status.");
     } finally {
@@ -202,7 +209,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
                       <button
                         type="button"
                         disabled={updating === b.$id}
-                        onClick={() => handleStatus(b.$id!, "confirmed")}
+                        onClick={() => handleStatus(b, "confirmed")}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-all disabled:opacity-50"
                       >
                         <FaCheck className="text-[10px]" />
@@ -211,7 +218,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
                       <button
                         type="button"
                         disabled={updating === b.$id}
-                        onClick={() => handleStatus(b.$id!, "cancelled")}
+                        onClick={() => handleStatus(b, "cancelled")}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all disabled:opacity-50"
                       >
                         <FaTimes className="text-[10px]" />
@@ -225,7 +232,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
                     <button
                       type="button"
                       disabled={updating === b.$id}
-                      onClick={() => handleStatus(b.$id!, "cancelled")}
+                      onClick={() => handleStatus(b, "cancelled")}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all disabled:opacity-50"
                     >
                       <FaTimes className="text-[10px]" />

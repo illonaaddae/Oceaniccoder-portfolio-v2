@@ -12,6 +12,8 @@ export interface Booking {
   timezone: string;
   message: string;
   status: string;
+  meetingLink?: string;
+  calendarEventLink?: string;
 }
 
 export async function createBooking(
@@ -61,6 +63,41 @@ export async function updateBookingStatus(
   status: "confirmed" | "cancelled" | "pending",
 ): Promise<void> {
   await databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status });
+}
+
+// Updates Appwrite status AND triggers a Resend email to the booker.
+// Email failure is non-fatal — status update still succeeds.
+export async function confirmBooking(
+  booking: Booking,
+  newStatus: "confirmed" | "cancelled",
+): Promise<{ statusUpdated: boolean; emailSent: boolean }> {
+  await databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, booking.$id!, {
+    status: newStatus,
+  });
+
+  let emailSent = false;
+  try {
+    const res = await fetch("/api/confirm-booking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: newStatus,
+        name: booking.name,
+        email: booking.email,
+        meetingType: booking.meetingType,
+        preferredDate: booking.preferredDate,
+        preferredTime: booking.preferredTime,
+        timezone: booking.timezone,
+        meetingLink: booking.meetingLink,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    emailSent = res.ok;
+  } catch (err) {
+    console.warn("[confirmBooking] Email send failed:", err);
+  }
+
+  return { statusUpdated: true, emailSent };
 }
 
 export async function deleteBooking(id: string): Promise<void> {
