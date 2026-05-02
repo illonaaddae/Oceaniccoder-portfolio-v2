@@ -23,13 +23,13 @@ const RelatedPosts = React.memo(({ posts }) => {
                 src={relatedPost.image}
                 alt={relatedPost.title}
                 className="w-full h-full group-hover:scale-110 transition-transform duration-500"
-                placeholderColor="from-emerald-900/30 to-slate-900"
+                placeholderColor="from-oceanic-900/30 to-slate-900"
                 displaySize="thumbnail"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             </div>
             <div className="p-4">
-              <h3 className="text-white font-medium group-hover:text-emerald-400 transition-colors line-clamp-2">
+              <h3 className="text-white font-medium group-hover:text-oceanic-400 transition-colors line-clamp-2">
                 {relatedPost.title}
               </h3>
               <p className="text-gray-400 text-sm mt-2">

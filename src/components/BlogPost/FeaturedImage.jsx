@@ -13,7 +13,7 @@ const FeaturedImage = React.memo(({ image, title }) => {
         src={image}
         alt={title}
         className="w-full h-full"
-        placeholderColor="from-emerald-900/30 to-slate-900"
+        placeholderColor="from-oceanic-900/30 to-slate-900"
         displaySize="blog"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />

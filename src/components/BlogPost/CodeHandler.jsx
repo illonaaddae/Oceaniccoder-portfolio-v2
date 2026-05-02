@@ -52,8 +52,8 @@ export const createCodeHandler = (isDark) =>
       <code
         className={`px-2 py-0.5 rounded text-sm font-mono ${
           isDark
-            ? "bg-white/10 text-emerald-400"
-            : "bg-gray-100 text-emerald-600"
+            ? "bg-white/10 text-oceanic-400"
+            : "bg-gray-100 text-oceanic-600"
         }`}
         {...rest}
       >

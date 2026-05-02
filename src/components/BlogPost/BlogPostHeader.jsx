@@ -11,7 +11,7 @@ const BlogPostHeader = React.memo(({ post }) => (
   <header className="mb-8">
     {/* Category */}
     {post.category && (
-      <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm font-medium rounded-full mb-4">
+      <span className="inline-block px-3 py-1 bg-oceanic-500/20 text-oceanic-400 text-sm font-medium rounded-full mb-4">
         {post.category}
       </span>
     )}
@@ -24,12 +24,12 @@ const BlogPostHeader = React.memo(({ post }) => (
     {/* Meta info */}
     <div className="flex flex-wrap items-center gap-4 text-gray-400 mb-6">
       <span className="flex items-center gap-2">
-        <FaCalendarAlt className="text-emerald-400" />
+        <FaCalendarAlt className="text-oceanic-400" />
         {formatDate(post.publishedAt)}
       </span>
       {post.readTime && (
         <span className="flex items-center gap-2">
-          <FaClock className="text-emerald-400" />
+          <FaClock className="text-oceanic-400" />
           {post.readTime}
         </span>
       )}
@@ -44,7 +44,7 @@ const BlogPostHeader = React.memo(({ post }) => (
             key={tag}
             className="px-3 py-1 bg-white/5 text-gray-400 text-sm rounded-full flex items-center gap-1"
           >
-            <FaTag className="text-emerald-400 text-xs" /> {tag}
+            <FaTag className="text-oceanic-400 text-xs" /> {tag}
           </span>
         ))}
       </div>
