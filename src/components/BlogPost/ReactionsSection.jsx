@@ -28,8 +28,8 @@ const ReactionsSection = React.memo(
             disabled={reactionLoading}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300 cursor-pointer select-none ${
               userReaction === "like"
-                ? "bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 scale-105"
-                : "bg-white/5 text-gray-300 border border-white/10 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/30 hover:scale-105"
+                ? "bg-oceanic-500/30 text-oceanic-400 border border-oceanic-500/50 scale-105"
+                : "bg-white/5 text-gray-300 border border-white/10 hover:bg-oceanic-500/10 hover:text-oceanic-400 hover:border-oceanic-500/30 hover:scale-105"
             } ${reactionLoading ? "opacity-50 cursor-wait" : ""}`}
           >
             {userReaction === "like" ? (

@@ -6,19 +6,19 @@ import { formatDate } from "./blogConstants";
 const BlogCard = React.memo(({ post, onClick }) => (
   <article
     onClick={() => onClick(post)}
-    className="glass-card group cursor-pointer overflow-hidden rounded-xl transition-shadow duration-300 hover:shadow-lg hover:shadow-emerald-500/20 flex flex-col"
+    className="glass-card group cursor-pointer overflow-hidden rounded-xl transition-shadow duration-300 hover:shadow-lg hover:shadow-oceanic-500/20 flex flex-col"
   >
     <div className="relative h-44 overflow-hidden">
       <LazyImage
         src={post.image}
         alt={post.title}
         className="w-full h-full group-hover:scale-105 transition-transform duration-500"
-        placeholderColor="from-emerald-900/50 to-slate-900"
+        placeholderColor="from-oceanic-900/50 to-slate-900"
         displaySize="card"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
       {post.category && (
-        <span className="absolute top-3 left-3 px-2 py-1 bg-emerald-500/80 text-white text-xs font-medium rounded">
+        <span className="absolute top-3 left-3 px-2 py-1 bg-oceanic-500/80 text-white text-xs font-medium rounded">
           {post.category}
         </span>
       )}
@@ -26,17 +26,17 @@ const BlogCard = React.memo(({ post, onClick }) => (
     <div className="p-5 flex-1 flex flex-col">
       <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
         <span className="flex items-center gap-1">
-          <FaCalendarAlt className="text-emerald-400" />
+          <FaCalendarAlt className="text-oceanic-400" />
           {formatDate(post.publishedAt)}
         </span>
         {post.readTime && (
           <span className="flex items-center gap-1">
-            <FaClock className="text-emerald-400" />
+            <FaClock className="text-oceanic-400" />
             {post.readTime}
           </span>
         )}
       </div>
-      <h3 className="text-lg font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors line-clamp-2">
+      <h3 className="text-lg font-bold text-white mb-2 group-hover:text-oceanic-400 transition-colors line-clamp-2">
         {post.title}
       </h3>
       <p className="text-gray-400 text-sm line-clamp-3 mb-4 flex-1">
@@ -49,7 +49,7 @@ const BlogCard = React.memo(({ post, onClick }) => (
               key={tag}
               className="px-2 py-0.5 bg-white/5 text-gray-400 text-xs rounded flex items-center gap-1"
             >
-              <FaTag className="text-emerald-400" />
+              <FaTag className="text-oceanic-400" />
               {tag}
             </span>
           ))}

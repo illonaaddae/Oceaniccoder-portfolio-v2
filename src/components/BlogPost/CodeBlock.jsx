@@ -92,8 +92,8 @@ const CodeBlock = React.memo(({ language, children, isDark }) => {
         <div
           className={`absolute top-0 left-4 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-full border ${
             isDark
-              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-              : "bg-emerald-100 text-emerald-700 border-emerald-300"
+              ? "bg-oceanic-500/20 text-oceanic-400 border-oceanic-500/30"
+              : "bg-oceanic-100 text-oceanic-700 border-oceanic-300"
           }`}
         >
           {language}

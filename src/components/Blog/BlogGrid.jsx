@@ -14,7 +14,7 @@ const BlogGrid = React.memo(
           </p>
           <button
             onClick={onClearFilters}
-            className="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors"
+            className="px-6 py-3 bg-oceanic-500 text-white rounded-lg font-medium hover:bg-oceanic-600 transition-colors"
           >
             Clear Filters
           </button>

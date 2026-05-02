@@ -13,10 +13,13 @@ export const colors = {
   yellow: "#f1fa8c",
 };
 
+export type TerminalIcon = "arrow" | "check" | "warn" | "info" | "spark";
+
 export interface TerminalLine {
   type: string;
   text: string;
   color?: string;
+  icon?: TerminalIcon;
   delay: number;
 }
 
@@ -24,38 +27,44 @@ export const sequence: TerminalLine[] = [
   { type: "cmd", text: "npm run dev", delay: 500 },
   {
     type: "output",
-    text: "→ starship init zsh",
+    text: "starship init zsh",
     color: colors.comment,
+    icon: "arrow",
     delay: 800,
   },
   {
     type: "output",
-    text: "✔ Appwrite connection established",
+    text: "Appwrite connection established",
     color: colors.green,
+    icon: "check",
     delay: 1200,
   },
   {
     type: "output",
-    text: "✔ Azure deployment verified",
+    text: "Azure deployment verified",
     color: colors.green,
+    icon: "check",
     delay: 1500,
   },
   {
     type: "output",
-    text: "⚠ Loading portfolio modules...",
+    text: "Loading portfolio modules...",
     color: colors.yellow,
+    icon: "warn",
     delay: 1900,
   },
   {
     type: "output",
-    text: "ℹ Hydrating oceanic components...",
+    text: "Hydrating oceanic components...",
     color: colors.cyan,
+    icon: "info",
     delay: 2300,
   },
   {
     type: "success",
-    text: "✨ System Ready.",
+    text: "System Ready.",
     color: colors.purple,
+    icon: "spark",
     delay: 2700,
   },
 ];

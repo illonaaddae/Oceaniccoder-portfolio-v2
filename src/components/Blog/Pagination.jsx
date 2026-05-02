@@ -20,7 +20,7 @@ const Pagination = React.memo(({ currentPage, totalPages, setCurrentPage }) => {
             onClick={() => setCurrentPage(page)}
             className={`w-10 h-10 rounded-lg font-medium transition-all ${
               currentPage === page
-                ? "bg-emerald-500 text-white"
+                ? "bg-oceanic-500 text-white"
                 : "glass-card text-gray-300 hover:bg-white/10"
             }`}
           >

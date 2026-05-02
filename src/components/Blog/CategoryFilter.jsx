@@ -20,7 +20,7 @@ const CategoryFilter = React.memo(
             placeholder="Search posts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 transition-all"
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-oceanic-400/50 transition-all"
           />
           {searchQuery && (
             <button
@@ -38,7 +38,7 @@ const CategoryFilter = React.memo(
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
                 selectedCategory === cat
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-oceanic-500 text-white"
                   : "bg-white/5 text-gray-300 hover:bg-white/10"
               }`}
             >
@@ -65,7 +65,7 @@ const CategoryFilter = React.memo(
               }}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 selectedCategory === cat
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-oceanic-500 text-white"
                   : "bg-white/5 text-gray-300 hover:bg-white/10"
               }`}
             >

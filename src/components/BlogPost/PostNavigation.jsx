@@ -15,7 +15,7 @@ const PostNavigation = React.memo(({ prevPost, nextPost }) => (
         <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
           <FaChevronLeft /> Previous Post
         </div>
-        <h4 className="text-white font-medium group-hover:text-emerald-400 transition-colors line-clamp-1">
+        <h4 className="text-white font-medium group-hover:text-oceanic-400 transition-colors line-clamp-1">
           {prevPost.title}
         </h4>
       </Link>
@@ -31,7 +31,7 @@ const PostNavigation = React.memo(({ prevPost, nextPost }) => (
         <div className="flex items-center justify-end gap-2 text-gray-400 text-sm mb-2">
           Next Post <FaChevronRight />
         </div>
-        <h4 className="text-white font-medium group-hover:text-emerald-400 transition-colors line-clamp-1">
+        <h4 className="text-white font-medium group-hover:text-oceanic-400 transition-colors line-clamp-1">
           {nextPost.title}
         </h4>
       </Link>

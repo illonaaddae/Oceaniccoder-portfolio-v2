@@ -71,13 +71,13 @@ export const getMarkdownComponents = (isDark) => ({
     </strong>
   ),
   em: ({ children }) => (
-    <em className={isDark ? "text-emerald-400" : "text-emerald-600"}>
+    <em className={isDark ? "text-oceanic-400" : "text-oceanic-600"}>
       {children}
     </em>
   ),
   blockquote: ({ children }) => (
     <blockquote
-      className={`border-l-4 border-emerald-500 pl-4 italic my-4 ${
+      className={`border-l-4 border-oceanic-500 pl-4 italic my-4 ${
         isDark ? "text-gray-400" : "text-gray-600"
       }`}
     >

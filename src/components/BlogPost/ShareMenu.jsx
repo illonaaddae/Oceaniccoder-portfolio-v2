@@ -67,7 +67,7 @@ const ShareMenu = React.memo(({ title }) => {
             onClick={() => handleShare("copy")}
             className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
           >
-            <FaLink className="text-emerald-400" />
+            <FaLink className="text-oceanic-400" />
             {copied ? "Copied!" : "Copy Link"}
           </button>
         </div>

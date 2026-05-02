@@ -18,7 +18,7 @@ const NotFoundState = React.memo(() => (
       </p>
       <Link
         to="/blog"
-        className="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors inline-flex items-center gap-2"
+        className="px-6 py-3 bg-oceanic-500 text-white rounded-lg font-medium hover:bg-oceanic-600 transition-colors inline-flex items-center gap-2"
       >
         <FaArrowLeft /> Back to Blog
       </Link>
