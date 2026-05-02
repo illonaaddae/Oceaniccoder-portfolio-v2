@@ -1,5 +1,4 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { Permission, Role } from "appwrite";
 
 export interface Booking {
   $id?: string;
@@ -18,12 +17,13 @@ export interface Booking {
 export async function createBooking(
   booking: Omit<Booking, "$id" | "$createdAt">,
 ): Promise<Booking> {
+  // No document-level permissions — collection-level permissions govern
+  // (visitors create, only admin reads/updates/deletes — set in Appwrite Console)
   const result = await databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.BOOKINGS,
     ID.unique(),
     { ...booking } as Record<string, unknown>,
-    [Permission.read(Role.any()), Permission.update(Role.any()), Permission.delete(Role.any())],
   );
   return result as unknown as Booking;
 }
