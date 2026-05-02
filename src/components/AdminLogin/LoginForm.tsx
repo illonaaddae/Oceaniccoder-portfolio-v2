@@ -8,10 +8,14 @@ interface LoginFormProps {
   setPassword: (val: string) => void;
   error: string;
   setError: (val: string) => void;
+  info?: string;
   isLoading: boolean;
+  recovering?: boolean;
   showPassword: boolean;
   setShowPassword: (val: boolean) => void;
+  adminEmail?: string;
   handleSubmit: (e: React.FormEvent) => void;
+  handleForgotPassword?: () => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({
@@ -20,10 +24,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
   setPassword,
   error,
   setError,
+  info,
   isLoading,
+  recovering,
   showPassword,
   setShowPassword,
+  adminEmail,
   handleSubmit,
+  handleForgotPassword,
 }) => {
   const dk = theme === "dark";
   return (
@@ -50,6 +58,15 @@ const LoginForm: React.FC<LoginFormProps> = ({
           >
             Enter your admin password to continue
           </p>
+          {adminEmail && (
+            <p
+              className={`text-xs mt-2 transition-colors duration-300 ${
+                dk ? "text-slate-400" : "text-slate-500"
+              }`}
+            >
+              Logging in as <span className="font-mono">{adminEmail}</span>
+            </p>
+          )}
         </div>
 
         <div>
@@ -109,6 +126,20 @@ const LoginForm: React.FC<LoginFormProps> = ({
           </div>
         )}
 
+        {info && (
+          <div
+            className={`backdrop-blur-md border rounded-lg p-3 ${
+              dk
+                ? "bg-green-500/15 border-green-500/40"
+                : "bg-green-50 border-green-200"
+            }`}
+          >
+            <p className={`text-sm ${dk ? "text-green-100" : "text-green-700"}`}>
+              {info}
+            </p>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={isLoading}
@@ -134,13 +165,15 @@ const LoginForm: React.FC<LoginFormProps> = ({
         <div className="text-center">
           <button
             type="button"
-            className={`text-sm transition-colors duration-300 ${
+            onClick={handleForgotPassword}
+            disabled={recovering || !handleForgotPassword}
+            className={`text-sm transition-colors duration-300 disabled:opacity-50 ${
               dk
                 ? "text-oceanic-500 hover:text-oceanic-400"
                 : "text-oceanic-600 hover:text-oceanic-700"
             }`}
           >
-            Forgot password?
+            {recovering ? "Sending recovery link…" : "Forgot password?"}
           </button>
         </div>
 

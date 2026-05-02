@@ -16,6 +16,7 @@ const ProjectCaseStudy = React.lazy(
 const Blog = React.lazy(() => import("@/components/BlogSection"));
 const BlogPost = React.lazy(() => import("@/components/BlogPost"));
 const AdminDashboard = React.lazy(() => import("@/components/AdminDashboard"));
+const AdminPasswordReset = React.lazy(() => import("@/components/AdminPasswordReset"));
 const NotFound = React.lazy(() => import("@/components/NotFound"));
 const Booking = React.lazy(() => import("@/components/BookingSection"));
 
@@ -31,6 +32,7 @@ export {
   Blog,
   BlogPost,
   AdminDashboard,
+  AdminPasswordReset,
   NotFound,
   Booking,
 };

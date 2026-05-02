@@ -72,3 +72,24 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 export async function logoutAdmin(): Promise<void> {
   try { await account.deleteSession("current"); } catch { /* no session */ }
 }
+
+// Triggers Appwrite to send a recovery email to the admin
+// Returns the email that was used (for UI feedback) or throws if no email configured
+export async function requestPasswordRecovery(): Promise<string> {
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  if (!adminEmail) {
+    throw new Error("VITE_ADMIN_EMAIL is not set — cannot send recovery email");
+  }
+  const redirectUrl = `${window.location.origin}/admin/reset-password`;
+  await account.createRecovery(adminEmail, redirectUrl);
+  return adminEmail;
+}
+
+// Completes the recovery flow with the userId + secret from the email link
+export async function completePasswordRecovery(
+  userId: string,
+  secret: string,
+  newPassword: string,
+): Promise<void> {
+  await account.updateRecovery(userId, secret, newPassword);
+}

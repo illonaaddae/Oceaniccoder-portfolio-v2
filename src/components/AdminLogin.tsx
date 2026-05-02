@@ -15,12 +15,16 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     setPassword,
     error,
     setError,
+    info,
     isLoading,
+    recovering,
     showPassword,
     setShowPassword,
     theme,
     toggleTheme,
+    adminEmail,
     handleSubmit,
+    handleForgotPassword,
   } = useAdminLogin(onLogin);
 
   return (
@@ -55,10 +59,14 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           setPassword={setPassword}
           error={error}
           setError={setError}
+          info={info}
           isLoading={isLoading}
+          recovering={recovering}
           showPassword={showPassword}
           setShowPassword={setShowPassword}
+          adminEmail={adminEmail}
           handleSubmit={handleSubmit}
+          handleForgotPassword={handleForgotPassword}
         />
         <LoginFooter theme={theme} />
       </div>

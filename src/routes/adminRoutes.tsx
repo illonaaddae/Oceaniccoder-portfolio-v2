@@ -2,7 +2,7 @@ import React from "react";
 import { Route } from "react-router-dom";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AdminLogin from "@/components/AdminLogin";
-import { AdminDashboard } from "./lazyComponents";
+import { AdminDashboard, AdminPasswordReset } from "./lazyComponents";
 
 const Fallback = () => <LoadingSpinner />;
 
@@ -35,6 +35,14 @@ const adminRoutes = ({
       element={
         <React.Suspense fallback={<Fallback />}>
           <AdminDashboard isReadOnly={true} />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/admin/reset-password"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <AdminPasswordReset />
         </React.Suspense>
       }
     />
