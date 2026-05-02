@@ -33,6 +33,17 @@ jobs:
         run: npm run build
         env:
           CI: true
+          # Vite bakes these into the bundle at build time.
+          # Add matching values under: Repo → Settings → Secrets and variables → Actions → Secrets.
+          VITE_APPWRITE_ENDPOINT: ${{ secrets.VITE_APPWRITE_ENDPOINT }}
+          VITE_APPWRITE_PROJECT_ID: ${{ secrets.VITE_APPWRITE_PROJECT_ID }}
+          VITE_APPWRITE_DATABASE_ID: ${{ secrets.VITE_APPWRITE_DATABASE_ID }}
+          VITE_APPWRITE_BUCKET_ID: ${{ secrets.VITE_APPWRITE_BUCKET_ID }}
+          VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
+          VITE_ADMIN_PASSWORD_HASH: ${{ secrets.VITE_ADMIN_PASSWORD_HASH }}
+          # Set to your Netlify production URL so /api/* calls (booking, chat, etc.)
+          # work from the Azure-served domain. Example: https://oceaniccoder.netlify.app
+          VITE_FUNCTIONS_BASE_URL: ${{ secrets.VITE_FUNCTIONS_BASE_URL }}
 
       - name: Deploy to Azure Static Web Apps
         id: builddeploy

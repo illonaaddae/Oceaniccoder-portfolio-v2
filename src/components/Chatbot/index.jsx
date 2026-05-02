@@ -9,6 +9,7 @@ import {
   FaExternalLinkAlt,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { apiUrl } from "../../utils/apiUrl";
 
 const QUICK_REPLIES = [
   "What are your main skills?",
@@ -24,7 +25,7 @@ const WELCOME_MESSAGE = {
 };
 
 async function fetchReply(messages) {
-  const res = await fetch("/api/chat", {
+  const res = await fetch(apiUrl("/api/chat"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages }),

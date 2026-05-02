@@ -16,6 +16,7 @@ import {
   FaExternalLinkAlt,
 } from "react-icons/fa";
 import { createBooking, isSlotBooked, getBookedTimesForDate } from "../services/api/bookings";
+import { apiUrl } from "../utils/apiUrl";
 
 const MEETING_TYPES = [
   {
@@ -91,7 +92,7 @@ export default function BookingSection() {
     setSlotAvailability({});
     setAppwriteBookedSlots(new Set());
     // Fetch Google Calendar availability
-    fetch(`/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`)
+    fetch(apiUrl(`/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`))
       .then((r) => r.json())
       .then((data) => setSlotAvailability(data.available || {}))
       .catch(() => {})
@@ -139,7 +140,7 @@ export default function BookingSection() {
       let calEventLink = null;
 
       try {
-        const meetRes = await fetch("/api/create-booking", {
+        const meetRes = await fetch(apiUrl("/api/create-booking"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),

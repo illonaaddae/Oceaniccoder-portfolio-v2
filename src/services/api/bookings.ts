@@ -1,4 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { apiUrl } from "../../utils/apiUrl";
 
 export interface Booking {
   $id?: string;
@@ -77,7 +78,7 @@ export async function confirmBooking(
 
   let emailSent = false;
   try {
-    const res = await fetch("/api/confirm-booking", {
+    const res = await fetch(apiUrl("/api/confirm-booking"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
