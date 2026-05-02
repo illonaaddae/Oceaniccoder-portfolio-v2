@@ -19,12 +19,7 @@ const SkillCard = React.memo(({ skill, index, isAnimated }) => (
     <div className="glass-progress">
       <div
         className="glass-progress-fill"
-        style={{
-          width: isAnimated ? `${skill.level}%` : "0%",
-          background: `linear-gradient(90deg, 
-            hsl(${skill.level * 1.2}, 70%, 60%), 
-            hsl(${skill.level * 1.2 + 30}, 70%, 70%))`,
-        }}
+        style={{ width: isAnimated ? `${skill.level}%` : "0%" }}
       ></div>
     </div>
 
