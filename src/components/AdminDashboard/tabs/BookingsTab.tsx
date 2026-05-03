@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { FaCalendarAlt, FaEnvelope, FaPhone, FaClock, FaSync, FaGlobe, FaCheck, FaTimes, FaTrash } from "react-icons/fa";
-import { getBookings, confirmBooking, deleteBooking } from "@/services/api/bookings";
+import { getBookings, updateBookingStatus, deleteBooking } from "@/services/api/bookings";
 import type { Booking } from "@/services/api/bookings";
 
 interface BookingsTabProps {
@@ -63,17 +63,10 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
   const handleStatus = async (booking: Booking, status: "confirmed" | "cancelled") => {
     setUpdating(booking.$id!);
     try {
-      const result = await confirmBooking(booking, status);
+      await updateBookingStatus(booking.$id!, status);
       setBookings((prev) =>
         prev.map((b) => (b.$id === booking.$id ? { ...b, status } : b)),
       );
-      if (!result.emailSent) {
-        setError(
-          status === "confirmed"
-            ? "Booking confirmed, but email to visitor failed to send."
-            : "Booking cancelled, but email to visitor failed to send.",
-        );
-      }
     } catch {
       setError("Failed to update booking status.");
     } finally {

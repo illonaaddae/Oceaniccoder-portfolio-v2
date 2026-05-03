@@ -22,11 +22,6 @@
   status = 200
 
 [[redirects]]
-  from = "/api/confirm-booking"
-  to = "/.netlify/functions/confirm-booking"
-  status = 200
-
-[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
