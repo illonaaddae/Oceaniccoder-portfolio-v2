@@ -1,4 +1,4 @@
-// Service Worker Kill Switch - Version 6
+// Service Worker Kill Switch - Version 7
 // This SW immediately unregisters itself and clears all caches
 
 self.addEventListener("install", (event) => {
