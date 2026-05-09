@@ -92,7 +92,9 @@ export default function BookingSection() {
     setSlotAvailability({});
     setAppwriteBookedSlots(new Set());
     // Fetch Google Calendar availability
-    fetch(apiUrl(`/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`))
+    const availUrl = apiUrl(`/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`);
+    console.log("[booking] get-availability URL:", availUrl);
+    fetch(availUrl)
       .then((r) => r.json())
       .then((data) => setSlotAvailability(data.available || {}))
       .catch(() => {})
@@ -140,7 +142,9 @@ export default function BookingSection() {
       let calEventLink = null;
 
       try {
-        const meetRes = await fetch(apiUrl("/api/create-booking"), {
+        const bookingUrl = apiUrl("/api/create-booking");
+        console.log("[booking] create-booking URL:", bookingUrl);
+        const meetRes = await fetch(bookingUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
