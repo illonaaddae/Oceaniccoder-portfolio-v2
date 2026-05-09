@@ -23,3 +23,6 @@ TYPESCRIPT_MIGRATION.md
 coverage/
 deno.lock
 
+# macOS Finder duplicates (e.g. "Component 2.tsx", "image 2.png")
+*[[:space:]]2.*
+
