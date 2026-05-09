@@ -73,7 +73,11 @@ async function getAccessToken() {
     body,
   );
   const data = JSON.parse(result.body);
-  if (!data.access_token) throw new Error(`Token error: ${result.body}`);
+  if (!data.access_token) {
+    // Expose error code only (not secrets) so _phase is diagnostic
+    const errCode = data.error || `http_${result.status}`;
+    throw new Error(`oauth:${errCode}`);
+  }
   return data.access_token;
 }
 
@@ -238,7 +242,8 @@ module.exports = async function (context, req) {
 
     ok(context, { success: true, meetLink, calendarEventLink });
   } catch (err) {
-    context.log.error("create-booking error:", String(err));
-    ok(context, { success: true, meetLink: null, calendarEventLink: null, _phase: "exception" });
+    const msg = String(err);
+    context.log.error("create-booking error:", msg);
+    ok(context, { success: true, meetLink: null, calendarEventLink: null, _phase: msg });
   }
 };
