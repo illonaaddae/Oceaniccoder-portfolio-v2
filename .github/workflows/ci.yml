@@ -27,10 +27,13 @@ jobs:
         run: npm ci
 
       - name: Run TypeScript type check
-        run: npx tsc --noEmit
+        run: npm run type-check
 
       - name: Run ESLint
-        run: npm run lint --if-present
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
 
   # ============================================
   # Unit & Integration Tests
@@ -119,6 +122,11 @@ jobs:
         run: npm run build
         env:
           CI: true
+          VITE_APPWRITE_ENDPOINT: ${{ secrets.VITE_APPWRITE_ENDPOINT }}
+          VITE_APPWRITE_PROJECT_ID: ${{ secrets.VITE_APPWRITE_PROJECT_ID }}
+          VITE_APPWRITE_DATABASE_ID: ${{ secrets.VITE_APPWRITE_DATABASE_ID }}
+          VITE_APPWRITE_BUCKET_ID: ${{ secrets.VITE_APPWRITE_BUCKET_ID }}
+          VITE_FUNCTIONS_BASE_URL: ${{ secrets.VITE_FUNCTIONS_BASE_URL }}
 
       - name: Check build output
         run: |
