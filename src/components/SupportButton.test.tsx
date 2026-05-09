@@ -1,7 +1,11 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, test, expect, vi } from "vitest";
 import SupportButton from "./SupportButton";
+
+const renderWithRouter = (ui: React.ReactElement) =>
+  render(<MemoryRouter>{ui}</MemoryRouter>);
 
 // Mock the imageUrls
 vi.mock("../utils/imageUrls", () => ({
@@ -12,14 +16,14 @@ vi.mock("../utils/imageUrls", () => ({
 
 describe("SupportButton", () => {
   test("renders floating button", () => {
-    render(<SupportButton />);
+    renderWithRouter(<SupportButton />);
 
     const toggleButton = screen.getByRole("button", { name: /support/i });
     expect(toggleButton).toBeInTheDocument();
   });
 
   test("expands to show support links when clicked", () => {
-    render(<SupportButton />);
+    renderWithRouter(<SupportButton />);
 
     // Click toggle button to expand
     const toggleButton = screen.getByRole("button", { name: /support/i });
@@ -31,7 +35,7 @@ describe("SupportButton", () => {
   });
 
   test("shows Buy Me a Coffee link with correct URL", () => {
-    render(<SupportButton />);
+    renderWithRouter(<SupportButton />);
 
     // Expand the menu
     const toggleButton = screen.getByRole("button", { name: /support/i });
@@ -46,7 +50,7 @@ describe("SupportButton", () => {
   });
 
   test("shows Scrimba link with correct ambassador URL", () => {
-    render(<SupportButton />);
+    renderWithRouter(<SupportButton />);
 
     // Expand the menu
     const toggleButton = screen.getByRole("button", { name: /support/i });
@@ -61,7 +65,7 @@ describe("SupportButton", () => {
   });
 
   test("shows 20% OFF badge for Scrimba", () => {
-    render(<SupportButton />);
+    renderWithRouter(<SupportButton />);
 
     // Expand the menu
     const toggleButton = screen.getByRole("button", { name: /support/i });
@@ -71,7 +75,7 @@ describe("SupportButton", () => {
   });
 
   test("toggles expanded state when clicked multiple times", () => {
-    render(<SupportButton />);
+    renderWithRouter(<SupportButton />);
 
     const toggleButton = screen.getByRole("button", { name: /support/i });
 
@@ -88,7 +92,7 @@ describe("SupportButton", () => {
   });
 
   test("button is positioned at bottom-left", () => {
-    const { container } = render(<SupportButton />);
+    const { container } = renderWithRouter(<SupportButton />);
 
     const wrapper = container.firstChild;
     expect(wrapper).toHaveClass("fixed", "bottom-6", "left-6");

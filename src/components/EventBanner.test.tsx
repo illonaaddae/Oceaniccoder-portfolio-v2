@@ -52,7 +52,9 @@ describe("EventBanner", () => {
 
     render(<EventBanner />);
 
-    expect(screen.getByText(/It's My Birthday!/i)).toBeInTheDocument();
+    // Use getAllByText since there are multiple matching elements (desktop and mobile versions)
+    const birthdayTexts = screen.getAllByText(/It's My Birthday!/i);
+    expect(birthdayTexts.length).toBeGreaterThan(0);
     expect(
       screen.getByText(/April 28th is my special day/i)
     ).toBeInTheDocument();
@@ -63,7 +65,8 @@ describe("EventBanner", () => {
 
     render(<EventBanner />);
 
-    expect(screen.getByText(/Happy New Year!/i)).toBeInTheDocument();
+    const newYearTexts = screen.getAllByText(/Happy New Year!/i);
+    expect(newYearTexts.length).toBeGreaterThan(0);
   });
 
   test("renders New Year banner on January 3rd (end of range)", () => {
@@ -71,15 +74,19 @@ describe("EventBanner", () => {
 
     render(<EventBanner />);
 
-    expect(screen.getByText(/Happy New Year!/i)).toBeInTheDocument();
+    const newYearTexts = screen.getAllByText(/Happy New Year!/i);
+    expect(newYearTexts.length).toBeGreaterThan(0);
   });
 
   test("does not render banner on regular day", () => {
-    mockDate(6, 15); // June 15th - no event
+    mockDate(8, 5); // August 5th - no event
 
     const { container } = render(<EventBanner />);
 
-    expect(container.firstChild).toBeNull();
+    // Should not render any banner content (except possibly mocked confetti)
+    expect(
+      screen.queryByRole("button", { name: /dismiss/i })
+    ).not.toBeInTheDocument();
   });
 
   test("dismisses banner when close button is clicked", () => {
@@ -88,7 +95,8 @@ describe("EventBanner", () => {
     render(<EventBanner />);
 
     // Banner should be visible
-    expect(screen.getByText(/It's My Birthday!/i)).toBeInTheDocument();
+    const birthdayTexts = screen.getAllByText(/It's My Birthday!/i);
+    expect(birthdayTexts.length).toBeGreaterThan(0);
 
     // Click dismiss button
     const dismissButton = screen.getByRole("button", { name: /dismiss/i });

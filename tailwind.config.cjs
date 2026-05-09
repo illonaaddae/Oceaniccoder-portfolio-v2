@@ -1,0 +1,114 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
+  darkMode: "class", // Changed from "selector" to "class"
+  theme: {
+    screens: {
+      xs: "480px",
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+    },
+    extend: {
+      colors: {
+        brand: {
+          "ocean-1": "#04333B",
+          "ocean-2": "#0C8599",
+          "ocean-3": "#26a9c5",
+          "ocean-4": "#085866",
+          "ocean-5": "#064350",
+          "dark-1": "#000b21",
+          "dark-2": "#001321",
+          "dark-3": "#04333B",
+          "dark-4": "#1d2340",
+          "text-light": "#F2FAFD",
+          "text-gray": "#EAEAEB",
+        },
+        oceanic: {
+          50: "#e6f7fa",
+          100: "#c1ecf4",
+          200: "#8dd7e7",
+          300: "#52bfd7",
+          400: "#26a9c5",
+          500: "#0C8599", // brand light shade
+          600: "#0a6e7d",
+          700: "#085866",
+          800: "#064350",
+          900: "#04333B", // brand dark shade
+        },
+      },
+      fontFamily: {
+        heading: ["Space Grotesk", "sans-serif"],
+        display: ["Space Grotesk", "sans-serif"],
+        body: ["Ysabeau Office", "Space Grotesk", "sans-serif"],
+        sans: ["Ysabeau Office", "Space Grotesk", "sans-serif"],
+      },
+      animation: {
+        "liquid-1": "liquid1 8s ease-in-out infinite",
+        "liquid-2": "liquid2 10s ease-in-out infinite",
+        "liquid-3": "liquid3 12s ease-in-out infinite",
+        float: "float 6s ease-in-out infinite",
+        glow: "glow 2s ease-in-out infinite alternate",
+        "pulse-slow": "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+      },
+      keyframes: {
+        liquid1: {
+          "0%, 100%": {
+            transform: "translate(0px, 0px) scale(1) rotate(0deg)",
+            borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%",
+          },
+          "33%": {
+            transform: "translate(30px, -30px) scale(1.1) rotate(120deg)",
+            borderRadius: "30% 60% 70% 40% / 50% 60% 30% 60%",
+          },
+          "66%": {
+            transform: "translate(-20px, 20px) scale(0.9) rotate(240deg)",
+            borderRadius: "70% 30% 40% 60% / 40% 50% 60% 50%",
+          },
+        },
+        liquid2: {
+          "0%, 100%": {
+            transform: "translate(0px, 0px) scale(1) rotate(0deg)",
+            borderRadius: "40% 60% 30% 70% / 60% 30% 70% 40%",
+          },
+          "33%": {
+            transform: "translate(-30px, 30px) scale(0.8) rotate(-120deg)",
+            borderRadius: "60% 30% 70% 40% / 50% 60% 30% 60%",
+          },
+          "66%": {
+            transform: "translate(20px, -20px) scale(1.2) rotate(-240deg)",
+            borderRadius: "30% 70% 40% 60% / 40% 50% 60% 50%",
+          },
+        },
+        liquid3: {
+          "0%, 100%": {
+            transform: "translate(0px, 0px) scale(1)",
+            borderRadius: "50% 50% 50% 50% / 50% 50% 50% 50%",
+          },
+          "50%": {
+            transform: "translate(25px, 25px) scale(1.1)",
+            borderRadius: "30% 70% 60% 40% / 50% 60% 30% 70%",
+          },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        glow: {
+          from: {
+            boxShadow: "0 0 20px #0C8599, 0 0 40px #0C8599",
+          },
+          to: {
+            boxShadow: "0 0 30px #0C8599, 0 0 60px #0C8599, 0 0 80px #0C8599",
+          },
+        },
+      },
+      backdropBlur: {
+        xs: "2px",
+      },
+    },
+  },
+  plugins: [],
+};

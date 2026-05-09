@@ -100,11 +100,11 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                theme === "dark" ? "bg-cyan-500/20" : "bg-blue-100"
+                theme === "dark" ? "bg-oceanic-500/20" : "bg-blue-100"
               }`}
             >
               <FaUser
-                className={theme === "dark" ? "text-cyan-400" : "text-blue-600"}
+                className={theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"}
               />
             </div>
             <div>
@@ -118,7 +118,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
               <a
                 href={`mailto:${message.email}`}
                 className={`text-sm hover:underline ${
-                  theme === "dark" ? "text-cyan-400" : "text-blue-600"
+                  theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"
                 }`}
               >
                 {message.email}
@@ -155,8 +155,8 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
               href={getMailtoUrl()}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 no-underline ${
                 theme === "dark"
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25"
-                  : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25"
+                  ? "bg-gradient-to-r from-oceanic-500 to-oceanic-900 hover:from-oceanic-400 hover:to-oceanic-400 text-white shadow-lg shadow-oceanic-500/25"
+                  : "bg-gradient-to-r from-blue-500 to-oceanic-500 hover:from-blue-600 hover:to-oceanic-600 text-white shadow-lg shadow-blue-500/25"
               }`}
             >
               <FaReply />

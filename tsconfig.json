@@ -21,17 +21,15 @@
 
     /* Type checking - gradual */
     "noImplicitAny": false,
-    "strict": false,
+    "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
 
-    /* Silence deprecation warning for baseUrl */
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
+    /* Path aliases */
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"],

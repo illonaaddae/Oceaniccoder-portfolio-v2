@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FaGraduationCap,
   FaPlus,
@@ -7,6 +8,7 @@ import {
   FaEyeSlash,
 } from "react-icons/fa";
 import type { Education } from "@/types";
+import { ToastContainer, useToast } from "../Toast";
 
 interface EducationTabProps {
   theme: "light" | "dark";
@@ -27,6 +29,22 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   onShowForm,
   isReadOnly = false,
 }) => {
+  const toast = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (edu: Education) => {
+    if (!window.confirm("Delete this education record?")) return;
+    setDeletingId(edu.$id);
+    try {
+      await onDelete(edu.$id);
+      toast.success(`"${edu.degree}" deleted successfully`);
+    } catch {
+      toast.error("Failed to delete education record. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -51,8 +69,8 @@ export const EducationTab: React.FC<EducationTabProps> = ({
             onClick={onShowForm}
             className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl font-medium text-sm sm:text-base transition duration-200 border shadow-lg ${
               theme === "dark"
-                ? "bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-500/50 text-white hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/20"
-                : "bg-gradient-to-r from-blue-500 to-cyan-400 border-blue-400/50 text-white hover:from-blue-600 hover:to-cyan-500 shadow-blue-400/30"
+                ? "bg-gradient-to-r from-oceanic-600 to-oceanic-900 border-oceanic-500/50 text-white hover:from-oceanic-500 hover:to-oceanic-900 shadow-oceanic-500/20"
+                : "bg-gradient-to-r from-oceanic-500 to-oceanic-900 border-oceanic-500/50 text-white hover:from-oceanic-400 hover:to-oceanic-800 shadow-oceanic-500/20"
             }`}
           >
             <FaPlus className="text-sm" />
@@ -119,7 +137,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                     </h3>
                     <p
                       className={`${
-                        theme === "dark" ? "text-cyan-400" : "text-blue-600"
+                        theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"
                       }`}
                     >
                       {edu.institution}
@@ -169,12 +187,9 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                       <FaEdit />
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm("Delete this education record?")) {
-                          onDelete(edu.$id);
-                        }
-                      }}
-                      className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      onClick={() => handleDelete(edu)}
+                      disabled={deletingId === edu.$id}
+                      className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Delete"
                     >
                       <FaTrash />
@@ -186,6 +201,11 @@ export const EducationTab: React.FC<EducationTabProps> = ({
           ))}
         </div>
       )}
+      <ToastContainer
+        toasts={toast.toasts}
+        onRemove={toast.removeToast}
+        theme={theme}
+      />
     </div>
   );
 };

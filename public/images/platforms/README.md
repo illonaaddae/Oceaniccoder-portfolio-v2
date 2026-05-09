@@ -37,3 +37,4 @@ To add a new platform logo:
 - Style: Should work in both light and dark themes
 - Colors: Use platform's brand colors
 
+

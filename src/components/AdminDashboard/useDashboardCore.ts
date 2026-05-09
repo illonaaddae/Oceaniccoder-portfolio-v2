@@ -1,0 +1,85 @@
+import { useState, useEffect, useRef } from "react";
+import useTheme from "@/hooks/useTheme";
+import { useAdminData } from "./useAdminData";
+import { useFilteredData } from "./useFilteredData";
+import { useToast } from "./Toast";
+import { getBookings } from "@/services/api/bookings";
+import type { TabType } from "./types";
+
+export function useDashboardCore() {
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    toasts,
+    removeToast,
+    success: showSuccess,
+    error: showError,
+  } = useToast();
+  const { theme: rawTheme, toggleTheme } = useTheme();
+  const theme = (
+    rawTheme === "light" || rawTheme === "dark" ? rawTheme : "dark"
+  ) as "light" | "dark";
+
+  const adminData = useAdminData();
+  const { messages, projects, certifications, gallery, loading } = adminData;
+
+  const filtered = useFilteredData(
+    searchQuery,
+    messages,
+    adminData.skills,
+    projects,
+    certifications,
+    gallery,
+    adminData.education,
+    adminData.journey,
+    adminData.blogPosts,
+  );
+
+  const newMessages = messages.filter(
+    (m) => !m.status || m.status === "new",
+  ).length;
+
+  const [pendingBookings, setPendingBookings] = useState(0);
+  const prevPendingRef = useRef<number | null>(null);
+  const showSuccessRef = useRef(showSuccess);
+  showSuccessRef.current = showSuccess;
+  useEffect(() => {
+    const check = () => {
+      getBookings()
+        .then((b) => {
+          const count = b.filter((x) => x.status === "pending").length;
+          if (prevPendingRef.current !== null && count > prevPendingRef.current) {
+            showSuccessRef.current(`New booking received! ${count} pending.`);
+          }
+          prevPendingRef.current = count;
+          setPendingBookings(count);
+        })
+        .catch(() => {});
+    };
+    check();
+    const id = setInterval(check, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return {
+    activeTab,
+    setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    toasts,
+    removeToast,
+    showSuccess,
+    showError,
+    theme,
+    toggleTheme,
+    adminData,
+    filtered,
+    messages,
+    projects,
+    certifications,
+    gallery,
+    loading,
+    newMessages,
+    pendingBookings,
+  };
+}

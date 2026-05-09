@@ -28,7 +28,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => (
   <div className={`text-center ${className}`}>
     <div
-      className={`${sizeClasses[size]} border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4`}
+      className={`${sizeClasses[size]} border-oceanic-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}
       role="status"
       aria-label="Loading"
     />
