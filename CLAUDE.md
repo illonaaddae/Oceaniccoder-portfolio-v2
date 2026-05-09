@@ -8,7 +8,7 @@ Instructions for Claude Code when working in this repository.
 
 Follow Conventional Commits. Always use this format:
 
-```
+```text
 <type>(OC-<n>): <short description>
 
 <optional body>
@@ -20,7 +20,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
 **Examples:**
 
-```
+```text
 feat(OC-12): add Google Meet link to booking confirmation
 fix(OC-7): resolve VITE_FUNCTIONS_BASE_URL not baking into Azure build
 chore(OC-3): update PR template to professional format
@@ -41,7 +41,7 @@ Always use the PR template at `.github/PULL_REQUEST_TEMPLATE.md`. Fill in all se
 
 ## Branch Naming
 
-```
+```text
 feat/OC-<n>-short-description
 fix/OC-<n>-short-description
 chore/OC-<n>-short-description
@@ -71,8 +71,8 @@ To run manually: `npx lint-staged`
 - **Frontend:** React 19 + TypeScript + Vite
 - **Styling:** Tailwind CSS
 - **Backend/DB:** Appwrite (browser SDK — no server)
-- **Serverless functions:** Netlify Functions (`netlify/functions/*.mjs`)
-- **Hosting:** Azure Static Web Apps (domain) + Netlify (functions)
+- **Serverless functions:** Azure Functions (`api/*/index.js`) — deployed alongside the static app at `oceaniccoder.dev/api/*`
+- **Hosting:** Azure Static Web Apps (`oceaniccoder.dev`) — serves both the app and functions
 - **Auth:** Appwrite session-based admin auth
 - **Testing:** Vitest + Testing Library
 
@@ -82,23 +82,32 @@ To run manually: `npx lint-staged`
 
 All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never reads them at runtime.
 
-| Variable                    | Purpose                                     |
-| --------------------------- | ------------------------------------------- |
-| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint                       |
-| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project                            |
-| `VITE_APPWRITE_DATABASE_ID` | Appwrite database                           |
-| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket                     |
-| `VITE_ADMIN_EMAIL`          | Admin account email                         |
-| `VITE_ADMIN_PASSWORD_HASH`  | SHA-256 fallback hash                       |
-| `VITE_FUNCTIONS_BASE_URL`   | Netlify site URL for cross-origin API calls |
+| Variable                    | Purpose                 |
+| --------------------------- | ----------------------- |
+| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint   |
+| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project        |
+| `VITE_APPWRITE_DATABASE_ID` | Appwrite database       |
+| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket |
+| `VITE_ADMIN_EMAIL`          | Admin account email     |
+| `VITE_ADMIN_PASSWORD_HASH`  | SHA-256 fallback hash   |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
+
+Azure Function runtime vars (set in **Azure Portal → Static Web App → Configuration → Application settings**):
+
+| Variable               | Purpose                          |
+| ---------------------- | -------------------------------- |
+| `GOOGLE_CLIENT_ID`     | OAuth client for Calendar API    |
+| `GOOGLE_CLIENT_SECRET` | OAuth secret                     |
+| `GOOGLE_REFRESH_TOKEN` | Long-lived refresh token         |
+| `GOOGLE_CALENDAR_ID`   | Calendar ID (usually your email) |
+| `OPENAI_API_KEY`       | Chatbot (GPT-4o-mini)            |
 
 ---
 
 ## Project Structure
 
-```
+```text
 src/
   components/         # UI components (sub-folders for complex ones)
   services/api/       # Appwrite data layer (one file per domain)
@@ -106,7 +115,7 @@ src/
   utils/              # Pure utilities
   lib/                # SDK setup (appwrite.ts)
   types/              # Shared TypeScript types
-netlify/functions/    # Serverless functions (chat, create-booking, get-availability)
+api/                  # Azure Functions (chat, create-booking, get-availability)
 .github/
   workflows/          # CI (ci.yml) + Azure deploy (azure-static-web-apps.yml)
   PULL_REQUEST_TEMPLATE.md
@@ -122,7 +131,7 @@ netlify/functions/    # Serverless functions (chat, create-booking, get-availabi
 - Never use `any` TypeScript type without a comment explaining why
 - Never push directly to `main` without CI passing — always use a PR
 - New UI components must be tested in the browser before marking done
-- API calls to Netlify functions go through `src/utils/apiUrl.ts` — never hardcode URLs
+- API calls go through `src/utils/apiUrl.ts` — never hardcode URLs (uses relative paths → Azure Functions)
 - Admin routes are protected by Appwrite session — do not add client-side-only guards
 - The public `/dashboard` route is intentionally read-only — keep `isReadOnly` prop respected
 
@@ -134,6 +143,7 @@ netlify/functions/    # Serverless functions (chat, create-booking, get-availabi
 npm install
 npm run dev           # Vite dev server on :5173
 
-# For full local testing with Netlify functions:
-npx netlify dev       # proxies both Vite + functions
+# For full local testing with Azure Functions:
+npx func start        # Azure Functions Core Tools (install: npm i -g azure-functions-core-tools@4)
+# Run both in separate terminals; Vite proxies /api/* to :7071 via vite.config.ts
 ```
