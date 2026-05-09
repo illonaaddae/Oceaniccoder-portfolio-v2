@@ -15,7 +15,7 @@ import {
   FaGlobe,
   FaExternalLinkAlt,
 } from "react-icons/fa";
-import { createBooking, isSlotBooked, getBookedTimesForDate } from "../services/api/bookings";
+import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
 import { apiUrl } from "../utils/apiUrl";
 
 const MEETING_TYPES = [
@@ -105,7 +105,6 @@ export default function BookingSection() {
     const availUrl = apiUrl(
       `/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`,
     );
-    console.log("[booking] get-availability URL:", availUrl);
     fetch(availUrl)
       .then((r) => r.json())
       .then((data) => setSlotAvailability(data.available || {}))
@@ -136,26 +135,15 @@ export default function BookingSection() {
     setError("");
     setSubmitting(true);
     try {
-      // 1. Final double-booking guard (race-condition safety — UI already shows taken slots)
-      try {
-        const taken = await isSlotBooked(form.preferredDate, form.preferredTime);
-        if (taken) {
-          setError(
-            `${form.preferredTime} on that day is already booked. Please choose a different time slot.`,
-          );
-          return;
-        }
-      } catch {
-        // Appwrite unavailable — proceed
-      }
+      // Double-booking is enforced server-side in the Azure Function (guests can't
+      // query Appwrite directly — 401). The function returns 409 if slot is taken.
 
-      // 2. Try calendar event creation — best-effort, don't block booking if unavailable
+      // Try calendar event creation — best-effort, don't block booking if unavailable
       let calMeetLink = null;
       let calEventLink = null;
 
       try {
         const bookingUrl = apiUrl("/api/create-booking");
-        console.log("[booking] create-booking URL:", bookingUrl);
         const meetRes = await fetch(bookingUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -326,8 +314,8 @@ export default function BookingSection() {
                   "Video call link sent to your email",
                   "Flexible rescheduling if needed",
                   "All meetings held in English",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-2">
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-2">
                     <FaCheckCircle
                       className="mt-0.5 shrink-0"
                       style={{ color: "var(--accent-teal)" }}

@@ -77,6 +77,41 @@ async function getAccessToken() {
   return data.access_token;
 }
 
+const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
+const APPWRITE_DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "6943493400018e7c314c";
+const APPWRITE_BOOKINGS_COLLECTION = "bookings";
+
+async function isSlotTaken(date, time) {
+  const apiKey = process.env.APPWRITE_API_KEY;
+  if (!apiKey) return false; // skip check if key not configured
+
+  const q1 = encodeURIComponent(
+    JSON.stringify({ method: "equal", attribute: "preferredDate", values: [date] }),
+  );
+  const q2 = encodeURIComponent(
+    JSON.stringify({ method: "equal", attribute: "preferredTime", values: [time] }),
+  );
+  const path = `/v1/databases/${APPWRITE_DATABASE_ID}/collections/${APPWRITE_BOOKINGS_COLLECTION}/documents?queries[]=${q1}&queries[]=${q2}&limit=1`;
+
+  const url = new URL(APPWRITE_ENDPOINT);
+  const res = await httpsRequest(
+    url.hostname,
+    path,
+    "GET",
+    {
+      "X-Appwrite-Project": APPWRITE_PROJECT_ID,
+      "X-Appwrite-Key": apiKey,
+      "Content-Type": "application/json",
+    },
+    "",
+  );
+
+  if (res.status !== 200) return false;
+  const data = JSON.parse(res.body);
+  return (data.total ?? 0) > 0;
+}
+
 const ok = (context, body) => {
   context.res = { status: 200, headers: CORS, body: JSON.stringify(body) };
 };
@@ -97,6 +132,24 @@ module.exports = async function (context, req) {
       body: JSON.stringify({ error: "Missing required fields" }),
     };
     return;
+  }
+
+  // Server-side double-booking guard — guests can't query Appwrite directly
+  try {
+    const taken = await isSlotTaken(preferredDate, preferredTime);
+    if (taken) {
+      context.res = {
+        status: 409,
+        headers: CORS,
+        body: JSON.stringify({
+          error: "slot_taken",
+          message: `${preferredTime} on ${preferredDate} is already booked. Please choose a different time.`,
+        }),
+      };
+      return;
+    }
+  } catch (err) {
+    context.log.warn("Slot check failed (non-fatal):", err.message);
   }
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
