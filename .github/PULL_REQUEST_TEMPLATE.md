@@ -1,32 +1,39 @@
-## Summary
+<!--
+PR title format: <type>(OC-<number>): <short description>
+Types: feat | fix | chore | refactor | docs | style | test | perf
+Example: feat(OC-12): Add Google Meet link to booking confirmation
+-->
 
-<!-- What does this PR do? One or two sentences. -->
+## What
 
-## Type of Change
+<!-- What was built or changed -->
 
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Refactor / code quality
-- [ ] Documentation
-- [ ] Dependency update
+## Why
 
-## Changes
+<!-- Which acceptance criteria this satisfies — reference ticket numbers if tracked -->
 
-<!-- Bullet list of concrete changes made -->
+## How to Test
 
--
+<!-- Step-by-step testing instructions for the reviewer -->
 
-## Testing
+1.
+2.
+3.
 
-- [ ] `npm run type-check` passes
-- [ ] `npm run lint` passes
-- [ ] `npm run build` succeeds
-- [ ] Tested in browser (describe what you verified)
+## Screenshots
 
-## Screenshots (if UI change)
+<!-- Required for any UI changes — before/after or just after for new features -->
 
-<!-- Before/after or just after if new -->
+## Checklist
 
-## Related Issues
+- [ ] Lint passing (`npm run lint`)
+- [ ] Type check passing (`npm run type-check`)
+- [ ] Prettier passing (`npm run format:check`)
+- [ ] Tests passing (`npm test`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] Tested in browser (describe what you verified above)
+- [ ] No `any` TypeScript types introduced
+- [ ] New components have a `.test.tsx` file
+- [ ] No hardcoded secrets or API keys
 
-<!-- Closes #123 -->
+Relates to OC-<n>
