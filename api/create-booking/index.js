@@ -154,7 +154,13 @@ module.exports = async function (context, req) {
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   if (!process.env.GOOGLE_CLIENT_ID || !calendarId) {
-    ok(context, { success: true, meetLink: null, calendarEventLink: null });
+    context.log.warn("Google creds not configured — skipping calendar event creation");
+    ok(context, {
+      success: true,
+      meetLink: null,
+      calendarEventLink: null,
+      _phase: "google_unconfigured",
+    });
     return;
   }
 
@@ -215,8 +221,13 @@ module.exports = async function (context, req) {
     );
 
     if (calRes.status !== 200) {
-      context.log.error("Calendar API error:", calRes.body);
-      ok(context, { success: true, meetLink: null, calendarEventLink: null });
+      context.log.error(`Calendar API error (HTTP ${calRes.status}):`, calRes.body);
+      ok(context, {
+        success: true,
+        meetLink: null,
+        calendarEventLink: null,
+        _phase: `calendar_api_${calRes.status}`,
+      });
       return;
     }
 
@@ -227,7 +238,7 @@ module.exports = async function (context, req) {
 
     ok(context, { success: true, meetLink, calendarEventLink });
   } catch (err) {
-    context.log.error("create-booking error:", err);
-    ok(context, { success: true, meetLink: null, calendarEventLink: null });
+    context.log.error("create-booking error:", String(err));
+    ok(context, { success: true, meetLink: null, calendarEventLink: null, _phase: "exception" });
   }
 };
