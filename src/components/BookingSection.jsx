@@ -61,6 +61,21 @@ const TIME_SLOTS = [
   "05:00 PM",
 ];
 
+const PLATFORMS = [
+  {
+    id: "google",
+    label: "Google Meet",
+    desc: "Browser-based, no install needed",
+    color: "#1a73e8",
+  },
+  {
+    id: "zoom",
+    label: "Zoom",
+    desc: "Zoom client or browser link",
+    color: "#2D8CFF",
+  },
+];
+
 const INITIAL_FORM = {
   name: "",
   email: "",
@@ -70,6 +85,7 @@ const INITIAL_FORM = {
   preferredTime: "",
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   message: "",
+  preferredPlatform: "google",
 };
 
 const getTodayMin = () => {
@@ -86,6 +102,7 @@ export default function BookingSection() {
   const sectionTopRef = useRef(null);
   const [bookingRef, setBookingRef] = useState("");
   const [meetLink, setMeetLink] = useState("");
+  const [zoomLink, setZoomLink] = useState("");
   const [calendarLink, setCalendarLink] = useState("");
   const [slotAvailability, setSlotAvailability] = useState({});
   const [appwriteBookedSlots, setAppwriteBookedSlots] = useState(new Set());
@@ -140,6 +157,7 @@ export default function BookingSection() {
 
       // Try calendar event creation — best-effort, don't block booking if unavailable
       let calMeetLink = null;
+      let calZoomLink = null;
       let calEventLink = null;
 
       try {
@@ -162,23 +180,26 @@ export default function BookingSection() {
         if (meetRes.ok) {
           const meetData = await meetRes.json();
           calMeetLink = meetData.meetLink ?? null;
+          calZoomLink = meetData.zoomLink ?? null;
           calEventLink = meetData.calendarEventLink ?? null;
         }
       } catch {
-        // API unavailable locally (run `netlify dev` for full local testing) — continue to save
+        // API unavailable locally (run `func start` for full local testing) — continue to save
       }
 
-      // 3. Save booking to Appwrite (include meet link so admin can resend it on confirm)
+      // Save booking to Appwrite (include meet/zoom link so admin can resend it on confirm)
       const result = await createBooking({
         ...form,
         status: "pending",
         meetingLink: calMeetLink ?? undefined,
+        zoomLink: calZoomLink ?? undefined,
         calendarEventLink: calEventLink ?? undefined,
       });
       const ref = result.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
       setBookingRef(ref);
 
       if (calMeetLink) setMeetLink(calMeetLink);
+      if (calZoomLink) setZoomLink(calZoomLink);
       if (calEventLink) setCalendarLink(calEventLink);
 
       setStep(4);
@@ -618,6 +639,51 @@ export default function BookingSection() {
                           <span>Your timezone: {form.timezone}</span>
                         </div>
 
+                        {/* Platform picker */}
+                        <div className="space-y-2">
+                          <p
+                            className="block text-sm font-semibold"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Meeting Platform
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {PLATFORMS.map((p) => {
+                              const selected = form.preferredPlatform === p.id;
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => handleChange("preferredPlatform", p.id)}
+                                  className="rounded-xl p-3 border text-left transition-all duration-200"
+                                  style={{
+                                    borderColor: selected ? p.color : "var(--border-subtle)",
+                                    background: selected ? `${p.color}18` : "var(--bg-secondary)",
+                                    touchAction: "manipulation",
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <FaVideo
+                                      className="text-sm"
+                                      style={{
+                                        color: selected ? p.color : "var(--text-secondary)",
+                                      }}
+                                    />
+                                    <span
+                                      className="text-sm font-semibold"
+                                      style={{ color: selected ? p.color : "var(--text-primary)" }}
+                                    >
+                                      {p.label}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                                    {p.desc}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         <button
                           disabled={!canProceedStep2}
                           onTouchStart={blurActive}
@@ -755,7 +821,7 @@ export default function BookingSection() {
                 <FaCheckCircle className="text-4xl" style={{ color: "var(--accent-teal)" }} />
               </div>
               <h2 className="text-3xl font-bold mb-3" style={{ color: "var(--text-primary)" }}>
-                {meetLink ? "You're Booked!" : "Booking Received!"}
+                {meetLink || zoomLink ? "You're Booked!" : "Booking Received!"}
               </h2>
               <p className="mb-2" style={{ color: "var(--text-secondary)" }}>
                 Thanks <strong style={{ color: "var(--text-primary)" }}>{form.name}</strong>!
@@ -763,7 +829,9 @@ export default function BookingSection() {
               <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
                 {meetLink
                   ? "A Google Calendar invite with your Meet link has been sent to your email."
-                  : "I'll confirm your booking and send a meeting link within 24 hours."}{" "}
+                  : zoomLink
+                    ? "Your Zoom meeting link is ready below. A confirmation has been sent to your email."
+                    : "I'll confirm your booking and send a meeting link within 24 hours."}{" "}
                 <span style={{ color: "var(--accent-teal)" }}>
                   {MEETING_TYPES.find((m) => m.id === form.meetingType)?.label}
                 </span>
@@ -791,6 +859,23 @@ export default function BookingSection() {
                 >
                   <FaVideo className="text-lg" />
                   Join Google Meet
+                  <FaExternalLinkAlt className="text-xs opacity-70" />
+                </a>
+              )}
+
+              {/* Zoom link — shown when Zoom was selected */}
+              {zoomLink && (
+                <a
+                  href={zoomLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-white mb-4 transition-all hover:opacity-90 hover:scale-[1.02]"
+                  style={{
+                    background: "linear-gradient(135deg, #2D8CFF 0%, #0b5ed7 100%)",
+                  }}
+                >
+                  <FaVideo className="text-lg" />
+                  Join Zoom Meeting
                   <FaExternalLinkAlt className="text-xs opacity-70" />
                 </a>
               )}
@@ -830,6 +915,7 @@ export default function BookingSection() {
                   setStep(1);
                   setBookingRef("");
                   setMeetLink("");
+                  setZoomLink("");
                   setCalendarLink("");
                 }}
                 className="w-full py-3 rounded-xl font-semibold border transition-all"

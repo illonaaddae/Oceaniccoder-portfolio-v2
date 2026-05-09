@@ -12,7 +12,9 @@ export interface Booking {
   timezone: string;
   message: string;
   status: string;
+  preferredPlatform?: string;
   meetingLink?: string;
+  zoomLink?: string;
   calendarEventLink?: string;
 }
 

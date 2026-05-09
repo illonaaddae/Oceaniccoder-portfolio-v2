@@ -81,6 +81,53 @@ async function getAccessToken() {
   return data.access_token;
 }
 
+async function getZoomToken() {
+  const accountId = process.env.ZOOM_ACCOUNT_ID;
+  const clientId = process.env.ZOOM_CLIENT_ID;
+  const clientSecret = process.env.ZOOM_CLIENT_SECRET;
+  if (!accountId || !clientId || !clientSecret) return null;
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const body = `grant_type=account_credentials&account_id=${encodeURIComponent(accountId)}`;
+  const result = await httpsRequest(
+    "zoom.us",
+    "/oauth/token",
+    "POST",
+    { Authorization: `Basic ${credentials}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  );
+  const data = JSON.parse(result.body);
+  if (!data.access_token) {
+    const errCode = data.reason || data.error || `http_${result.status}`;
+    throw new Error(`zoom_oauth:${errCode}`);
+  }
+  return data.access_token;
+}
+
+async function createZoomMeeting(
+  token,
+  { name, preferredDate, preferredTime, timezone, duration, label },
+) {
+  const { hours, minutes } = parseTime(preferredTime);
+  const startTime = `${preferredDate}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+  const meeting = {
+    topic: `${label} with ${name}`,
+    type: 2,
+    start_time: startTime,
+    duration,
+    timezone: timezone || "UTC",
+    settings: { host_video: true, participant_video: true, waiting_room: true },
+  };
+  const result = await httpsRequest(
+    "api.zoom.us",
+    "/v2/users/me/meetings",
+    "POST",
+    { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    meeting,
+  );
+  if (result.status !== 201) throw new Error(`zoom_api:${result.status}`);
+  return JSON.parse(result.body).join_url ?? null;
+}
+
 const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
 const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
 const APPWRITE_DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "6943493400018e7c314c";
@@ -126,8 +173,17 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const { name, email, meetingType, preferredDate, preferredTime, timezone, message, phone } =
-    req.body || {};
+  const {
+    name,
+    email,
+    meetingType,
+    preferredDate,
+    preferredTime,
+    timezone,
+    message,
+    phone,
+    preferredPlatform,
+  } = req.body || {};
 
   if (!name || !email || !meetingType || !preferredDate || !preferredTime) {
     context.res = {
@@ -156,11 +212,59 @@ module.exports = async function (context, req) {
     context.log.warn("Slot check failed (non-fatal):", err.message);
   }
 
+  // ── Zoom path ────────────────────────────────────────────────────────────────
+  if ((preferredPlatform || "google").toLowerCase() === "zoom") {
+    const zoomConfigured =
+      process.env.ZOOM_ACCOUNT_ID && process.env.ZOOM_CLIENT_ID && process.env.ZOOM_CLIENT_SECRET;
+    if (!zoomConfigured) {
+      ok(context, {
+        success: true,
+        zoomLink: null,
+        meetLink: null,
+        calendarEventLink: null,
+        _phase: "zoom_unconfigured",
+      });
+      return;
+    }
+    try {
+      const zoomToken = await getZoomToken();
+      const duration = MEETING_DURATIONS[meetingType] ?? 30;
+      const label = MEETING_LABELS[meetingType] ?? meetingType;
+      const zoomJoinUrl = await createZoomMeeting(zoomToken, {
+        name,
+        preferredDate,
+        preferredTime,
+        timezone,
+        duration,
+        label,
+      });
+      ok(context, {
+        success: true,
+        zoomLink: zoomJoinUrl,
+        meetLink: null,
+        calendarEventLink: null,
+      });
+    } catch (err) {
+      const msg = String(err);
+      context.log.error("zoom meeting error:", msg);
+      ok(context, {
+        success: true,
+        zoomLink: null,
+        meetLink: null,
+        calendarEventLink: null,
+        _phase: msg,
+      });
+    }
+    return;
+  }
+
+  // ── Google Calendar path ──────────────────────────────────────────────────
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   if (!process.env.GOOGLE_CLIENT_ID || !calendarId) {
     context.log.warn("Google creds not configured — skipping calendar event creation");
     ok(context, {
       success: true,
+      zoomLink: null,
       meetLink: null,
       calendarEventLink: null,
       _phase: "google_unconfigured",
@@ -228,6 +332,7 @@ module.exports = async function (context, req) {
       context.log.error(`Calendar API error (HTTP ${calRes.status}):`, calRes.body);
       ok(context, {
         success: true,
+        zoomLink: null,
         meetLink: null,
         calendarEventLink: null,
         _phase: `calendar_api_${calRes.status}`,
@@ -240,10 +345,16 @@ module.exports = async function (context, req) {
       ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
     const calendarEventLink = ev.htmlLink ?? null;
 
-    ok(context, { success: true, meetLink, calendarEventLink });
+    ok(context, { success: true, zoomLink: null, meetLink, calendarEventLink });
   } catch (err) {
     const msg = String(err);
     context.log.error("create-booking error:", msg);
-    ok(context, { success: true, meetLink: null, calendarEventLink: null, _phase: msg });
+    ok(context, {
+      success: true,
+      zoomLink: null,
+      meetLink: null,
+      calendarEventLink: null,
+      _phase: msg,
+    });
   }
 };
