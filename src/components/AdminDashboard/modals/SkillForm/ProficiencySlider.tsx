@@ -22,20 +22,14 @@ export const ProficiencySlider: React.FC<ProficiencySliderProps> = ({
         min="0"
         max="100"
         value={form.percentage}
-        onChange={(e) =>
-          setForm({ ...form, percentage: parseInt(e.target.value) })
-        }
+        onChange={(e) => setForm({ ...form, percentage: parseInt(e.target.value) })}
         className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-oceanic-500"
         title="Skill proficiency percentage"
         aria-label="Skill proficiency percentage"
       />
       <div className="flex justify-between text-xs mt-1">
-        <span className={theme === "dark" ? "text-slate-400" : "text-slate-600"}>
-          Beginner
-        </span>
-        <span className={theme === "dark" ? "text-slate-400" : "text-slate-600"}>
-          Expert
-        </span>
+        <span className={theme === "dark" ? "text-slate-400" : "text-slate-600"}>Beginner</span>
+        <span className={theme === "dark" ? "text-slate-400" : "text-slate-600"}>Expert</span>
       </div>
     </div>
   );

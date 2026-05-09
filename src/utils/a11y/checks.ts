@@ -41,8 +41,7 @@ export function checkElementA11y(element: HTMLElement): A11yCheckResult {
   }
 
   if (tagName === "a") {
-    const hasName =
-      element.textContent?.trim() || element.getAttribute("aria-label");
+    const hasName = element.textContent?.trim() || element.getAttribute("aria-label");
     if (!hasName) {
       issues.push({
         element: tagName,

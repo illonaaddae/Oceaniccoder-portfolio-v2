@@ -28,21 +28,13 @@ export const CertificationFormModal: React.FC<CertificationFormModalProps> = ({
     handleSubmit,
     inputClass,
     labelClass,
-  } = useCertificationForm(
-    editingCertification,
-    isOpen,
-    onSubmit,
-    onClose,
-    theme,
-  );
+  } = useCertificationForm(editingCertification, isOpen, onSubmit, onClose, theme);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        editingCertification ? "Edit Certification" : "Add New Certification"
-      }
+      title={editingCertification ? "Edit Certification" : "Add New Certification"}
       theme={theme}
       size="lg"
     >
@@ -81,12 +73,7 @@ export const CertificationFormModal: React.FC<CertificationFormModalProps> = ({
           inputClass={inputClass}
           labelClass={labelClass}
         />
-        <ImageField
-          form={form}
-          updateForm={updateForm}
-          theme={theme}
-          labelClass={labelClass}
-        />
+        <ImageField form={form} updateForm={updateForm} theme={theme} labelClass={labelClass} />
         <FormActions
           onClose={onClose}
           loading={loading}

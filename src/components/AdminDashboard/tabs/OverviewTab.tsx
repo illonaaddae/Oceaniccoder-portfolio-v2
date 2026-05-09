@@ -26,10 +26,38 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 }) => {
   const skillCategories = new Set(filteredSkills.map((s) => s.category)).size;
   const stats: StatItem[] = [
-    { label: "Total Projects", value: totalProjects, change: "+2 this mo", icon: FaFolder, bgGradient: "from-blue-600 to-oceanic-900", tabLink: "projects" },
-    { label: "Active Skills", value: filteredSkills.length, change: `Across ${skillCategories} categories`, icon: FaCode, bgGradient: "from-purple-600 to-purple-500", tabLink: "skills" },
-    { label: "Certifications", value: totalCertifications, change: "Latest: AWS Cloud", icon: FaAward, bgGradient: "from-amber-600 to-amber-500", tabLink: "certifications" },
-    { label: "Site Views", value: siteViews, change: "Total page visits", icon: FaEye, bgGradient: "from-oceanic-600 to-oceanic-500", tabLink: null },
+    {
+      label: "Total Projects",
+      value: totalProjects,
+      change: "+2 this mo",
+      icon: FaFolder,
+      bgGradient: "from-blue-600 to-oceanic-900",
+      tabLink: "projects",
+    },
+    {
+      label: "Active Skills",
+      value: filteredSkills.length,
+      change: `Across ${skillCategories} categories`,
+      icon: FaCode,
+      bgGradient: "from-purple-600 to-purple-500",
+      tabLink: "skills",
+    },
+    {
+      label: "Certifications",
+      value: totalCertifications,
+      change: "Latest: AWS Cloud",
+      icon: FaAward,
+      bgGradient: "from-amber-600 to-amber-500",
+      tabLink: "certifications",
+    },
+    {
+      label: "Site Views",
+      value: siteViews,
+      change: "Total page visits",
+      icon: FaEye,
+      bgGradient: "from-oceanic-600 to-oceanic-500",
+      tabLink: null,
+    },
   ];
 
   return (
@@ -41,12 +69,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         onNewProject={onNewProject}
       />
 
-      <StatsGrid
-        theme={theme}
-        loading={loading}
-        stats={stats}
-        onNavigateToTab={onNavigateToTab}
-      />
+      <StatsGrid theme={theme} loading={loading} stats={stats} onNavigateToTab={onNavigateToTab} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <RecentActivity

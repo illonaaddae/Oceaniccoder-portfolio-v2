@@ -1,11 +1,6 @@
 import React from "react";
 import { IconType } from "react-icons";
-import {
-  getCardStyles,
-  getIconColor,
-  getTextStyles,
-  Theme,
-} from "../../utils/themeStyles";
+import { getCardStyles, getIconColor, getTextStyles, Theme } from "../../utils/themeStyles";
 
 interface EmptyStateProps {
   /** Theme for styling */
@@ -24,12 +19,7 @@ interface EmptyStateProps {
 /**
  * Reusable empty state component for lists with no items
  */
-export const EmptyState: React.FC<EmptyStateProps> = ({
-  theme,
-  icon: Icon,
-  message,
-  action,
-}) => (
+export const EmptyState: React.FC<EmptyStateProps> = ({ theme, icon: Icon, message, action }) => (
   <div className={`${getCardStyles(theme, "empty")} p-12 text-center`}>
     <Icon className={`text-4xl mx-auto mb-4 ${getIconColor(theme, "muted")}`} />
     <p className={getTextStyles(theme, "muted")}>{message}</p>

@@ -1,10 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  FaCheckCircle,
-  FaExclamationCircle,
-  FaInfoCircle,
-  FaTimes,
-} from "react-icons/fa";
+import { FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTimes } from "react-icons/fa";
 export type { ToastType, ToastMessage } from "./useToastHook";
 export { useToast } from "./useToastHook";
 import type { ToastMessage } from "./useToastHook";
@@ -54,9 +49,7 @@ const ToastItem: React.FC<{
     <div
       className={`flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-lg animate-slide-in ${TOAST_COLORS[toast.type][theme]}`}
     >
-      <Icon
-        className={`text-lg flex-shrink-0 ${TOAST_COLORS[toast.type].icon}`}
-      />
+      <Icon className={`text-lg flex-shrink-0 ${TOAST_COLORS[toast.type].icon}`} />
       <p className="flex-1 text-sm font-medium">{toast.message}</p>
       <button
         onClick={() => onRemove(toast.id)}
@@ -70,11 +63,7 @@ const ToastItem: React.FC<{
   );
 };
 
-export const ToastContainer: React.FC<ToastProps> = ({
-  toasts,
-  onRemove,
-  theme,
-}) => {
+export const ToastContainer: React.FC<ToastProps> = ({ toasts, onRemove, theme }) => {
   if (toasts.length === 0) return null;
   return (
     <div className="fixed top-4 right-4 z-[200] flex flex-col gap-2 max-w-sm">

@@ -111,13 +111,7 @@ export const PROJECTS_DATA = [
     longDescription:
       "AI-powered image recognition system built with Python and OpenCV. Capable of detecting and classifying multiple objects in real-time with high accuracy rates.",
     category: "AI/ML",
-    technologies: [
-      "Python",
-      "OpenCV",
-      "TensorFlow",
-      "FastAPI",
-      "Machine Learning",
-    ],
+    technologies: ["Python", "OpenCV", "TensorFlow", "FastAPI", "Machine Learning"],
     image:
       "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
     liveUrl: "https://vision.oceaniccoder.dev",

@@ -44,11 +44,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
             : "bg-white/60 border-blue-200/40 text-slate-700 hover:bg-white/80"
         }`}
       >
-        {theme === "dark" ? (
-          <FaSun className="text-xl" />
-        ) : (
-          <FaMoon className="text-xl" />
-        )}
+        {theme === "dark" ? <FaSun className="text-xl" /> : <FaMoon className="text-xl" />}
       </button>
 
       <div className="w-full max-w-md">

@@ -17,12 +17,7 @@ export function handleArrowNavigation(
     columns?: number;
   } = {},
 ): number {
-  const {
-    wrap = true,
-    horizontal = true,
-    vertical = true,
-    columns = 1,
-  } = options;
+  const { wrap = true, horizontal = true, vertical = true, columns = 1 } = options;
   let newIndex = currentIndex;
 
   switch (event.key) {
@@ -41,17 +36,14 @@ export function handleArrowNavigation(
     case "ArrowDown":
       if (vertical) {
         newIndex = currentIndex + columns;
-        if (newIndex >= items.length)
-          newIndex = wrap ? currentIndex % columns : items.length - 1;
+        if (newIndex >= items.length) newIndex = wrap ? currentIndex % columns : items.length - 1;
       }
       break;
     case "ArrowUp":
       if (vertical) {
         newIndex = currentIndex - columns;
         if (newIndex < 0)
-          newIndex = wrap
-            ? items.length - columns + (currentIndex % columns)
-            : currentIndex;
+          newIndex = wrap ? items.length - columns + (currentIndex % columns) : currentIndex;
       }
       break;
     case "Home":

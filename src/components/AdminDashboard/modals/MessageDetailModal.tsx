@@ -34,20 +34,12 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
   };
 
   const getMailtoUrl = () => {
-    const subject = encodeURIComponent(
-      `Re: ${message.subject || "Your Message"}`
-    );
+    const subject = encodeURIComponent(`Re: ${message.subject || "Your Message"}`);
     return `mailto:${message.email}?subject=${subject}`;
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Message Details"
-      theme={theme}
-      size="lg"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Message Details" theme={theme} size="lg">
       <div className="p-6 space-y-6">
         {/* Status Badge */}
         <div className="flex items-center justify-between">
@@ -58,12 +50,12 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
                   ? "bg-blue-500/30 text-blue-100 border-blue-400/30"
                   : "bg-blue-400/20 text-blue-700 border-blue-300/50"
                 : message.status === "read"
-                ? theme === "dark"
-                  ? "bg-yellow-500/30 text-yellow-100 border-yellow-400/30"
-                  : "bg-yellow-400/20 text-yellow-700 border-yellow-300/50"
-                : theme === "dark"
-                ? "bg-green-500/30 text-green-100 border-green-400/30"
-                : "bg-green-400/20 text-green-700 border-green-300/50"
+                  ? theme === "dark"
+                    ? "bg-yellow-500/30 text-yellow-100 border-yellow-400/30"
+                    : "bg-yellow-400/20 text-yellow-700 border-yellow-300/50"
+                  : theme === "dark"
+                    ? "bg-green-500/30 text-green-100 border-green-400/30"
+                    : "bg-green-400/20 text-green-700 border-green-300/50"
             }`}
           >
             {message.status?.toUpperCase() || "NEW"}
@@ -80,11 +72,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
 
         {/* Subject */}
         <div>
-          <h3
-            className={`text-xl font-bold ${
-              theme === "dark" ? "text-white" : "text-slate-900"
-            }`}
-          >
+          <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
             {message.subject}
           </h3>
         </div>
@@ -103,16 +91,10 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
                 theme === "dark" ? "bg-oceanic-500/20" : "bg-blue-100"
               }`}
             >
-              <FaUser
-                className={theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"}
-              />
+              <FaUser className={theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"} />
             </div>
             <div>
-              <p
-                className={`font-semibold ${
-                  theme === "dark" ? "text-white" : "text-slate-900"
-                }`}
-              >
+              <p className={`font-semibold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
                 {message.name}
               </p>
               <a

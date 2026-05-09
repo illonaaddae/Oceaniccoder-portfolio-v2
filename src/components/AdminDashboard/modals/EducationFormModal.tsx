@@ -19,16 +19,8 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
   theme,
   editingEducation,
 }) => {
-  const {
-    form,
-    updateForm,
-    years,
-    loading,
-    error,
-    handleSubmit,
-    inputClass,
-    labelClass,
-  } = useEducationForm({ isOpen, onClose, onSubmit, editingEducation, theme });
+  const { form, updateForm, years, loading, error, handleSubmit, inputClass, labelClass } =
+    useEducationForm({ isOpen, onClose, onSubmit, editingEducation, theme });
 
   return (
     <Modal

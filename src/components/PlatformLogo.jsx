@@ -67,9 +67,7 @@ const PlatformLogo = ({ platformName, className = "w-4 h-4" }) => {
     <img
       src={imageSrc}
       alt={`${platformName} logo`}
-      className={`${className} object-contain ${
-        preserveColors ? "platform-logo-original" : ""
-      }`}
+      className={`${className} object-contain ${preserveColors ? "platform-logo-original" : ""}`}
       onError={handleImageError}
       loading="eager"
       decoding="async"

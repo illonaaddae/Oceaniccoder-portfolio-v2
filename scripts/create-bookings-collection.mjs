@@ -31,7 +31,14 @@ async function ensureCollection() {
   const existing = collections.collections.find((collection) => collection.$id === collectionId);
 
   if (!existing) {
-    await databases.createCollection(databaseId, collectionId, "Bookings", ["create(\"any\")"], true, true);
+    await databases.createCollection(
+      databaseId,
+      collectionId,
+      "Bookings",
+      ['create("any")'],
+      true,
+      true,
+    );
     console.log("created collection");
   } else {
     console.log("collection exists");

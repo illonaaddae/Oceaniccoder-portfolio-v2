@@ -55,9 +55,7 @@ describe("EventBanner", () => {
     // Use getAllByText since there are multiple matching elements (desktop and mobile versions)
     const birthdayTexts = screen.getAllByText(/It's My Birthday!/i);
     expect(birthdayTexts.length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/April 28th is my special day/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/April 28th is my special day/i)).toBeInTheDocument();
   });
 
   test("renders New Year banner on January 1st", () => {
@@ -84,9 +82,7 @@ describe("EventBanner", () => {
     const { container } = render(<EventBanner />);
 
     // Should not render any banner content (except possibly mocked confetti)
-    expect(
-      screen.queryByRole("button", { name: /dismiss/i })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dismiss/i })).not.toBeInTheDocument();
   });
 
   test("dismisses banner when close button is clicked", () => {

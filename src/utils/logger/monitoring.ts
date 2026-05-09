@@ -23,10 +23,7 @@ export const initializeMonitoring = (): void => {
         const navigationEntries = performance.getEntriesByType("navigation");
         if (navigationEntries.length > 0) {
           const nav = navigationEntries[0] as PerformanceNavigationTiming;
-          logger.trackPerformance(
-            "DOM Content Loaded",
-            nav.domContentLoadedEventEnd,
-          );
+          logger.trackPerformance("DOM Content Loaded", nav.domContentLoadedEventEnd);
           logger.trackPerformance("Page Load", nav.loadEventEnd);
         }
       }, 0);

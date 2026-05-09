@@ -20,10 +20,17 @@ function httpsRequest(hostname, path, method, headers, body) {
   return new Promise((resolve, reject) => {
     const data = typeof body === "string" ? body : JSON.stringify(body);
     const req = https.request(
-      { hostname, path, method, headers: { ...headers, "Content-Length": Buffer.byteLength(data) } },
+      {
+        hostname,
+        path,
+        method,
+        headers: { ...headers, "Content-Length": Buffer.byteLength(data) },
+      },
       (res) => {
         let raw = "";
-        res.on("data", (chunk) => { raw += chunk; });
+        res.on("data", (chunk) => {
+          raw += chunk;
+        });
         res.on("end", () => resolve({ status: res.statusCode, body: raw }));
       },
     );
@@ -119,7 +126,10 @@ module.exports = async function (context, req) {
       summary: `${label} with ${name}`,
       description,
       start: { dateTime: toDateTime(preferredDate, hours, minutes), timeZone: timezone || "UTC" },
-      end: { dateTime: toDateTime(preferredDate, end.hours, end.minutes), timeZone: timezone || "UTC" },
+      end: {
+        dateTime: toDateTime(preferredDate, end.hours, end.minutes),
+        timeZone: timezone || "UTC",
+      },
       attendees: [
         { email, displayName: name },
         { email: calendarId, displayName: "Illona Addae (OceanicCoder)" },

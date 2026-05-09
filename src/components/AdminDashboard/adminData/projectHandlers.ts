@@ -3,9 +3,7 @@ import { createProject, updateProject, deleteProject } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
 export function createProjectHandlers(loadData: LoadDataFn) {
-  const handleAddProject = async (
-    projectForm: Omit<Project, "$id" | "$createdAt">,
-  ) => {
+  const handleAddProject = async (projectForm: Omit<Project, "$id" | "$createdAt">) => {
     try {
       await createProject(projectForm);
       await loadData(false);

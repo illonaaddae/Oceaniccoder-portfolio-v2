@@ -204,4 +204,3 @@ export const iconGroups: { group: string; options: { value: string; label: strin
 ];
 
 export const iconOptions: { value: string; label: string }[] = iconGroups.flatMap((g) => g.options);
-

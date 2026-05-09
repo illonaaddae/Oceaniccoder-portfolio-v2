@@ -1,9 +1,5 @@
 /** Format period string from start/end dates */
-export const formatPeriod = (
-  startDate: string,
-  endDate: string,
-  isOngoing: boolean,
-): string => {
+export const formatPeriod = (startDate: string, endDate: string, isOngoing: boolean): string => {
   if (!startDate) return "";
   const start = new Date(startDate);
   const startYear = start.getFullYear();
@@ -20,9 +16,7 @@ export const formatPeriod = (
 };
 
 /** Parse a date string into month/year components */
-export const parseDateString = (
-  dateStr: string | undefined,
-): { month: string; year: string } => {
+export const parseDateString = (dateStr: string | undefined): { month: string; year: string } => {
   if (!dateStr) return { month: "", year: "" };
   try {
     const date = new Date(dateStr);
@@ -45,6 +39,4 @@ export const getInputClass = (theme: "light" | "dark"): string =>
 
 /** Get themed CSS classes for form labels */
 export const getLabelClass = (theme: "light" | "dark"): string =>
-  `block text-sm font-semibold mb-2 ${
-    theme === "dark" ? "text-slate-200" : "text-slate-700"
-  }`;
+  `block text-sm font-semibold mb-2 ${theme === "dark" ? "text-slate-200" : "text-slate-700"}`;

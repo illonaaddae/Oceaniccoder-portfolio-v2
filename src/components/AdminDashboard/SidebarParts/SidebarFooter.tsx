@@ -16,9 +16,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
   return (
     <div
       className={`flex-shrink-0 border-t p-4 pb-safe space-y-3 relative z-20 pointer-events-auto ${
-        theme === "dark"
-          ? "bg-[#0d1321] border-gray-800"
-          : "bg-white/30 border-blue-200/30"
+        theme === "dark" ? "bg-[#0d1321] border-gray-800" : "bg-white/30 border-blue-200/30"
       }`}
     >
       {/* Read-only badge for public viewers */}
@@ -52,9 +50,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
         ) : (
           <FaMoon className="text-slate-600" />
         )}
-        <span className="font-medium">
-          {theme === "dark" ? "Light Mode" : "Dark Mode"}
-        </span>
+        <span className="font-medium">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
       </button>
 
       {/* Only show logout for admin users */}

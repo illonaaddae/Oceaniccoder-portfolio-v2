@@ -40,11 +40,7 @@ const storage = new sdk.Storage(client);
 
 async function checkCollection(name, collectionId) {
   try {
-    const response = await databases.listDocuments(
-      APPWRITE_DATABASE_ID,
-      collectionId,
-      []
-    );
+    const response = await databases.listDocuments(APPWRITE_DATABASE_ID, collectionId, []);
     console.log(`✅ ${name} (${collectionId}): ${response.total} documents`);
     return { name, status: "ok", count: response.total };
   } catch (error) {
@@ -56,9 +52,7 @@ async function checkCollection(name, collectionId) {
 async function checkStorage() {
   try {
     const response = await storage.listFiles(STORAGE_BUCKET_ID);
-    console.log(
-      `✅ Storage Bucket (${STORAGE_BUCKET_ID}): ${response.total} files`
-    );
+    console.log(`✅ Storage Bucket (${STORAGE_BUCKET_ID}): ${response.total} files`);
     return { status: "ok", count: response.total };
   } catch (error) {
     console.log(`❌ Storage Bucket (${STORAGE_BUCKET_ID}): ${error.message}`);
@@ -100,9 +94,7 @@ async function main() {
     });
     console.log("\n");
     console.log("To fix these issues, go to your Appwrite Console:");
-    console.log(
-      "https://cloud.appwrite.io/console/project-6943431e00253c8f9883\n"
-    );
+    console.log("https://cloud.appwrite.io/console/project-6943431e00253c8f9883\n");
     console.log("1. Go to Databases > Select your database");
     console.log("2. Create missing collections with the exact IDs shown above");
     console.log("3. For each collection, go to Settings > Permissions");

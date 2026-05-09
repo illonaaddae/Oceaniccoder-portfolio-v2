@@ -8,11 +8,7 @@ const EventBanner: React.FC = () => {
   if (!currentEvent) return null;
 
   return (
-    <BannerContainer
-      event={currentEvent}
-      showConfetti={showConfetti}
-      onDismiss={handleDismiss}
-    />
+    <BannerContainer event={currentEvent} showConfetti={showConfetti} onDismiss={handleDismiss} />
   );
 };
 

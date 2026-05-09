@@ -37,11 +37,7 @@ export const LogoInitialsFields: React.FC<LogoInitialsFieldsProps> = ({
               (e.currentTarget as HTMLImageElement).style.display = "none";
             }}
           />
-          <span
-            className={`text-xs ${
-              theme === "dark" ? "text-slate-400" : "text-slate-500"
-            }`}
-          >
+          <span className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
             Preview
           </span>
         </div>
@@ -59,11 +55,7 @@ export const LogoInitialsFields: React.FC<LogoInitialsFieldsProps> = ({
         className={inputClass}
         placeholder="e.g., UG"
       />
-      <p
-        className={`mt-1 text-xs ${
-          theme === "dark" ? "text-slate-500" : "text-slate-400"
-        }`}
-      >
+      <p className={`mt-1 text-xs ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
         Shown when no logo is available (max 4 characters)
       </p>
     </div>

@@ -6,17 +6,11 @@ interface SkillPreviewProps {
   theme: "light" | "dark";
 }
 
-export const SkillPreview: React.FC<SkillPreviewProps> = ({
-  name,
-  percentage,
-  theme,
-}) => {
+export const SkillPreview: React.FC<SkillPreviewProps> = ({ name, percentage, theme }) => {
   return (
     <div
       className={`p-4 rounded-xl border ${
-        theme === "dark"
-          ? "bg-white/5 border-white/10"
-          : "bg-slate-50 border-slate-200"
+        theme === "dark" ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
       }`}
     >
       <p
@@ -27,18 +21,10 @@ export const SkillPreview: React.FC<SkillPreviewProps> = ({
         Preview
       </p>
       <div className="flex items-center justify-between">
-        <span
-          className={`font-medium ${
-            theme === "dark" ? "text-white" : "text-slate-900"
-          }`}
-        >
+        <span className={`font-medium ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
           {name || "Skill Name"}
         </span>
-        <span
-          className={`text-sm ${
-            theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"
-          }`}
-        >
+        <span className={`text-sm ${theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"}`}>
           {percentage}%
         </span>
       </div>

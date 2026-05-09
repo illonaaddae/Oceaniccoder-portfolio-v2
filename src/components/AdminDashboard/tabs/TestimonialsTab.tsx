@@ -75,11 +75,7 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
             theme === "dark" ? "text-gray-600" : "text-gray-400"
           }`}
         />
-        <p
-          className={`text-lg ${
-            theme === "dark" ? "text-gray-400" : "text-gray-600"
-          }`}
-        >
+        <p className={`text-lg ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
           No testimonials yet
         </p>
         {!isReadOnly && (

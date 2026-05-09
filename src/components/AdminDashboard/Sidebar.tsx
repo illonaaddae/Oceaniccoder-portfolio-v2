@@ -39,11 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } shadow-lg`}
         aria-label={isOpen ? "Close menu" : "Open menu"}
       >
-        {isOpen ? (
-          <FaTimes className="text-lg" />
-        ) : (
-          <FaBars className="text-lg" />
-        )}
+        {isOpen ? <FaTimes className="text-lg" /> : <FaBars className="text-lg" />}
       </button>
 
       {/* Mobile Overlay */}

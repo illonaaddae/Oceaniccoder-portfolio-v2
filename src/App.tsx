@@ -89,9 +89,7 @@ function App() {
           <BrowserRouter>
             <MainLayout theme={theme} toggleTheme={toggleTheme}>
               <TerminalLoader />
-              <React.Suspense
-                fallback={<div className="min-h-screen bg-[#0d1117]" />}
-              >
+              <React.Suspense fallback={<div className="min-h-screen bg-[#0d1117]" />}>
                 <AnimatedRoutes
                   isAdminLoggedIn={isAdminLoggedIn}
                   onAdminLogin={handleAdminLogin}

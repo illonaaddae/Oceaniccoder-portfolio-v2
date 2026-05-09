@@ -61,11 +61,7 @@ export class Logger {
     this.sendToMonitoring(entry);
   }
 
-  error(
-    message: string,
-    error?: Error | unknown,
-    context?: Record<string, unknown>,
-  ): void {
+  error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void {
     const err = error instanceof Error ? error : new Error(String(error));
     const entry = this.createEntry(
       "error",
@@ -126,12 +122,7 @@ export class Logger {
     this.info("User action", { action, ...details });
   }
 
-  trackApiCall(
-    endpoint: string,
-    method: string,
-    status: number,
-    duration: number,
-  ): void {
+  trackApiCall(endpoint: string, method: string, status: number, duration: number): void {
     this.info("API call", { endpoint, method, status, duration });
     this.trackPerformance(`API: ${method} ${endpoint}`, duration);
   }

@@ -3,9 +3,7 @@ import { createSkill, updateSkill, deleteSkill } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
 export function createSkillHandlers(loadData: LoadDataFn) {
-  const handleAddSkill = async (
-    skillForm: Omit<Skill, "$id" | "$createdAt">,
-  ) => {
+  const handleAddSkill = async (skillForm: Omit<Skill, "$id" | "$createdAt">) => {
     try {
       await createSkill(skillForm);
       await loadData(false);

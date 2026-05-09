@@ -16,8 +16,7 @@ export function trapFocus(container: HTMLElement): () => void {
     '[tabindex]:not([tabindex="-1"])',
   ].join(", ");
 
-  const focusableElements =
-    container.querySelectorAll<HTMLElement>(focusableSelectors);
+  const focusableElements = container.querySelectorAll<HTMLElement>(focusableSelectors);
   const firstFocusable = focusableElements[0];
   const lastFocusable = focusableElements[focusableElements.length - 1];
 
@@ -48,10 +47,7 @@ export function trapFocus(container: HTMLElement): () => void {
 /**
  * Announces a message to screen readers
  */
-export function announce(
-  message: string,
-  priority: "polite" | "assertive" = "polite",
-): void {
+export function announce(message: string, priority: "polite" | "assertive" = "polite"): void {
   const announcer = document.createElement("div");
   announcer.setAttribute("role", priority === "assertive" ? "alert" : "status");
   announcer.setAttribute("aria-live", priority);

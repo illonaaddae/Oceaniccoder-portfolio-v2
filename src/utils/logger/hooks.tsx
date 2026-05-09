@@ -31,10 +31,7 @@ export const withPerformanceTracking = <P extends object>(
   componentName?: string,
 ) => {
   const displayName =
-    componentName ||
-    WrappedComponent.displayName ||
-    WrappedComponent.name ||
-    "Component";
+    componentName || WrappedComponent.displayName || WrappedComponent.name || "Component";
 
   const WithPerformanceTracking: React.FC<P> = (props) => {
     usePerformanceTracking(displayName);

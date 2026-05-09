@@ -4,8 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, test, expect, vi } from "vitest";
 import SupportButton from "./SupportButton";
 
-const renderWithRouter = (ui: React.ReactElement) =>
-  render(<MemoryRouter>{ui}</MemoryRouter>);
+const renderWithRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 // Mock the imageUrls
 vi.mock("../utils/imageUrls", () => ({
@@ -42,10 +41,7 @@ describe("SupportButton", () => {
     fireEvent.click(toggleButton);
 
     const coffeeLink = screen.getByRole("link", { name: /Buy Me a Coffee/i });
-    expect(coffeeLink).toHaveAttribute(
-      "href",
-      "https://buymeacoffee.com/gliy8vpa7m"
-    );
+    expect(coffeeLink).toHaveAttribute("href", "https://buymeacoffee.com/gliy8vpa7m");
     expect(coffeeLink).toHaveAttribute("target", "_blank");
   });
 
@@ -57,10 +53,7 @@ describe("SupportButton", () => {
     fireEvent.click(toggleButton);
 
     const scrimbaLink = screen.getByRole("link", { name: /Scrimba Pro/i });
-    expect(scrimbaLink).toHaveAttribute(
-      "href",
-      "https://scrimba.com/?via=u01ap3s"
-    );
+    expect(scrimbaLink).toHaveAttribute("href", "https://scrimba.com/?via=u01ap3s");
     expect(scrimbaLink).toHaveAttribute("target", "_blank");
   });
 

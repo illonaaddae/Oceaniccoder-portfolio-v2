@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  FaGraduationCap,
-  FaPlus,
-  FaEdit,
-  FaTrash,
-  FaEye,
-  FaEyeSlash,
-} from "react-icons/fa";
+import { FaGraduationCap, FaPlus, FaEdit, FaTrash, FaEye, FaEyeSlash } from "react-icons/fa";
 import type { Education } from "@/types";
 import { ToastContainer, useToast } from "../Toast";
 
@@ -135,11 +128,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                       {edu.degree}
                       {edu.field && ` in ${edu.field}`}
                     </h3>
-                    <p
-                      className={`${
-                        theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"
-                      }`}
-                    >
+                    <p className={`${theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"}`}>
                       {edu.institution}
                     </p>
                     <div className="flex items-center gap-2">
@@ -201,11 +190,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
           ))}
         </div>
       )}
-      <ToastContainer
-        toasts={toast.toasts}
-        onRemove={toast.removeToast}
-        theme={theme}
-      />
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} theme={theme} />
     </div>
   );
 };

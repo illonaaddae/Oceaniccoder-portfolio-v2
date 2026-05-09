@@ -1,7 +1,13 @@
 const TIME_SLOTS = [
-  "09:00 AM", "10:00 AM", "11:00 AM",
-  "12:00 PM", "01:00 PM", "02:00 PM",
-  "03:00 PM", "04:00 PM", "05:00 PM",
+  "09:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "12:00 PM",
+  "01:00 PM",
+  "02:00 PM",
+  "03:00 PM",
+  "04:00 PM",
+  "05:00 PM",
 ];
 
 const CORS = {
@@ -24,8 +30,12 @@ function localToUTCISO(dateStr, hours, minutes, tz) {
   const asUTC = new Date(naive + "Z");
   const formatted = asUTC.toLocaleString("en-CA", {
     timeZone: tz || "UTC",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hour12: false,
   });
   const localParsed = new Date(formatted.replace(", ", "T") + "Z");

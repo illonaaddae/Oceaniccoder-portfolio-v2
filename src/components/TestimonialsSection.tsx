@@ -15,15 +15,8 @@ import {
 } from "./Testimonials";
 
 const TestimonialsSection: React.FC = () => {
-  const {
-    testimonials,
-    loading,
-    currentIndex,
-    isAnimating,
-    goToNext,
-    goToPrev,
-    goToSlide,
-  } = useTestimonialsCarousel();
+  const { testimonials, loading, currentIndex, isAnimating, goToNext, goToPrev, goToSlide } =
+    useTestimonialsCarousel();
 
   const form = useTestimonialForm();
 
@@ -36,9 +29,7 @@ const TestimonialsSection: React.FC = () => {
   const imageInputId = hasTestimonials
     ? "testimonial-image-upload"
     : "testimonial-image-upload-empty";
-  const titleId = hasTestimonials
-    ? "testimonial-form-title-main"
-    : "testimonial-form-title";
+  const titleId = hasTestimonials ? "testimonial-form-title-main" : "testimonial-form-title";
 
   return (
     <section
@@ -53,10 +44,7 @@ const TestimonialsSection: React.FC = () => {
         {hasTestimonials && (
           <div className="max-w-4xl mx-auto mt-8">
             <div className="relative">
-              <TestimonialCard
-                testimonial={testimonials[currentIndex]}
-                isAnimating={isAnimating}
-              />
+              <TestimonialCard testimonial={testimonials[currentIndex]} isAnimating={isAnimating} />
               {testimonials.length > 1 && (
                 <CarouselNavigation onPrev={goToPrev} onNext={goToNext} />
               )}

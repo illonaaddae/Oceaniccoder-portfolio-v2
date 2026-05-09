@@ -145,26 +145,26 @@
 
 ### Backend & Cloud
 
-| Technology                | Purpose                                            |
-| ------------------------- | -------------------------------------------------- |
-| **Appwrite Cloud**        | Database, Auth, Storage, Messaging                 |
-| **Azure Static Web Apps** | Hosting, CDN, SSL                                  |
-| **Netlify Functions**     | Serverless: booking, availability, AI chat         |
-| **Google Calendar API**   | Meeting event creation & freebusy availability     |
-| **Google Meet**           | Auto-generated video call links for bookings       |
-| **Claude API (Anthropic)**| AI chatbot powering portfolio Q&A                  |
-| **Web3Forms**             | Contact form submissions                           |
-| **Gmail SMTP**            | Email notifications via Appwrite Messaging         |
+| Technology                 | Purpose                                        |
+| -------------------------- | ---------------------------------------------- |
+| **Appwrite Cloud**         | Database, Auth, Storage, Messaging             |
+| **Azure Static Web Apps**  | Hosting, CDN, SSL                              |
+| **Netlify Functions**      | Serverless: booking, availability, AI chat     |
+| **Google Calendar API**    | Meeting event creation & freebusy availability |
+| **Google Meet**            | Auto-generated video call links for bookings   |
+| **Claude API (Anthropic)** | AI chatbot powering portfolio Q&A              |
+| **Web3Forms**              | Contact form submissions                       |
+| **Gmail SMTP**             | Email notifications via Appwrite Messaging     |
 
 ### DevOps & Tooling
 
-| Technology            | Purpose                        |
-| --------------------- | ------------------------------ |
-| **Git & GitHub**      | Version control                |
-| **GitHub Actions**    | CI/CD + lint + security checks |
-| **ESLint**            | Code quality & accessibility   |
-| **PostCSS**           | CSS processing                 |
-| **npm**               | Package management             |
+| Technology         | Purpose                        |
+| ------------------ | ------------------------------ |
+| **Git & GitHub**   | Version control                |
+| **GitHub Actions** | CI/CD + lint + security checks |
+| **ESLint**         | Code quality & accessibility   |
+| **PostCSS**        | CSS processing                 |
+| **npm**            | Package management             |
 
 ---
 
@@ -326,20 +326,20 @@ oceanicoder-portfolio-v2/
 
 | Tab                | Admin | Public | Description                                         |
 | ------------------ | :---: | :----: | --------------------------------------------------- |
-| **Overview**       | ✅    | ✅     | Stats, recent activity, site views                  |
-| **Bookings**       | ✅    | ❌     | Meeting requests — accept, decline, delete          |
-| **Messages**       | ✅    | ✅*    | Contact submissions (*PII blurred in public view)   |
-| **Comments**       | ✅    | ✅*    | Visitor comments (*content blurred in public view)  |
-| **Projects**       | ✅    | ✅     | Portfolio projects CRUD                             |
-| **Blog**           | ✅    | ✅     | Blog post editor with rich text                     |
-| **Skills**         | ✅    | ✅     | Skills & proficiency levels                         |
-| **Certifications** | ✅    | ✅     | Professional certificates with PDF upload           |
-| **Education**      | ✅    | ✅     | Academic credentials                                |
-| **Journey**        | ✅    | ✅     | Career timeline entries                             |
-| **Gallery**        | ✅    | ✅     | Image uploads with drag-to-reorder                  |
-| **Testimonials**   | ✅    | ✅     | Client testimonials                                 |
-| **About**          | ✅    | ✅     | Profile, story, resume URL                          |
-| **Settings**       | ✅    | ❌     | Password change & site config                       |
+| **Overview**       |  ✅   |   ✅   | Stats, recent activity, site views                  |
+| **Bookings**       |  ✅   |   ❌   | Meeting requests — accept, decline, delete          |
+| **Messages**       |  ✅   |  ✅\*  | Contact submissions (\*PII blurred in public view)  |
+| **Comments**       |  ✅   |  ✅\*  | Visitor comments (\*content blurred in public view) |
+| **Projects**       |  ✅   |   ✅   | Portfolio projects CRUD                             |
+| **Blog**           |  ✅   |   ✅   | Blog post editor with rich text                     |
+| **Skills**         |  ✅   |   ✅   | Skills & proficiency levels                         |
+| **Certifications** |  ✅   |   ✅   | Professional certificates with PDF upload           |
+| **Education**      |  ✅   |   ✅   | Academic credentials                                |
+| **Journey**        |  ✅   |   ✅   | Career timeline entries                             |
+| **Gallery**        |  ✅   |   ✅   | Image uploads with drag-to-reorder                  |
+| **Testimonials**   |  ✅   |   ✅   | Client testimonials                                 |
+| **About**          |  ✅   |   ✅   | Profile, story, resume URL                          |
+| **Settings**       |  ✅   |   ❌   | Password change & site config                       |
 
 ---
 
@@ -366,11 +366,11 @@ Step 4 — Confirmation    →  Booking reference + Google Meet link
 
 ### Netlify Functions
 
-| Function               | Endpoint                     | Purpose                                          |
-| ---------------------- | ---------------------------- | ------------------------------------------------ |
-| `create-booking.mjs`   | `POST /api/create-booking`   | Creates Calendar event, returns Meet link        |
-| `get-availability.mjs` | `GET /api/get-availability`  | Returns freebusy map for a given date            |
-| `chat.mjs`             | `POST /api/chat`             | AI chatbot — proxies to Claude API               |
+| Function               | Endpoint                    | Purpose                                   |
+| ---------------------- | --------------------------- | ----------------------------------------- |
+| `create-booking.mjs`   | `POST /api/create-booking`  | Creates Calendar event, returns Meet link |
+| `get-availability.mjs` | `GET /api/get-availability` | Returns freebusy map for a given date     |
+| `chat.mjs`             | `POST /api/chat`            | AI chatbot — proxies to Claude API        |
 
 ---
 
@@ -389,20 +389,20 @@ A floating chatbot widget (bottom-right) lets visitors ask questions about the p
 
 ### Collections
 
-| Collection | Key Fields |
-| --- | --- |
-| `projects` | title, description, technologies[], image, liveUrl, githubUrl, featured, category |
-| `blog_posts` | title, slug, content, excerpt, tags[], publishedAt, image, featured, published |
-| `blog_reactions` | postId, visitorId, reaction (like/dislike) |
-| `skills` | name, category, percentage, icon |
-| `certifications` | title, issuer, date, credential, platform, image, verifyLink |
-| `education` | institution, degree, period, achievement, gpa, universityLogo |
-| `journey` | role, company, period, location, achievements[], order, color |
-| `messages` | name, email, subject, message, status |
-| `bookings` | name, email, phone, meetingType, preferredDate, preferredTime, timezone, message, status |
-| `gallery` | src, alt, caption, order |
-| `settings` | key, value |
-| `about` | title, subtitle, story, profileImage, resumeUrl |
+| Collection       | Key Fields                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `projects`       | title, description, technologies[], image, liveUrl, githubUrl, featured, category        |
+| `blog_posts`     | title, slug, content, excerpt, tags[], publishedAt, image, featured, published           |
+| `blog_reactions` | postId, visitorId, reaction (like/dislike)                                               |
+| `skills`         | name, category, percentage, icon                                                         |
+| `certifications` | title, issuer, date, credential, platform, image, verifyLink                             |
+| `education`      | institution, degree, period, achievement, gpa, universityLogo                            |
+| `journey`        | role, company, period, location, achievements[], order, color                            |
+| `messages`       | name, email, subject, message, status                                                    |
+| `bookings`       | name, email, phone, meetingType, preferredDate, preferredTime, timezone, message, status |
+| `gallery`        | src, alt, caption, order                                                                 |
+| `settings`       | key, value                                                                               |
+| `about`          | title, subtitle, story, profileImage, resumeUrl                                          |
 
 ---
 
@@ -435,9 +435,9 @@ Booking, availability, and chatbot endpoints are deployed to Netlify Functions. 
 
 ### Environment Variables (GitHub Secrets)
 
-| Secret                            | Description                     |
-| --------------------------------- | ------------------------------- |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Azure deployment token          |
+| Secret                            | Description            |
+| --------------------------------- | ---------------------- |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Azure deployment token |
 
 ---
 
@@ -514,10 +514,10 @@ A floating heart button (bottom-left) provides quick access to:
 
 Automatic celebration banners appear on special dates:
 
-| Event    | Date       | Features                                  |
-| -------- | ---------- | ----------------------------------------- |
-| Birthday | April 28   | Pink gradient banner + confetti animation |
-| New Year | Jan 1–3    | Gold gradient banner + confetti animation |
+| Event    | Date     | Features                                  |
+| -------- | -------- | ----------------------------------------- |
+| Birthday | April 28 | Pink gradient banner + confetti animation |
+| New Year | Jan 1–3  | Gold gradient banner + confetti animation |
 
 _Banners can be dismissed and won't reappear for the same day._
 

@@ -26,10 +26,7 @@ async function convert(file) {
   const out = file.replace(/\.[^.]+$/, ".webp");
   try {
     // skip conversion if webp exists and is newer than source
-    const [srcStat, outStat] = await Promise.all([
-      fs.stat(file),
-      fs.stat(out).catch(() => null),
-    ]);
+    const [srcStat, outStat] = await Promise.all([fs.stat(file), fs.stat(out).catch(() => null)]);
     if (outStat && outStat.mtimeMs >= srcStat.mtimeMs) {
       console.log("skip (up-to-date):", file);
       return { file, converted: false };

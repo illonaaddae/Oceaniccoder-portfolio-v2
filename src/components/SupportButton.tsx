@@ -40,13 +40,7 @@ const SUPPORT_LINKS: SupportLink[] = [
     name: "Scrimba Pro",
     description: "Learn to code with 20% OFF!",
     url: "https://scrimba.com/?via=u01ap3s",
-    icon: (
-      <img
-        src={IMAGES.scrimba}
-        alt="Scrimba"
-        className="w-5 h-5 object-contain"
-      />
-    ),
+    icon: <img src={IMAGES.scrimba} alt="Scrimba" className="w-5 h-5 object-contain" />,
     bgColor: "bg-[#2B283A]",
     hoverColor: "hover:bg-[#3D3A4F]",
     badge: "20% OFF",
@@ -68,56 +62,52 @@ const SupportButton: React.FC = () => {
       >
         {SUPPORT_LINKS.map((link) =>
           link.internal ? (
-          <Link
-            key={link.id}
-            to={link.url}
-            onClick={() => setIsExpanded(false)}
-            className={`group flex items-center gap-3 px-4 py-3 rounded-full ${link.bgColor} ${link.hoverColor} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl`}
-          >
-            <span className="text-white">{link.icon}</span>
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm text-white">{link.name}</span>
-              <span className="text-xs text-gray-300">{link.description}</span>
-            </div>
-          </Link>
-          ) : (
-          <a
-            key={link.id}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`group flex items-center gap-3 px-4 py-3 rounded-full ${link.bgColor} ${link.hoverColor} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl`}
-          >
-            <span
-              className={
-                link.id === "buymeacoffee" ? "text-gray-800" : "text-white"
-              }
+            <Link
+              key={link.id}
+              to={link.url}
+              onClick={() => setIsExpanded(false)}
+              className={`group flex items-center gap-3 px-4 py-3 rounded-full ${link.bgColor} ${link.hoverColor} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl`}
             >
-              {link.icon}
-            </span>
-            <div className="flex flex-col">
-              <span
-                className={`font-semibold text-sm ${
-                  link.id === "buymeacoffee" ? "text-gray-800" : "text-white"
-                }`}
-              >
-                {link.name}
+              <span className="text-white">{link.icon}</span>
+              <div className="flex flex-col">
+                <span className="font-semibold text-sm text-white">{link.name}</span>
+                <span className="text-xs text-gray-300">{link.description}</span>
+              </div>
+            </Link>
+          ) : (
+            <a
+              key={link.id}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group flex items-center gap-3 px-4 py-3 rounded-full ${link.bgColor} ${link.hoverColor} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+            >
+              <span className={link.id === "buymeacoffee" ? "text-gray-800" : "text-white"}>
+                {link.icon}
               </span>
-              <span
-                className={`text-xs ${
-                  link.id === "buymeacoffee" ? "text-gray-600" : "text-gray-300"
-                }`}
-              >
-                {link.description}
-              </span>
-            </div>
-            {link.badge && (
-              <span className="ml-2 px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
-                {link.badge}
-              </span>
-            )}
-          </a>
-          )
+              <div className="flex flex-col">
+                <span
+                  className={`font-semibold text-sm ${
+                    link.id === "buymeacoffee" ? "text-gray-800" : "text-white"
+                  }`}
+                >
+                  {link.name}
+                </span>
+                <span
+                  className={`text-xs ${
+                    link.id === "buymeacoffee" ? "text-gray-600" : "text-gray-300"
+                  }`}
+                >
+                  {link.description}
+                </span>
+              </div>
+              {link.badge && (
+                <span className="ml-2 px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
+                  {link.badge}
+                </span>
+              )}
+            </a>
+          ),
         )}
       </div>
 
@@ -132,9 +122,7 @@ const SupportButton: React.FC = () => {
         aria-label={isExpanded ? "Close support menu" : "Support me"}
       >
         <div
-          className={`text-white transition-transform duration-300 ${
-            isExpanded ? "rotate-0" : ""
-          }`}
+          className={`text-white transition-transform duration-300 ${isExpanded ? "rotate-0" : ""}`}
         >
           {isExpanded ? (
             <FaTimes className="text-xl" />

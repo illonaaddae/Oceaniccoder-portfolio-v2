@@ -2,10 +2,7 @@ import { updateMessageStatus, deleteMessage } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
 export function createMessageHandlers(loadData: LoadDataFn) {
-  const handleStatusChange = async (
-    messageId: string,
-    status: "new" | "read" | "replied",
-  ) => {
+  const handleStatusChange = async (messageId: string, status: "new" | "read" | "replied") => {
     try {
       await updateMessageStatus(messageId, status);
       await loadData(false);

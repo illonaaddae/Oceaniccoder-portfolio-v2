@@ -226,9 +226,7 @@ describe("checkElementA11y", () => {
       const result = checkElementA11y(div);
 
       expect(
-        result.issues.some(
-          (i) => i.issue.includes("tabindex") && i.severity === "warning"
-        )
+        result.issues.some((i) => i.issue.includes("tabindex") && i.severity === "warning"),
       ).toBe(true);
     });
 
@@ -238,9 +236,7 @@ describe("checkElementA11y", () => {
 
       const result = checkElementA11y(div);
 
-      expect(result.issues.some((i) => i.issue.includes("tabindex"))).toBe(
-        false
-      );
+      expect(result.issues.some((i) => i.issue.includes("tabindex"))).toBe(false);
     });
   });
 });

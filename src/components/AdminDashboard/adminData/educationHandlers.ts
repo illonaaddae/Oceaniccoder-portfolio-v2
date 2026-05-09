@@ -1,9 +1,5 @@
 import type { Education } from "@/types";
-import {
-  createEducation,
-  updateEducation,
-  deleteEducation,
-} from "@/services/api";
+import { createEducation, updateEducation, deleteEducation } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
 export function createEducationHandlers(loadData: LoadDataFn) {
@@ -17,10 +13,7 @@ export function createEducationHandlers(loadData: LoadDataFn) {
     }
   };
 
-  const handleUpdateEducation = async (
-    eduId: string,
-    eduForm: Partial<Omit<Education, "$id">>,
-  ) => {
+  const handleUpdateEducation = async (eduId: string, eduForm: Partial<Omit<Education, "$id">>) => {
     try {
       await updateEducation(eduId, eduForm);
       await loadData(false);

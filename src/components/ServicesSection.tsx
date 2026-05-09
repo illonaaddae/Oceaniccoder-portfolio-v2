@@ -18,10 +18,7 @@ import { faqItems } from "./Services/faqData";
 
 const ServicesSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ServiceTab>("packages");
-  const handleTabChange = useCallback(
-    (tab: ServiceTab) => setActiveTab(tab),
-    [],
-  );
+  const handleTabChange = useCallback((tab: ServiceTab) => setActiveTab(tab), []);
 
   return (
     <section

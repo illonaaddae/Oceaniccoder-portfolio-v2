@@ -69,11 +69,7 @@ async function uploadFile(localPath) {
     // Create a Blob-like object for Node.js
     const file = new File([fileBuffer], fileName, { type: mimeType });
 
-    const response = await storage.createFile(
-      STORAGE_BUCKET_ID,
-      ID.unique(),
-      file
-    );
+    const response = await storage.createFile(STORAGE_BUCKET_ID, ID.unique(), file);
 
     const fileUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${STORAGE_BUCKET_ID}/files/${response.$id}/view?project=${APPWRITE_PROJECT_ID}`;
 

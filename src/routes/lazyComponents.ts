@@ -10,9 +10,7 @@ import Testimonials from "@/components/TestimonialsSection";
 const About = React.lazy(() => import("@/components/AboutSection"));
 const Services = React.lazy(() => import("@/components/ServicesSection"));
 const Contact = React.lazy(() => import("@/components/ContactSection"));
-const ProjectCaseStudy = React.lazy(
-  () => import("@/components/ProjectCaseStudy"),
-);
+const ProjectCaseStudy = React.lazy(() => import("@/components/ProjectCaseStudy"));
 const Blog = React.lazy(() => import("@/components/BlogSection"));
 const BlogPost = React.lazy(() => import("@/components/BlogPost"));
 const AdminDashboard = React.lazy(() => import("@/components/AdminDashboard"));

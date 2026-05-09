@@ -9,11 +9,7 @@ describe("Confetti", () => {
 
     // Should have a fixed position container
     const confettiContainer = container.firstChild;
-    expect(confettiContainer).toHaveClass(
-      "fixed",
-      "inset-0",
-      "pointer-events-none"
-    );
+    expect(confettiContainer).toHaveClass("fixed", "inset-0", "pointer-events-none");
   });
 
   test("generates confetti pieces", () => {

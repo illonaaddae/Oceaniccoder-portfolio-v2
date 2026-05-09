@@ -33,11 +33,7 @@ export function validateEmail(email: string): ValidationResult {
 /**
  * Validates a name field
  */
-export function validateName(
-  name: string,
-  minLength = 2,
-  maxLength = 100,
-): ValidationResult {
+export function validateName(name: string, minLength = 2, maxLength = 100): ValidationResult {
   const suspiciousPatterns =
     /(<script|<\/script|select\s+\*|drop\s+table|union\s+select|insert\s+into|<[^>]*>)/i;
   if (suspiciousPatterns.test(name)) {

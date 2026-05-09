@@ -90,12 +90,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         </p>
       )}
 
-      <UrlInput
-        value={value}
-        onChange={onChange}
-        allowPdf={allowPdf}
-        theme={theme}
-      />
+      <UrlInput value={value} onChange={onChange} allowPdf={allowPdf} theme={theme} />
     </div>
   );
 };

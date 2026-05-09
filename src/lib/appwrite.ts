@@ -5,10 +5,8 @@ const client = new Client();
 // Read from env first; fall back to known production values so existing deploys keep working
 const APPWRITE_ENDPOINT =
   import.meta.env.VITE_APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID =
-  import.meta.env.VITE_APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
-const APPWRITE_DATABASE_ID =
-  import.meta.env.VITE_APPWRITE_DATABASE_ID || "6943493400018e7c314c";
+const APPWRITE_PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
+const APPWRITE_DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID || "6943493400018e7c314c";
 const APPWRITE_STORAGE_BUCKET_ID =
   import.meta.env.VITE_APPWRITE_BUCKET_ID || "69444749001b5f3a325b";
 

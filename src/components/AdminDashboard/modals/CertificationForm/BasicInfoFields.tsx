@@ -16,7 +16,9 @@ export const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
 }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
-      <label htmlFor="cert-title" className={labelClass}>Certification Title *</label>
+      <label htmlFor="cert-title" className={labelClass}>
+        Certification Title *
+      </label>
       <input
         id="cert-title"
         type="text"
@@ -28,7 +30,9 @@ export const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
       />
     </div>
     <div>
-      <label htmlFor="cert-issuer" className={labelClass}>Issuer *</label>
+      <label htmlFor="cert-issuer" className={labelClass}>
+        Issuer *
+      </label>
       <input
         id="cert-issuer"
         type="text"

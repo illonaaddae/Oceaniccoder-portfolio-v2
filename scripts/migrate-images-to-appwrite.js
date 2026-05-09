@@ -32,12 +32,10 @@ if (!APPWRITE_API_KEY) {
   console.log("1. Go to https://cloud.appwrite.io");
   console.log("2. Navigate to your project → Settings → API Keys");
   console.log(
-    "3. Create a new API key with Storage (Create, Read) and Databases (Read, Update) permissions"
+    "3. Create a new API key with Storage (Create, Read) and Databases (Read, Update) permissions",
   );
   console.log("\nThen run:");
-  console.log(
-    "APPWRITE_API_KEY=your-key-here node scripts/migrate-images-to-appwrite.js"
-  );
+  console.log("APPWRITE_API_KEY=your-key-here node scripts/migrate-images-to-appwrite.js");
   process.exit(1);
 }
 
@@ -137,7 +135,7 @@ async function uploadFile(localPath) {
     const file = await storage.createFile(
       STORAGE_BUCKET_ID,
       ID.unique(),
-      new File([fileBuffer], fileName)
+      new File([fileBuffer], fileName),
     );
 
     // Construct the view URL
@@ -151,19 +149,10 @@ async function uploadFile(localPath) {
   }
 }
 
-async function updateDatabaseRecord(
-  collection,
-  field,
-  newUrl,
-  identifyBy,
-  identifyValue
-) {
+async function updateDatabaseRecord(collection, field, newUrl, identifyBy, identifyValue) {
   try {
     // List documents to find the one to update
-    const response = await databases.listDocuments(
-      APPWRITE_DATABASE_ID,
-      collection
-    );
+    const response = await databases.listDocuments(APPWRITE_DATABASE_ID, collection);
 
     let updated = 0;
 
@@ -172,10 +161,7 @@ async function updateDatabaseRecord(
 
       if (identifyBy && identifyValue) {
         // Match by specific field (e.g., institution name)
-        if (
-          doc[identifyBy] === identifyValue ||
-          doc[identifyBy]?.includes(identifyValue)
-        ) {
+        if (doc[identifyBy] === identifyValue || doc[identifyBy]?.includes(identifyValue)) {
           shouldUpdate = true;
         }
       } else {
@@ -184,12 +170,9 @@ async function updateDatabaseRecord(
       }
 
       if (shouldUpdate) {
-        await databases.updateDocument(
-          APPWRITE_DATABASE_ID,
-          collection,
-          doc.$id,
-          { [field]: newUrl }
-        );
+        await databases.updateDocument(APPWRITE_DATABASE_ID, collection, doc.$id, {
+          [field]: newUrl,
+        });
         console.log(`📝 Updated ${collection} document: ${doc.$id}`);
         updated++;
       }
@@ -228,9 +211,7 @@ async function main() {
         continue;
       }
     } else {
-      console.log(
-        `♻️  Using cached upload for ${path.basename(image.localPath)}`
-      );
+      console.log(`♻️  Using cached upload for ${path.basename(image.localPath)}`);
     }
 
     // Update database record
@@ -239,7 +220,7 @@ async function main() {
       image.field,
       newUrl,
       image.identifyBy,
-      image.identifyValue
+      image.identifyValue,
     );
 
     console.log(`   Updated ${updated} record(s) in ${image.collection}`);
@@ -254,9 +235,7 @@ async function main() {
   if (uploadedCount > 0) {
     console.log("\n📝 Next steps:");
     console.log("1. Test your site to verify images load correctly");
-    console.log(
-      "2. Once verified, you can remove the local images from public/images/"
-    );
+    console.log("2. Once verified, you can remove the local images from public/images/");
     console.log("3. Commit and deploy your changes");
   }
 }

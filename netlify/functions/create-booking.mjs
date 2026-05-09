@@ -30,7 +30,18 @@ function toDateTime(date, hours, minutes) {
   return `${date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
 }
 
-async function sendNotificationEmail({ name, email, phone, meetingType, preferredDate, preferredTime, timezone, message, meetLink, label }) {
+async function sendNotificationEmail({
+  name,
+  email,
+  phone,
+  meetingType,
+  preferredDate,
+  preferredTime,
+  timezone,
+  message,
+  meetLink,
+  label,
+}) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
 
@@ -87,8 +98,12 @@ function localToUTCISO(dateStr, hours, minutes, tz) {
   const asUTC = new Date(naive + "Z");
   const formatted = asUTC.toLocaleString("en-CA", {
     timeZone: tz || "UTC",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hour12: false,
   }); // e.g. "2025-04-18, 13:00:00"
   const localParsed = new Date(formatted.replace(", ", "T") + "Z");
@@ -171,7 +186,15 @@ export const handler = async (event) => {
     const end = addMinutes(hours, minutes, duration);
     const label = MEETING_LABELS[meetingType] ?? meetingType;
 
-    const busy = await isSlotBusy(accessToken, calendarId, preferredDate, hours, minutes, duration, timezone);
+    const busy = await isSlotBusy(
+      accessToken,
+      calendarId,
+      preferredDate,
+      hours,
+      minutes,
+      duration,
+      timezone,
+    );
     if (busy) {
       return conflict(
         `${preferredTime} on that day is already booked. Please choose a different time slot.`,
@@ -191,7 +214,10 @@ export const handler = async (event) => {
       summary: `${label} with ${name}`,
       description,
       start: { dateTime: toDateTime(preferredDate, hours, minutes), timeZone: timezone || "UTC" },
-      end: { dateTime: toDateTime(preferredDate, end.hours, end.minutes), timeZone: timezone || "UTC" },
+      end: {
+        dateTime: toDateTime(preferredDate, end.hours, end.minutes),
+        timeZone: timezone || "UTC",
+      },
       attendees: [
         { email, displayName: name },
         { email: calendarId, displayName: "Illona Addae (OceanicCoder)" },
@@ -231,7 +257,18 @@ export const handler = async (event) => {
       ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
     const calendarEventLink = ev.htmlLink ?? null;
 
-    await sendNotificationEmail({ name, email, phone, meetingType, preferredDate, preferredTime, timezone, message, meetLink, label });
+    await sendNotificationEmail({
+      name,
+      email,
+      phone,
+      meetingType,
+      preferredDate,
+      preferredTime,
+      timezone,
+      message,
+      meetLink,
+      label,
+    });
 
     return ok({ success: true, meetLink, calendarEventLink });
   } catch (err) {

@@ -1,15 +1,9 @@
 import type { Testimonial } from "@/types";
-import {
-  createTestimonial,
-  updateTestimonial,
-  deleteTestimonial,
-} from "@/services/api";
+import { createTestimonial, updateTestimonial, deleteTestimonial } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
 export function createTestimonialHandlers(loadData: LoadDataFn) {
-  const handleAddTestimonial = async (
-    testimonialForm: Omit<Testimonial, "$id" | "$createdAt">,
-  ) => {
+  const handleAddTestimonial = async (testimonialForm: Omit<Testimonial, "$id" | "$createdAt">) => {
     try {
       await createTestimonial(testimonialForm);
       await loadData(false);

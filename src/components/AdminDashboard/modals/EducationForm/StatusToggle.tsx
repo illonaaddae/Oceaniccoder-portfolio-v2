@@ -7,11 +7,7 @@ interface StatusToggleProps {
   theme: "light" | "dark";
 }
 
-export const StatusToggle: React.FC<StatusToggleProps> = ({
-  isOngoing,
-  onChange,
-  theme,
-}) => (
+export const StatusToggle: React.FC<StatusToggleProps> = ({ isOngoing, onChange, theme }) => (
   <div className="grid grid-cols-2 gap-3">
     <button
       type="button"

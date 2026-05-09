@@ -1,9 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import {
-  getOptimizedImageUrl,
-  isAppwriteUrl,
-  generateSrcSet,
-} from "../../utils/imageOptimizer";
+import { getOptimizedImageUrl, isAppwriteUrl, generateSrcSet } from "../../utils/imageOptimizer";
 
 interface LazyImageProps {
   src: string;
@@ -71,9 +67,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   }, [src, displaySize, disableOptimization]);
 
   // Track the current source to display - initialize with src or optimized version
-  const [currentSrc, setCurrentSrc] = useState<string>(
-    optimizedSrc || src || ""
-  );
+  const [currentSrc, setCurrentSrc] = useState<string>(optimizedSrc || src || "");
 
   // Generate srcSet for responsive images
   const srcSet = useMemo(() => {
@@ -92,8 +86,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     const checkInitialVisibility = () => {
       if (imgRef.current) {
         const rect = imgRef.current.getBoundingClientRect();
-        const isVisible =
-          rect.top < window.innerHeight + 200 && rect.bottom > -200;
+        const isVisible = rect.top < window.innerHeight + 200 && rect.bottom > -200;
         if (isVisible) {
           setIsInView(true);
           return true;
@@ -121,7 +114,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       {
         rootMargin: "200px", // Start loading 200px before entering viewport
         threshold: 0.01,
-      }
+      },
     );
 
     if (imgRef.current) {
@@ -194,20 +187,14 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         <img
           src={currentSrc}
           srcSet={srcSet || undefined}
-          sizes={
-            srcSet
-              ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              : undefined
-          }
+          sizes={srcSet ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" : undefined}
           alt={alt}
           loading="lazy"
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
           className={`w-full h-full transition-all duration-500 ${
-            isLoaded
-              ? "opacity-100 scale-100 blur-0"
-              : "opacity-0 scale-105 blur-sm"
+            isLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-sm"
           }`}
           style={{ objectFit }}
         />

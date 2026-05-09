@@ -61,7 +61,7 @@ export const getPlatformLogo = (platformName) => {
 
   // Case-insensitive match
   const normalizedName = Object.keys(platformLogos).find(
-    (key) => key.toLowerCase() === platformName.toLowerCase()
+    (key) => key.toLowerCase() === platformName.toLowerCase(),
   );
 
   if (normalizedName) {

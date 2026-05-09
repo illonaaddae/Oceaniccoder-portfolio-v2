@@ -30,9 +30,7 @@ export const SkillsField: React.FC<SkillsFieldProps> = ({
         type="text"
         value={newSkill}
         onChange={(e) => setNewSkill(e.target.value)}
-        onKeyPress={(e) =>
-          e.key === "Enter" && (e.preventDefault(), onAdd())
-        }
+        onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), onAdd())}
         className={inputClass}
         placeholder="Add skill covered by this cert"
       />
@@ -55,9 +53,7 @@ export const SkillsField: React.FC<SkillsFieldProps> = ({
         <span
           key={skill}
           className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
-            theme === "dark"
-              ? "bg-purple-500/20 text-purple-300"
-              : "bg-purple-100 text-purple-700"
+            theme === "dark" ? "bg-purple-500/20 text-purple-300" : "bg-purple-100 text-purple-700"
           }`}
         >
           {skill}

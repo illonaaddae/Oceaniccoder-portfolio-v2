@@ -23,9 +23,7 @@ describe("sanitizeString", () => {
   });
 
   it("should remove HTML tags", () => {
-    expect(sanitizeString("<script>alert('xss')</script>hello")).toBe(
-      "alert('xss')hello"
-    );
+    expect(sanitizeString("<script>alert('xss')</script>hello")).toBe("alert('xss')hello");
   });
 
   it("should remove javascript: protocol", () => {
@@ -255,9 +253,7 @@ describe("validateContactForm", () => {
 
     expect(result.sanitized.name).toBe("John Doe");
     expect(result.sanitized.email).toBe("john@example.com");
-    expect(result.sanitized.message).toBe(
-      "This is a valid message for testing."
-    );
+    expect(result.sanitized.message).toBe("This is a valid message for testing.");
   });
 });
 

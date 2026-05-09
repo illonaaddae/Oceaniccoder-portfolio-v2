@@ -9,10 +9,7 @@ interface MessagesTabProps {
   theme: "light" | "dark";
   loading: boolean;
   filteredMessages: Message[];
-  onStatusChange: (
-    messageId: string,
-    status: "new" | "read" | "replied",
-  ) => void;
+  onStatusChange: (messageId: string, status: "new" | "read" | "replied") => void;
   onDelete: (messageId: string) => void;
   isReadOnly?: boolean;
 }
@@ -57,9 +54,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
             theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"
           }`}
         >
-          {isReadOnly
-            ? "Overview of contact form activity"
-            : "Manage contact form submissions"}
+          {isReadOnly ? "Overview of contact form activity" : "Manage contact form submissions"}
         </p>
       </div>
 

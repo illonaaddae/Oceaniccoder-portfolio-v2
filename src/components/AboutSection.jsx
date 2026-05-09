@@ -30,12 +30,35 @@ const AboutSection = () => {
     setIsVisible(true);
   }, [education, journey, certifications, galleryImages]);
 
-  const stats = useMemo(() => [
-    { icon: <FaCode />, number: `${projects?.length || 15}+`, label: "Projects Completed", color: "text-oceanic-500" },
-    { icon: <FaUsers />, number: `${about?.studentsMentored || 40}+`, label: "Students Mentored", color: "text-green-400" },
-    { icon: <FaMicrophone />, number: `${about?.techTalks || 2}+`, label: "Tech Talks Given", color: "text-purple-400" },
-    { icon: <FaStar />, number: `${about?.yearsExperience || 2}+`, label: "Years Experience", color: "text-orange-400" },
-  ], [projects, about]);
+  const stats = useMemo(
+    () => [
+      {
+        icon: <FaCode />,
+        number: `${projects?.length || 15}+`,
+        label: "Projects Completed",
+        color: "text-oceanic-500",
+      },
+      {
+        icon: <FaUsers />,
+        number: `${about?.studentsMentored || 40}+`,
+        label: "Students Mentored",
+        color: "text-green-400",
+      },
+      {
+        icon: <FaMicrophone />,
+        number: `${about?.techTalks || 2}+`,
+        label: "Tech Talks Given",
+        color: "text-purple-400",
+      },
+      {
+        icon: <FaStar />,
+        number: `${about?.yearsExperience || 2}+`,
+        label: "Years Experience",
+        color: "text-orange-400",
+      },
+    ],
+    [projects, about],
+  );
 
   return (
     <section
@@ -54,19 +77,11 @@ const AboutSection = () => {
         <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="max-w-6xl mx-auto">
           {activeTab === "story" && (
-            <StoryTab
-              galleryImages={galleryImages}
-              about={about}
-              certifications={certifications}
-            />
+            <StoryTab galleryImages={galleryImages} about={about} certifications={certifications} />
           )}
           {activeTab === "journey" && <JourneyTab journey={journey} />}
           {activeTab === "education" && (
-            <EducationTab
-              education={education}
-              certifications={certifications}
-              about={about}
-            />
+            <EducationTab education={education} certifications={certifications} about={about} />
           )}
           {activeTab === "values" && <ValuesTab />}
         </div>

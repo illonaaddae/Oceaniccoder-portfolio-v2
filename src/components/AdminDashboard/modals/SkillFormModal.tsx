@@ -16,8 +16,13 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
   theme,
   editingSkill,
 }) => {
-  const { form, setForm, loading, handleSubmit, inputClass, labelClass } =
-    useSkillForm({ isOpen, editingSkill, onSubmit, onClose, theme });
+  const { form, setForm, loading, handleSubmit, inputClass, labelClass } = useSkillForm({
+    isOpen,
+    editingSkill,
+    onSubmit,
+    onClose,
+    theme,
+  });
 
   return (
     <Modal
@@ -40,12 +45,7 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
           inputClass={inputClass}
           labelClass={labelClass}
         />
-        <ProficiencySlider
-          form={form}
-          setForm={setForm}
-          theme={theme}
-          labelClass={labelClass}
-        />
+        <ProficiencySlider form={form} setForm={setForm} theme={theme} labelClass={labelClass} />
         <IconSelector
           form={form}
           setForm={setForm}
@@ -53,17 +53,8 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
           labelClass={labelClass}
           theme={theme}
         />
-        <SkillPreview
-          name={form.name}
-          percentage={form.percentage}
-          theme={theme}
-        />
-        <FormActions
-          onClose={onClose}
-          loading={loading}
-          isEditing={!!editingSkill}
-          theme={theme}
-        />
+        <SkillPreview name={form.name} percentage={form.percentage} theme={theme} />
+        <FormActions onClose={onClose} loading={loading} isEditing={!!editingSkill} theme={theme} />
       </form>
     </Modal>
   );

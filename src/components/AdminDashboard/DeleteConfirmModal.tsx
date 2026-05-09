@@ -26,20 +26,13 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         }`}
       >
         <h3
-          className={`text-lg font-bold mb-3 ${
-            theme === "dark" ? "text-white" : "text-gray-900"
-          }`}
+          className={`text-lg font-bold mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
         >
           Confirm Delete
         </h3>
-        <p
-          className={`mb-6 ${
-            theme === "dark" ? "text-gray-300" : "text-gray-600"
-          }`}
-        >
+        <p className={`mb-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
           Are you sure you want to delete this {deleteConfirm.type}
-          {deleteConfirm.name ? ` "${deleteConfirm.name}"` : ""}? This action
-          cannot be undone.
+          {deleteConfirm.name ? ` "${deleteConfirm.name}"` : ""}? This action cannot be undone.
         </p>
         <div className="flex gap-3 justify-end">
           <button

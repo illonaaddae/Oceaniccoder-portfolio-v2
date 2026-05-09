@@ -43,11 +43,7 @@ const SkillsSection = () => {
           activeSkillCategory={activeSkillCategory}
           animatedSkills={animatedSkills}
         />
-        <SkillsSummary
-          projects={projects}
-          about={about}
-          totalTechnologies={totalTechnologies}
-        />
+        <SkillsSummary projects={projects} about={about} totalTechnologies={totalTechnologies} />
       </div>
     </section>
   );

@@ -54,7 +54,7 @@ export function getOptimizedImageUrl(
   url: string,
   width?: number,
   height?: number,
-  quality: number = 80
+  quality: number = 80,
 ): string {
   if (!url) return url;
 
@@ -92,31 +92,11 @@ export function getResponsiveImageUrls(url: string): {
   original: string;
 } {
   return {
-    thumbnail: getOptimizedImageUrl(
-      url,
-      IMAGE_SIZES.thumbnail.width,
-      IMAGE_SIZES.thumbnail.height
-    ),
-    card: getOptimizedImageUrl(
-      url,
-      IMAGE_SIZES.card.width,
-      IMAGE_SIZES.card.height
-    ),
-    blog: getOptimizedImageUrl(
-      url,
-      IMAGE_SIZES.blog.width,
-      IMAGE_SIZES.blog.height
-    ),
-    hero: getOptimizedImageUrl(
-      url,
-      IMAGE_SIZES.hero.width,
-      IMAGE_SIZES.hero.height
-    ),
-    full: getOptimizedImageUrl(
-      url,
-      IMAGE_SIZES.full.width,
-      IMAGE_SIZES.full.height
-    ),
+    thumbnail: getOptimizedImageUrl(url, IMAGE_SIZES.thumbnail.width, IMAGE_SIZES.thumbnail.height),
+    card: getOptimizedImageUrl(url, IMAGE_SIZES.card.width, IMAGE_SIZES.card.height),
+    blog: getOptimizedImageUrl(url, IMAGE_SIZES.blog.width, IMAGE_SIZES.blog.height),
+    hero: getOptimizedImageUrl(url, IMAGE_SIZES.hero.width, IMAGE_SIZES.hero.height),
+    full: getOptimizedImageUrl(url, IMAGE_SIZES.full.width, IMAGE_SIZES.full.height),
     original: url,
   };
 }
@@ -129,7 +109,7 @@ export function getResponsiveImageUrls(url: string): {
  */
 export function generateSrcSet(
   url: string,
-  sizes: number[] = [320, 640, 768, 1024, 1280, 1920]
+  sizes: number[] = [320, 640, 768, 1024, 1280, 1920],
 ): string {
   if (!isAppwriteUrl(url)) return "";
 
@@ -148,7 +128,7 @@ export function generateSrcSet(
  */
 export function getImageForContext(
   url: string,
-  displayType: "thumbnail" | "card" | "blog" | "hero" | "full" = "card"
+  displayType: "thumbnail" | "card" | "blog" | "hero" | "full" = "card",
 ): string {
   if (!url) return url;
 

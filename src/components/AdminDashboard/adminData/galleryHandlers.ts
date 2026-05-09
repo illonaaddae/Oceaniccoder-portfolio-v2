@@ -1,15 +1,9 @@
 import type { GalleryImage } from "@/types";
-import {
-  createGalleryImage,
-  updateGalleryImage,
-  deleteGalleryImage,
-} from "@/services/api";
+import { createGalleryImage, updateGalleryImage, deleteGalleryImage } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
 export function createGalleryHandlers(loadData: LoadDataFn) {
-  const handleAddGalleryImage = async (
-    imageForm: Omit<GalleryImage, "$id">,
-  ) => {
+  const handleAddGalleryImage = async (imageForm: Omit<GalleryImage, "$id">) => {
     try {
       await createGalleryImage(imageForm);
       await loadData(false);
@@ -42,10 +36,7 @@ export function createGalleryHandlers(loadData: LoadDataFn) {
     }
   };
 
-  const handleUpdateGalleryOrder = async (
-    imageId: string,
-    newOrder: number,
-  ) => {
+  const handleUpdateGalleryOrder = async (imageId: string, newOrder: number) => {
     try {
       await updateGalleryImage(imageId, { order: newOrder });
       await loadData(false);
@@ -55,10 +46,7 @@ export function createGalleryHandlers(loadData: LoadDataFn) {
     }
   };
 
-  const handleToggleGalleryVisibility = async (
-    imageId: string,
-    isPublic: boolean,
-  ) => {
+  const handleToggleGalleryVisibility = async (imageId: string, isPublic: boolean) => {
     try {
       await updateGalleryImage(imageId, { isPublic });
       await loadData(false);

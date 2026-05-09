@@ -10,10 +10,7 @@ import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { ToastContainer } from "./Toast";
 import type { AdminDashboardProps } from "./types";
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({
-  onLogout,
-  isReadOnly = false,
-}) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isReadOnly = false }) => {
   const s = useDashboardState(isReadOnly);
 
   return (
@@ -50,11 +47,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onConfirm={s.deleteConfirmHook.confirmDelete}
         onCancel={s.deleteConfirmHook.cancelDelete}
       />
-      <ToastContainer
-        toasts={s.toasts}
-        onRemove={s.removeToast}
-        theme={s.theme}
-      />
+      <ToastContainer toasts={s.toasts} onRemove={s.removeToast} theme={s.theme} />
     </div>
   );
 };

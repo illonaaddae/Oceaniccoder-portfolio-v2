@@ -37,10 +37,7 @@ const BlogSection = () => {
       className="min-h-screen pt-28 pb-20 relative"
       style={{ background: SECTION_BG }}
     >
-      <div
-        className="absolute inset-0 overflow-hidden pointer-events-none"
-        style={{ zIndex: 0 }}
-      >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
         <div className="liquid-morph absolute top-60 right-10 w-96 h-96 bg-gradient-to-r from-green-500/8 to-emerald-500/10 blur-3xl" />
         <div className="liquid-morph absolute bottom-20 left-10 w-80 h-80 bg-gradient-to-r from-oceanic-500/6 to-blue-500/8 blur-3xl" />
       </div>
@@ -49,10 +46,7 @@ const BlogSection = () => {
         <BlogHeader />
 
         {featuredPosts.length > 0 && currentPage === 1 && !searchQuery && (
-          <FeaturedPosts
-            featuredPosts={featuredPosts}
-            onPostClick={handlePostClick}
-          />
+          <FeaturedPosts featuredPosts={featuredPosts} onPostClick={handlePostClick} />
         )}
 
         <CategoryFilter

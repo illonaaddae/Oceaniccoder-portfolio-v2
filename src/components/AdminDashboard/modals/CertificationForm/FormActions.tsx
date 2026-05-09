@@ -8,12 +8,7 @@ interface FormActionsProps {
   theme: "light" | "dark";
 }
 
-export const FormActions: React.FC<FormActionsProps> = ({
-  onClose,
-  loading,
-  isEditing,
-  theme,
-}) => (
+export const FormActions: React.FC<FormActionsProps> = ({ onClose, loading, isEditing, theme }) => (
   <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
     <button
       type="button"

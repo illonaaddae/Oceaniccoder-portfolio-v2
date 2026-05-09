@@ -19,10 +19,8 @@ const BlogPost = () => {
   const navigate = useNavigate();
   const isDark = useThemeDetector();
 
-  const { post, loading, isSearching, relatedPosts, prevPost, nextPost } =
-    useBlogPost(slug);
-  const { reactions, userReaction, reactionLoading, handleReaction } =
-    useReactions(post?.$id);
+  const { post, loading, isSearching, relatedPosts, prevPost, nextPost } = useBlogPost(slug);
+  const { reactions, userReaction, reactionLoading, handleReaction } = useReactions(post?.$id);
 
   if (loading || isSearching) return <LoadingState />;
   if (!post) return <NotFoundState />;

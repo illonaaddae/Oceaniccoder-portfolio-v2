@@ -15,9 +15,7 @@ import type { Project, Certification, Skill } from "../types";
 import type { ProjectData, PortfolioContextType } from "./types";
 import { navItems, projectFilters } from "./navData";
 
-const PortfolioContext = createContext<PortfolioContextType | undefined>(
-  undefined,
-);
+const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
 export const usePortfolio = () => {
   const context = useContext(PortfolioContext);
@@ -33,19 +31,14 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
   const [activeProjectFilter, setActiveProjectFilter] = useState("All");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState<ProjectData[]>(
-    PROJECTS_DATA as ProjectData[],
-  );
+  const [projects, setProjects] = useState<ProjectData[]>(PROJECTS_DATA as ProjectData[]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [appwriteSkills, setAppwriteSkills] = useState<Skill[]>([]);
 
   const blogs = BLOGS_DATA;
 
   // Derive grouped skills: prefer live Appwrite data, fall back to static file
-  const skills = useMemo(
-    () => transformAppwriteSkills(appwriteSkills),
-    [appwriteSkills],
-  );
+  const skills = useMemo(() => transformAppwriteSkills(appwriteSkills), [appwriteSkills]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -56,31 +49,24 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
         getSkills(),
       ]);
 
-      if (
-        projectsData.status === "fulfilled" &&
-        projectsData.value.length > 0
-      ) {
-        const transformed: ProjectData[] = projectsData.value.map(
-          (p: Project) => ({
-            id: parseInt(p.$id.replace(/\D/g, "")) || Math.random() * 1000,
-            $id: p.$id,
-            title: p.title,
-            description: p.description,
-            longDescription: p.longDescription,
-            category: p.category,
-            technologies: p.technologies || [],
-            image: p.image,
-            liveUrl: p.liveUrl,
-            githubUrl: p.githubUrl,
-            featured: p.featured,
-            status: p.status,
-            year: p.year,
-            $createdAt: p.$createdAt,
-          }),
-        );
-        transformed.sort((a, b) =>
-          (b.$createdAt || "").localeCompare(a.$createdAt || ""),
-        );
+      if (projectsData.status === "fulfilled" && projectsData.value.length > 0) {
+        const transformed: ProjectData[] = projectsData.value.map((p: Project) => ({
+          id: parseInt(p.$id.replace(/\D/g, "")) || Math.random() * 1000,
+          $id: p.$id,
+          title: p.title,
+          description: p.description,
+          longDescription: p.longDescription,
+          category: p.category,
+          technologies: p.technologies || [],
+          image: p.image,
+          liveUrl: p.liveUrl,
+          githubUrl: p.githubUrl,
+          featured: p.featured,
+          status: p.status,
+          year: p.year,
+          $createdAt: p.$createdAt,
+        }));
+        transformed.sort((a, b) => (b.$createdAt || "").localeCompare(a.$createdAt || ""));
         setProjects(transformed);
       }
 
@@ -123,9 +109,5 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     refetchData: fetchData,
   };
 
-  return (
-    <PortfolioContext.Provider value={value}>
-      {children}
-    </PortfolioContext.Provider>
-  );
+  return <PortfolioContext.Provider value={value}>{children}</PortfolioContext.Provider>;
 };

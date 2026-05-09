@@ -7,12 +7,7 @@ interface UrlInputProps {
   theme: "light" | "dark";
 }
 
-export const UrlInput: React.FC<UrlInputProps> = ({
-  value,
-  onChange,
-  allowPdf,
-  theme,
-}) => (
+export const UrlInput: React.FC<UrlInputProps> = ({ value, onChange, allowPdf, theme }) => (
   <div className="mt-3">
     <div
       className={`flex items-center gap-2 text-xs mb-1 ${

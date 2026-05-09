@@ -8,8 +8,7 @@ const APPWRITE_STORAGE_BASE =
 const PROJECT_ID = "6943431e00253c8f9883";
 
 // Helper to construct URL
-const getUrl = (fileId: string) =>
-  `${APPWRITE_STORAGE_BASE}/${fileId}/view?project=${PROJECT_ID}`;
+const getUrl = (fileId: string) => `${APPWRITE_STORAGE_BASE}/${fileId}/view?project=${PROJECT_ID}`;
 
 export const IMAGES = {
   // Profile & Personal

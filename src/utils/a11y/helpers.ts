@@ -32,7 +32,6 @@ export function prefersHighContrast(): boolean {
 export function getColorSchemePreference(): "dark" | "light" | "no-preference" {
   if (typeof window === "undefined") return "no-preference";
   if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
-  if (window.matchMedia("(prefers-color-scheme: light)").matches)
-    return "light";
+  if (window.matchMedia("(prefers-color-scheme: light)").matches) return "light";
   return "no-preference";
 }

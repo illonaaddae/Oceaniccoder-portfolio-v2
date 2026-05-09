@@ -17,8 +17,7 @@ import {
 
 const ProjectCaseStudy: React.FC = () => {
   const navigate = useNavigate();
-  const { project, loading, prevProject, nextProject, relatedProjects } =
-    useCaseStudy();
+  const { project, loading, prevProject, nextProject, relatedProjects } = useCaseStudy();
 
   if (loading) return <CaseStudyLoading />;
   if (!project) return <CaseStudyNotFound />;
@@ -49,10 +48,7 @@ const ProjectCaseStudy: React.FC = () => {
         {/* Hero Section */}
         <header className="mb-12">
           <CaseStudyHeader project={project} />
-          <ProjectLinks
-            liveUrl={project.liveUrl}
-            githubUrl={project.githubUrl}
-          />
+          <ProjectLinks liveUrl={project.liveUrl} githubUrl={project.githubUrl} />
         </header>
 
         {/* Featured Image */}
@@ -69,14 +65,8 @@ const ProjectCaseStudy: React.FC = () => {
 
         <TechStack technologies={project.technologies} />
         <CaseStudyContent project={project} />
-        <Screenshots
-          screenshots={project.screenshots || []}
-          title={project.title}
-        />
-        <NavigationButtons
-          prevProject={prevProject}
-          nextProject={nextProject}
-        />
+        <Screenshots screenshots={project.screenshots || []} title={project.title} />
+        <NavigationButtons prevProject={prevProject} nextProject={nextProject} />
         <RelatedProjects projects={relatedProjects} />
       </div>
     </section>

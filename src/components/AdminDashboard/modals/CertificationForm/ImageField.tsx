@@ -9,19 +9,10 @@ interface ImageFieldProps {
   labelClass: string;
 }
 
-export const ImageField: React.FC<ImageFieldProps> = ({
-  form,
-  updateForm,
-  theme,
-  labelClass,
-}) => (
+export const ImageField: React.FC<ImageFieldProps> = ({ form, updateForm, theme, labelClass }) => (
   <div>
     <p className={labelClass}>Certificate File (Optional)</p>
-    <p
-      className={`text-xs mb-2 ${
-        theme === "dark" ? "text-slate-400" : "text-slate-500"
-      }`}
-    >
+    <p className={`text-xs mb-2 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
       Upload an image or PDF of your certificate
     </p>
     <ImageUpload

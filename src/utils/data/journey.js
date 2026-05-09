@@ -1,4 +1,3 @@
-
 // Career Journey data
 const journey = [
   {
@@ -6,8 +5,7 @@ const journey = [
     company: "AmaliTech",
     period: "2025 - Present",
     location: "Accra, Ghana",
-    description:
-      "Building beautiful, interactive user interfaces for web and mobile applications.",
+    description: "Building beautiful, interactive user interfaces for web and mobile applications.",
     achievements: ["AmaliTech AWS re/Start Programme"],
     color: "from-oceanic-500 to-oceanic-900",
   },
@@ -30,8 +28,7 @@ const journey = [
     company: "Freelance & Contract Work",
     period: "2025 - Present",
     location: "Remote & Ghana",
-    description:
-      "Building scalable web applications and mentoring aspiring developers.",
+    description: "Building scalable web applications and mentoring aspiring developers.",
     achievements: [
       "Delivered 3+ successful client projects",
       "Maintained 98% client satisfaction rate",
@@ -47,10 +44,7 @@ const journey = [
     location: "Remote",
     description:
       " Monitoring project timelines and ensured timely follow-ups on assigned tasks and deliverables to support the software development team.",
-    achievements: [
-      "Monitored project timelines",
-      "Assisted in compiling progress reports ",
-    ],
+    achievements: ["Monitored project timelines", "Assisted in compiling progress reports "],
     color: "from-orange-500 to-red-500",
   },
 ];

@@ -85,12 +85,7 @@ import journey from "../utils/data/journey";
 ### Import Multiple Modules (Recommended)
 
 ```javascript
-import {
-  education,
-  journey,
-  certifications,
-  galleryImages,
-} from "../utils/data";
+import { education, journey, certifications, galleryImages } from "../utils/data";
 ```
 
 ## Best Practices

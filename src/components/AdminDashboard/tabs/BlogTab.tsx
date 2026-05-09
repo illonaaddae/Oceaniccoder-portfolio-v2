@@ -20,11 +20,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <BlogHeader
-        theme={theme}
-        isReadOnly={isReadOnly}
-        onNewPost={blog.openNewPostModal}
-      />
+      <BlogHeader theme={theme} isReadOnly={isReadOnly} onNewPost={blog.openNewPostModal} />
       <BlogSearch
         theme={theme}
         searchQuery={blog.searchQuery}
@@ -57,11 +53,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
         onRemoveTag={blog.handleRemoveTag}
         insertImageToContent={blog.insertImageToContent}
       />
-      <ToastContainer
-        toasts={blog.toast.toasts}
-        onRemove={blog.toast.removeToast}
-        theme={theme}
-      />
+      <ToastContainer toasts={blog.toast.toasts} onRemove={blog.toast.removeToast} theme={theme} />
     </div>
   );
 };

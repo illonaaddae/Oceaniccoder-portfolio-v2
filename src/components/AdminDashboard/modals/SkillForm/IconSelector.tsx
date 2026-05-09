@@ -17,9 +17,7 @@ export const IconSelector: React.FC<IconSelectorProps> = ({
   labelClass,
   theme,
 }) => {
-  const helperClass = `text-xs mt-1 ${
-    theme === "dark" ? "text-slate-500" : "text-slate-500"
-  }`;
+  const helperClass = `text-xs mt-1 ${theme === "dark" ? "text-slate-500" : "text-slate-500"}`;
 
   return (
     <div>

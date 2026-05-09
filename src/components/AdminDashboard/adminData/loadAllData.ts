@@ -25,11 +25,7 @@ import {
 } from "@/services/api";
 import type { LoadDataFn, DataSetters } from "./types";
 
-async function safeFetch<T>(
-  fn: () => Promise<T>,
-  fallback: T,
-  label: string,
-): Promise<T> {
+async function safeFetch<T>(fn: () => Promise<T>, fallback: T, label: string): Promise<T> {
   try {
     return await fn();
   } catch (err) {
@@ -83,8 +79,7 @@ export function createLoadData(setters: DataSetters): LoadDataFn {
       setters.setSiteViews(siteViewsData);
       setters.setError(null);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load data";
+      const errorMessage = err instanceof Error ? err.message : "Failed to load data";
       setters.setError(errorMessage);
       console.error("Data loading error:", err);
     } finally {

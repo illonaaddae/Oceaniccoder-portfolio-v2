@@ -42,7 +42,7 @@ export default async ({ req, res, log, error }) => {
       [], // cc
       [], // bcc
       false, // draft
-      true // html
+      true, // html
     );
 
     log("✅ Notification email sent successfully!");

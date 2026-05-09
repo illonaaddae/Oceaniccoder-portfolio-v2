@@ -15,14 +15,13 @@ export const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
   theme,
   editingTestimonial,
 }) => {
-  const { form, setForm, loading, handleSubmit, inputClass, labelClass } =
-    useTestimonialForm({
-      isOpen,
-      onClose,
-      onSubmit,
-      theme,
-      editingTestimonial,
-    });
+  const { form, setForm, loading, handleSubmit, inputClass, labelClass } = useTestimonialForm({
+    isOpen,
+    onClose,
+    onSubmit,
+    theme,
+    editingTestimonial,
+  });
 
   return (
     <Modal

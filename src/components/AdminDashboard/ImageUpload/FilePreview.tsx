@@ -29,16 +29,8 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
           theme === "dark" ? "bg-gray-800" : "bg-slate-100"
         }`}
       >
-        <FaFilePdf
-          className={`text-5xl ${
-            theme === "dark" ? "text-red-400" : "text-red-500"
-          }`}
-        />
-        <span
-          className={`text-sm ${
-            theme === "dark" ? "text-gray-300" : "text-slate-600"
-          }`}
-        >
+        <FaFilePdf className={`text-5xl ${theme === "dark" ? "text-red-400" : "text-red-500"}`} />
+        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-slate-600"}`}>
           PDF Certificate
         </span>
         <a

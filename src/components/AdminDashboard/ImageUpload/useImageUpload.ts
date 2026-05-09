@@ -15,7 +15,10 @@ async function convertToWebP(file: File, quality = 0.9): Promise<File> {
       canvas.toBlob(
         (blob) => {
           URL.revokeObjectURL(url);
-          if (!blob) { resolve(file); return; }
+          if (!blob) {
+            resolve(file);
+            return;
+          }
           const webpName = file.name.replace(/\.[^.]+$/, "") + ".webp";
           resolve(new File([blob], webpName, { type: "image/webp" }));
         },
@@ -23,7 +26,10 @@ async function convertToWebP(file: File, quality = 0.9): Promise<File> {
         quality,
       );
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image load failed")); };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Image load failed"));
+    };
     img.src = url;
   });
 }
@@ -98,11 +104,7 @@ export function useImageUpload({
     const isPdfFile = file.type === "application/pdf";
 
     if (!isImage && !(allowPdf && isPdfFile)) {
-      setError(
-        allowPdf
-          ? "Please select an image or PDF file"
-          : "Please select an image file"
-      );
+      setError(allowPdf ? "Please select an image or PDF file" : "Please select an image file");
       return;
     }
 

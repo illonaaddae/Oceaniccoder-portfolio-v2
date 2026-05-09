@@ -15,7 +15,9 @@ export const CredentialField: React.FC<CredentialFieldProps> = ({
   labelClass,
 }) => (
   <div>
-    <label htmlFor="cert-credential" className={labelClass}>Credential ID</label>
+    <label htmlFor="cert-credential" className={labelClass}>
+      Credential ID
+    </label>
     <input
       id="cert-credential"
       type="text"

@@ -8,11 +8,7 @@ const RouteChangeHandler = () => {
 
   useEffect(() => {
     try {
-      if (
-        typeof window !== "undefined" &&
-        window.history &&
-        window.history.scrollRestoration
-      ) {
+      if (typeof window !== "undefined" && window.history && window.history.scrollRestoration) {
         window.history.scrollRestoration = "manual";
       }
     } catch (e) {

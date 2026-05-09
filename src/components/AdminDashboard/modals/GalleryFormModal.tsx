@@ -15,22 +15,8 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({
   editingImage,
   totalImages = 0,
 }) => {
-  const {
-    form,
-    setForm,
-    setPreviewError,
-    loading,
-    handleSubmit,
-    inputClass,
-    labelClass,
-  } = useGalleryForm(
-    isOpen,
-    editingImage,
-    totalImages,
-    onSubmit,
-    onClose,
-    theme,
-  );
+  const { form, setForm, setPreviewError, loading, handleSubmit, inputClass, labelClass } =
+    useGalleryForm(isOpen, editingImage, totalImages, onSubmit, onClose, theme);
 
   return (
     <Modal
@@ -63,19 +49,12 @@ export const GalleryFormModal: React.FC<GalleryFormModalProps> = ({
 
         <GalleryVisibilityToggle
           isPublic={form.isPublic}
-          onToggle={() =>
-            setForm((prev) => ({ ...prev, isPublic: !prev.isPublic }))
-          }
+          onToggle={() => setForm((prev) => ({ ...prev, isPublic: !prev.isPublic }))}
           theme={theme}
           labelClass={labelClass}
         />
 
-        <FormActions
-          onClose={onClose}
-          loading={loading}
-          isEditing={!!editingImage}
-          theme={theme}
-        />
+        <FormActions onClose={onClose} loading={loading} isEditing={!!editingImage} theme={theme} />
       </form>
     </Modal>
   );

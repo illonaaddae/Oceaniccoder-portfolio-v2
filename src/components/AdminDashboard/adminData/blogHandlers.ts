@@ -13,10 +13,7 @@ export function createBlogHandlers(loadData: LoadDataFn) {
     }
   };
 
-  const handleUpdateBlogPost = async (
-    postId: string,
-    postForm: Partial<Omit<BlogPost, "$id">>,
-  ) => {
+  const handleUpdateBlogPost = async (postId: string, postForm: Partial<Omit<BlogPost, "$id">>) => {
     try {
       await updateBlogPost(postId, postForm);
       await loadData(false);

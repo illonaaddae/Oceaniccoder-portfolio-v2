@@ -26,9 +26,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme }) => {
             className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
-              (
-                e.target as HTMLImageElement
-              ).nextElementSibling?.classList.remove("hidden");
+              (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
             }}
           />
           <div

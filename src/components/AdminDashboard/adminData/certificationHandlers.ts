@@ -1,15 +1,9 @@
 import type { Certification } from "@/types";
-import {
-  createCertification,
-  updateCertification,
-  deleteCertification,
-} from "@/services/api";
+import { createCertification, updateCertification, deleteCertification } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
 export function createCertificationHandlers(loadData: LoadDataFn) {
-  const handleAddCertification = async (
-    certForm: Omit<Certification, "$id" | "$createdAt">,
-  ) => {
+  const handleAddCertification = async (certForm: Omit<Certification, "$id" | "$createdAt">) => {
     try {
       await createCertification(certForm);
       await loadData(false);

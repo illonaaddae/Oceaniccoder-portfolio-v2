@@ -11,7 +11,7 @@
  */
 export const formatDate = (
   dateStr?: string | Date | null,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string => {
   if (!dateStr) return "—";
   try {
@@ -23,7 +23,7 @@ export const formatDate = (
         year: "numeric",
         month: "short",
         day: "numeric",
-      }
+      },
     );
   } catch {
     return "—";
@@ -107,10 +107,7 @@ export const formatFileSize = (bytes?: number | null): string => {
  * @param maxLength - Maximum length before truncation
  * @returns Truncated text with ellipsis or original text
  */
-export const truncateText = (
-  text?: string | null,
-  maxLength: number = 100
-): string => {
+export const truncateText = (text?: string | null, maxLength: number = 100): string => {
   if (!text) return "";
   if (text.length <= maxLength) return text;
   return `${text.substring(0, maxLength).trim()}...`;

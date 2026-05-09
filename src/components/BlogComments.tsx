@@ -9,10 +9,7 @@ import CommentHeader from "./Comments/CommentHeader";
 import CommentCarousel from "./Comments/CommentCarousel";
 import CommentForm from "./Comments/CommentForm";
 
-const BlogComments: React.FC<BlogCommentsProps> = ({
-  postId,
-  isDark = true,
-}) => {
+const BlogComments: React.FC<BlogCommentsProps> = ({ postId, isDark = true }) => {
   const s = getStyles(isDark);
   const {
     loading,
@@ -64,13 +61,9 @@ const BlogComments: React.FC<BlogCommentsProps> = ({
           <p className={s.textAccent}>Loading comments...</p>
         </div>
       ) : topLevelComments.length === 0 ? (
-        <div
-          className={`text-center py-12 rounded-2xl border mb-8 ${s.cardStyles}`}
-        >
+        <div className={`text-center py-12 rounded-2xl border mb-8 ${s.cardStyles}`}>
           <FaComment className={`text-4xl mx-auto mb-4 ${s.textAccent}`} />
-          <p className={`text-lg font-medium mb-2 ${s.textPrimary}`}>
-            No comments yet
-          </p>
+          <p className={`text-lg font-medium mb-2 ${s.textPrimary}`}>No comments yet</p>
           <p className={s.textAccent}>Be the first to share your thoughts!</p>
         </div>
       ) : (

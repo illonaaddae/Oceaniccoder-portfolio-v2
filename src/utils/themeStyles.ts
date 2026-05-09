@@ -22,9 +22,7 @@ export const getCardStyles = (
         ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
         : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60",
     empty:
-      theme === "dark"
-        ? "bg-gray-800/30 border-gray-700/50"
-        : "bg-white/30 border-slate-200/60",
+      theme === "dark" ? "bg-gray-800/30 border-gray-700/50" : "bg-white/30 border-slate-200/60",
     stat:
       theme === "dark"
         ? "bg-gradient-to-br from-gray-800/60 to-gray-900/40 border-gray-700/60"
@@ -51,10 +49,7 @@ export const getTextStyles = (
 /**
  * Get title styles based on theme
  */
-export const getTitleStyles = (
-  theme: Theme,
-  size: "sm" | "md" | "lg" | "xl" = "lg",
-): string => {
+export const getTitleStyles = (theme: Theme, size: "sm" | "md" | "lg" | "xl" = "lg"): string => {
   const sizes = {
     sm: "text-lg sm:text-xl",
     md: "text-xl sm:text-2xl",
@@ -117,9 +112,7 @@ export const getIconColor = (
 /**
  * Get stat card gradient based on color scheme
  */
-export const getStatGradient = (
-  color: "cyan" | "green" | "purple" | "orange" | "pink",
-): string => {
+export const getStatGradient = (color: "cyan" | "green" | "purple" | "orange" | "pink"): string => {
   const gradients = {
     cyan: "from-oceanic-500/20 to-oceanic-900/20 border-oceanic-500/30",
     green: "from-green-500/20 to-emerald-500/20 border-green-500/30",

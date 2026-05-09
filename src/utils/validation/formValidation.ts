@@ -3,12 +3,7 @@
  * @module utils/validation/formValidation
  */
 
-import {
-  validateName,
-  validateEmail,
-  validateSubject,
-  validateMessage,
-} from "./validators";
+import { validateName, validateEmail, validateSubject, validateMessage } from "./validators";
 import type { FormValidationErrors } from "./types";
 
 /**

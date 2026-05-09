@@ -12,11 +12,7 @@ interface AdminRoutesProps {
   onAdminLogout: () => void;
 }
 
-const adminRoutes = ({
-  isAdminLoggedIn,
-  onAdminLogin,
-  onAdminLogout,
-}: AdminRoutesProps) => (
+const adminRoutes = ({ isAdminLoggedIn, onAdminLogin, onAdminLogout }: AdminRoutesProps) => (
   <>
     <Route
       path="/admin/dashboard"

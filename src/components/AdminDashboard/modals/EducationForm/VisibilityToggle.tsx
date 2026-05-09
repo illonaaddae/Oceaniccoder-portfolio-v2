@@ -47,11 +47,7 @@ export const VisibilityToggle: React.FC<VisibilityToggleProps> = ({
         Hidden
       </button>
     </div>
-    <p
-      className={`mt-2 text-xs ${
-        theme === "dark" ? "text-slate-500" : "text-slate-400"
-      }`}
-    >
+    <p className={`mt-2 text-xs ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
       {form.isVisible
         ? "This education entry will be shown on your portfolio."
         : "This education entry will be hidden from your portfolio."}

@@ -59,7 +59,9 @@ function httpsPost(hostname, path, headers, body) {
       },
       (res) => {
         let raw = "";
-        res.on("data", (chunk) => { raw += chunk; });
+        res.on("data", (chunk) => {
+          raw += chunk;
+        });
         res.on("end", () => resolve({ status: res.statusCode, body: raw }));
       },
     );
@@ -77,13 +79,21 @@ module.exports = async function (context, req) {
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    context.res = { status: 503, headers: CORS, body: JSON.stringify({ error: "Chatbot not configured" }) };
+    context.res = {
+      status: 503,
+      headers: CORS,
+      body: JSON.stringify({ error: "Chatbot not configured" }),
+    };
     return;
   }
 
   const { messages } = req.body || {};
   if (!Array.isArray(messages) || messages.length === 0) {
-    context.res = { status: 400, headers: CORS, body: JSON.stringify({ error: "messages required" }) };
+    context.res = {
+      status: 400,
+      headers: CORS,
+      body: JSON.stringify({ error: "messages required" }),
+    };
     return;
   }
 
@@ -109,7 +119,11 @@ module.exports = async function (context, req) {
 
     if (result.status !== 200) {
       context.log.error("OpenAI API error:", result.body);
-      context.res = { status: 502, headers: CORS, body: JSON.stringify({ error: "AI service unavailable" }) };
+      context.res = {
+        status: 502,
+        headers: CORS,
+        body: JSON.stringify({ error: "AI service unavailable" }),
+      };
       return;
     }
 

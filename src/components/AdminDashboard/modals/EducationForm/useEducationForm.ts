@@ -13,7 +13,11 @@ interface UseEducationFormProps {
 }
 
 export const useEducationForm = ({
-  isOpen, onClose, onSubmit, editingEducation, theme,
+  isOpen,
+  onClose,
+  onSubmit,
+  editingEducation,
+  theme,
 }: UseEducationFormProps) => {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<EducationFormState>(initialFormState);
@@ -57,10 +61,12 @@ export const useEducationForm = ({
     setLoading(true);
     setError(null);
     try {
-      const startDate = form.startMonth && form.startYear
-        ? `${form.startYear}-${form.startMonth}-01` : "";
-      const endDate = !form.isOngoing && form.endMonth && form.endYear
-        ? `${form.endYear}-${form.endMonth}-01` : "";
+      const startDate =
+        form.startMonth && form.startYear ? `${form.startYear}-${form.startMonth}-01` : "";
+      const endDate =
+        !form.isOngoing && form.endMonth && form.endYear
+          ? `${form.endYear}-${form.endMonth}-01`
+          : "";
       const period = formatPeriod(startDate, endDate, form.isOngoing);
 
       const { startMonth, startYear, endMonth, endYear, ...rest } = form;

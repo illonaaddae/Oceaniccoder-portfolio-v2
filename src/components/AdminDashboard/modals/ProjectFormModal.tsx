@@ -103,9 +103,7 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             items={form.screenshots}
             inputValue={newScreenshot}
             onInputChange={setNewScreenshot}
-            onAdd={() =>
-              addToList("screenshots", newScreenshot, setNewScreenshot)
-            }
+            onAdd={() => addToList("screenshots", newScreenshot, setNewScreenshot)}
             onRemove={(url) => removeFromList("screenshots", url)}
             theme={theme}
             inputClass={inputClass}
