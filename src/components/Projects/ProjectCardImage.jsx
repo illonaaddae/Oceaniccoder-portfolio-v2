@@ -21,6 +21,7 @@ const ProjectCardImage = React.memo(({ project }) => (
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="glass-btn p-2 text-white hover:text-oceanic-500 transition-colors duration-300 z-10"
+            aria-label={`View ${project.title} on GitHub`}
           >
             <FaGithub className="w-5 h-5" />
           </a>
@@ -32,6 +33,7 @@ const ProjectCardImage = React.memo(({ project }) => (
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="glass-btn p-2 text-white hover:text-oceanic-500 transition-colors duration-300 z-10"
+            aria-label={`View ${project.title} live demo`}
           >
             <FaExternalLinkAlt className="w-5 h-5" />
           </a>

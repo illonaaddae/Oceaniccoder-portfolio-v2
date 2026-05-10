@@ -20,7 +20,7 @@ const AuthorInfo: React.FC<AuthorInfoProps> = React.memo(({ testimonial }) => (
       </div>
     )}
     <div>
-      <h4 className="text-lg font-bold text-[var(--text-primary)]">{testimonial.name}</h4>
+      <p className="text-lg font-bold text-[var(--text-primary)]">{testimonial.name}</p>
       <p className="text-[var(--text-accent)]">
         {testimonial.role}
         {testimonial.company && <span> at {testimonial.company}</span>}

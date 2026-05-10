@@ -43,7 +43,6 @@ const HeroContent = React.memo(function HeroContent({ displayText, onViewProject
         <button
           onClick={onViewProjects}
           className="hero-btn-primary px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 transition-all duration-300"
-          aria-label="Navigate to projects section"
         >
           View My Projects
           <FaArrowRight className="w-4 h-4" />
@@ -52,7 +51,6 @@ const HeroContent = React.memo(function HeroContent({ displayText, onViewProject
         <button
           onClick={onHireMe}
           className="hero-btn-outline border-2 border-oceanic-500 px-7 py-3 rounded-xl font-semibold flex items-center gap-3 hover:scale-105 transition-all duration-300"
-          aria-label="Navigate to contact section"
         >
           <FaBriefcase className="w-4 h-4" />
           Hire Me

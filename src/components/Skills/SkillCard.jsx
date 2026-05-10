@@ -7,7 +7,10 @@ const SkillCard = React.memo(({ skill, index, isAnimated }) => (
   >
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-3">
-        <span className="text-2xl group-hover:scale-110 transition-transform duration-300">
+        <span
+          className="text-2xl group-hover:scale-110 transition-transform duration-300"
+          aria-hidden="true"
+        >
           {skill.icon}
         </span>
         <span className="font-medium text-white">{skill.name}</span>
