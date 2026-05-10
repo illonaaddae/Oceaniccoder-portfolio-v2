@@ -30,12 +30,12 @@ export const servicePackages: ServicePackage[] = [
     id: "starter",
     name: "Starter",
     description:
-      "Perfect for small businesses or personal projects needing a professional web presence.",
+      "Perfect for small businesses or personal projects needing a clean, professional web presence fast.",
     price: "$299",
     priceNote: "Starting from",
     icon: "FaRocket",
     color: "from-blue-500 to-oceanic-500",
-    deliveryTime: "7-10 days",
+    deliveryTime: "7-14 days",
     revisions: "2 rounds",
     support: "1 week post-launch",
     features: [
@@ -55,13 +55,13 @@ export const servicePackages: ServicePackage[] = [
     id: "professional",
     name: "Professional",
     description:
-      "Comprehensive solution for businesses requiring a full-featured website with advanced functionality.",
+      "Ideal for businesses wanting a multi-page website with custom design, blog, animations, and SEO built in.",
     price: "$799",
     priceNote: "Starting from",
     popular: true,
     icon: "FaCode",
     color: "from-oceanic-500 to-oceanic-900",
-    deliveryTime: "2-4 weeks",
+    deliveryTime: "3-5 weeks",
     revisions: "4 rounds",
     support: "1 month post-launch",
     features: [
@@ -85,13 +85,13 @@ export const servicePackages: ServicePackage[] = [
     id: "enterprise",
     name: "Enterprise",
     description:
-      "Full-scale web application with custom features, integrations, and ongoing support.",
+      "Full-scale web application with custom features, integrations, e-commerce, and dedicated ongoing support.",
     price: "$1,999",
     priceNote: "Starting from",
     icon: "FaServer",
     color: "from-blue-500 to-green-500",
-    deliveryTime: "4-8 weeks",
-    revisions: "Unlimited",
+    deliveryTime: "8-12 weeks",
+    revisions: "6 rounds",
     support: "3 months post-launch",
     features: [
       { name: "Custom Web Application", included: true },
@@ -103,7 +103,7 @@ export const servicePackages: ServicePackage[] = [
       { name: "E-commerce (Full-Featured)", included: true },
       { name: "Payment Gateway Integration", included: true },
       { name: "Cloud Deployment (AWS/Azure)", included: true },
-      { name: "24/7 Priority Support", included: true },
+      { name: "Priority Support (Fast Response)", included: true },
     ],
   },
 ];
