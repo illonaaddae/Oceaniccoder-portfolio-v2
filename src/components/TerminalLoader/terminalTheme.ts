@@ -24,47 +24,47 @@ export interface TerminalLine {
 }
 
 export const sequence: TerminalLine[] = [
-  { type: "cmd", text: "npm run dev", delay: 500 },
+  { type: "cmd", text: "npm run dev", delay: 100 },
   {
     type: "output",
     text: "starship init zsh",
     color: colors.comment,
     icon: "arrow",
-    delay: 800,
+    delay: 150,
   },
   {
     type: "output",
     text: "Appwrite connection established",
     color: colors.green,
     icon: "check",
-    delay: 1200,
+    delay: 220,
   },
   {
     type: "output",
     text: "Azure deployment verified",
     color: colors.green,
     icon: "check",
-    delay: 1500,
+    delay: 250,
   },
   {
     type: "output",
     text: "Loading portfolio modules...",
     color: colors.yellow,
     icon: "warn",
-    delay: 1900,
+    delay: 300,
   },
   {
     type: "output",
     text: "Hydrating oceanic components...",
     color: colors.cyan,
     icon: "info",
-    delay: 2300,
+    delay: 350,
   },
   {
     type: "success",
     text: "System Ready.",
     color: colors.purple,
     icon: "spark",
-    delay: 2700,
+    delay: 400,
   },
 ];

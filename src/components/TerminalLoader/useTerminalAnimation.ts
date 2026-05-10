@@ -26,7 +26,7 @@ export function useTerminalAnimation() {
     const finishId = setTimeout(() => {
       setLoading(false);
       sessionStorage.setItem(LOADER_KEY, "true");
-    }, accumulatedTime + 800);
+    }, accumulatedTime + 400);
     timeoutIds.push(finishId);
 
     return () => timeoutIds.forEach(clearTimeout);
