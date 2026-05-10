@@ -40,6 +40,7 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
               excerpt: formData.excerpt,
               slug,
               category: formData.category,
+              image: formData.image,
             }),
           }).catch((err) => console.warn("Newsletter send failed:", err));
         }

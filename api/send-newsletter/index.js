@@ -37,7 +37,7 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const { title, excerpt, slug, category } = req.body || {};
+  const { title, excerpt, slug, category, image } = req.body || {};
 
   if (!title || !slug) {
     context.res = {
@@ -66,6 +66,9 @@ module.exports = async function (context, req) {
   const categoryLine = category
     ? `<p style="margin:0 0 8px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">${category}</p>`
     : "";
+  const imageBanner = image
+    ? `<tr><td style="padding:0;"><img src="${image}" alt="${title}" width="600" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;" /></td></tr>`
+    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -74,6 +77,7 @@ module.exports = async function (context, req) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 16px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid #334155;">
+        ${imageBanner}
         <tr>
           <td style="background:linear-gradient(135deg,#0d9488 0%,#0d7a6e 100%);padding:32px 40px;">
             <p style="margin:0;font-size:13px;color:#99f6e4;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">OceanicCoder Blog</p>
