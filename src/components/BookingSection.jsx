@@ -871,7 +871,7 @@ export default function BookingSection() {
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-white mb-4 transition-all hover:opacity-90 hover:scale-[1.02]"
                   style={{
-                    background: "linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%)",
+                    background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
                   }}
                 >
                   <FaVideo className="text-lg" />
@@ -888,7 +888,7 @@ export default function BookingSection() {
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-white mb-4 transition-all hover:opacity-90 hover:scale-[1.02]"
                   style={{
-                    background: "linear-gradient(135deg, #2D8CFF 0%, #0b5ed7 100%)",
+                    background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
                   }}
                 >
                   <FaVideo className="text-lg" />
