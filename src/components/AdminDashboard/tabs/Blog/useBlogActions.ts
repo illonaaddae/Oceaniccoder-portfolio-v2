@@ -2,6 +2,7 @@ import React from "react";
 import { BlogPost } from "@/types";
 import { useToast } from "../../Toast";
 import { generateSlug } from "./utils";
+import { apiUrl } from "@/utils/apiUrl";
 
 interface UseBlogActionsProps {
   blogPosts: BlogPost[];
@@ -30,6 +31,18 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
       } else {
         await onAdd({ ...formData, slug });
         toast.success(`Blog post "${formData.title}" created successfully!`);
+        if (formData.published) {
+          fetch(apiUrl("/api/send-newsletter"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: formData.title,
+              excerpt: formData.excerpt,
+              slug,
+              category: formData.category,
+            }),
+          }).catch((err) => console.warn("Newsletter send failed:", err));
+        }
       }
       onSuccess();
     } catch (error) {
