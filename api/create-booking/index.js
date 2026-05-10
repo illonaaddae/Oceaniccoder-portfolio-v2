@@ -381,28 +381,30 @@ module.exports = async function (context, req) {
         duration,
         label,
       });
-      sendNotificationEmail(context, {
-        name,
-        email,
-        phone,
-        meetingType,
-        preferredDate,
-        preferredTime,
-        timezone,
-        message,
-        meetLink: null,
-        zoomLink: zoomJoinUrl,
-        calendarEventLink: null,
-      }).catch((e) => context.log.error("Notification error:", e.message));
-      sendBookerZoomEmail(context, {
-        name,
-        email,
-        meetingType,
-        preferredDate,
-        preferredTime,
-        timezone,
-        zoomLink: zoomJoinUrl,
-      }).catch((e) => context.log.error("Booker Zoom email error:", e.message));
+      await Promise.allSettled([
+        sendNotificationEmail(context, {
+          name,
+          email,
+          phone,
+          meetingType,
+          preferredDate,
+          preferredTime,
+          timezone,
+          message,
+          meetLink: null,
+          zoomLink: zoomJoinUrl,
+          calendarEventLink: null,
+        }).catch((e) => context.log.error("Notification error:", e.message)),
+        sendBookerZoomEmail(context, {
+          name,
+          email,
+          meetingType,
+          preferredDate,
+          preferredTime,
+          timezone,
+          zoomLink: zoomJoinUrl,
+        }).catch((e) => context.log.error("Booker Zoom email error:", e.message)),
+      ]);
       ok(context, {
         success: true,
         zoomLink: zoomJoinUrl,
