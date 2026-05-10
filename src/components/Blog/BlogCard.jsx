@@ -24,7 +24,7 @@ const BlogCard = React.memo(({ post, onClick }) => (
       )}
     </div>
     <div className="p-5 flex-1 flex flex-col">
-      <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
+      <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)] mb-3">
         <span className="flex items-center gap-1">
           <FaCalendarAlt className="text-oceanic-400" />
           {formatDate(post.publishedAt)}
@@ -36,16 +36,19 @@ const BlogCard = React.memo(({ post, onClick }) => (
           </span>
         )}
       </div>
-      <h3 className="text-lg font-bold text-white mb-2 group-hover:text-oceanic-400 transition-colors line-clamp-2">
+      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2 group-hover:text-oceanic-500 transition-colors line-clamp-2">
         {post.title}
       </h3>
-      <p className="text-gray-400 text-sm line-clamp-3 mb-4 flex-1">{post.excerpt}</p>
+      <p className="text-[var(--text-secondary)] text-sm line-clamp-3 mb-4 flex-1">
+        {post.excerpt}
+      </p>
       {post.tags && post.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {post.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="px-2 py-0.5 bg-white/5 text-gray-400 text-xs rounded flex items-center gap-1"
+              className="px-2 py-0.5 text-[var(--text-secondary)] text-xs rounded flex items-center gap-1"
+              style={{ background: "var(--bg-secondary)" }}
             >
               <FaTag className="text-oceanic-400" />
               {tag}

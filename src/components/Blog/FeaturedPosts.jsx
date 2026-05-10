@@ -8,7 +8,7 @@ const FeaturedPosts = React.memo(({ featuredPosts, onPostClick }) => {
 
   return (
     <div className="mb-16">
-      <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+      <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6 flex items-center gap-3">
         <FaBookOpen className="text-oceanic-400" />
         Featured Posts
       </h2>
@@ -35,7 +35,7 @@ const FeaturedPosts = React.memo(({ featuredPosts, onPostClick }) => {
               </div>
             </div>
             <div className="p-6">
-              <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
+              <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)] mb-3">
                 <span className="flex items-center gap-1">
                   <FaCalendarAlt className="text-oceanic-400" />
                   {formatDate(post.publishedAt)}
@@ -45,10 +45,10 @@ const FeaturedPosts = React.memo(({ featuredPosts, onPostClick }) => {
                   {post.readTime}
                 </span>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2 group-hover:text-oceanic-400 transition-colors">
+              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 group-hover:text-oceanic-500 transition-colors">
                 {post.title}
               </h3>
-              <p className="text-gray-400 line-clamp-2 mb-4">{post.excerpt}</p>
+              <p className="text-[var(--text-secondary)] line-clamp-2 mb-4">{post.excerpt}</p>
               <div className="flex items-center justify-between">
                 <span className="text-oceanic-400 text-sm font-medium">{post.category}</span>
                 <span className="text-oceanic-500 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">

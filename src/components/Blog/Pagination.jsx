@@ -9,9 +9,10 @@ const Pagination = React.memo(({ currentPage, totalPages, setCurrentPage }) => {
       <button
         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
         disabled={currentPage === 1}
-        className="p-3 glass-card rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-colors"
+        className="p-3 glass-card rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        style={{ color: "var(--text-primary)" }}
       >
-        <FaChevronLeft className="text-white" />
+        <FaChevronLeft />
       </button>
       <div className="flex gap-2">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -19,10 +20,9 @@ const Pagination = React.memo(({ currentPage, totalPages, setCurrentPage }) => {
             key={page}
             onClick={() => setCurrentPage(page)}
             className={`w-10 h-10 rounded-lg font-medium transition-all ${
-              currentPage === page
-                ? "bg-oceanic-500 text-white"
-                : "glass-card text-gray-300 hover:bg-white/10"
+              currentPage === page ? "bg-oceanic-500 text-white" : "glass-card"
             }`}
+            style={currentPage !== page ? { color: "var(--text-secondary)" } : undefined}
           >
             {page}
           </button>
@@ -31,9 +31,10 @@ const Pagination = React.memo(({ currentPage, totalPages, setCurrentPage }) => {
       <button
         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
         disabled={currentPage === totalPages}
-        className="p-3 glass-card rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-colors"
+        className="p-3 glass-card rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        style={{ color: "var(--text-primary)" }}
       >
-        <FaChevronRight className="text-white" />
+        <FaChevronRight />
       </button>
     </div>
   );

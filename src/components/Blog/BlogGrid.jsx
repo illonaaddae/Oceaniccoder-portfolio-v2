@@ -6,9 +6,11 @@ const BlogGrid = React.memo(({ paginatedPosts, onPostClick, onClearFilters }) =>
   if (paginatedPosts.length === 0) {
     return (
       <div className="text-center py-16">
-        <FaBookOpen className="text-6xl text-gray-600 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-white mb-2">No posts found</h3>
-        <p className="text-gray-400 mb-6">Try adjusting your search or filter criteria</p>
+        <FaBookOpen className="text-6xl text-[var(--text-secondary)] mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">No posts found</h3>
+        <p className="text-[var(--text-secondary)] mb-6">
+          Try adjusting your search or filter criteria
+        </p>
         <button
           onClick={onClearFilters}
           className="px-6 py-3 bg-oceanic-500 text-white rounded-lg font-medium hover:bg-oceanic-600 transition-colors"

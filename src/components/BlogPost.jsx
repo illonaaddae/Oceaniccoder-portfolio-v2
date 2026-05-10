@@ -43,7 +43,7 @@ const BlogPost = () => {
         {/* Back button */}
         <button
           onClick={() => navigate("/blog")}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
+          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-8 transition-colors"
         >
           <FaArrowLeft /> Back to Blog
         </button>

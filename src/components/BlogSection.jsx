@@ -6,6 +6,7 @@ import FeaturedPosts from "./Blog/FeaturedPosts";
 import CategoryFilter from "./Blog/CategoryFilter";
 import BlogGrid from "./Blog/BlogGrid";
 import Pagination from "./Blog/Pagination";
+import NewsletterSignup from "./Blog/NewsletterSignup";
 
 const SECTION_BG =
   "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)";
@@ -81,6 +82,10 @@ const BlogSection = () => {
           totalPages={totalPages}
           setCurrentPage={setCurrentPage}
         />
+
+        <div className="max-w-xl mx-auto mt-16">
+          <NewsletterSignup />
+        </div>
       </div>
     </section>
   );
