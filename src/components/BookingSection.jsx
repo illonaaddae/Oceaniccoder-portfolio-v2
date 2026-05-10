@@ -656,8 +656,12 @@ export default function BookingSection() {
                                   onClick={() => handleChange("preferredPlatform", p.id)}
                                   className="rounded-xl p-3 border text-left transition-all duration-200"
                                   style={{
-                                    borderColor: selected ? p.color : "var(--border-subtle)",
-                                    background: selected ? `${p.color}18` : "var(--bg-secondary)",
+                                    borderColor: selected
+                                      ? "var(--accent-teal)"
+                                      : "var(--border-subtle)",
+                                    background: selected
+                                      ? "var(--accent-teal-subtle)"
+                                      : "var(--bg-secondary)",
                                     touchAction: "manipulation",
                                   }}
                                 >
@@ -665,12 +669,18 @@ export default function BookingSection() {
                                     <FaVideo
                                       className="text-sm"
                                       style={{
-                                        color: selected ? p.color : "var(--text-secondary)",
+                                        color: selected
+                                          ? "var(--accent-teal)"
+                                          : "var(--text-secondary)",
                                       }}
                                     />
                                     <span
                                       className="text-sm font-semibold"
-                                      style={{ color: selected ? p.color : "var(--text-primary)" }}
+                                      style={{
+                                        color: selected
+                                          ? "var(--accent-teal)"
+                                          : "var(--text-primary)",
+                                      }}
                                     >
                                       {p.label}
                                     </span>
@@ -688,8 +698,15 @@ export default function BookingSection() {
                           disabled={!canProceedStep2}
                           onTouchStart={blurActive}
                           onClick={() => setStep(3)}
-                          className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
+                          className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 disabled:cursor-not-allowed"
+                          style={{
+                            background: canProceedStep2
+                              ? "var(--accent-teal)"
+                              : "var(--bg-secondary)",
+                            color: canProceedStep2 ? "#fff" : "var(--text-secondary)",
+                            border: canProceedStep2 ? "none" : "1px solid var(--border-subtle)",
+                            touchAction: "manipulation",
+                          }}
                         >
                           Continue <FaArrowRight />
                         </button>
