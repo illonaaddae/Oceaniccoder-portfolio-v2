@@ -13,8 +13,8 @@
 ![GitHub forks](https://img.shields.io/github/forks/illonaaddae/Oceaniccoder-portfolio-v2?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)
 
+<strong>A production-ready portfolio featuring a custom CMS, real-time booking system, Google Calendar + Zoom integration, AI chatbot, and serverless cloud infrastructure on Azure.</strong>
 
-  <strong>A production-ready portfolio featuring a custom CMS, real-time booking system, Google Calendar + Zoom integration, AI chatbot, and serverless cloud infrastructure on Azure.</strong>
 </p>
 
 [Live Demo](https://oceaniccoder.dev) • [Report Bug](https://github.com/illonaaddae/Oceaniccoder-portfolio-v2/issues) • [Request Feature](https://github.com/illonaaddae/Oceaniccoder-portfolio-v2/issues)
@@ -26,6 +26,7 @@
 ## Screenshots
 
 ### Portfolio Homepage
+
 <img width="2880" height="1800" alt="Screen Shot 2026-05-10 at 01 26 23" src="https://github.com/user-attachments/assets/73e02921-94a2-441b-8409-53399cbf81d8" />
 <img width="2880" height="1800" alt="Screen Shot 2026-05-10 at 01 26 34" src="https://github.com/user-attachments/assets/32837f76-ecd8-455d-94ec-34be7688c92d" />
 
@@ -37,9 +38,9 @@
 
 ### Admin Dashboard
 
-|                     Dashboard Overview                      |                     Content Management                      |
-| :---------------------------------------------------------: | :---------------------------------------------------------: |
-| <img width="2880" height="1800" alt="Screen Shot 2026-05-10 at 01 33 19" src="https://github.com/user-attachments/assets/d229e39d-c09f-4c98-943e-0bbf522ca737" /> | <img width="2880" height="1800" alt="Screen Shot 2026-05-10 at 01 32 46" src="https://github.com/user-attachments/assets/45478f74-305a-4353-8f12-7e63eb7aa4e9" />
+|                                                                        Dashboard Overview                                                                         |                                                                        Content Management                                                                         |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| <img width="2880" height="1800" alt="Screen Shot 2026-05-10 at 01 33 19" src="https://github.com/user-attachments/assets/d229e39d-c09f-4c98-943e-0bbf522ca737" /> | <img width="2880" height="1800" alt="Screen Shot 2026-05-10 at 01 32 46" src="https://github.com/user-attachments/assets/45478f74-305a-4353-8f12-7e63eb7aa4e9" /> |
 
 |                  Blog Editor                  |               Messages & Analytics                |
 | :-------------------------------------------: | :-----------------------------------------------: |
@@ -49,7 +50,7 @@
 
 ## ✨ Key Features
 
-###  Frontend Excellence
+### Frontend Excellence
 
 - **Modern React 19** with TypeScript for type-safe development
 - **Responsive Design** — Mobile-first with Tailwind CSS, tested on iOS & Android
