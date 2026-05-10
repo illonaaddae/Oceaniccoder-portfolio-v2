@@ -7,6 +7,7 @@ import {
   FaRobot,
   FaUser,
   FaExternalLinkAlt,
+  FaTrash,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { apiUrl } from "../../utils/apiUrl";
@@ -18,11 +19,11 @@ const QUICK_REPLIES = [
   "Tell me about your projects",
 ];
 
-const WELCOME_MESSAGE = {
-  role: "assistant",
-  content:
-    "Hi! I'm Illona's portfolio assistant 👋 I can tell you about her skills, projects, services, or help you get in touch. What would you like to know?",
-};
+const WELCOME_CONTENT =
+  "Hi! I'm Illona's portfolio assistant 👋 I can tell you about her skills, projects, services, or help you get in touch. What would you like to know?";
+
+let _msgId = 0;
+const makeMsg = (role, content) => ({ role, content, id: ++_msgId });
 
 async function fetchReply(messages) {
   const res = await fetch(apiUrl("/api/chat"), {
@@ -37,7 +38,7 @@ async function fetchReply(messages) {
 
 export default function Chatbot() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState([makeMsg("assistant", WELCOME_CONTENT)]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
@@ -54,6 +55,12 @@ export default function Chatbot() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const clearChat = () => {
+    setMessages([makeMsg("assistant", WELCOME_CONTENT)]);
+    setShowQuickReplies(true);
+    setInput("");
+  };
+
   const sendMessage = async (text) => {
     const trimmed = (text ?? input).trim();
     if (!trimmed || loading) return;
@@ -61,22 +68,21 @@ export default function Chatbot() {
     setInput("");
     setShowQuickReplies(false);
 
-    const userMsg = { role: "user", content: trimmed };
+    const userMsg = makeMsg("user", trimmed);
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setLoading(true);
 
     try {
       const reply = await fetchReply(newMessages.filter((m) => m.role !== "system"));
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      setMessages((prev) => [...prev, makeMsg("assistant", reply)]);
     } catch {
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content:
-            "Sorry, I'm having trouble connecting right now. Please use the [contact form](/contact) or [book a meeting](/booking).",
-        },
+        makeMsg(
+          "assistant",
+          "Sorry, I'm having trouble connecting right now. Please use the [contact form](/contact) or [book a meeting](/booking).",
+        ),
       ]);
     } finally {
       setLoading(false);
@@ -124,6 +130,14 @@ export default function Chatbot() {
                 </p>
               </div>
               <button
+                onClick={clearChat}
+                className="text-white/60 hover:text-white transition-colors p-1"
+                aria-label="Clear chat"
+                title="Clear conversation"
+              >
+                <FaTrash className="text-xs" />
+              </button>
+              <button
                 onClick={() => setOpen(false)}
                 className="text-white/70 hover:text-white transition-colors p-1"
                 aria-label="Close chat"
@@ -134,8 +148,8 @@ export default function Chatbot() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-              {messages.map((msg, i) => (
-                <MessageBubble key={i} msg={msg} />
+              {messages.map((msg) => (
+                <MessageBubble key={msg.id} msg={msg} />
               ))}
 
               {/* Quick replies */}
@@ -267,32 +281,40 @@ export default function Chatbot() {
 function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
 
-  // Render inline links like [text](/path)
   const renderContent = (text) => {
-    const parts = text.split(/(\[([^\]]+)\]\(([^)]+)\))/g);
-    return parts.map((part, i) => {
-      const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-      if (linkMatch) {
-        const [, label, href] = linkMatch;
-        const isExternal = href.startsWith("http");
-        return isExternal ? (
-          <a
-            key={i}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline inline-flex items-center gap-1"
-            style={{ color: "var(--accent-teal)" }}
-          >
-            {label} <FaExternalLinkAlt className="text-xs" />
-          </a>
-        ) : (
-          <Link key={i} to={href} className="underline" style={{ color: "var(--accent-teal)" }}>
-            {label}
-          </Link>
-        );
+    const parts = [];
+    let lastIndex = 0;
+    const re = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
       }
-      return part;
+      parts.push({ type: "link", label: match[1], href: match[2] });
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: "text", value: text.slice(lastIndex) });
+    }
+    return parts.map((part, i) => {
+      if (part.type === "text") return part.value;
+      const isExternal = part.href.startsWith("http");
+      return isExternal ? (
+        <a
+          key={i}
+          href={part.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline inline-flex items-center gap-1"
+          style={{ color: "var(--accent-teal)" }}
+        >
+          {part.label} <FaExternalLinkAlt className="text-xs" />
+        </a>
+      ) : (
+        <Link key={i} to={part.href} className="underline" style={{ color: "var(--accent-teal)" }}>
+          {part.label}
+        </Link>
+      );
     });
   };
 

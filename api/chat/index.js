@@ -1,6 +1,6 @@
 const https = require("https");
 
-const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, knowledgeable AI helper on Illona Addae's developer portfolio website (oceaniccoder.com).
+const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, knowledgeable AI helper on Illona Addae's developer portfolio website (oceaniccoder.dev).
 
 ## About Illona Addae
 - **Role**: Software Engineer, Front-End Developer, Fullstack Developer, Executive Director, Community Tech Leader
@@ -11,7 +11,7 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 ## Technical Skills
 - **Frontend**: React (85%), JavaScript (90%), TypeScript (70%), HTML5 (95%), CSS3 (88%), Tailwind CSS (85%), Next.js (20%)
 - **Backend**: Node.js (30%), Python (20%), WordPress (70%), FastAPI (5%)
-- **Cloud/DevOps**: Git & GitHub (90%), Vercel (85%), AWS (30%), Azure (5%)
+- **Cloud/DevOps**: Git & GitHub (90%), Vercel (85%), AWS (30%), Azure (65%)
 - **Design**: Figma (82%), Canva (85%), Adobe Photoshop (70%), UI/UX Design (78%)
 - **AI**: AI Engineering (35%), Prompt Engineering (40%), OpenAI (20%)
 - **Leadership**: Team Leadership (88%), Mentoring (90%), Public Speaking (85%), Content Creation (90%)
@@ -25,7 +25,7 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - AI-powered web solutions
 
 ## Contact & Booking
-- **Book a meeting**: /booking
+- **Book a meeting**: /booking (choose Google Meet or Zoom as your preferred platform)
 - **Contact form**: /contact
 - **Availability**: Open to freelance projects, collaborations, and mentorship
 
@@ -39,6 +39,29 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - Use "I" when speaking as the assistant, not as Illona herself
 - Never make up specific project names, client names, or pricing
 - IMPORTANT: Never use markdown formatting (no **bold**, no *italic*, no bullet hyphens, no headers). Write in plain conversational prose only.`;
+
+// In-memory rate limiter: 20 requests per minute per IP
+const rateLimitMap = new Map();
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60 * 1000;
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  // Purge stale entries when map grows large
+  if (rateLimitMap.size > 500) {
+    for (const [k, v] of rateLimitMap) {
+      if (now > v.resetAt) rateLimitMap.delete(k);
+    }
+  }
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  if (entry.count >= RATE_LIMIT) return true;
+  entry.count++;
+  return false;
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +97,19 @@ function httpsPost(hostname, path, headers, body) {
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
+    return;
+  }
+
+  const clientIp =
+    (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
+    req.headers["client-ip"] ||
+    "unknown";
+  if (isRateLimited(clientIp)) {
+    context.res = {
+      status: 429,
+      headers: CORS,
+      body: JSON.stringify({ error: "Too many requests. Please wait a moment." }),
+    };
     return;
   }
 
