@@ -74,7 +74,6 @@ async function getAccessToken() {
   );
   const data = JSON.parse(result.body);
   if (!data.access_token) {
-    // Expose error code only (not secrets) so _phase is diagnostic
     const errCode = data.error || `http_${result.status}`;
     throw new Error(`oauth:${errCode}`);
   }
@@ -135,7 +134,7 @@ const APPWRITE_BOOKINGS_COLLECTION = "bookings";
 
 async function isSlotTaken(date, time) {
   const apiKey = process.env.APPWRITE_API_KEY;
-  if (!apiKey) return false; // skip check if key not configured
+  if (!apiKey) return false;
 
   const q1 = encodeURIComponent(
     JSON.stringify({ method: "equal", attribute: "preferredDate", values: [date] }),
@@ -163,21 +162,33 @@ async function isSlotTaken(date, time) {
   return (data.total ?? 0) > 0;
 }
 
-async function sendNotificationEmail({
-  name,
-  email,
-  phone,
-  meetingType,
-  preferredDate,
-  preferredTime,
-  timezone,
-  message,
-  meetLink,
-  zoomLink,
-  calendarEventLink,
-}) {
+async function sendNotificationEmail(
+  context,
+  {
+    name,
+    email,
+    phone,
+    meetingType,
+    preferredDate,
+    preferredTime,
+    timezone,
+    message,
+    meetLink,
+    zoomLink,
+    calendarEventLink,
+  },
+) {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return;
+  if (!apiKey) {
+    context.log.warn("RESEND_API_KEY not set — skipping host notification");
+    return;
+  }
+
+  const toEmail = process.env.RESEND_TO_EMAIL || process.env.GOOGLE_CALENDAR_ID;
+  if (!toEmail) {
+    context.log.warn("RESEND_TO_EMAIL not set — skipping host notification");
+    return;
+  }
 
   const label = MEETING_LABELS[meetingType] ?? meetingType;
   const duration = MEETING_DURATIONS[meetingType] ?? 30;
@@ -207,21 +218,26 @@ async function sendNotificationEmail({
       </div>
     </div>`;
 
-  const toEmail = process.env.RESEND_TO_EMAIL || process.env.GOOGLE_CALENDAR_ID;
-  if (!toEmail) return;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
-  await httpsRequest(
+  const result = await httpsRequest(
     "api.resend.com",
     "/emails",
     "POST",
     { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     {
-      from: "OceanicCoder Bookings <bookings@oceaniccoder.dev>",
+      from: `OceanicCoder Bookings <${fromEmail}>`,
       to: [toEmail],
       subject: `New Booking: ${label} with ${name} — ${preferredDate} at ${preferredTime}`,
       html,
     },
   );
+
+  if (result.status !== 200 && result.status !== 201) {
+    context.log.error("Resend notification failed:", result.status, result.body);
+  } else {
+    context.log.info("Host notification sent to", toEmail);
+  }
 }
 
 const ok = (context, body) => {
@@ -255,7 +271,7 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Server-side double-booking guard — guests can't query Appwrite directly
+  // Server-side double-booking guard
   try {
     const taken = await isSlotTaken(preferredDate, preferredTime);
     if (taken) {
@@ -278,6 +294,19 @@ module.exports = async function (context, req) {
     const zoomConfigured =
       process.env.ZOOM_ACCOUNT_ID && process.env.ZOOM_CLIENT_ID && process.env.ZOOM_CLIENT_SECRET;
     if (!zoomConfigured) {
+      sendNotificationEmail(context, {
+        name,
+        email,
+        phone,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        message,
+        meetLink: null,
+        zoomLink: null,
+        calendarEventLink: null,
+      }).catch((e) => context.log.error("Notification error:", e.message));
       ok(context, {
         success: true,
         zoomLink: null,
@@ -299,7 +328,7 @@ module.exports = async function (context, req) {
         duration,
         label,
       });
-      sendNotificationEmail({
+      sendNotificationEmail(context, {
         name,
         email,
         phone,
@@ -311,7 +340,7 @@ module.exports = async function (context, req) {
         meetLink: null,
         zoomLink: zoomJoinUrl,
         calendarEventLink: null,
-      }).catch(() => {});
+      }).catch((e) => context.log.error("Notification error:", e.message));
       ok(context, {
         success: true,
         zoomLink: zoomJoinUrl,
@@ -321,6 +350,19 @@ module.exports = async function (context, req) {
     } catch (err) {
       const msg = String(err);
       context.log.error("zoom meeting error:", msg);
+      sendNotificationEmail(context, {
+        name,
+        email,
+        phone,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        message,
+        meetLink: null,
+        zoomLink: null,
+        calendarEventLink: null,
+      }).catch((e) => context.log.error("Notification error:", e.message));
       ok(context, {
         success: true,
         zoomLink: null,
@@ -336,6 +378,19 @@ module.exports = async function (context, req) {
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   if (!process.env.GOOGLE_CLIENT_ID || !calendarId) {
     context.log.warn("Google creds not configured — skipping calendar event creation");
+    sendNotificationEmail(context, {
+      name,
+      email,
+      phone,
+      meetingType,
+      preferredDate,
+      preferredTime,
+      timezone,
+      message,
+      meetLink: null,
+      zoomLink: null,
+      calendarEventLink: null,
+    }).catch((e) => context.log.error("Notification error:", e.message));
     ok(context, {
       success: true,
       zoomLink: null,
@@ -358,7 +413,7 @@ module.exports = async function (context, req) {
       `Meeting Type: ${label} (${duration} min)`,
       phone ? `Phone: ${phone}` : "",
       message ? `\nMessage from ${name}:\n${message}` : "",
-      "\nBooked via OceanicCoder Portfolio · oceaniccoder.com",
+      "\nBooked via OceanicCoder Portfolio · oceaniccoder.dev",
     ]
       .filter(Boolean)
       .join("\n");
@@ -404,6 +459,19 @@ module.exports = async function (context, req) {
 
     if (calRes.status !== 200) {
       context.log.error(`Calendar API error (HTTP ${calRes.status}):`, calRes.body);
+      sendNotificationEmail(context, {
+        name,
+        email,
+        phone,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        message,
+        meetLink: null,
+        zoomLink: null,
+        calendarEventLink: null,
+      }).catch((e) => context.log.error("Notification error:", e.message));
       ok(context, {
         success: true,
         zoomLink: null,
@@ -419,7 +487,7 @@ module.exports = async function (context, req) {
       ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
     const calendarEventLink = ev.htmlLink ?? null;
 
-    sendNotificationEmail({
+    sendNotificationEmail(context, {
       name,
       email,
       phone,
@@ -431,11 +499,24 @@ module.exports = async function (context, req) {
       meetLink,
       zoomLink: null,
       calendarEventLink,
-    }).catch(() => {});
+    }).catch((e) => context.log.error("Notification error:", e.message));
     ok(context, { success: true, zoomLink: null, meetLink, calendarEventLink });
   } catch (err) {
     const msg = String(err);
     context.log.error("create-booking error:", msg);
+    sendNotificationEmail(context, {
+      name,
+      email,
+      phone,
+      meetingType,
+      preferredDate,
+      preferredTime,
+      timezone,
+      message,
+      meetLink: null,
+      zoomLink: null,
+      calendarEventLink: null,
+    }).catch((e) => context.log.error("Notification error:", e.message));
     ok(context, {
       success: true,
       zoomLink: null,
