@@ -11,6 +11,8 @@ const Logo = React.memo(function Logo({ theme }) {
         className={`h-8 w-auto object-contain group-hover:scale-105 transition-transform duration-300 ${
           theme === "dark" ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]" : ""
         }`}
+        width="112"
+        height="32"
         loading="eager"
         decoding="async"
         fetchPriority="high"

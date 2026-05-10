@@ -10,6 +10,8 @@ const FooterBrand = React.memo(({ theme }) => (
             : "/images/logo/Oceaniccoder-croped.png"
         }
         alt="Oceaniccoder"
+        width="168"
+        height="48"
         className={`h-12 w-auto object-contain ${
           theme === "dark" ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]" : ""
         }`}

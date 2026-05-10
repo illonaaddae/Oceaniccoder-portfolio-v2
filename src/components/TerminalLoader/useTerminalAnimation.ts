@@ -4,12 +4,15 @@ import { sequence, TerminalLine } from "./terminalTheme";
 const LOADER_KEY = "hasSeenLoader";
 
 export function useTerminalAnimation() {
+  const isBot = typeof navigator !== "undefined" && navigator.webdriver === true;
   const [lines, setLines] = useState<TerminalLine[]>([]);
-  const [loading, setLoading] = useState(() => sessionStorage.getItem(LOADER_KEY) !== "true");
+  const [loading, setLoading] = useState(
+    () => !isBot && sessionStorage.getItem(LOADER_KEY) !== "true",
+  );
 
   useEffect(() => {
-    // If the user has already seen the loader this session, skip it entirely
-    if (sessionStorage.getItem(LOADER_KEY) === "true") return;
+    // Skip for bots/headless browsers and returning visitors
+    if (isBot || sessionStorage.getItem(LOADER_KEY) === "true") return;
 
     const timeoutIds: NodeJS.Timeout[] = [];
     let accumulatedTime = 0;
