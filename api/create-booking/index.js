@@ -163,6 +163,67 @@ async function isSlotTaken(date, time) {
   return (data.total ?? 0) > 0;
 }
 
+async function sendNotificationEmail({
+  name,
+  email,
+  phone,
+  meetingType,
+  preferredDate,
+  preferredTime,
+  timezone,
+  message,
+  meetLink,
+  zoomLink,
+  calendarEventLink,
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return;
+
+  const label = MEETING_LABELS[meetingType] ?? meetingType;
+  const duration = MEETING_DURATIONS[meetingType] ?? 30;
+  const joinLink = meetLink || zoomLink || null;
+  const platform = zoomLink ? "Zoom" : "Google Meet";
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+      <div style="background:#0f766e;padding:24px 32px;border-radius:8px 8px 0 0">
+        <h1 style="margin:0;color:#fff;font-size:20px">📅 New Booking — ${label}</h1>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:6px 0;color:#6b7280;width:140px">Name</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:#0f766e">${email}</a></td></tr>
+          ${phone ? `<tr><td style="padding:6px 0;color:#6b7280">Phone</td><td style="padding:6px 0">${phone}</td></tr>` : ""}
+          <tr><td style="padding:6px 0;color:#6b7280">Meeting type</td><td style="padding:6px 0">${label} (${duration} min)</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Date &amp; time</td><td style="padding:6px 0;font-weight:600">${preferredDate} at ${preferredTime}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Timezone</td><td style="padding:6px 0">${timezone || "UTC"}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">${platform}</td></tr>
+          ${message ? `<tr><td style="padding:6px 0;color:#6b7280;vertical-align:top">Message</td><td style="padding:6px 0">${message.replace(/\n/g, "<br>")}</td></tr>` : ""}
+        </table>
+        ${joinLink ? `<div style="margin-top:20px"><a href="${joinLink}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">Join ${platform} Meeting →</a></div>` : ""}
+        ${calendarEventLink ? `<p style="margin-top:12px;font-size:13px"><a href="${calendarEventLink}" style="color:#0f766e">View in Google Calendar</a></p>` : ""}
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
+        <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
+      </div>
+    </div>`;
+
+  const toEmail = process.env.RESEND_TO_EMAIL || process.env.GOOGLE_CALENDAR_ID;
+  if (!toEmail) return;
+
+  await httpsRequest(
+    "api.resend.com",
+    "/emails",
+    "POST",
+    { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    {
+      from: "OceanicCoder Bookings <bookings@oceaniccoder.dev>",
+      to: [toEmail],
+      subject: `New Booking: ${label} with ${name} — ${preferredDate} at ${preferredTime}`,
+      html,
+    },
+  );
+}
+
 const ok = (context, body) => {
   context.res = { status: 200, headers: CORS, body: JSON.stringify(body) };
 };
@@ -238,6 +299,19 @@ module.exports = async function (context, req) {
         duration,
         label,
       });
+      sendNotificationEmail({
+        name,
+        email,
+        phone,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        message,
+        meetLink: null,
+        zoomLink: zoomJoinUrl,
+        calendarEventLink: null,
+      }).catch(() => {});
       ok(context, {
         success: true,
         zoomLink: zoomJoinUrl,
@@ -345,6 +419,19 @@ module.exports = async function (context, req) {
       ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
     const calendarEventLink = ev.htmlLink ?? null;
 
+    sendNotificationEmail({
+      name,
+      email,
+      phone,
+      meetingType,
+      preferredDate,
+      preferredTime,
+      timezone,
+      message,
+      meetLink,
+      zoomLink: null,
+      calendarEventLink,
+    }).catch(() => {});
     ok(context, { success: true, zoomLink: null, meetLink, calendarEventLink });
   } catch (err) {
     const msg = String(err);
