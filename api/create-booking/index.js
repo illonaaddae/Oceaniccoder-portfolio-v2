@@ -240,6 +240,59 @@ async function sendNotificationEmail(
   }
 }
 
+async function sendBookerZoomEmail(
+  context,
+  { name, email, meetingType, preferredDate, preferredTime, timezone, zoomLink },
+) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !zoomLink) return;
+
+  const label = MEETING_LABELS[meetingType] ?? meetingType;
+  const duration = MEETING_DURATIONS[meetingType] ?? 30;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+      <div style="background:#0f766e;padding:24px 32px;border-radius:8px 8px 0 0">
+        <h1 style="margin:0;color:#fff;font-size:20px">Your Zoom Meeting is Confirmed 🎉</h1>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
+        <p style="margin:0 0 16px;font-size:15px">Hi ${name}, your booking with Illona Addae is confirmed.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:6px 0;color:#6b7280;width:140px">Meeting</td><td style="padding:6px 0;font-weight:600">${label} (${duration} min)</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Date &amp; time</td><td style="padding:6px 0;font-weight:600">${preferredDate} at ${preferredTime}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Timezone</td><td style="padding:6px 0">${timezone || "UTC"}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">Zoom</td></tr>
+        </table>
+        <div style="margin-top:24px">
+          <a href="${zoomLink}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Zoom Meeting →</a>
+        </div>
+        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link — you'll need it to join the call.</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
+        <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
+      </div>
+    </div>`;
+
+  const result = await httpsRequest(
+    "api.resend.com",
+    "/emails",
+    "POST",
+    { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    {
+      from: `Illona Addae (OceanicCoder) <${fromEmail}>`,
+      to: [email],
+      subject: `Your Zoom Meeting is Confirmed — ${preferredDate} at ${preferredTime}`,
+      html,
+    },
+  );
+
+  if (result.status !== 200 && result.status !== 201) {
+    context.log.error("Booker Zoom email failed:", result.status, result.body);
+  } else {
+    context.log.info("Booker Zoom confirmation sent to", email);
+  }
+}
+
 const ok = (context, body) => {
   context.res = { status: 200, headers: CORS, body: JSON.stringify(body) };
 };
@@ -341,6 +394,15 @@ module.exports = async function (context, req) {
         zoomLink: zoomJoinUrl,
         calendarEventLink: null,
       }).catch((e) => context.log.error("Notification error:", e.message));
+      sendBookerZoomEmail(context, {
+        name,
+        email,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        zoomLink: zoomJoinUrl,
+      }).catch((e) => context.log.error("Booker Zoom email error:", e.message));
       ok(context, {
         success: true,
         zoomLink: zoomJoinUrl,
