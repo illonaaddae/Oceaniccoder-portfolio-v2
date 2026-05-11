@@ -53,7 +53,7 @@ async function sendWelcomeEmail(context, { email, apiKey, fromEmail }) {
           <td style="padding:40px;">
             <p style="margin:0 0 16px;font-size:16px;color:#f1f5f9;font-weight:600;">Hey there,</p>
             <p style="margin:0 0 24px;font-size:15px;color:#94a3b8;line-height:1.7;">
-              You're now subscribed to the OceanicCoder newsletter. You'll be the first to know when I publish new blog posts — from tutorials and project breakdowns to tips from my journey as a full-stack developer.
+              You're now subscribed to the OceanicCoder newsletter. You'll be the first to know when I publish new blog posts, from tutorials and project breakdowns to tips from my journey as a full-stack developer.
             </p>
             <a href="https://oceaniccoder.dev/blog" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#0d7a6e 100%);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px;">Browse the Blog →</a>
           </td>
@@ -62,7 +62,7 @@ async function sendWelcomeEmail(context, { email, apiKey, fromEmail }) {
           <td style="padding:24px 40px;border-top:1px solid #334155;">
             <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
               You're receiving this because you subscribed at <a href="https://oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">oceaniccoder.dev</a>.<br>
-              No spam — unsubscribe anytime.
+              No spam. Unsubscribe anytime.
             </p>
           </td>
         </tr>
