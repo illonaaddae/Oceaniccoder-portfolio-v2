@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useRef, useState } from "react";
-import { FaTrash } from "react-icons/fa";
+import { FaTrash, FaCheckCircle } from "react-icons/fa";
 
 interface ConfirmOptions {
   message: string;
   description?: string;
+  confirmLabel?: string;
+  confirmClass?: string;
+  variant?: "danger" | "success";
 }
 
 type ConfirmFn = (opts: ConfirmOptions | string) => Promise<boolean>;
@@ -15,6 +18,8 @@ export const useConfirm = () => useContext(ConfirmContext);
 interface State {
   message: string;
   description?: string;
+  confirmLabel?: string;
+  variant?: "danger" | "success";
 }
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
@@ -22,7 +27,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const resolveRef = useRef<((v: boolean) => void) | null>(null);
 
   const confirm: ConfirmFn = (opts) => {
-    const normalised = typeof opts === "string" ? { message: opts } : opts;
+    const normalised: State = typeof opts === "string" ? { message: opts } : opts;
     return new Promise<boolean>((resolve) => {
       resolveRef.current = resolve;
       setState(normalised);
@@ -51,8 +56,16 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             }}
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center flex-shrink-0">
-                <FaTrash className="text-red-400 text-sm" />
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  state.variant === "success" ? "bg-green-500/15" : "bg-red-500/15"
+                }`}
+              >
+                {state.variant === "success" ? (
+                  <FaCheckCircle className="text-green-400 text-sm" />
+                ) : (
+                  <FaTrash className="text-red-400 text-sm" />
+                )}
               </div>
               <h3 className="text-base font-bold text-[var(--text-primary)]">{state.message}</h3>
             </div>
@@ -61,6 +74,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             </p>
             <div className="flex gap-3 justify-end">
               <button
+                type="button"
                 onClick={() => close(false)}
                 className="px-4 py-2 rounded-lg text-sm font-medium transition"
                 style={{
@@ -72,10 +86,15 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => close(true)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition"
+                className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition ${
+                  state.variant === "success"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-red-500 hover:bg-red-600"
+                }`}
               >
-                Delete
+                {state.confirmLabel ?? (state.variant === "success" ? "Confirm" : "Delete")}
               </button>
             </div>
           </div>

@@ -76,6 +76,8 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
     const ok = await confirm({
       message: `Mark ${inv.invoiceNumber} as paid?`,
       description: `This will update the invoice status and send a payment confirmation email to ${inv.clientEmail}.`,
+      confirmLabel: "Mark as Paid",
+      variant: "success",
     });
     if (!ok) return;
 
