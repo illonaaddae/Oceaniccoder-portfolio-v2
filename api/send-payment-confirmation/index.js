@@ -100,8 +100,8 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#0a2e1a;padding:28px 40px;text-align:center;">
             <div style="width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,0.15);border:2px solid rgba(34,197,94,0.5);display:inline-block;line-height:64px;text-align:center;margin-bottom:16px;font-size:32px;color:#22c55e;">&#10003;</div>
-            <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Payment Received!</p>
-            <p style="margin:8px 0 0;font-size:15px;color:#86efac;">Thank you, ${safeClientName}. Payment for invoice <strong>${safeInvoiceNumber}</strong> has been confirmed.</p>
+            <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Thank you, ${safeClientName}!</p>
+            <p style="margin:8px 0 0;font-size:15px;color:#86efac;">Your receipt for <strong>${safeInvoiceNumber}</strong> is below. We appreciate your trust in OceanicCoder.</p>
           </td>
         </tr>
 
@@ -132,8 +132,8 @@ module.exports = async function (context, req) {
         <!-- Message -->
         <tr>
           <td style="background:#111827;padding:0 40px 28px;text-align:center;">
-            <p style="margin:0;font-size:13px;color:#6b7280;">This is your payment receipt. Keep it for your records.</p>
-            <p style="margin:8px 0 0;font-size:13px;color:#6b7280;">Questions? <a href="mailto:hello@oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">hello@oceaniccoder.dev</a></p>
+            <p style="margin:0;font-size:13px;color:#6b7280;">Keep this email as your receipt. If you have any questions, just reply or reach out directly.</p>
+            <p style="margin:8px 0 0;font-size:13px;color:#6b7280;"><a href="mailto:hello@oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">hello@oceaniccoder.dev</a></p>
           </td>
         </tr>
 
@@ -158,9 +158,11 @@ module.exports = async function (context, req) {
       { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       {
         from: `Illona @ OceanicCoder <${fromEmail}>`,
+        reply_to: "hello@oceaniccoder.dev",
         to: [clientEmail],
-        subject: `Payment Confirmed – ${invoiceNumber}`,
+        subject: `Your receipt from OceanicCoder – ${invoiceNumber}`,
         html,
+        text: `Hi ${clientName},\n\nThank you for your payment. This is your receipt for invoice ${invoiceNumber}.\n\nAmount: ${sym}${Number(total).toFixed(2)} ${currency}\nDate: ${paidDate}\nStatus: PAID\n\nQuestions? Reply to this email or contact hello@oceaniccoder.dev\n\nOceanicCoder\nhttps://oceaniccoder.dev`,
       },
     );
 
