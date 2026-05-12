@@ -286,6 +286,8 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#111827;padding:0 40px 28px;text-align:center;">
             <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">Have questions about this invoice? Get in touch.</p>
+            <a href="https://oceaniccoder.dev/pay/${invoiceNumber}" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);color:#ffffff;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.01em;margin-bottom:12px;">Pay Now →</a>
+            <br>
             <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.01em;">Reply to this Invoice</a>
           </td>
         </tr>

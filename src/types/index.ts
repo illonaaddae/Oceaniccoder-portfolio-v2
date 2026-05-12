@@ -220,6 +220,21 @@ export interface Invoice {
   $updatedAt?: string;
 }
 
+// Payment Types
+export interface Payment {
+  $id: string;
+  invoiceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  amount: number;
+  currency: string;
+  method: "card" | "momo" | "bank_transfer";
+  paystackReference?: string;
+  status: "pending" | "success" | "failed";
+  paidAt?: string;
+  $createdAt?: string;
+}
+
 // Testimonial Types
 export interface Testimonial {
   $id: string;

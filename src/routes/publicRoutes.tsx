@@ -16,6 +16,7 @@ import {
   NotFound,
   Booking,
   ClientInquiry,
+  PaymentPage,
 } from "./lazyComponents";
 
 const Fallback = () => <LoadingSpinner />;
@@ -124,6 +125,14 @@ const publicRoutes = (
       element={
         <React.Suspense fallback={<Fallback />}>
           <ClientInquiry />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/pay/:invoiceNumber"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <PaymentPage />
         </React.Suspense>
       }
     />
