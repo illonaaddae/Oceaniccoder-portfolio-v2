@@ -57,7 +57,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-const PIE_COLORS = ["#0d9488", "#14b8a6", "#2dd4bf", "#99f6e4", "#0f766e", "#0e7490"];
+const PIE_COLORS = ["#0c8599", "#26a9c5", "#52bfd7", "#c1ecf4", "#085866", "#064350"];
 
 type Period = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -133,7 +133,7 @@ const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
       <p className="text-xs mb-0.5" style={{ color: "#94a3b8" }}>
         {label}
       </p>
-      <p style={{ color: "#2dd4bf" }}>{formatGHS(payload[0].value)}</p>
+      <p style={{ color: "#26a9c5" }}>{formatGHS(payload[0].value)}</p>
     </div>
   );
 };
@@ -274,19 +274,19 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       <div
         className="relative rounded-2xl p-6 overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, #0a1628 0%, #0c3d39 55%, #0a2e1a 100%)",
-          border: "1px solid rgba(13,148,136,0.35)",
+          background: "linear-gradient(135deg, #000b21 0%, #04333B 55%, #001321 100%)",
+          border: "1px solid rgba(12,133,153,0.35)",
           minHeight: "200px",
         }}
       >
         {/* Decorative circles */}
         <div
           className="absolute -right-16 -top-16 rounded-full opacity-10"
-          style={{ width: "240px", height: "240px", background: "#0d9488" }}
+          style={{ width: "240px", height: "240px", background: "#0c8599" }}
         />
         <div
           className="absolute -right-4 top-20 rounded-full opacity-10"
-          style={{ width: "140px", height: "140px", background: "#14b8a6" }}
+          style={{ width: "140px", height: "140px", background: "#26a9c5" }}
         />
 
         <div className="relative z-10 flex flex-col h-full gap-4">
@@ -318,7 +318,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
               >
                 OceanicCoder
               </p>
-              <p className="text-sm font-extrabold tracking-wider" style={{ color: "#2dd4bf" }}>
+              <p className="text-sm font-extrabold tracking-wider" style={{ color: "#26a9c5" }}>
                 EARNINGS
               </p>
             </div>
@@ -342,7 +342,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                   <span
                     key={cur}
                     className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(45,212,191,0.15)", color: "#99f6e4" }}
+                    style={{ background: "rgba(45,212,191,0.15)", color: "#c1ecf4" }}
                   >
                     {CURRENCY_SYMBOLS[cur] ?? cur}
                     {amt.toFixed(2)} {cur}
@@ -501,7 +501,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                 tickFormatter={(v: number) => `₵${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
               />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(13,148,136,0.08)" }} />
-              <Bar dataKey="amount" fill="#0d9488" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="amount" fill="#0c8599" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -856,7 +856,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                     style={{
                       background:
                         {
-                          domain: "#0d9488",
+                          domain: "#0c8599",
                           hosting: "#0e7490",
                           tools: "#f97316",
                           software: "#8b5cf6",
