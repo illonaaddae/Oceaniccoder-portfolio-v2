@@ -28,10 +28,7 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({ theme, isReadOnly = fa
     handleDelete,
   } = useCommentsData(isReadOnly);
 
-  const cardStyles =
-    theme === "dark"
-      ? "glass-card bg-gray-800/50 border-gray-700/80"
-      : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40";
+  const cardStyles = "glass-card";
   const textPrimary = theme === "dark" ? "text-white" : "text-slate-900";
   const textSecondary = theme === "dark" ? "text-slate-200/90" : "text-slate-700/80";
   const textMuted = theme === "dark" ? "text-gray-400" : "text-slate-600";

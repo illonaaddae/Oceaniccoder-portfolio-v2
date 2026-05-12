@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { FaLightbulb } from "react-icons/fa";
 import {
@@ -29,6 +30,22 @@ const ServicesSection: React.FC = () => {
           "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
       }}
     >
+      <Helmet>
+        <title>Services | Web &amp; Mobile Development – OceanicCoder</title>
+        <meta
+          name="description"
+          content="Custom web apps, e-commerce stores, landing pages, dashboards and mobile apps. Get a free quote from OceanicCoder."
+        />
+        <meta
+          property="og:title"
+          content="Services | Web &amp; Mobile Development – OceanicCoder"
+        />
+        <meta
+          property="og:description"
+          content="Custom web apps, e-commerce stores, landing pages, dashboards and mobile apps. Get a free quote from OceanicCoder."
+        />
+        <meta property="og:url" content="https://oceaniccoder.dev/services" />
+      </Helmet>
       <BackgroundElements />
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <SectionHeader />

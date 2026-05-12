@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { FaBriefcase, FaCheckCircle, FaArrowRight } from "react-icons/fa";
 import { createInquiry } from "../../services/api/inquiries";
 import { apiUrl } from "../../utils/apiUrl";
@@ -263,6 +264,19 @@ export default function InquiryPage() {
 
   return (
     <div className="min-h-screen py-16 px-4" style={{ background: "var(--bg-primary)" }}>
+      <Helmet>
+        <title>Start a Project | OceanicCoder</title>
+        <meta
+          name="description"
+          content="Tell me about your project and get a tailored proposal within 24 hours. Web apps, mobile apps, e-commerce and more."
+        />
+        <meta property="og:title" content="Start a Project | OceanicCoder" />
+        <meta
+          property="og:description"
+          content="Tell me about your project and get a tailored proposal within 24 hours. Web apps, mobile apps, e-commerce and more."
+        />
+        <meta property="og:url" content="https://oceaniccoder.dev/inquiry" />
+      </Helmet>
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
@@ -427,7 +441,7 @@ export default function InquiryPage() {
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
               Do you have a logo / brand assets ready?
             </label>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               {[
                 { label: "Yes, I have one", value: true },
                 { label: "No, I need one designed", value: false },
@@ -462,7 +476,7 @@ export default function InquiryPage() {
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
               Do you need a domain name?
             </label>
-            <div className="flex gap-3 mb-3">
+            <div className="flex flex-col sm:flex-row gap-3 mb-3">
               {[
                 { label: "Yes, register one for me", value: true },
                 { label: "No, I already have one", value: false },
@@ -536,7 +550,7 @@ export default function InquiryPage() {
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
               Do you need web hosting?
             </label>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               {[
                 { label: "Yes, set it up for me", value: true },
                 { label: "No, I'll handle it", value: false },

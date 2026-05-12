@@ -7,12 +7,7 @@ interface TestimonialsStatsProps {
   theme: "light" | "dark";
 }
 
-const cardClass = (theme: "light" | "dark") =>
-  `glass-card border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-200 ${
-    theme === "dark"
-      ? "bg-gray-800/50 border-gray-700/80 hover:border-oceanic-500/50"
-      : "bg-gradient-to-br from-white/40 to-white/20 border-oceanic-200/40 hover:border-oceanic-300/60"
-  }`;
+const cardClass = (_theme: "light" | "dark") => "glass-card card-hover p-4 sm:p-6";
 
 export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({ testimonials, theme }) => {
   const avgRating =

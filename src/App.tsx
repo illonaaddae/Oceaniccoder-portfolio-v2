@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter } from "react-router-dom";
 import { PortfolioProvider } from "./Context";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -82,33 +83,35 @@ function App() {
   }, []);
 
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        logger.error("Application Error", {
-          error: error.message,
-          componentStack: errorInfo.componentStack,
-        });
-      }}
-    >
-      <PortfolioProvider>
-        <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
-          <BrowserRouter>
-            <MainLayout theme={theme} toggleTheme={toggleTheme}>
-              <TerminalLoader />
-              <React.Suspense fallback={<div className="min-h-screen bg-[#0d1117]" />}>
-                <AnimatedRoutes
-                  isAdminLoggedIn={isAdminLoggedIn}
-                  onAdminLogin={handleAdminLogin}
-                  onAdminLogout={handleAdminLogout}
-                />
-                <RouteChangeHandler />
-                <Chatbot />
-              </React.Suspense>
-            </MainLayout>
-          </BrowserRouter>
-        </div>
-      </PortfolioProvider>
-    </ErrorBoundary>
+    <HelmetProvider>
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          logger.error("Application Error", {
+            error: error.message,
+            componentStack: errorInfo.componentStack,
+          });
+        }}
+      >
+        <PortfolioProvider>
+          <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
+            <BrowserRouter>
+              <MainLayout theme={theme} toggleTheme={toggleTheme}>
+                <TerminalLoader />
+                <React.Suspense fallback={<div className="min-h-screen bg-[#0d1117]" />}>
+                  <AnimatedRoutes
+                    isAdminLoggedIn={isAdminLoggedIn}
+                    onAdminLogin={handleAdminLogin}
+                    onAdminLogout={handleAdminLogout}
+                  />
+                  <RouteChangeHandler />
+                  <Chatbot />
+                </React.Suspense>
+              </MainLayout>
+            </BrowserRouter>
+          </div>
+        </PortfolioProvider>
+      </ErrorBoundary>
+    </HelmetProvider>
   );
 }
 

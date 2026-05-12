@@ -34,8 +34,8 @@ const STATUS_CONFIG: Record<string, { label: string; pill: string; dot: string }
   },
   paid: {
     label: "Paid",
-    pill: "bg-green-500/15 text-green-400 border-green-500/30",
-    dot: "bg-green-400",
+    pill: "bg-teal-500/15 text-teal-400 border-teal-500/30",
+    dot: "bg-teal-400",
   },
   overdue: {
     label: "Overdue",

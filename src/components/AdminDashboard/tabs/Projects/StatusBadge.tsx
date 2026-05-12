@@ -20,7 +20,7 @@ export const StatusBadge: React.FC<{
 
 export const FeaturedBadge: React.FC<{ size?: "sm" | "md" }> = ({ size = "sm" }) => (
   <span
-    className={`bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs ${size === "sm" ? "px-2 py-0.5" : "px-3 py-1 shadow-sm"} rounded-full font-medium`}
+    className={`bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-xs ${size === "sm" ? "px-2 py-0.5" : "px-3 py-1 shadow-sm"} rounded-full font-medium`}
   >
     Featured
   </span>

@@ -22,13 +22,7 @@ export const BlogPostCard: React.FC<BlogPostCardProps> = ({
   onEdit,
   onDelete,
 }) => (
-  <div
-    className={`glass-card border rounded-2xl p-4 sm:p-5 transition-all duration-200 ${
-      theme === "dark"
-        ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600 hover:bg-gray-800/70"
-        : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40 hover:border-blue-300/60 hover:bg-gradient-to-br hover:from-white/70 hover:to-white/50"
-    }`}
-  >
+  <div className="glass-card card-hover p-4 sm:p-5">
     <div className="flex flex-row gap-3 md:gap-4">
       {post.image && (
         <div

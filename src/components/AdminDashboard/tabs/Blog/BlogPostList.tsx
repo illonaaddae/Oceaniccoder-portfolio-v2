@@ -41,13 +41,7 @@ export const BlogPostList: React.FC<BlogPostListProps> = ({
 
   if (posts.length === 0) {
     return (
-      <div
-        className={`glass-card border rounded-2xl p-12 text-center transition-colors duration-200 ${
-          theme === "dark"
-            ? "bg-gray-800/50 border-gray-700/80"
-            : "bg-gradient-to-br from-white/60 to-white/40 border-blue-200/40"
-        }`}
-      >
+      <div className="glass-card p-12 text-center">
         <FaEdit
           className={`text-5xl mx-auto mb-4 transition-colors duration-300 ${theme === "dark" ? "text-gray-600" : "text-slate-400"}`}
         />

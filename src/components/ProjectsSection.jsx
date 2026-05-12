@@ -1,4 +1,5 @@
 import React from "react";
+import { Helmet } from "react-helmet-async";
 import useProjectsData from "./Projects/useProjectsData";
 import SectionHeader from "./Projects/SectionHeader";
 import CategoryFilter from "./Projects/CategoryFilter";
@@ -24,6 +25,19 @@ const ProjectsSection = () => {
           "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
       }}
     >
+      <Helmet>
+        <title>Projects | OceanicCoder Portfolio</title>
+        <meta
+          name="description"
+          content="Explore full-stack web and mobile projects built by Illona Addae — from e-commerce platforms to custom dashboards."
+        />
+        <meta property="og:title" content="Projects | OceanicCoder Portfolio" />
+        <meta
+          property="og:description"
+          content="Explore full-stack web and mobile projects built by Illona Addae — from e-commerce platforms to custom dashboards."
+        />
+        <meta property="og:url" content="https://oceaniccoder.dev/projects" />
+      </Helmet>
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="liquid-morph absolute top-40 left-20 w-96 h-96 bg-gradient-to-r from-oceanic-500/8 to-blue-500/10 blur-3xl"></div>

@@ -26,13 +26,7 @@ export const StorageUsage: React.FC<StorageUsageProps> = ({ theme, onNavigateToT
       : `${(storageStats.totalSizeMB / 1024).toFixed(2)} GB`;
 
   return (
-    <div
-      className={`glass-card backdrop-blur-xl border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-colors duration-300 ${
-        theme === "dark"
-          ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20"
-          : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-      }`}
-    >
+    <div className="glass-card p-4 sm:p-6">
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <h3
           className={`text-sm sm:text-base font-bold transition-colors duration-300 ${

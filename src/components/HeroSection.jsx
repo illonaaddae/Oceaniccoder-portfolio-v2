@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { usePortfolioData } from "../hooks/usePortfolioData";
 import { roles } from "./Hero/heroData";
@@ -59,6 +60,19 @@ const HeroSection = () => {
           "linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--brand-ocean-1) 100%)",
       }}
     >
+      <Helmet>
+        <title>Illona Addae | Full-Stack Developer &amp; Tech Leader</title>
+        <meta
+          name="description"
+          content="Full-stack developer specialising in React, TypeScript, and cloud systems. Available for freelance web and mobile app projects."
+        />
+        <meta property="og:title" content="Illona Addae | Full-Stack Developer &amp; Tech Leader" />
+        <meta
+          property="og:description"
+          content="Full-stack developer specialising in React, TypeScript, and cloud systems. Available for freelance web and mobile app projects."
+        />
+        <meta property="og:url" content="https://oceaniccoder.dev/" />
+      </Helmet>
       <BackgroundElements />
       <div className="container mx-auto px-6 relative z-10 flex flex-col min-h-screen justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-7xl mx-auto w-full">

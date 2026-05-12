@@ -27,8 +27,8 @@ export const ProjectsTab: React.FC<Props> = ({ theme, loading, filteredProjects,
     catch(e:unknown) { if(e instanceof Error && e.message==="cancelled") return; console.error("Failed to delete project:",e); showToast("error","Failed to delete project. Please try again."); }
   };
   const th = `px-4 py-3 text-left text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme==="dark"?"text-white/95":"text-slate-700/90"}`;
-  const emptyCard = `glass-card backdrop-blur-xl border rounded-2xl p-12 text-center transition-colors duration-300 ${theme==="dark"?"bg-gradient-to-br from-white/8 to-white/4 border-white/20":"bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"}`;
-  const tableCard = `hidden md:block glass-card backdrop-blur-xl border rounded-2xl overflow-hidden transition-colors duration-300 ${theme==="dark"?"bg-gradient-to-br from-white/8 to-white/4 border-white/20":"bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"}`;
+  const emptyCard = "glass-card p-12 text-center";
+  const tableCard = "hidden md:block glass-card overflow-hidden";
   const toastCls = toast ? `fixed top-4 right-4 z-[200] flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-lg ${toast.type==="success" ? (theme==="dark"?"bg-green-500/20 border-green-400/50 text-green-300":"bg-green-50 border-green-200 text-green-700") : (theme==="dark"?"bg-red-500/20 border-red-400/50 text-red-300":"bg-red-50 border-red-200 text-red-700")}` : "";
 
   return (

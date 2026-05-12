@@ -6,12 +6,7 @@ interface ProjectStatsProps {
   projects: Project[];
 }
 
-const cardClass = (theme: "light" | "dark") =>
-  `glass-card border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-200 ${
-    theme === "dark"
-      ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
-      : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
-  }`;
+const cardClass = (_theme: "light" | "dark") => "glass-card card-hover p-4 sm:p-6";
 
 const labelClass = (theme: "light" | "dark") =>
   `text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
