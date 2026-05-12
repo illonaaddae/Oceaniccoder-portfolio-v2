@@ -70,11 +70,11 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
             { display_name: "Client", variable_name: "clientName", value: invoice.clientName },
           ],
         },
-        onSuccess: () => {
+        callback: () => {
           setLoading(false);
           onSuccess();
         },
-        onCancel: () => {
+        onClose: () => {
           setLoading(false);
         },
       });

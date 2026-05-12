@@ -117,11 +117,11 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice, onSuccess }) => {
             { display_name: "Network", variable_name: "momoNetwork", value: selected },
           ],
         },
-        onSuccess: () => {
+        callback: () => {
           setLoading(false);
           onSuccess();
         },
-        onCancel: () => {
+        onClose: () => {
           setLoading(false);
         },
       });
