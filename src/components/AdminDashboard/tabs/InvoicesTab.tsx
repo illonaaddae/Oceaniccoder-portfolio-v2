@@ -29,8 +29,8 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 const STATUS_CONFIG: Record<string, { label: string; pill: string; dot: string }> = {
   sent: {
     label: "Sent",
-    pill: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-    dot: "bg-blue-400",
+    pill: "bg-teal-500/15 text-teal-400 border-teal-500/30",
+    dot: "bg-teal-400",
   },
   paid: {
     label: "Paid",
@@ -143,7 +143,7 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
               </span>
             )}
             {pendingCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-500/20 text-teal-400">
                 {pendingCount} pending
               </span>
             )}
@@ -189,7 +189,7 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
                 style={{
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--border-subtle)",
-                  borderLeft: isPaid ? "4px solid #22c55e" : "4px solid #3b82f6",
+                  borderLeft: isPaid ? "4px solid #22c55e" : "4px solid var(--accent-teal)",
                 }}
               >
                 <div className="p-5">
