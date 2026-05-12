@@ -85,7 +85,7 @@ module.exports = async function (context, req) {
     context.res = {
       status: 500,
       headers: CORS,
-      body: JSON.stringify({ error: "Internal error" }),
+      body: JSON.stringify({ error: "Internal error", detail: err.message }),
     };
   }
 };
