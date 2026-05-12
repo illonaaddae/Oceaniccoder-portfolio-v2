@@ -41,6 +41,7 @@ jobs:
           VITE_APPWRITE_BUCKET_ID: ${{ secrets.VITE_APPWRITE_BUCKET_ID }}
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
           VITE_ADMIN_PASSWORD_HASH: ${{ secrets.VITE_ADMIN_PASSWORD_HASH }}
+          VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.VITE_PAYSTACK_PUBLIC_KEY }}
           # VITE_FUNCTIONS_BASE_URL intentionally omitted — Azure Functions in api/
           # handle /api/* on the same domain (oceaniccoder.dev), no cross-origin needed.
 

@@ -186,12 +186,15 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
 const PaymentPage: React.FC = () => {
   const { invoiceNumber } = useParams<{ invoiceNumber: string }>();
   const [searchParams] = useSearchParams();
-  const isSuccess = searchParams.get("payment") === "success";
+  const isSuccessParam = searchParams.get("payment") === "success";
 
   const [invoice, setInvoice] = useState<PublicInvoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PaymentTab>("card");
+  const [paid, setPaid] = useState(false);
+
+  const isSuccess = isSuccessParam || paid;
 
   useEffect(() => {
     if (!invoiceNumber) return;
@@ -316,6 +319,7 @@ const PaymentPage: React.FC = () => {
                           currency: invoice.currency,
                           clientName: invoice.clientName,
                         }}
+                        onSuccess={() => setPaid(true)}
                       />
                     )}
                     {activeTab === "momo" && (
@@ -327,6 +331,7 @@ const PaymentPage: React.FC = () => {
                           currency: invoice.currency,
                           clientName: invoice.clientName,
                         }}
+                        onSuccess={() => setPaid(true)}
                       />
                     )}
                     {activeTab === "bank" && <BankTransfer invoiceNumber={invoice.invoiceNumber} />}

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { apiUrl } from "@/utils/apiUrl";
 
 export interface MomoPaymentProps {
   invoice: {
@@ -9,6 +8,7 @@ export interface MomoPaymentProps {
     currency: string;
     clientName: string;
   };
+  onSuccess: () => void;
 }
 
 type MomoNetwork = "mtn" | "vodafone" | "airteltigo";
@@ -61,7 +61,21 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   NGN: "₦",
 };
 
-const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice }) => {
+function loadPaystackScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as unknown as Record<string, unknown>).PaystackPop) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Paystack"));
+    document.body.appendChild(script);
+  });
+}
+
+const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice, onSuccess }) => {
   const [selected, setSelected] = useState<MomoNetwork | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,33 +87,48 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice }) => {
       setError("Please select a mobile money network.");
       return;
     }
-
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(apiUrl("/api/paystack-init"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoiceNumber: invoice.invoiceNumber,
-          email: invoice.clientEmail,
-          amount: invoice.total,
-          currency: invoice.currency,
-        }),
+      await loadPaystackScript();
+
+      const PaystackPop = (window as unknown as Record<string, unknown>).PaystackPop as {
+        setup: (config: Record<string, unknown>) => { openIframe: () => void };
+      };
+
+      const ref = `OC-${invoice.invoiceNumber}-${Date.now()}`;
+
+      const handler = PaystackPop.setup({
+        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string,
+        email: invoice.clientEmail,
+        amount: Math.round(invoice.total * 100),
+        currency: invoice.currency,
+        ref,
+        channels: ["mobile_money"],
+        metadata: {
+          custom_fields: [
+            {
+              display_name: "Invoice",
+              variable_name: "invoiceNumber",
+              value: invoice.invoiceNumber,
+            },
+            { display_name: "Client", variable_name: "clientName", value: invoice.clientName },
+            { display_name: "Network", variable_name: "momoNetwork", value: selected },
+          ],
+        },
+        onSuccess: () => {
+          setLoading(false);
+          onSuccess();
+        },
+        onCancel: () => {
+          setLoading(false);
+        },
       });
 
-      const data = (await res.json()) as { authorizationUrl?: string; error?: string };
-
-      if (!res.ok || !data.authorizationUrl) {
-        setError(data.error ?? "Failed to initialize payment. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      window.location.href = data.authorizationUrl;
+      handler.openIframe();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError("Failed to load payment. Please try again.");
       setLoading(false);
     }
   };
@@ -110,13 +139,13 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice }) => {
         Pay with Mobile Money
       </h3>
 
-      {/* Network selector */}
       <div className="flex flex-col gap-3">
         {NETWORKS.map((net) => {
           const isSelected = selected === net.id;
           return (
             <button
               key={net.id}
+              type="button"
               onClick={() => setSelected(net.id)}
               className="flex items-center gap-4 w-full rounded-xl px-4 py-3 transition-all"
               style={{
@@ -128,7 +157,6 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice }) => {
                 cursor: "pointer",
               }}
             >
-              {/* Network logo circle */}
               <div
                 style={{
                   width: "44px",
@@ -147,12 +175,9 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice }) => {
               >
                 {net.shortLabel}
               </div>
-
               <span className="font-semibold text-base" style={{ color: "var(--text-primary)" }}>
                 {net.label}
               </span>
-
-              {/* Selection indicator */}
               <div
                 className="ml-auto"
                 style={{
@@ -198,6 +223,7 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice }) => {
       )}
 
       <button
+        type="button"
         onClick={handlePay}
         disabled={loading || !selected}
         className="w-full rounded-xl py-4 font-bold text-base text-white transition-opacity"
@@ -232,7 +258,7 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice }) => {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            Redirecting to Paystack…
+            Opening payment…
           </span>
         ) : (
           `Pay ${sym}${invoice.total.toFixed(2)} ${invoice.currency}`
