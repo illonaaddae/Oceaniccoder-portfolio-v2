@@ -124,106 +124,183 @@ module.exports = async function (context, req) {
     return;
   }
 
+  const issuedDate = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const dueDateFormatted = dueDate
+    ? new Date(dueDate).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
   const itemRows = items
     .map(
-      (i) => `
-    <tr>
-      <td style="padding:10px 0;border-bottom:1px solid #334155;color:#94a3b8;font-size:14px;">${i.description}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #334155;color:#94a3b8;font-size:14px;text-align:center;">${i.quantity}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #334155;color:#94a3b8;font-size:14px;text-align:right;">${sym}${Number(i.unitPrice).toFixed(2)}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #334155;color:#f1f5f9;font-size:14px;text-align:right;font-weight:600;">${sym}${(i.quantity * i.unitPrice).toFixed(2)}</td>
+      (i, idx) => `
+    <tr style="background:${idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)"};">
+      <td style="padding:12px 8px 12px 0;border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">${i.description}</td>
+      <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:center;">${i.quantity}</td>
+      <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:right;">${sym}${Number(i.unitPrice).toFixed(2)}</td>
+      <td style="padding:12px 0 12px 8px;border-bottom:1px solid #1e293b;color:#0d9488;font-size:14px;text-align:right;font-weight:700;">${sym}${(i.quantity * i.unitPrice).toFixed(2)}</td>
     </tr>`,
     )
     .join("");
 
-  const dueDateLine = dueDate
-    ? `<p style="margin:0 0 8px;font-size:13px;color:#64748b;">Due: <strong style="color:#f1f5f9;">${new Date(dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</strong></p>`
-    : "";
-
   const taxRow =
     taxRate > 0
-      ? `<tr><td style="padding:4px 0;color:#94a3b8;font-size:13px;">Tax (${taxRate}%)</td><td style="padding:4px 0;color:#94a3b8;font-size:13px;text-align:right;">${sym}${Number(tax).toFixed(2)}</td></tr>`
+      ? `<tr>
+          <td style="padding:6px 0;color:#94a3b8;font-size:13px;">Tax (${taxRate}%)</td>
+          <td style="padding:6px 0;color:#94a3b8;font-size:13px;text-align:right;">${sym}${Number(tax).toFixed(2)}</td>
+        </tr>`
       : "";
-
-  const notesBlock = notes
-    ? `<tr><td colspan="2" style="padding-top:24px;">
-        <p style="margin:0 0 6px;font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:0.05em;">Notes</p>
-        <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">${notes}</p>
-      </td></tr>`
-    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 16px;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Invoice ${invoiceNumber}</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0f1a;padding:40px 16px;">
     <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid #334155;">
-        <!-- Header -->
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+        <!-- Header bar -->
         <tr>
-          <td style="background:linear-gradient(135deg,#0d9488 0%,#0d7a6e 100%);padding:32px 40px;">
+          <td style="background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" />
+                </td>
+                <td style="text-align:right;vertical-align:middle;">
+                  <p style="margin:0;font-size:11px;color:#99f6e4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Invoice</p>
+                  <p style="margin:4px 0 0;font-size:20px;color:#ffffff;font-weight:800;letter-spacing:0.01em;">${invoiceNumber}</p>
+                  <p style="margin:4px 0 0;font-size:12px;color:#b2f5ea;">Issued ${issuedDate}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Total hero -->
+        <tr>
+          <td style="background:#0f2a27;padding:24px 40px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
-                  <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="140" style="display:block;margin-bottom:12px;" />
-                  <h1 style="margin:0;font-size:26px;color:#ffffff;font-weight:700;">Invoice</h1>
+                  <p style="margin:0;font-size:12px;color:#5eead4;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Amount Due</p>
+                  <p style="margin:6px 0 0;font-size:36px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${sym}${Number(total).toFixed(2)} <span style="font-size:18px;font-weight:500;color:#5eead4;">${currency}</span></p>
                 </td>
-                <td style="text-align:right;vertical-align:bottom;">
-                  <p style="margin:0;font-size:13px;color:#99f6e4;">${invoiceNumber}</p>
-                  <p style="margin:4px 0 0;font-size:12px;color:#b2f5ea;">Issued: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                ${
+                  dueDateFormatted
+                    ? `<td style="text-align:right;vertical-align:middle;">
+                  <div style="display:inline-block;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px 16px;">
+                    <p style="margin:0;font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Due</p>
+                    <p style="margin:3px 0 0;font-size:14px;color:#fde68a;font-weight:700;">${dueDateFormatted}</p>
+                  </div>
+                </td>`
+                    : ""
+                }
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- From / To -->
+        <tr>
+          <td style="background:#111827;padding:24px 40px;border-top:1px solid #1e293b;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width:50%;vertical-align:top;padding-right:20px;">
+                  <p style="margin:0 0 8px;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">From</p>
+                  <p style="margin:0;font-size:14px;color:#f1f5f9;font-weight:700;">Illona Addae</p>
+                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">OceanicCoder</p>
+                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">oceaniccoder.dev</p>
+                </td>
+                <td style="width:50%;vertical-align:top;padding-left:20px;border-left:1px solid #1f2937;">
+                  <p style="margin:0 0 8px;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Billed To</p>
+                  <p style="margin:0;font-size:14px;color:#f1f5f9;font-weight:700;">${clientName}</p>
+                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${clientEmail}</p>
+                  ${clientPhone ? `<p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${clientPhone}</p>` : ""}
                 </td>
               </tr>
             </table>
           </td>
         </tr>
-        <!-- Client Info -->
+
+        <!-- Items -->
         <tr>
-          <td style="padding:28px 40px 0;">
-            <p style="margin:0 0 4px;font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:0.05em;">Billed To</p>
-            <p style="margin:0;font-size:16px;color:#f1f5f9;font-weight:600;">${clientName}</p>
-            <p style="margin:2px 0 0;font-size:13px;color:#94a3b8;">${clientEmail}</p>
-            ${dueDateLine}
-          </td>
-        </tr>
-        <!-- Items Table -->
-        <tr>
-          <td style="padding:24px 40px;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <th style="padding:8px 0;border-bottom:1px solid #475569;text-align:left;font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Description</th>
-                <th style="padding:8px 0;border-bottom:1px solid #475569;text-align:center;font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Qty</th>
-                <th style="padding:8px 0;border-bottom:1px solid #475569;text-align:right;font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Unit Price</th>
-                <th style="padding:8px 0;border-bottom:1px solid #475569;text-align:right;font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Amount</th>
+          <td style="background:#111827;padding:0 40px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              <tr style="border-bottom:2px solid #1e3a5f;">
+                <th style="padding:10px 8px 10px 0;text-align:left;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Description</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Qty</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Unit Price</th>
+                <th style="padding:10px 0 10px 8px;text-align:right;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Total</th>
               </tr>
               ${itemRows}
             </table>
-            <!-- Totals -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
+
+            <!-- Totals summary -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
               <tr>
-                <td style="width:60%"></td>
-                <td style="width:40%">
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr><td style="padding:4px 0;color:#94a3b8;font-size:13px;">Subtotal</td><td style="padding:4px 0;color:#94a3b8;font-size:13px;text-align:right;">${sym}${Number(subtotal).toFixed(2)}</td></tr>
-                    ${taxRow}
+                <td style="width:55%"></td>
+                <td style="width:45%;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;border-radius:10px;padding:4px 0;">
                     <tr>
-                      <td style="padding:10px 0 4px;border-top:1px solid #475569;font-size:16px;font-weight:700;color:#f1f5f9;">Total</td>
-                      <td style="padding:10px 0 4px;border-top:1px solid #475569;font-size:16px;font-weight:700;color:#0d9488;text-align:right;">${sym}${Number(total).toFixed(2)} ${currency}</td>
+                      <td style="padding:8px 16px;color:#6b7280;font-size:13px;">Subtotal</td>
+                      <td style="padding:8px 16px;color:#9ca3af;font-size:13px;text-align:right;">${sym}${Number(subtotal).toFixed(2)}</td>
                     </tr>
-                    ${notesBlock}
+                    ${taxRow}
+                    <tr style="border-top:1px solid #1e293b;">
+                      <td style="padding:12px 16px;color:#f1f5f9;font-size:15px;font-weight:800;">Total</td>
+                      <td style="padding:12px 16px;color:#0d9488;font-size:15px;font-weight:800;text-align:right;">${sym}${Number(total).toFixed(2)}</td>
+                    </tr>
                   </table>
                 </td>
               </tr>
             </table>
           </td>
         </tr>
+
+        ${
+          notes
+            ? `<!-- Notes -->
+        <tr>
+          <td style="background:#111827;padding:0 40px 24px;">
+            <div style="background:#0f172a;border-left:3px solid #0d9488;border-radius:0 8px 8px 0;padding:14px 16px;">
+              <p style="margin:0 0 4px;font-size:11px;color:#0d9488;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Notes</p>
+              <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">${notes}</p>
+            </div>
+          </td>
+        </tr>`
+            : ""
+        }
+
+        <!-- CTA -->
+        <tr>
+          <td style="background:#111827;padding:0 40px 28px;text-align:center;">
+            <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">Have questions about this invoice? Get in touch.</p>
+            <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.01em;">Reply to this Invoice</a>
+          </td>
+        </tr>
+
         <!-- Footer -->
         <tr>
-          <td style="padding:20px 40px;border-top:1px solid #334155;">
-            <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-              Questions? Reply to this email or visit <a href="https://oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">oceaniccoder.dev</a>
+          <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
+            <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#374151;">OceanicCoder</p>
+            <p style="margin:0;font-size:12px;color:#374151;line-height:1.6;">
+              <a href="https://oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">oceaniccoder.dev</a>
+              &nbsp;·&nbsp; hello@oceaniccoder.dev
             </p>
           </td>
         </tr>
+
       </table>
     </td></tr>
   </table>
