@@ -141,12 +141,12 @@ function buildChartData(invoices: Invoice[], period: Period) {
     return MONTH_LABELS.map((label, i) => ({ label, amount: parseFloat(amounts[i].toFixed(2)) }));
   }
 
-  // yearly
+  // yearly — always show at least 3 years so the chart never renders a single bar
   const currentYear = new Date().getFullYear();
   const earliestYear =
     paid.length > 0
-      ? Math.min(...paid.map((inv) => new Date(inv.$createdAt!).getFullYear()))
-      : currentYear;
+      ? Math.min(...paid.map((inv) => new Date(inv.$createdAt!).getFullYear()), currentYear - 2)
+      : currentYear - 2;
   const years: number[] = [];
   for (let y = earliestYear; y <= currentYear; y++) years.push(y);
   const yearAmounts: Record<number, number> = {};
