@@ -115,18 +115,47 @@ function buildChartData(invoices: Invoice[], period: Period) {
     return days.map(({ label, amount }) => ({ label, amount: parseFloat(amount.toFixed(2)) }));
   }
 
-  const grouped: Record<string, number> = {};
-  for (const inv of paid) {
-    const d = new Date(inv.$createdAt!);
-    const key =
-      period === "monthly"
-        ? d.toLocaleDateString("en-GB", { month: "short", year: "numeric" })
-        : d.getFullYear().toString();
-    grouped[key] = (grouped[key] ?? 0) + toGHS(inv.total, inv.currency);
+  if (period === "monthly") {
+    const currentYear = new Date().getFullYear();
+    const MONTH_LABELS = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const amounts = new Array(12).fill(0) as number[];
+    for (const inv of paid) {
+      const d = new Date(inv.$createdAt!);
+      if (d.getFullYear() === currentYear) {
+        amounts[d.getMonth()] += toGHS(inv.total, inv.currency);
+      }
+    }
+    return MONTH_LABELS.map((label, i) => ({ label, amount: parseFloat(amounts[i].toFixed(2)) }));
   }
-  return Object.entries(grouped)
-    .map(([label, amount]) => ({ label, amount: parseFloat(amount.toFixed(2)) }))
-    .slice(-20);
+
+  // yearly
+  const currentYear = new Date().getFullYear();
+  const earliestYear =
+    paid.length > 0
+      ? Math.min(...paid.map((inv) => new Date(inv.$createdAt!).getFullYear()))
+      : currentYear;
+  const years: number[] = [];
+  for (let y = earliestYear; y <= currentYear; y++) years.push(y);
+  const yearAmounts: Record<number, number> = {};
+  for (const y of years) yearAmounts[y] = 0;
+  for (const inv of paid) {
+    const y = new Date(inv.$createdAt!).getFullYear();
+    if (y in yearAmounts) yearAmounts[y] += toGHS(inv.total, inv.currency);
+  }
+  return years.map((y) => ({ label: String(y), amount: parseFloat(yearAmounts[y].toFixed(2)) }));
 }
 
 function buildCurrencyPieData(invoices: Invoice[]) {
