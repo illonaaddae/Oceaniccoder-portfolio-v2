@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { FaTimes, FaPlus, FaTrash, FaPaperPlane } from "react-icons/fa";
-import { createInvoice } from "@/services/api/invoices";
+import { createInvoice, updateInvoice } from "@/services/api/invoices";
 import { apiUrl } from "@/utils/apiUrl";
-import type { ProjectInquiry, InvoiceItem } from "@/types";
+import type { ProjectInquiry, InvoiceItem, Invoice } from "@/types";
 
 const CURRENCIES = [
   { code: "GHS", symbol: "₵", label: "Ghanaian Cedi (GHS)" },
@@ -17,19 +17,37 @@ interface Props {
   inquiry: ProjectInquiry;
   onClose: () => void;
   theme: "light" | "dark";
+  existingInvoice?: Invoice;
 }
 
 const emptyItem = (): InvoiceItem => ({ description: "", quantity: 1, unitPrice: 0 });
 
-export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
-  const [currency, setCurrency] = useState("GHS");
-  const [items, setItems] = useState<InvoiceItem[]>([
-    { description: inquiry.projectType, quantity: 1, unitPrice: 0 },
-  ]);
-  const [taxRate, setTaxRate] = useState(0);
-  const [dueDate, setDueDate] = useState("");
-  const [estimatedDelivery, setEstimatedDelivery] = useState("");
-  const [notes, setNotes] = useState("");
+export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice }: Props) {
+  const isUpdate = !!existingInvoice;
+
+  const parseExistingItems = (): InvoiceItem[] => {
+    if (!existingInvoice) return [{ description: inquiry.projectType, quantity: 1, unitPrice: 0 }];
+    try {
+      return typeof existingInvoice.items === "string"
+        ? (JSON.parse(existingInvoice.items) as InvoiceItem[])
+        : [{ description: inquiry.projectType, quantity: 1, unitPrice: 0 }];
+    } catch {
+      return [{ description: inquiry.projectType, quantity: 1, unitPrice: 0 }];
+    }
+  };
+
+  const [currency, setCurrency] = useState(existingInvoice?.currency ?? "GHS");
+  const [items, setItems] = useState<InvoiceItem[]>(parseExistingItems);
+  const [taxRate, setTaxRate] = useState(
+    existingInvoice && existingInvoice.subtotal > 0
+      ? Math.round((existingInvoice.tax / existingInvoice.subtotal) * 100)
+      : 0,
+  );
+  const [dueDate, setDueDate] = useState(existingInvoice?.dueDate ?? "");
+  const [estimatedDelivery, setEstimatedDelivery] = useState(
+    existingInvoice?.estimatedDelivery ?? "",
+  );
+  const [notes, setNotes] = useState(existingInvoice?.notes ?? "");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -56,25 +74,41 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
     setSending(true);
     setError("");
 
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+    const invoiceNumber = isUpdate
+      ? existingInvoice!.invoiceNumber
+      : `INV-${Date.now().toString().slice(-6)}`;
 
     try {
-      await createInvoice({
-        inquiryId: inquiry.$id,
-        invoiceNumber,
-        clientName: inquiry.name,
-        clientEmail: inquiry.email,
-        clientPhone: inquiry.phone,
-        items: JSON.stringify(items),
-        currency,
-        subtotal,
-        tax,
-        total,
-        notes,
-        dueDate,
-        estimatedDelivery,
-        status: "sent",
-      });
+      if (isUpdate) {
+        await updateInvoice(existingInvoice!.$id, {
+          items: JSON.stringify(items),
+          currency,
+          subtotal,
+          tax,
+          total,
+          notes,
+          dueDate,
+          estimatedDelivery,
+          status: existingInvoice!.status,
+        });
+      } else {
+        await createInvoice({
+          inquiryId: inquiry.$id,
+          invoiceNumber,
+          clientName: inquiry.name,
+          clientEmail: inquiry.email,
+          clientPhone: inquiry.phone,
+          items: JSON.stringify(items),
+          currency,
+          subtotal,
+          tax,
+          total,
+          notes,
+          dueDate,
+          estimatedDelivery,
+          status: "sent",
+        });
+      }
 
       await fetch(apiUrl("/api/send-invoice"), {
         method: "POST",
@@ -94,12 +128,17 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
           dueDate,
           estimatedDelivery,
           notes,
+          isUpdate,
         }),
       });
 
       setSent(true);
     } catch {
-      setError("Failed to send invoice. Please try again.");
+      setError(
+        isUpdate
+          ? "Failed to update invoice. Please try again."
+          : "Failed to send invoice. Please try again.",
+      );
     } finally {
       setSending(false);
     }
@@ -127,7 +166,9 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
           style={{ borderBottom: "1px solid var(--border-subtle)" }}
         >
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">Generate Invoice</h2>
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">
+              {isUpdate ? "Edit & Resend Invoice" : "Generate Invoice"}
+            </h2>
             <p className="text-sm text-[var(--text-secondary)] mt-0.5">
               For {inquiry.name} &middot; {inquiry.email}
             </p>
@@ -145,9 +186,12 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
             <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
               <FaPaperPlane className="text-2xl text-green-400" />
             </div>
-            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">Invoice sent!</h3>
+            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+              {isUpdate ? "Invoice updated!" : "Invoice sent!"}
+            </h3>
             <p className="text-[var(--text-secondary)] mb-6">
-              {inquiry.name} will receive the invoice at {inquiry.email}.
+              {inquiry.name} will receive the {isUpdate ? "updated " : ""}invoice at {inquiry.email}
+              .
             </p>
             <button
               onClick={onClose}
@@ -365,7 +409,13 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
               style={{ background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" }}
             >
               <FaPaperPlane />
-              {sending ? "Sending..." : `Send Invoice to ${inquiry.name}`}
+              {sending
+                ? isUpdate
+                  ? "Updating..."
+                  : "Sending..."
+                : isUpdate
+                  ? `Update & Resend to ${inquiry.name}`
+                  : `Send Invoice to ${inquiry.name}`}
             </button>
           </div>
         )}

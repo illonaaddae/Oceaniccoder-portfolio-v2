@@ -13,9 +13,11 @@ import {
   FaLayerGroup,
   FaStickyNote,
   FaCalendarAlt,
+  FaPlus,
 } from "react-icons/fa";
 import { getInquiries, updateInquiry, deleteInquiry } from "@/services/api/inquiries";
-import type { ProjectInquiry } from "@/types";
+import { getInvoices } from "@/services/api/invoices";
+import type { ProjectInquiry, Invoice } from "@/types";
 import InvoiceModal from "./ClientWork/InvoiceModal";
 import { useConfirm } from "../ConfirmContext";
 import { apiUrl } from "@/utils/apiUrl";
@@ -75,14 +77,26 @@ function formatDate(dateStr?: string) {
 export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
   const confirm = useConfirm();
   const [inquiries, setInquiries] = useState<ProjectInquiry[]>([]);
+  const [invoicesByInquiry, setInvoicesByInquiry] = useState<Record<string, Invoice[]>>({});
   const [loading, setLoading] = useState(true);
-  const [invoiceTarget, setInvoiceTarget] = useState<ProjectInquiry | null>(null);
+  const [invoiceTarget, setInvoiceTarget] = useState<{
+    inquiry: ProjectInquiry;
+    existing?: Invoice;
+  } | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setInquiries(await getInquiries());
+      const [inqs, invs] = await Promise.all([getInquiries(), getInvoices()]);
+      setInquiries(inqs);
+      const map: Record<string, Invoice[]> = {};
+      for (const inv of invs) {
+        if (inv.inquiryId) {
+          map[inv.inquiryId] = [...(map[inv.inquiryId] ?? []), inv];
+        }
+      }
+      setInvoicesByInquiry(map);
     } finally {
       setLoading(false);
     }
@@ -418,16 +432,68 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
 
                 {/* Actions */}
                 <div className="px-5 py-3 flex items-center gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setInvoiceTarget(inq)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                    style={{
-                      background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                    }}
-                  >
-                    <FaFileInvoiceDollar /> Generate Invoice
-                  </button>
+                  {(() => {
+                    const existingInvs = invoicesByInquiry[inq.$id] ?? [];
+                    const latest = existingInvs[0];
+                    if (latest) {
+                      return (
+                        <>
+                          <div
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                            style={{
+                              background: "var(--bg-primary)",
+                              border: "1px solid var(--border-subtle)",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            <FaFileInvoiceDollar className="text-oceanic-400" />
+                            <span>{latest.invoiceNumber}</span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${latest.status === "paid" ? "bg-green-500/20 text-green-400" : "bg-teal-500/20 text-teal-400"}`}
+                            >
+                              {latest.status}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceTarget({ inquiry: inq, existing: latest })}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                            style={{
+                              background:
+                                "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                            }}
+                          >
+                            <FaFileInvoiceDollar /> Edit & Resend
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceTarget({ inquiry: inq })}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
+                            style={{
+                              background: "var(--bg-primary)",
+                              border: "1px solid var(--border-subtle)",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            <FaPlus className="text-xs" /> New Invoice
+                          </button>
+                        </>
+                      );
+                    }
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceTarget({ inquiry: inq })}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                        }}
+                      >
+                        <FaFileInvoiceDollar /> Generate Invoice
+                      </button>
+                    );
+                  })()}
                   <a
                     href={`mailto:${inq.email}`}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
@@ -456,8 +522,12 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
 
       {invoiceTarget && (
         <InvoiceModal
-          inquiry={invoiceTarget}
-          onClose={() => setInvoiceTarget(null)}
+          inquiry={invoiceTarget.inquiry}
+          existingInvoice={invoiceTarget.existing}
+          onClose={() => {
+            setInvoiceTarget(null);
+            void load();
+          }}
           theme={theme}
         />
       )}
