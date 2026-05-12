@@ -92,7 +92,7 @@ module.exports = async function (context, req) {
           <td style="background:#0a2e1a;padding:28px 40px;text-align:center;">
             <div style="width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,0.15);border:2px solid rgba(34,197,94,0.5);display:inline-block;line-height:64px;text-align:center;margin-bottom:16px;font-size:32px;color:#22c55e;">&#10003;</div>
             <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Payment Received!</p>
-            <p style="margin:8px 0 0;font-size:15px;color:#86efac;">Thank you, ${clientName}. Your payment has been confirmed.</p>
+            <p style="margin:8px 0 0;font-size:15px;color:#86efac;">Thank you, ${clientName}. Payment for invoice <strong>${invoiceNumber}</strong> has been confirmed.</p>
           </td>
         </tr>
 
