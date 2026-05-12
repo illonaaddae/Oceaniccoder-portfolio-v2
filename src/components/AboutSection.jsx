@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { FaCode, FaUsers, FaMicrophone, FaStar } from "react-icons/fa";
 import { usePortfolioData } from "../hooks/usePortfolioData";
 import {
@@ -70,6 +71,19 @@ const AboutSection = () => {
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%)",
       }}
     >
+      <Helmet>
+        <title>About Illona | OceanicCoder</title>
+        <meta
+          name="description"
+          content="Learn about Illona Addae — full-stack developer, tech leader, and mentor. Passionate about building impactful digital products."
+        />
+        <meta property="og:title" content="About Illona | OceanicCoder" />
+        <meta
+          property="og:description"
+          content="Learn about Illona Addae — full-stack developer, tech leader, and mentor. Passionate about building impactful digital products."
+        />
+        <meta property="og:url" content="https://oceaniccoder.dev/about" />
+      </Helmet>
       <AboutBackground />
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <IntroHero />

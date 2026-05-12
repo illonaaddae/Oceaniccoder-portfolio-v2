@@ -403,7 +403,7 @@ const PaymentPage: React.FC = () => {
                     }}
                   >
                     {/* Tab header */}
-                    <div className="flex gap-2 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6">
                       <TabButton active={activeTab === "card"} onClick={() => setActiveTab("card")}>
                         Pay by Card
                       </TabButton>
