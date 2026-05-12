@@ -14,6 +14,8 @@ import {
   FaStickyNote,
   FaCalendarAlt,
   FaPlus,
+  FaEye,
+  FaFileAlt,
 } from "react-icons/fa";
 import { getInquiries, updateInquiry, deleteInquiry } from "@/services/api/inquiries";
 import { getInvoices } from "@/services/api/invoices";
@@ -83,7 +85,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     inquiry: ProjectInquiry;
     existing?: Invoice;
   } | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [selectedInquiry, setSelectedInquiry] = useState<ProjectInquiry | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -136,8 +138,6 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     await deleteInquiry(id);
     setInquiries((prev) => prev.filter((i) => i.$id !== id));
   };
-
-  const toggleExpand = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const newCount = inquiries.filter((i) => i.status === "new").length;
 
@@ -223,8 +223,6 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
         <div className="space-y-4">
           {inquiries.map((inq) => {
             const sc = STATUS_CONFIG[inq.status] ?? STATUS_CONFIG.new;
-            const isExpanded = expanded[inq.$id];
-            const longDesc = inq.description.length > 160;
 
             return (
               <div
@@ -374,59 +372,6 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                   )}
                 </div>
 
-                {/* Description */}
-                <div className="px-5 pb-3">
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                    {longDesc && !isExpanded
-                      ? inq.description.slice(0, 160) + "…"
-                      : inq.description}
-                  </p>
-                  {longDesc && (
-                    <button
-                      type="button"
-                      onClick={() => toggleExpand(inq.$id)}
-                      className="text-xs mt-1 font-medium"
-                      style={{ color: "var(--accent-teal)" }}
-                    >
-                      {isExpanded ? "Show less" : "Read more"}
-                    </button>
-                  )}
-                </div>
-
-                {/* Features */}
-                {inq.features && inq.features.length > 0 && (
-                  <div className="px-5 pb-4 flex flex-wrap gap-1.5">
-                    {inq.features.map((f) => (
-                      <span
-                        key={f}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          background: "var(--accent-teal-subtle)",
-                          color: "var(--accent-teal)",
-                        }}
-                      >
-                        <FaCheck className="text-[9px]" /> {f}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Notes */}
-                {inq.notes && (
-                  <div
-                    className="mx-5 mb-4 rounded-xl px-3 py-2.5 flex gap-2"
-                    style={{ background: "var(--bg-primary)" }}
-                  >
-                    <FaStickyNote className="text-yellow-400 flex-shrink-0 mt-0.5 text-xs" />
-                    <p
-                      className="text-xs italic leading-relaxed"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      {inq.notes}
-                    </p>
-                  </div>
-                )}
-
                 {/* Divider */}
                 <div style={{ borderTop: "1px solid var(--border-subtle)" }} />
 
@@ -507,6 +452,18 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                   </a>
                   <button
                     type="button"
+                    onClick={() => setSelectedInquiry(inq)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
+                    style={{
+                      background: "var(--bg-primary)",
+                      border: "1px solid var(--border-subtle)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    <FaEye /> Details
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleDelete(inq.$id)}
                     className="ml-auto p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition"
                     title="Delete inquiry"
@@ -530,6 +487,210 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
           }}
           theme={theme}
         />
+      )}
+
+      {selectedInquiry && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => e.target === e.currentTarget && setSelectedInquiry(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl overflow-hidden overflow-y-auto"
+            style={{
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-subtle)",
+              maxHeight: "90vh",
+            }}
+          >
+            {/* Modal header */}
+            <div
+              className="px-6 py-4 flex items-center justify-between"
+              style={{
+                background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                  style={{ background: "rgba(255,255,255,0.2)" }}
+                >
+                  {getInitials(selectedInquiry.name)}
+                </div>
+                <div>
+                  <p className="text-base font-bold text-white">{selectedInquiry.name}</p>
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>
+                    {formatDate(selectedInquiry.$createdAt)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedInquiry(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white transition hover:bg-white/20"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Contact */}
+              <div
+                className="flex flex-wrap gap-3 text-xs"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <a
+                  href={`mailto:${selectedInquiry.email}`}
+                  className="flex items-center gap-1.5 hover:text-[var(--accent-teal)] transition"
+                >
+                  <FaEnvelope className="text-oceanic-400" /> {selectedInquiry.email}
+                </a>
+                {selectedInquiry.phone && (
+                  <span className="flex items-center gap-1.5">
+                    <FaPhone className="text-oceanic-400" /> {selectedInquiry.phone}
+                  </span>
+                )}
+              </div>
+
+              {/* Meta */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--bg-primary)" }}>
+                  <p
+                    className="text-xs font-medium mb-0.5"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Project Type
+                  </p>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">
+                    {selectedInquiry.projectType}
+                  </p>
+                </div>
+                {selectedInquiry.timeline && (
+                  <div
+                    className="rounded-xl px-3 py-2.5"
+                    style={{ background: "var(--bg-primary)" }}
+                  >
+                    <p
+                      className="text-xs font-medium mb-0.5"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Timeline
+                    </p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      {selectedInquiry.timeline}
+                    </p>
+                  </div>
+                )}
+                {selectedInquiry.budgetRange && (
+                  <div
+                    className="rounded-xl px-3 py-2.5"
+                    style={{ background: "var(--bg-primary)" }}
+                  >
+                    <p
+                      className="text-xs font-medium mb-0.5"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Budget
+                    </p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      {selectedInquiry.budgetRange}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <p
+                  className="text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <FaFileAlt className="text-oceanic-400" /> Project Description
+                </p>
+                <div
+                  className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
+                  style={{
+                    background: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-subtle)",
+                  }}
+                >
+                  {selectedInquiry.description}
+                </div>
+              </div>
+
+              {/* Features */}
+              {selectedInquiry.features && selectedInquiry.features.length > 0 && (
+                <div>
+                  <p
+                    className="text-xs font-semibold uppercase tracking-wide mb-2"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Required Features
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedInquiry.features.map((f) => (
+                      <span
+                        key={f}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                        style={{
+                          background: "var(--accent-teal-subtle)",
+                          color: "var(--accent-teal)",
+                        }}
+                      >
+                        <FaCheck className="text-[9px]" /> {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedInquiry.notes && (
+                <div
+                  className="rounded-xl px-4 py-3 flex gap-2.5"
+                  style={{
+                    background: "rgba(234,179,8,0.08)",
+                    border: "1px solid rgba(234,179,8,0.25)",
+                  }}
+                >
+                  <FaStickyNote className="text-yellow-400 flex-shrink-0 mt-0.5 text-sm" />
+                  <p
+                    className="text-sm italic leading-relaxed"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {selectedInquiry.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Footer actions */}
+              <div className="flex gap-2 pt-1">
+                <a
+                  href={`mailto:${selectedInquiry.email}`}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                  style={{
+                    background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                  }}
+                >
+                  <FaEnvelope /> Reply
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInquiry(null)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
+                  style={{
+                    background: "var(--bg-primary)",
+                    border: "1px solid var(--border-subtle)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
