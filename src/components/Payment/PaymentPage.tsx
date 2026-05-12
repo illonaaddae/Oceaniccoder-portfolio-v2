@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { apiUrl } from "@/utils/apiUrl";
 import CardPayment from "./CardPayment";
@@ -127,7 +127,7 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
         }}
       >
         <img
-          src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png"
+          src="/images/logo/Oceaniccoder-croped.png"
           alt="OceanicCoder"
           width="110"
           height="32"
@@ -248,37 +248,53 @@ const PaymentPage: React.FC = () => {
 
   const [invoice, setInvoice] = useState<PublicInvoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [slowWarning, setSlowWarning] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PaymentTab>("card");
   const [paid, setPaid] = useState(false);
 
   const isSuccess = isSuccessParam || paid;
 
-  useEffect(() => {
+  const doFetch = useCallback(async () => {
     if (!invoiceNumber) return;
+    setLoading(true);
+    setFetchError(null);
+    setSlowWarning(false);
 
-    const fetchInvoice = async () => {
-      try {
-        const res = await fetch(
-          apiUrl(`/api/get-invoice?number=${encodeURIComponent(invoiceNumber)}`),
-        );
-        const data = (await res.json()) as PublicInvoice & { error?: string };
+    const controller = new AbortController();
+    const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
+    const killTimer = window.setTimeout(() => controller.abort(), 15000);
 
-        if (!res.ok) {
-          setFetchError(data.error ?? "Invoice not found.");
-          return;
-        }
+    try {
+      const res = await fetch(
+        apiUrl(`/api/get-invoice?number=${encodeURIComponent(invoiceNumber)}`),
+        { signal: controller.signal },
+      );
+      const data = (await res.json()) as PublicInvoice & { error?: string };
 
-        setInvoice(data);
-      } catch {
-        setFetchError("Could not load invoice. Please check the link and try again.");
-      } finally {
-        setLoading(false);
+      if (!res.ok) {
+        setFetchError(data.error ?? "Invoice not found.");
+        return;
       }
-    };
 
-    void fetchInvoice();
+      setInvoice(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setFetchError("timeout");
+      } else {
+        setFetchError("Could not load invoice. Please check the link and try again.");
+      }
+    } finally {
+      clearTimeout(slowTimer);
+      clearTimeout(killTimer);
+      setLoading(false);
+      setSlowWarning(false);
+    }
   }, [invoiceNumber]);
+
+  useEffect(() => {
+    void doFetch();
+  }, [doFetch]);
 
   return (
     <div
@@ -288,10 +304,17 @@ const PaymentPage: React.FC = () => {
       <div className="w-full max-w-lg">
         {/* Loading skeleton */}
         {loading && (
-          <div className="flex flex-col gap-4 animate-pulse">
-            <div className="h-24 rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
-            <div className="h-12 rounded-xl" style={{ background: "var(--bg-secondary)" }} />
-            <div className="h-64 rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 animate-pulse">
+              <div className="h-24 rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
+              <div className="h-12 rounded-xl" style={{ background: "var(--bg-secondary)" }} />
+              <div className="h-64 rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
+            </div>
+            {slowWarning && (
+              <p className="text-center text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
+                Server is waking up — this takes a few seconds on first load...
+              </p>
+            )}
           </div>
         )}
 
@@ -304,13 +327,38 @@ const PaymentPage: React.FC = () => {
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <div className="text-4xl mb-4">🧾</div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-              Invoice Not Found
-            </h2>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              {fetchError}
-            </p>
+            {fetchError === "timeout" ? (
+              <>
+                <div className="text-4xl mb-4">⏱</div>
+                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Server is starting up
+                </h2>
+                <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
+                  The payment server was asleep and is taking longer than usual to wake up. Try
+                  again — it should load immediately now.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void doFetch()}
+                  className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+                  style={{
+                    background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                  }}
+                >
+                  Try Again
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl mb-4">🧾</div>
+                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Invoice Not Found
+                </h2>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {fetchError}
+                </p>
+              </>
+            )}
           </div>
         )}
 
