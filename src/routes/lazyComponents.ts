@@ -17,6 +17,7 @@ const AdminDashboard = React.lazy(() => import("@/components/AdminDashboard"));
 const AdminPasswordReset = React.lazy(() => import("@/components/AdminPasswordReset"));
 const NotFound = React.lazy(() => import("@/components/NotFound"));
 const Booking = React.lazy(() => import("@/components/BookingSection"));
+const ClientInquiry = React.lazy(() => import("@/components/ClientInquiry/InquiryPage"));
 
 export {
   Home,
@@ -33,4 +34,5 @@ export {
   AdminPasswordReset,
   NotFound,
   Booking,
+  ClientInquiry,
 };

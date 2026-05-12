@@ -1,0 +1,354 @@
+import React, { useState } from "react";
+import { FaBriefcase, FaCheckCircle, FaArrowRight } from "react-icons/fa";
+import { createInquiry } from "../../services/api/inquiries";
+import { apiUrl } from "../../utils/apiUrl";
+
+const PROJECT_TYPES = [
+  "Portfolio Website",
+  "E-Commerce Store",
+  "Web Application",
+  "Mobile App",
+  "Landing Page",
+  "Dashboard / Admin Panel",
+  "API / Backend",
+  "Other",
+];
+
+const TIMELINES = [
+  "Less than 2 weeks",
+  "2–4 weeks",
+  "1–2 months",
+  "2–3 months",
+  "3+ months",
+  "Flexible",
+];
+
+const BUDGET_RANGES = [
+  "Under $300",
+  "$300 – $800",
+  "$800 – $2,000",
+  "$2,000 – $5,000",
+  "$5,000+",
+  "Not sure yet",
+];
+
+const FEATURE_OPTIONS = [
+  "User Authentication",
+  "Payment Integration",
+  "Admin Dashboard",
+  "Blog / CMS",
+  "API Integration",
+  "Animations",
+  "SEO Optimisation",
+  "Email Notifications",
+  "Real-time Updates",
+  "Mobile Responsive",
+];
+
+const INITIAL_FORM = {
+  name: "",
+  email: "",
+  phone: "",
+  projectType: "",
+  description: "",
+  features: [],
+  timeline: "",
+  budgetRange: "",
+  notes: "",
+};
+
+export default function InquiryPage() {
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [status, setStatus] = useState("idle");
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Name is required";
+    if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      e.email = "Valid email required";
+    if (!form.projectType) e.projectType = "Select a project type";
+    if (!form.description.trim() || form.description.trim().length < 20)
+      e.description = "Please describe your project (at least 20 characters)";
+    return e;
+  };
+
+  const toggleFeature = (feature) => {
+    setForm((prev) => ({
+      ...prev,
+      features: prev.features.includes(feature)
+        ? prev.features.filter((f) => f !== feature)
+        : [...prev.features, feature],
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+    setStatus("loading");
+    setErrors({});
+    try {
+      await createInquiry({ ...form, status: "new" });
+      // Notify admin via Azure Function (fire-and-forget)
+      fetch(apiUrl("/api/notify-inquiry"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email, projectType: form.projectType }),
+      }).catch(() => {});
+      setStatus("success");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center px-4"
+        style={{ background: "var(--bg-primary)" }}
+      >
+        <div className="max-w-md w-full text-center">
+          <FaCheckCircle className="text-6xl text-oceanic-500 mx-auto mb-6" />
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-3">Got it, thanks!</h1>
+          <p className="text-[var(--text-secondary)] mb-8">
+            I've received your project details and will get back to you within 24 hours with
+            availability and next steps.
+          </p>
+          <a
+            href="https://oceaniccoder.dev"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white"
+            style={{ background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" }}
+          >
+            Back to Portfolio <FaArrowRight />
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const inputClass =
+    "w-full px-4 py-3 rounded-xl text-[var(--text-primary)] outline-none transition-all focus:ring-2 focus:ring-oceanic-400/50";
+  const inputStyle = {
+    background: "var(--bg-secondary)",
+    border: "1px solid var(--border-subtle)",
+    fontSize: "16px",
+  };
+
+  return (
+    <div className="min-h-screen py-16 px-4" style={{ background: "var(--bg-primary)" }}>
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: "var(--accent-teal-subtle)" }}
+          >
+            <FaBriefcase className="text-2xl" style={{ color: "var(--accent-teal)" }} />
+          </div>
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+            Tell me about your project
+          </h1>
+          <p className="text-[var(--text-secondary)]">
+            Fill in the details below and I'll get back to you with a quote within 24 hours.
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 rounded-2xl p-8"
+          style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
+        >
+          {/* Name + Email */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Jane Doe"
+                className={inputClass}
+                style={inputStyle}
+              />
+              {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="jane@example.com"
+                className={inputClass}
+                style={inputStyle}
+              />
+              {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+              Phone / WhatsApp <span className="text-[var(--text-secondary)]">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+              placeholder="+233 XX XXX XXXX"
+              className={inputClass}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Project Type */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+              Project Type *
+            </label>
+            <select
+              value={form.projectType}
+              onChange={(e) => setForm((p) => ({ ...p, projectType: e.target.value }))}
+              className={inputClass}
+              style={inputStyle}
+            >
+              <option value="">Select a type...</option>
+              {PROJECT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            {errors.projectType && (
+              <p className="mt-1 text-xs text-red-400">{errors.projectType}</p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+              Project Description *
+            </label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Describe what you want built, who it's for, and any key requirements..."
+              rows={5}
+              className={inputClass}
+              style={{ ...inputStyle, resize: "vertical" }}
+            />
+            {errors.description && (
+              <p className="mt-1 text-xs text-red-400">{errors.description}</p>
+            )}
+          </div>
+
+          {/* Features */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
+              Features needed{" "}
+              <span className="text-[var(--text-secondary)]">(select all that apply)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {FEATURE_OPTIONS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => toggleFeature(f)}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                  style={
+                    form.features.includes(f)
+                      ? { background: "var(--accent-teal)", color: "#fff" }
+                      : {
+                          background: "var(--bg-primary)",
+                          border: "1px solid var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                        }
+                  }
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Timeline + Budget */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+                Ideal Timeline
+              </label>
+              <select
+                value={form.timeline}
+                onChange={(e) => setForm((p) => ({ ...p, timeline: e.target.value }))}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="">Select...</option>
+                {TIMELINES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+                Budget Range
+              </label>
+              <select
+                value={form.budgetRange}
+                onChange={(e) => setForm((p) => ({ ...p, budgetRange: e.target.value }))}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="">Select...</option>
+                {BUDGET_RANGES.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+              Anything else? <span className="text-[var(--text-secondary)]">(optional)</span>
+            </label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+              placeholder="Reference sites, design preferences, existing codebase, deadline..."
+              rows={3}
+              className={inputClass}
+              style={{ ...inputStyle, resize: "vertical" }}
+            />
+          </div>
+
+          {status === "error" && (
+            <p className="text-sm text-red-400">Something went wrong. Please try again.</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={status === "loading"}
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" }}
+          >
+            <FaArrowRight />
+            {status === "loading" ? "Submitting..." : "Submit Project Brief"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

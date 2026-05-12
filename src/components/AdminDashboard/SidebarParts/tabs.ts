@@ -13,6 +13,7 @@ import {
   FaRoad,
   FaImage,
   FaCog,
+  FaBriefcase,
 } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import type { TabType } from "./types";
@@ -21,6 +22,7 @@ export const allTabs: Array<{ id: TabType; label: string; icon: IconType }> = [
   { id: "overview", label: "Overview", icon: FaChartBar },
   { id: "messages", label: "Messages", icon: FaEnvelope },
   { id: "bookings", label: "Bookings", icon: FaCalendarAlt },
+  { id: "client-work", label: "Client Work", icon: FaBriefcase },
   { id: "comments", label: "Comments", icon: FaComments },
   { id: "about", label: "About Me", icon: FaUser },
   { id: "skills", label: "Skills", icon: FaCode },

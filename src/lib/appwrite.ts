@@ -35,6 +35,8 @@ export const COLLECTIONS = {
   TESTIMONIALS: "testimonials",
   SITE_VIEWS: "site_views",
   BOOKINGS: "bookings",
+  PROJECT_INQUIRIES: "project_inquiries",
+  INVOICES: "invoices",
 } as const;
 
 export default client;

@@ -16,3 +16,5 @@ export * from "./storage";
 export * from "./testimonials";
 export * from "./siteViews";
 export * from "./bookings";
+export * from "./inquiries";
+export * from "./invoices";

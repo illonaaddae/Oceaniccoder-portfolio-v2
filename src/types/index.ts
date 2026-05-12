@@ -178,6 +178,48 @@ export interface Settings {
   $updatedAt?: string;
 }
 
+// Project Inquiry Types
+export interface ProjectInquiry {
+  $id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  projectType: string;
+  description: string;
+  features?: string[];
+  timeline?: string;
+  budgetRange?: string;
+  notes?: string;
+  status: "new" | "reviewed" | "quoted" | "declined";
+  $createdAt?: string;
+  $updatedAt?: string;
+}
+
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface Invoice {
+  $id: string;
+  inquiryId?: string;
+  invoiceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone?: string;
+  items: string;
+  currency: string;
+  subtotal: number;
+  tax: number;
+  total: number;
+  notes?: string;
+  status: "draft" | "sent" | "paid";
+  dueDate?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
+}
+
 // Testimonial Types
 export interface Testimonial {
   $id: string;
