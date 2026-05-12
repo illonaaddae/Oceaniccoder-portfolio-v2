@@ -185,7 +185,9 @@ export default function InquiryPage() {
         form.projectType === "Other" && form.otherProjectType.trim()
           ? form.otherProjectType.trim()
           : form.projectType;
-      await createInquiry({ ...form, projectType: resolvedType, status: "new" });
+      // eslint-disable-next-line no-unused-vars
+      const { otherProjectType: _omit, ...inquiryData } = form;
+      await createInquiry({ ...inquiryData, projectType: resolvedType, status: "new" });
       // Notify admin via Azure Function (fire-and-forget)
       fetch(apiUrl("/api/notify-inquiry"), {
         method: "POST",
