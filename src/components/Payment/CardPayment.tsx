@@ -61,6 +61,7 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
         ref,
         channels: ["card"],
         metadata: {
+          invoiceNumber: invoice.invoiceNumber,
           custom_fields: [
             {
               display_name: "Invoice",

@@ -107,6 +107,7 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice, onSuccess }) => {
         ref,
         channels: ["mobile_money"],
         metadata: {
+          invoiceNumber: invoice.invoiceNumber,
           custom_fields: [
             {
               display_name: "Invoice",

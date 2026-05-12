@@ -112,7 +112,7 @@ module.exports = async function (context, req) {
   // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp)
   let invoiceNumber =
     metadata.invoiceNumber ||
-    (data.reference && data.reference.replace(/^PAY-/, "").replace(/-\d+$/, ""));
+    (data.reference && data.reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
 
   if (!invoiceNumber) {
     context.log.warn("paystack-webhook: could not determine invoiceNumber from event");
