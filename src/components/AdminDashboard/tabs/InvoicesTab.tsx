@@ -58,6 +58,7 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<Record<string, boolean>>({});
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,7 +90,8 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
         typeof inv.items === "string" ? (JSON.parse(inv.items) as typeof items) : [];
       const sym = CURRENCY_SYMBOLS[inv.currency] ?? inv.currency;
 
-      await fetch(apiUrl("/api/send-payment-confirmation"), {
+      setEmailError(null);
+      const emailRes = await fetch(apiUrl("/api/send-payment-confirmation"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -102,6 +104,10 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
           currencySymbol: sym,
         }),
       });
+      if (!emailRes.ok) {
+        const body = (await emailRes.json().catch(() => ({}))) as { error?: string };
+        setEmailError(`Email failed (${emailRes.status}): ${body.error ?? "unknown error"}`);
+      }
 
       setInvoices((prev) =>
         prev.map((i) => (i.$id === inv.$id ? { ...i, status: "paid" as Invoice["status"] } : i)),
@@ -126,6 +132,25 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
 
   return (
     <div className="space-y-6">
+      {emailError && (
+        <div
+          className="rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-between gap-3"
+          style={{
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.4)",
+            color: "#f87171",
+          }}
+        >
+          <span>{emailError}</span>
+          <button
+            type="button"
+            onClick={() => setEmailError(null)}
+            className="text-xs opacity-70 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
