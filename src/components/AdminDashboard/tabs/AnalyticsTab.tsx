@@ -596,12 +596,18 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v: number) => `₵${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
+                domain={[0, (dataMax: number) => Math.max(dataMax * 1.1, 100)]}
               />
               <Tooltip
                 content={<CustomTooltip />}
                 cursor={{ fill: "rgba(12,133,153,0.08)", radius: 6 }}
               />
-              <Bar dataKey="amount" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
+              <Bar
+                dataKey="amount"
+                fill="url(#barGradient)"
+                radius={[6, 6, 0, 0]}
+                minPointSize={3}
+              />
             </BarChart>
           </ResponsiveContainer>
         )}

@@ -91,22 +91,38 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
       const sym = CURRENCY_SYMBOLS[inv.currency] ?? inv.currency;
 
       setEmailError(null);
-      const emailRes = await fetch(apiUrl("/api/send-payment-confirmation"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoiceNumber: inv.invoiceNumber,
-          clientName: inv.clientName,
-          clientEmail: inv.clientEmail,
-          items,
-          total: inv.total,
-          currency: inv.currency,
-          currencySymbol: sym,
-        }),
-      });
-      if (!emailRes.ok) {
-        const body = (await emailRes.json().catch(() => ({}))) as { error?: string };
-        setEmailError(`Email failed (${emailRes.status}): ${body.error ?? "unknown error"}`);
+      try {
+        const controller = new AbortController();
+        const killTimer = window.setTimeout(() => controller.abort(), 30000);
+        let emailRes: Response;
+        try {
+          emailRes = await fetch(apiUrl("/api/send-payment-confirmation"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              invoiceNumber: inv.invoiceNumber,
+              clientName: inv.clientName,
+              clientEmail: inv.clientEmail,
+              items,
+              total: inv.total,
+              currency: inv.currency,
+              currencySymbol: sym,
+            }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(killTimer);
+        }
+        if (!emailRes.ok) {
+          const body = (await emailRes.json().catch(() => ({}))) as { error?: string };
+          setEmailError(`Email failed (${emailRes.status}): ${body.error ?? "unknown error"}`);
+        }
+      } catch (emailErr) {
+        const msg =
+          emailErr instanceof Error && emailErr.name === "AbortError"
+            ? "Email request timed out (server was starting up). The email may still be on its way — wait 30s and check the client's inbox before retrying."
+            : `Email error: ${emailErr instanceof Error ? emailErr.message : "unknown"}`;
+        setEmailError(msg);
       }
 
       setInvoices((prev) =>
