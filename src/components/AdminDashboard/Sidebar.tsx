@@ -20,7 +20,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const tabs = isReadOnly
     ? allTabs.filter(
-        (tab) => tab.id !== "settings" && tab.id !== "bookings" && tab.id !== "client-work",
+        (tab) =>
+          tab.id !== "settings" &&
+          tab.id !== "bookings" &&
+          tab.id !== "client-work" &&
+          tab.id !== "invoices",
       )
     : allTabs;
 

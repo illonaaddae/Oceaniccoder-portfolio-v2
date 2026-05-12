@@ -13,7 +13,8 @@ export type TabType =
   | "blog"
   | "testimonials"
   | "settings"
-  | "client-work";
+  | "client-work"
+  | "invoices";
 
 export interface AdminDashboardProps {
   onLogout?: () => void;
