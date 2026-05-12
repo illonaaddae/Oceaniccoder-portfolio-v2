@@ -423,11 +423,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
             color: "#a78bfa",
           },
         ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl p-4"
-            style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
-          >
+          <div key={stat.label} className="glass-card p-4">
             <div className="flex items-center gap-2 mb-2">
               {stat.icon}
               <span
@@ -448,10 +444,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       </div>
 
       {/* ── Revenue Chart ── */}
-      <div
-        className="rounded-2xl p-5"
-        style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
-      >
+      <div className="glass-card p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
             <FaChartLine className="text-[var(--accent-teal)]" /> Revenue Over Time
@@ -524,10 +517,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       {/* ── Pie Charts Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue by currency */}
-        <div
-          className="rounded-2xl p-5"
-          style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
-        >
+        <div className="glass-card p-5">
           <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2 mb-4">
             <FaChartPie className="text-[var(--accent-teal)]" /> Revenue by Currency
           </h3>
@@ -578,10 +568,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
         </div>
 
         {/* Expenses by category */}
-        <div
-          className="rounded-2xl p-5"
-          style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
-        >
+        <div className="glass-card p-5">
           <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2 mb-4">
             <FaChartPie className="text-red-400" /> Expenses by Category
           </h3>
@@ -633,10 +620,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       </div>
 
       {/* ── Income vs Expenses summary ── */}
-      <div
-        className="rounded-2xl p-5"
-        style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
-      >
+      <div className="glass-card p-5">
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
             <p
@@ -679,10 +663,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       </div>
 
       {/* ── Expenses Log ── */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
-      >
+      <div className="glass-card overflow-hidden">
         <div
           className="px-5 py-4 flex items-center justify-between"
           style={{ borderBottom: "1px solid var(--border-subtle)" }}

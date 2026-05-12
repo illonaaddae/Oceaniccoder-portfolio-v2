@@ -28,33 +28,35 @@ interface ClientWorkTabProps {
   theme: "light" | "dark";
 }
 
-const STATUS_CONFIG: Record<string, { label: string; pill: string; border: string; dot: string }> =
-  {
-    new: {
-      label: "New",
-      pill: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-      border: "border-l-blue-500",
-      dot: "bg-blue-400",
-    },
-    reviewed: {
-      label: "Reviewed",
-      pill: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-      border: "border-l-yellow-500",
-      dot: "bg-yellow-400",
-    },
-    quoted: {
-      label: "Quoted",
-      pill: "bg-teal-500/15 text-teal-400 border-teal-500/30",
-      border: "border-l-teal-500",
-      dot: "bg-teal-400",
-    },
-    declined: {
-      label: "Declined",
-      pill: "bg-red-500/15 text-red-400 border-red-500/30",
-      border: "border-l-red-500",
-      dot: "bg-red-400",
-    },
-  };
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; pill: string; borderLeft: string; dot: string }
+> = {
+  new: {
+    label: "New",
+    pill: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    borderLeft: "#3b82f6",
+    dot: "bg-blue-400",
+  },
+  reviewed: {
+    label: "Reviewed",
+    pill: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    borderLeft: "#eab308",
+    dot: "bg-yellow-400",
+  },
+  quoted: {
+    label: "Quoted",
+    pill: "bg-teal-500/15 text-teal-400 border-teal-500/30",
+    borderLeft: "#0c8599",
+    dot: "bg-teal-400",
+  },
+  declined: {
+    label: "Declined",
+    pill: "bg-red-500/15 text-red-400 border-red-500/30",
+    borderLeft: "#ef4444",
+    dot: "bg-red-400",
+  },
+};
 
 const STATUS_OPTIONS = ["new", "reviewed", "quoted", "declined"] as const;
 
@@ -227,12 +229,8 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
             return (
               <div
                 key={inq.$id}
-                className={`rounded-2xl border-l-4 overflow-hidden ${sc.border}`}
-                style={{
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-subtle)",
-                  borderLeftWidth: "4px",
-                }}
+                className="glass-card overflow-hidden"
+                style={{ borderLeft: `4px solid ${sc.borderLeft}` }}
               >
                 {/* Card Header */}
                 <div className="p-5 pb-4">

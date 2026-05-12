@@ -210,10 +210,8 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
             return (
               <div
                 key={inv.$id}
-                className="rounded-2xl overflow-hidden"
+                className="glass-card overflow-hidden"
                 style={{
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-subtle)",
                   borderLeft: isPaid ? "4px solid #22c55e" : "4px solid var(--accent-teal)",
                 }}
               >
