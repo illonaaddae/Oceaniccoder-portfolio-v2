@@ -31,6 +31,55 @@ function httpsPost(hostname, path, headers, body) {
   });
 }
 
+function httpsPostForm(hostname, path, headers, params) {
+  return new Promise((resolve, reject) => {
+    const data = new URLSearchParams(params).toString();
+    const req = https.request(
+      {
+        hostname,
+        path,
+        method: "POST",
+        headers: {
+          ...headers,
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Length": Buffer.byteLength(data),
+        },
+      },
+      (res) => {
+        let raw = "";
+        res.on("data", (chunk) => {
+          raw += chunk;
+        });
+        res.on("end", () => resolve({ status: res.statusCode, body: raw }));
+      },
+    );
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+async function sendSMS(to, message, log) {
+  const apiKey = process.env.AT_API_KEY;
+  const username = process.env.AT_USERNAME;
+  if (!apiKey || !username || !to) return;
+
+  const params = { username, to, message };
+  const senderId = process.env.AT_SENDER_ID;
+  if (senderId) params.from = senderId;
+
+  try {
+    await httpsPostForm(
+      "api.africastalking.com",
+      "/version1/messaging",
+      { apiKey, Accept: "application/json" },
+      params,
+    );
+  } catch (err) {
+    if (log) log.warn("SMS failed:", err.message);
+  }
+}
+
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
@@ -38,6 +87,17 @@ module.exports = async function (context, req) {
   }
 
   const { name, email, projectType } = req.body || {};
+
+  // SMS to admin (fire-and-forget)
+  const adminPhone = process.env.ADMIN_PHONE;
+  if (adminPhone) {
+    sendSMS(
+      adminPhone,
+      `New inquiry from ${name || "someone"} (${projectType || "unknown"}). View: oceaniccoder.dev/dashboard`,
+      context.log,
+    );
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   const toEmail = process.env.RESEND_TO_EMAIL;
   const fromEmail = process.env.RESEND_FROM_EMAIL || "notifications@send.oceaniccoder.dev";

@@ -31,6 +31,55 @@ function httpsPost(hostname, path, headers, body) {
   });
 }
 
+function httpsPostForm(hostname, path, headers, params) {
+  return new Promise((resolve, reject) => {
+    const data = new URLSearchParams(params).toString();
+    const req = https.request(
+      {
+        hostname,
+        path,
+        method: "POST",
+        headers: {
+          ...headers,
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Length": Buffer.byteLength(data),
+        },
+      },
+      (res) => {
+        let raw = "";
+        res.on("data", (chunk) => {
+          raw += chunk;
+        });
+        res.on("end", () => resolve({ status: res.statusCode, body: raw }));
+      },
+    );
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+async function sendSMS(to, message, log) {
+  const apiKey = process.env.AT_API_KEY;
+  const username = process.env.AT_USERNAME;
+  if (!apiKey || !username || !to) return;
+
+  const params = { username, to, message };
+  const senderId = process.env.AT_SENDER_ID;
+  if (senderId) params.from = senderId;
+
+  try {
+    await httpsPostForm(
+      "api.africastalking.com",
+      "/version1/messaging",
+      { apiKey, Accept: "application/json" },
+      params,
+    );
+  } catch (err) {
+    if (log) log.warn("SMS failed:", err.message);
+  }
+}
+
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
@@ -41,6 +90,7 @@ module.exports = async function (context, req) {
     invoiceNumber,
     clientName,
     clientEmail,
+    clientPhone,
     items = [],
     currency,
     currencySymbol,
@@ -194,6 +244,15 @@ module.exports = async function (context, req) {
     );
 
     if (result.status === 200 || result.status === 201) {
+      // SMS to client (fire-and-forget)
+      if (clientPhone) {
+        sendSMS(
+          clientPhone,
+          `Hi ${clientName}, your invoice ${invoiceNumber} for ${sym}${Number(total).toFixed(2)} ${currency} from OceanicCoder has been sent to ${clientEmail}.`,
+          context.log,
+        );
+      }
+
       context.res = {
         status: 200,
         headers: CORS,

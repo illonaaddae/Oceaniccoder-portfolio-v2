@@ -81,6 +81,7 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
           invoiceNumber,
           clientName: inquiry.name,
           clientEmail: inquiry.email,
+          clientPhone: inquiry.phone,
           items,
           currency,
           currencySymbol: sym,
