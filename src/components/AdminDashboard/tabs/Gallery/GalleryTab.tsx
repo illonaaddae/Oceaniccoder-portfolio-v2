@@ -1,6 +1,7 @@
 import { FaImage, FaPlus, FaEye, FaEyeSlash } from "react-icons/fa";
 import type { GalleryImage } from "@/types";
 import { ToastContainer, useToast } from "../../Toast";
+import { useConfirm } from "../../ConfirmContext";
 import { useGalleryActions } from "./useGalleryActions";
 import { useGalleryDrag } from "./useGalleryDrag";
 import { GalleryCard } from "./GalleryCard";
@@ -29,6 +30,7 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
   isReadOnly = false,
 }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const sortedGallery = [...gallery].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const {
@@ -45,6 +47,7 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
     onToggleVisibility,
     onDelete,
     toast,
+    confirm,
   });
   const {
     draggedItem,

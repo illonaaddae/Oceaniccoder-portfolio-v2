@@ -12,6 +12,7 @@ import {
 import { getInquiries, updateInquiry, deleteInquiry } from "@/services/api/inquiries";
 import type { ProjectInquiry } from "@/types";
 import InvoiceModal from "./ClientWork/InvoiceModal";
+import { useConfirm } from "../ConfirmContext";
 
 interface ClientWorkTabProps {
   theme: "light" | "dark";
@@ -27,6 +28,7 @@ const STATUS_STYLES: Record<string, string> = {
 const STATUS_OPTIONS = ["new", "reviewed", "quoted", "declined"] as const;
 
 export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
+  const confirm = useConfirm();
   const [inquiries, setInquiries] = useState<ProjectInquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [invoiceTarget, setInvoiceTarget] = useState<ProjectInquiry | null>(null);
@@ -53,7 +55,11 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this inquiry?")) return;
+    const ok = await confirm({
+      message: "Delete inquiry?",
+      description: "This will permanently remove the inquiry.",
+    });
+    if (!ok) return;
     await deleteInquiry(id);
     setInquiries((prev) => prev.filter((i) => i.$id !== id));
   };

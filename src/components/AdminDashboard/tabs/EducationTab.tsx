@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FaGraduationCap, FaPlus, FaEdit, FaTrash, FaEye, FaEyeSlash } from "react-icons/fa";
 import type { Education } from "@/types";
 import { ToastContainer, useToast } from "../Toast";
+import { useConfirm } from "../ConfirmContext";
 
 interface EducationTabProps {
   theme: "light" | "dark";
@@ -23,10 +24,15 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   isReadOnly = false,
 }) => {
   const toast = useToast();
+  const confirm = useConfirm();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (edu: Education) => {
-    if (!window.confirm("Delete this education record?")) return;
+    const ok = await confirm({
+      message: "Delete education record?",
+      description: "This will permanently remove the record.",
+    });
+    if (!ok) return;
     setDeletingId(edu.$id);
     try {
       await onDelete(edu.$id);

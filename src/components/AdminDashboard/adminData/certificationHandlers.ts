@@ -2,7 +2,10 @@ import type { Certification } from "@/types";
 import { createCertification, updateCertification, deleteCertification } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
-export function createCertificationHandlers(loadData: LoadDataFn) {
+export function createCertificationHandlers(
+  loadData: LoadDataFn,
+  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean>,
+) {
   const handleAddCertification = async (certForm: Omit<Certification, "$id" | "$createdAt">) => {
     try {
       await createCertification(certForm);
@@ -27,14 +30,17 @@ export function createCertificationHandlers(loadData: LoadDataFn) {
   };
 
   const handleDeleteCertification = async (certId: string) => {
-    if (window.confirm("Delete this certification?")) {
-      try {
-        await deleteCertification(certId);
-        await loadData(false);
-      } catch (err) {
-        console.error("Failed to delete certification:", err);
-        throw err;
-      }
+    const ok = await confirm({
+      message: "Delete certification?",
+      description: "This will permanently remove the certification.",
+    });
+    if (!ok) return;
+    try {
+      await deleteCertification(certId);
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to delete certification:", err);
+      throw err;
     }
   };
 

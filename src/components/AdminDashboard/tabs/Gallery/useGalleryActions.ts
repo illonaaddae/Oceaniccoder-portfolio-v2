@@ -7,6 +7,7 @@ interface UseGalleryActionsParams {
   onToggleVisibility?: (id: string, isPublic: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   toast: { success: (msg: string) => void; error: (msg: string) => void };
+  confirm?: (opts: { message: string; description?: string } | string) => Promise<boolean>;
 }
 
 export function useGalleryActions({
@@ -15,6 +16,7 @@ export function useGalleryActions({
   onToggleVisibility,
   onDelete,
   toast,
+  confirm,
 }: UseGalleryActionsParams) {
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
   const [updatingVisibility, setUpdatingVisibility] = useState<string | null>(null);
@@ -65,7 +67,13 @@ export function useGalleryActions({
   };
 
   const handleDeleteImage = async (image: GalleryImage) => {
-    if (!window.confirm("Delete this image?")) return;
+    const ok = confirm
+      ? await confirm({
+          message: "Delete image?",
+          description: "This will permanently remove the image.",
+        })
+      : window.confirm("Delete this image?");
+    if (!ok) return;
     setDeletingId(image.$id);
     try {
       await onDelete(image.$id);

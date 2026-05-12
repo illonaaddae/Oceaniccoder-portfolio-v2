@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useConfirm } from "./ConfirmContext";
 import type {
   Message,
   Skill,
@@ -26,6 +27,7 @@ import {
 } from "./adminData";
 
 export const useAdminData = () => {
+  const confirm = useConfirm();
   const [messages, setMessages] = useState<Message[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -77,8 +79,8 @@ export const useAdminData = () => {
     loadData,
     ...createMessageHandlers(loadData),
     ...createSkillHandlers(loadData),
-    ...createProjectHandlers(loadData),
-    ...createCertificationHandlers(loadData),
+    ...createProjectHandlers(loadData, confirm),
+    ...createCertificationHandlers(loadData, confirm),
     ...createGalleryHandlers(loadData),
     ...createEducationHandlers(loadData),
     ...createJourneyHandlers(loadData),

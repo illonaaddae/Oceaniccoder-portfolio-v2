@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import { getBookings, updateBookingStatus, deleteBooking } from "@/services/api/bookings";
 import type { Booking } from "@/services/api/bookings";
+import { useConfirm } from "../ConfirmContext";
 
 interface BookingsTabProps {
   theme: "light" | "dark";
@@ -31,6 +32,7 @@ const MEETING_LABELS: Record<string, string> = {
 };
 
 export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
+  const confirm = useConfirm();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,7 +60,11 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
   }, [load]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this booking permanently?")) return;
+    const ok = await confirm({
+      message: "Delete booking?",
+      description: "This will permanently remove the booking.",
+    });
+    if (!ok) return;
     setUpdating(id);
     try {
       await deleteBooking(id);

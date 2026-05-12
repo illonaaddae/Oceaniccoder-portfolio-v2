@@ -1,5 +1,6 @@
 import { FaEdit, FaTrash } from "react-icons/fa";
 import type { Journey } from "@/types";
+import { useConfirm } from "../../ConfirmContext";
 
 interface JourneyCardProps {
   item: Journey;
@@ -16,6 +17,7 @@ export const JourneyCard: React.FC<JourneyCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const confirm = useConfirm();
   return (
     <div
       className={`glass-card border rounded-2xl p-6 transition-all duration-200 ${
@@ -97,9 +99,12 @@ export const JourneyCard: React.FC<JourneyCardProps> = ({
             </button>
             <button
               onClick={() => {
-                if (window.confirm("Delete this journey milestone?")) {
-                  onDelete(item.$id);
-                }
+                confirm({
+                  message: "Delete journey milestone?",
+                  description: "This will permanently remove the milestone.",
+                }).then((ok) => {
+                  if (ok) onDelete(item.$id);
+                });
               }}
               className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
               title="Delete"

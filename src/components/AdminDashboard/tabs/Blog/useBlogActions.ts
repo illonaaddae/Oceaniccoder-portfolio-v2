@@ -1,6 +1,7 @@
 import React from "react";
 import { BlogPost } from "@/types";
 import { useToast } from "../../Toast";
+import { useConfirm } from "../../ConfirmContext";
 import { generateSlug } from "./utils";
 import { apiUrl } from "@/utils/apiUrl";
 
@@ -13,6 +14,7 @@ interface UseBlogActionsProps {
 
 export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogActionsProps) {
   const toast = useToast();
+  const confirm = useConfirm();
 
   const handleSubmit = async (
     e: React.FormEvent,
@@ -60,7 +62,11 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
 
   const handleDelete = async (id: string) => {
     const p = blogPosts.find((post) => post.$id === id);
-    if (!window.confirm("Are you sure you want to delete this blog post?")) return;
+    const ok = await confirm({
+      message: "Delete blog post?",
+      description: "This will permanently remove the post.",
+    });
+    if (!ok) return;
     try {
       await onDelete(id);
       toast.success(`Blog post "${p?.title}" deleted successfully!`);

@@ -2,7 +2,10 @@ import type { Project } from "@/types";
 import { createProject, updateProject, deleteProject } from "@/services/api";
 import type { LoadDataFn } from "./types";
 
-export function createProjectHandlers(loadData: LoadDataFn) {
+export function createProjectHandlers(
+  loadData: LoadDataFn,
+  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean>,
+) {
   const handleAddProject = async (projectForm: Omit<Project, "$id" | "$createdAt">) => {
     try {
       await createProject(projectForm);
@@ -27,9 +30,11 @@ export function createProjectHandlers(loadData: LoadDataFn) {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm("Delete this project?")) {
-      throw new Error("cancelled");
-    }
+    const ok = await confirm({
+      message: "Delete project?",
+      description: "This will permanently remove the project.",
+    });
+    if (!ok) throw new Error("cancelled");
     try {
       await deleteProject(projectId);
       await loadData(false);
