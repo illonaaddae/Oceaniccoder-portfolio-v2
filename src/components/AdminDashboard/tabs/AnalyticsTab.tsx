@@ -69,25 +69,59 @@ function formatGHS(amount: number): string {
   return `₵${amount.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function getPeriodKey(dateStr: string, period: Period): string {
-  const d = new Date(dateStr);
-  if (period === "daily")
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  if (period === "weekly") {
-    const start = new Date(d);
-    start.setDate(d.getDate() - d.getDay());
-    return `W/C ${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-  }
-  if (period === "monthly")
-    return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-  return d.getFullYear().toString();
+function getMondayOfCurrentWeek(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const day = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+  return monday;
 }
 
 function buildChartData(invoices: Invoice[], period: Period) {
   const paid = invoices.filter((i) => i.status === "paid" && i.$createdAt);
+
+  if (period === "weekly") {
+    const monday = getMondayOfCurrentWeek();
+    const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const amounts = [0, 0, 0, 0, 0, 0, 0];
+    for (const inv of paid) {
+      const d = new Date(inv.$createdAt!);
+      d.setHours(0, 0, 0, 0);
+      const diff = Math.round((d.getTime() - monday.getTime()) / 86400000);
+      if (diff >= 0 && diff <= 6) amounts[diff] += toGHS(inv.total, inv.currency);
+    }
+    return DAY_LABELS.map((label, i) => ({ label, amount: parseFloat(amounts[i].toFixed(2)) }));
+  }
+
+  if (period === "daily") {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days: { label: string; isoDate: string; amount: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      days.push({
+        label: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+        isoDate: d.toISOString().slice(0, 10),
+        amount: 0,
+      });
+    }
+    for (const inv of paid) {
+      const isoDate = new Date(inv.$createdAt!).toISOString().slice(0, 10);
+      const entry = days.find((d) => d.isoDate === isoDate);
+      if (entry) entry.amount += toGHS(inv.total, inv.currency);
+    }
+    return days.map(({ label, amount }) => ({ label, amount: parseFloat(amount.toFixed(2)) }));
+  }
+
   const grouped: Record<string, number> = {};
   for (const inv of paid) {
-    const key = getPeriodKey(inv.$createdAt!, period);
+    const d = new Date(inv.$createdAt!);
+    const key =
+      period === "monthly"
+        ? d.toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+        : d.getFullYear().toString();
     grouped[key] = (grouped[key] ?? 0) + toGHS(inv.total, inv.currency);
   }
   return Object.entries(grouped)
@@ -446,12 +480,42 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       {/* ── Revenue Chart ── */}
       <div className="glass-card p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
-            <FaChartLine className="text-[var(--accent-teal)]" /> Revenue Over Time
-            <span className="text-xs font-normal ml-1" style={{ color: "var(--text-secondary)" }}>
-              (GHS equivalent)
-            </span>
-          </h3>
+          <div>
+            <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <FaChartLine className="text-[var(--accent-teal)]" /> Revenue Over Time
+              <span className="text-xs font-normal ml-1" style={{ color: "var(--text-secondary)" }}>
+                (GHS equivalent)
+              </span>
+            </h3>
+            {period === "weekly" &&
+              (() => {
+                const monday = getMondayOfCurrentWeek();
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                const weekTotal = chartData.reduce((s, d) => s + d.amount, 0);
+                return (
+                  <p
+                    className="text-xs mt-0.5 flex items-center gap-2"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <span>
+                      {monday.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                      {" – "}
+                      {sunday.toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                    {weekTotal > 0 && (
+                      <span className="font-semibold" style={{ color: "var(--accent-teal)" }}>
+                        {formatGHS(weekTotal)} this week
+                      </span>
+                    )}
+                  </p>
+                );
+              })()}
+          </div>
           <div className="flex gap-1">
             {PERIOD_BTNS.map((btn) => (
               <button
