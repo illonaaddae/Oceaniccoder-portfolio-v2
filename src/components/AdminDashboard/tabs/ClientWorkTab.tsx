@@ -496,7 +496,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
           onClick={(e) => e.target === e.currentTarget && setSelectedInquiry(null)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl overflow-hidden overflow-y-auto"
+            className="w-full max-w-lg rounded-2xl overflow-hidden overflow-y-auto min-w-0"
             style={{
               background: "var(--bg-secondary)",
               border: "1px solid var(--border-subtle)",
@@ -608,7 +608,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                   <FaFileAlt className="text-oceanic-400" /> Project Description
                 </p>
                 <div
-                  className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
+                  className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words"
                   style={{
                     background: "var(--bg-primary)",
                     color: "var(--text-primary)",
