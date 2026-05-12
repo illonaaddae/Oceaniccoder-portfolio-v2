@@ -15,7 +15,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.2",
     "react-syntax-highlighter": "^16.1.0",
-    "recharts": "^3.8.1",
+    "recharts": "^2.15.4",
     "remark-gfm": "^4.0.1",
     "web-vitals": "^2.1.4"
   },
