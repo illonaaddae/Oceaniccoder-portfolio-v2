@@ -22,11 +22,37 @@ interface Props {
 
 const emptyItem = (): InvoiceItem => ({ description: "", quantity: 1, unitPrice: 0 });
 
+const DOMAIN_PRICES: Record<string, number> = {
+  ".com": 16,
+  ".net": 18,
+  ".org": 19,
+  ".dev": 22,
+  ".io": 45,
+};
+
 export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice }: Props) {
   const isUpdate = !!existingInvoice;
 
   const parseExistingItems = (): InvoiceItem[] => {
-    if (!existingInvoice) return [{ description: inquiry.projectType, quantity: 1, unitPrice: 0 }];
+    if (!existingInvoice) {
+      const auto: InvoiceItem[] = [{ description: inquiry.projectType, quantity: 1, unitPrice: 0 }];
+      if (inquiry.needsDomain && inquiry.domainExtension) {
+        const price = DOMAIN_PRICES[inquiry.domainExtension] ?? 0;
+        auto.push({
+          description: `Domain Registration (${inquiry.domainExtension}) — 1 yr (USD price)`,
+          quantity: 1,
+          unitPrice: price,
+        });
+      }
+      if (inquiry.needsHosting) {
+        auto.push({
+          description: "Web Hosting Setup",
+          quantity: 1,
+          unitPrice: 0,
+        });
+      }
+      return auto;
+    }
     try {
       return typeof existingInvoice.items === "string"
         ? (JSON.parse(existingInvoice.items) as InvoiceItem[])
@@ -35,6 +61,8 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
       return [{ description: inquiry.projectType, quantity: 1, unitPrice: 0 }];
     }
   };
+
+  const hasAutoItems = !isUpdate && !!(inquiry.needsDomain || inquiry.needsHosting);
 
   const [currency, setCurrency] = useState(existingInvoice?.currency ?? "GHS");
   const [items, setItems] = useState<InvoiceItem[]>(parseExistingItems);
@@ -203,6 +231,28 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-5">
+            {/* Auto-items hint */}
+            {hasAutoItems && (
+              <div
+                className="rounded-xl px-4 py-3 text-xs"
+                style={{
+                  background: "rgba(13,148,136,0.08)",
+                  border: "1px solid rgba(13,148,136,0.3)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <span style={{ color: "var(--accent-teal)", fontWeight: 600 }}>Auto-added: </span>
+                {inquiry.needsDomain && inquiry.domainExtension && (
+                  <>
+                    Domain ({inquiry.domainExtension}) at $
+                    {DOMAIN_PRICES[inquiry.domainExtension] ?? 0} USD.{" "}
+                  </>
+                )}
+                {inquiry.needsHosting && <>Hosting line item (set price manually). </>}
+                Domain price is USD — adjust the currency or price if billing in another currency.
+              </div>
+            )}
+
             {/* Currency */}
             <div>
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">

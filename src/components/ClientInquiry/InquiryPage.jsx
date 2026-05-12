@@ -129,6 +129,14 @@ const FEATURES_BY_TYPE = {
   ],
 };
 
+const DOMAIN_EXTENSIONS = [
+  { ext: ".com", price: "$16/yr" },
+  { ext: ".net", price: "$18/yr" },
+  { ext: ".org", price: "$19/yr" },
+  { ext: ".dev", price: "$22/yr" },
+  { ext: ".io", price: "$45/yr" },
+];
+
 const INITIAL_FORM = {
   name: "",
   email: "",
@@ -140,6 +148,10 @@ const INITIAL_FORM = {
   timeline: "",
   budgetRange: "",
   notes: "",
+  hasLogo: null,
+  needsDomain: null,
+  domainExtension: "",
+  needsHosting: null,
 };
 
 export default function InquiryPage() {
@@ -186,8 +198,24 @@ export default function InquiryPage() {
           ? form.otherProjectType.trim()
           : form.projectType;
       // eslint-disable-next-line no-unused-vars
-      const { otherProjectType: _omit, ...inquiryData } = form;
-      await createInquiry({ ...inquiryData, projectType: resolvedType, status: "new" });
+      const {
+        otherProjectType: _omit,
+        hasLogo,
+        needsDomain,
+        domainExtension,
+        needsHosting,
+        ...rest
+      } = form;
+      const inquiryData = {
+        ...rest,
+        projectType: resolvedType,
+        status: "new",
+        ...(hasLogo !== null && { hasLogo }),
+        ...(needsDomain !== null && { needsDomain }),
+        ...(needsDomain && domainExtension && { domainExtension }),
+        ...(needsHosting !== null && { needsHosting }),
+      };
+      await createInquiry(inquiryData);
       // Notify admin via Azure Function (fire-and-forget)
       fetch(apiUrl("/api/notify-inquiry"), {
         method: "POST",
@@ -393,6 +421,150 @@ export default function InquiryPage() {
               </div>
             </div>
           )}
+
+          {/* Logo */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+              Do you have a logo / brand assets ready?
+            </label>
+            <div className="flex gap-3">
+              {[
+                { label: "Yes, I have one", value: true },
+                { label: "No, I need one designed", value: false },
+              ].map(({ label, value }) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, hasLogo: value }))}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={
+                    form.hasLogo === value
+                      ? {
+                          background: "var(--accent-teal)",
+                          color: "#fff",
+                          border: "1px solid transparent",
+                        }
+                      : {
+                          background: "var(--bg-primary)",
+                          border: "1px solid var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                        }
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Domain */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+              Do you need a domain name?
+            </label>
+            <div className="flex gap-3 mb-3">
+              {[
+                { label: "Yes, register one for me", value: true },
+                { label: "No, I already have one", value: false },
+              ].map(({ label, value }) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  onClick={() =>
+                    setForm((p) => ({
+                      ...p,
+                      needsDomain: value,
+                      domainExtension: value ? p.domainExtension : "",
+                    }))
+                  }
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={
+                    form.needsDomain === value
+                      ? {
+                          background: "var(--accent-teal)",
+                          color: "#fff",
+                          border: "1px solid transparent",
+                        }
+                      : {
+                          background: "var(--bg-primary)",
+                          border: "1px solid var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                        }
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {form.needsDomain === true && (
+              <div>
+                <p className="text-xs mb-2" style={{ color: "var(--text-secondary)" }}>
+                  Pick an extension — Namecheap pricing (registration fee, billed annually):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {DOMAIN_EXTENSIONS.map(({ ext, price }) => (
+                    <button
+                      key={ext}
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, domainExtension: ext }))}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex flex-col items-center gap-0.5"
+                      style={
+                        form.domainExtension === ext
+                          ? {
+                              background: "var(--accent-teal)",
+                              color: "#fff",
+                              border: "1px solid transparent",
+                            }
+                          : {
+                              background: "var(--bg-primary)",
+                              border: "1px solid var(--border-subtle)",
+                              color: "var(--text-secondary)",
+                            }
+                      }
+                    >
+                      <span className="font-bold">{ext}</span>
+                      <span className="text-xs opacity-80">{price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hosting */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+              Do you need web hosting?
+            </label>
+            <div className="flex gap-3">
+              {[
+                { label: "Yes, set it up for me", value: true },
+                { label: "No, I'll handle it", value: false },
+              ].map(({ label, value }) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, needsHosting: value }))}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={
+                    form.needsHosting === value
+                      ? {
+                          background: "var(--accent-teal)",
+                          color: "#fff",
+                          border: "1px solid transparent",
+                        }
+                      : {
+                          background: "var(--bg-primary)",
+                          border: "1px solid var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                        }
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Timeline + Budget */}
           <div className="grid sm:grid-cols-2 gap-4">

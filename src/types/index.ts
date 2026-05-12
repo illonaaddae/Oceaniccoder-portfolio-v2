@@ -190,6 +190,10 @@ export interface ProjectInquiry {
   timeline?: string;
   budgetRange?: string;
   notes?: string;
+  hasLogo?: boolean;
+  needsDomain?: boolean;
+  domainExtension?: string;
+  needsHosting?: boolean;
   status: "new" | "reviewed" | "quoted" | "declined";
   $createdAt?: string;
   $updatedAt?: string;
