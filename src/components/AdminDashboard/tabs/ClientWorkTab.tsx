@@ -18,6 +18,7 @@ import { getInquiries, updateInquiry, deleteInquiry } from "@/services/api/inqui
 import type { ProjectInquiry } from "@/types";
 import InvoiceModal from "./ClientWork/InvoiceModal";
 import { useConfirm } from "../ConfirmContext";
+import { apiUrl } from "@/utils/apiUrl";
 
 interface ClientWorkTabProps {
   theme: "light" | "dark";
@@ -94,6 +95,22 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
   const handleStatusChange = async (id: string, status: ProjectInquiry["status"]) => {
     setInquiries((prev) => prev.map((i) => (i.$id === id ? { ...i, status } : i)));
     await updateInquiry(id, { status });
+
+    if (status === "reviewed" || status === "quoted" || status === "declined") {
+      const inq = inquiries.find((i) => i.$id === id);
+      if (inq) {
+        void fetch(apiUrl("/api/send-inquiry-status"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            clientName: inq.name,
+            clientEmail: inq.email,
+            projectType: inq.projectType,
+          }),
+        });
+      }
+    }
   };
 
   const handleDelete = async (id: string) => {
