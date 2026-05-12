@@ -486,8 +486,19 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
             No paid invoices to chart yet.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart
+              data={chartData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+              barCategoryGap="35%"
+              maxBarSize={48}
+            >
+              <defs>
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#26a9c5" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#0c8599" stopOpacity={0.85} />
+                </linearGradient>
+              </defs>
               <XAxis
                 dataKey="label"
                 tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
@@ -500,8 +511,11 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                 tickLine={false}
                 tickFormatter={(v: number) => `₵${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(13,148,136,0.08)" }} />
-              <Bar dataKey="amount" fill="#0c8599" radius={[6, 6, 0, 0]} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "rgba(12,133,153,0.08)", radius: 6 }}
+              />
+              <Bar dataKey="amount" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
