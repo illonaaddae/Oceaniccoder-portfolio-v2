@@ -221,6 +221,17 @@ export interface Invoice {
   $updatedAt?: string;
 }
 
+// Expense Types
+export interface Expense {
+  $id: string;
+  description: string;
+  amount: number;
+  currency: string;
+  category: "domain" | "hosting" | "tools" | "software" | "other";
+  date: string;
+  $createdAt?: string;
+}
+
 // Payment Types
 export interface Payment {
   $id: string;

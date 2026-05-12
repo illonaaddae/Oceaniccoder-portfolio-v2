@@ -24,7 +24,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           tab.id !== "settings" &&
           tab.id !== "bookings" &&
           tab.id !== "client-work" &&
-          tab.id !== "invoices",
+          tab.id !== "invoices" &&
+          tab.id !== "analytics",
       )
     : allTabs;
 
@@ -37,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile Menu Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`lg:hidden fixed top-3 left-3 z-[60] p-2.5 rounded-lg backdrop-blur-xl border transition-all duration-300 touch-manipulation ${
           theme === "dark"
