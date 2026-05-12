@@ -262,7 +262,9 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
                       onClick={() => handleMarkPaid(inv)}
                       disabled={isConfirming}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)" }}
+                      style={{
+                        background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                      }}
                     >
                       <FaCheckCircle />
                       {isConfirming ? "Confirming…" : "Mark as Paid"}
