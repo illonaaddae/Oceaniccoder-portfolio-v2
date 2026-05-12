@@ -34,24 +34,107 @@ const BUDGET_RANGES = [
   "Not sure yet",
 ];
 
-const FEATURE_OPTIONS = [
-  "User Authentication",
-  "Payment Integration",
-  "Admin Dashboard",
-  "Blog / CMS",
-  "API Integration",
-  "Animations",
-  "SEO Optimisation",
-  "Email Notifications",
-  "Real-time Updates",
-  "Mobile Responsive",
-];
+const FEATURES_BY_TYPE = {
+  "Portfolio Website": [
+    "Animations",
+    "SEO Optimisation",
+    "Blog / CMS",
+    "Contact Form",
+    "Mobile Responsive",
+    "Dark Mode",
+    "Gallery / Portfolio Grid",
+    "Testimonials Section",
+  ],
+  "E-Commerce Store": [
+    "Payment Integration",
+    "User Authentication",
+    "Product Catalogue",
+    "Shopping Cart",
+    "Order Management",
+    "Admin Dashboard",
+    "Email Notifications",
+    "Mobile Responsive",
+    "SEO Optimisation",
+    "Inventory Tracking",
+  ],
+  "Web Application": [
+    "User Authentication",
+    "Admin Dashboard",
+    "Real-time Updates",
+    "API Integration",
+    "Email Notifications",
+    "Payment Integration",
+    "Role-Based Access",
+    "Data Export",
+    "Mobile Responsive",
+    "Notifications / Alerts",
+  ],
+  "Mobile App": [
+    "User Authentication",
+    "Push Notifications",
+    "Payment Integration",
+    "Offline Support",
+    "Real-time Updates",
+    "Camera / Media Access",
+    "Maps / Location",
+    "API Integration",
+    "Dark Mode",
+    "In-App Messaging",
+  ],
+  "Landing Page": [
+    "Animations",
+    "SEO Optimisation",
+    "Mobile Responsive",
+    "Contact Form",
+    "Email Notifications",
+    "A/B Testing",
+    "Analytics Integration",
+    "Live Chat Widget",
+  ],
+  "Dashboard / Admin Panel": [
+    "User Authentication",
+    "Role-Based Access",
+    "Real-time Updates",
+    "Data Visualisation / Charts",
+    "Admin Dashboard",
+    "Email Notifications",
+    "Data Export",
+    "API Integration",
+    "Audit Logs",
+    "Mobile Responsive",
+  ],
+  "API / Backend": [
+    "User Authentication",
+    "Role-Based Access",
+    "Real-time Updates",
+    "Email Notifications",
+    "Webhooks",
+    "Rate Limiting",
+    "API Documentation",
+    "Database Design",
+    "File Uploads",
+    "Third-party Integrations",
+  ],
+  Other: [
+    "User Authentication",
+    "Payment Integration",
+    "Admin Dashboard",
+    "Blog / CMS",
+    "API Integration",
+    "Animations",
+    "SEO Optimisation",
+    "Email Notifications",
+    "Real-time Updates",
+    "Mobile Responsive",
+  ],
+};
 
 const INITIAL_FORM = {
   name: "",
   email: "",
   phone: "",
   projectType: "",
+  otherProjectType: "",
   description: "",
   features: [],
   timeline: "",
@@ -75,6 +158,10 @@ export default function InquiryPage() {
     return e;
   };
 
+  const handleProjectTypeChange = (type) => {
+    setForm((prev) => ({ ...prev, projectType: type, otherProjectType: "", features: [] }));
+  };
+
   const toggleFeature = (feature) => {
     setForm((prev) => ({
       ...prev,
@@ -94,12 +181,16 @@ export default function InquiryPage() {
     setStatus("loading");
     setErrors({});
     try {
-      await createInquiry({ ...form, status: "new" });
+      const resolvedType =
+        form.projectType === "Other" && form.otherProjectType.trim()
+          ? form.otherProjectType.trim()
+          : form.projectType;
+      await createInquiry({ ...form, projectType: resolvedType, status: "new" });
       // Notify admin via Azure Function (fire-and-forget)
       fetch(apiUrl("/api/notify-inquiry"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, projectType: form.projectType }),
+        body: JSON.stringify({ name: form.name, email: form.email, projectType: resolvedType }),
       }).catch(() => {});
       setStatus("success");
     } catch {
@@ -218,7 +309,7 @@ export default function InquiryPage() {
             </label>
             <select
               value={form.projectType}
-              onChange={(e) => setForm((p) => ({ ...p, projectType: e.target.value }))}
+              onChange={(e) => handleProjectTypeChange(e.target.value)}
               className={inputClass}
               style={inputStyle}
             >
@@ -229,6 +320,16 @@ export default function InquiryPage() {
                 </option>
               ))}
             </select>
+            {form.projectType === "Other" && (
+              <input
+                type="text"
+                value={form.otherProjectType}
+                onChange={(e) => setForm((p) => ({ ...p, otherProjectType: e.target.value }))}
+                placeholder="Describe your project type..."
+                className={`${inputClass} mt-2`}
+                style={inputStyle}
+              />
+            )}
             {errors.projectType && (
               <p className="mt-1 text-xs text-red-400">{errors.projectType}</p>
             )}
@@ -253,33 +354,43 @@ export default function InquiryPage() {
           </div>
 
           {/* Features */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
-              Features needed{" "}
-              <span className="text-[var(--text-secondary)]">(select all that apply)</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {FEATURE_OPTIONS.map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => toggleFeature(f)}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                  style={
-                    form.features.includes(f)
-                      ? { background: "var(--accent-teal)", color: "#fff" }
-                      : {
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-subtle)",
-                          color: "var(--text-secondary)",
-                        }
-                  }
-                >
-                  {f}
-                </button>
-              ))}
+          {form.projectType && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                Features needed{" "}
+                <span className="text-[var(--text-secondary)]">(select all that apply)</span>
+              </label>
+              <p className="text-xs mb-3" style={{ color: "var(--text-secondary)" }}>
+                Showing features relevant to{" "}
+                <span style={{ color: "var(--accent-teal)" }}>
+                  {form.projectType === "Other" && form.otherProjectType.trim()
+                    ? form.otherProjectType.trim()
+                    : form.projectType}
+                </span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(FEATURES_BY_TYPE[form.projectType] || FEATURES_BY_TYPE["Other"]).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => toggleFeature(f)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                    style={
+                      form.features.includes(f)
+                        ? { background: "var(--accent-teal)", color: "#fff" }
+                        : {
+                            background: "var(--bg-primary)",
+                            border: "1px solid var(--border-subtle)",
+                            color: "var(--text-secondary)",
+                          }
+                    }
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Timeline + Budget */}
           <div className="grid sm:grid-cols-2 gap-4">
