@@ -7,7 +7,7 @@ type Props = { theme: "light"|"dark"; project: Project; isReadOnly: boolean; onE
 
 // prettier-ignore
 export const ProjectMobileCard: React.FC<Props> = ({ theme, project, isReadOnly, onEdit, onDelete }) => (
-  <div className={`glass-card backdrop-blur-xl border rounded-xl p-4 transition-colors duration-300 ${theme === "dark" ? "bg-gradient-to-br from-white/8 to-white/4 border-white/20" : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"}`}>
+  <div className="glass-card p-4">
     <div className="flex items-start justify-between mb-3">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-oceanic-500 flex items-center justify-center flex-shrink-0">
