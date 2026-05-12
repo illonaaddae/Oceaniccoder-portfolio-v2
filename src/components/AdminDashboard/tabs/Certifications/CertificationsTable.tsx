@@ -19,13 +19,7 @@ export const CertificationsTable: React.FC<CertificationsTableProps> = ({
   onDelete,
 }) => {
   return (
-    <div
-      className={`glass-card border rounded-2xl overflow-hidden transition-colors duration-200 ${
-        theme === "dark"
-          ? "bg-gray-800/50 border-gray-700/80"
-          : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-      }`}
-    >
+    <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>

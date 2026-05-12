@@ -33,13 +33,7 @@ export const ChangePasswordCard: React.FC<ChangePasswordCardProps> = ({ theme })
   }`;
 
   return (
-    <div
-      className={`glass-card border rounded-2xl p-6 transition-colors duration-200 ${
-        theme === "dark"
-          ? "bg-gray-800/50 border-gray-700/80"
-          : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-      }`}
-    >
+    <div className="glass-card p-6">
       {/* Card Header */}
       <div className="flex items-center gap-3 mb-6">
         <div

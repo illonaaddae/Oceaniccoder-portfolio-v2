@@ -86,13 +86,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
           </p>
         </div>
       ) : education.length === 0 ? (
-        <div
-          className={`glass-card border rounded-2xl p-12 text-center transition-colors duration-200 ${
-            theme === "dark"
-              ? "bg-gray-800/50 border-gray-700/80"
-              : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-          }`}
-        >
+        <div className="glass-card p-12 text-center">
           <FaGraduationCap
             className={`text-4xl mx-auto mb-4 ${
               theme === "dark" ? "text-gray-600" : "text-slate-400/60"
@@ -105,14 +99,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
       ) : (
         <div className="space-y-4">
           {education.map((edu) => (
-            <div
-              key={edu.$id}
-              className={`glass-card border rounded-2xl p-6 transition-all duration-200 ${
-                theme === "dark"
-                  ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
-                  : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-              }`}
-            >
+            <div key={edu.$id} className="glass-card p-6">
               <div className="flex items-start justify-between">
                 <div className="flex gap-4">
                   {(edu.universityLogo || edu.logo) && (

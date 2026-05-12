@@ -37,12 +37,8 @@ export const StatCard: React.FC<StatCardProps> = ({ stat, index, theme, onNaviga
   return (
     <div
       onClick={() => stat.tabLink && onNavigateToTab?.(stat.tabLink)}
-      className={`glass-card border rounded-xl sm:rounded-2xl p-4 xs:p-3 sm:p-5 lg:p-6 transition-all duration-200 ${
+      className={`glass-card card-hover p-4 xs:p-3 sm:p-5 lg:p-6 ${
         stat.tabLink ? "cursor-pointer hover:scale-[1.02]" : ""
-      } ${
-        theme === "dark"
-          ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600 hover:bg-gray-800/70"
-          : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40 hover:border-blue-200/60 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/30"
       }`}
     >
       <div className="flex items-start justify-between mb-3 xs:mb-2 sm:mb-4">

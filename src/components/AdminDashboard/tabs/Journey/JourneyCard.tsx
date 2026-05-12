@@ -19,13 +19,7 @@ export const JourneyCard: React.FC<JourneyCardProps> = ({
 }) => {
   const confirm = useConfirm();
   return (
-    <div
-      className={`glass-card border rounded-2xl p-6 transition-all duration-200 ${
-        theme === "dark"
-          ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600"
-          : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-      }`}
-    >
+    <div className="glass-card p-6">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">

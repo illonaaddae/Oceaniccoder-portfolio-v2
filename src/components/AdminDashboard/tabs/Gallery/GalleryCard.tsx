@@ -54,11 +54,6 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({
   onEdit,
   onDeleteImage,
 }) => {
-  const cardBg =
-    theme === "dark"
-      ? "bg-gray-800/50 border-gray-700/80"
-      : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40";
-
   return (
     <div
       draggable={!isReadOnly}
@@ -67,7 +62,7 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({
       onDragOver={(e) => !isReadOnly && onDragOver(e, index)}
       onDragLeave={onDragLeave}
       onDrop={(e) => !isReadOnly && onDrop(e, index)}
-      className={`glass-card border rounded-2xl overflow-hidden transition-all duration-200 relative ${cardBg} ${dragOverIndex === index ? "ring-2 ring-oceanic-500 scale-[1.02]" : ""} ${draggedItemId === image.$id ? "opacity-50" : ""} ${image.isPublic === false && !isReadOnly ? "opacity-80" : ""} ${updatingOrder === image.$id ? "pointer-events-none" : ""}`}
+      className={`glass-card overflow-hidden relative ${dragOverIndex === index ? "ring-2 ring-oceanic-500 scale-[1.02]" : ""} ${draggedItemId === image.$id ? "opacity-50" : ""} ${image.isPublic === false && !isReadOnly ? "opacity-80" : ""} ${updatingOrder === image.$id ? "pointer-events-none" : ""}`}
     >
       {!isReadOnly && (
         <div className="absolute top-2 left-2 z-10">

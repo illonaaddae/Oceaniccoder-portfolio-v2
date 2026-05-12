@@ -65,13 +65,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
           </p>
         </div>
       ) : filteredSkills.length === 0 ? (
-        <div
-          className={`glass-card border rounded-2xl p-12 text-center transition-colors duration-200 ${
-            theme === "dark"
-              ? "bg-gray-800/50 border-gray-700/80"
-              : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-          }`}
-        >
+        <div className="glass-card p-12 text-center">
           <FaCode
             className={`text-4xl mx-auto mb-4 transition-colors duration-300 ${
               theme === "dark" ? "text-gray-600" : "text-slate-400/60"
@@ -88,14 +82,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredSkills.map((skill) => (
-            <div
-              key={skill.$id}
-              className={`glass-card border p-4 sm:p-6 rounded-xl transition-all duration-200 ${
-                theme === "dark"
-                  ? "bg-gray-800/50 border-gray-700/80 hover:border-gray-600 hover:bg-gray-800/70"
-                  : "bg-white/40 border-blue-200/30 hover:border-blue-200/50 hover:bg-white/50"
-              }`}
-            >
+            <div key={skill.$id} className="glass-card card-hover p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p

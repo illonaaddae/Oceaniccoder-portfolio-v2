@@ -16,13 +16,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
   recentMessages,
   onNavigateToTab,
 }) => (
-  <div
-    className={`lg:col-span-2 glass-card border rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-colors duration-200 ${
-      theme === "dark"
-        ? "bg-gray-800/50 border-gray-700/80"
-        : "bg-gradient-to-br from-white/40 to-white/20 border-blue-200/40"
-    }`}
-  >
+  <div className="lg:col-span-2 glass-card p-4 sm:p-6">
     <div className="flex items-center justify-between mb-4 sm:mb-6">
       <h2
         className={`text-base sm:text-lg font-bold transition-colors duration-300 ${
