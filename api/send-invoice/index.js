@@ -165,10 +165,10 @@ module.exports = async function (context, req) {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
-                  <p style="margin:0;font-size:13px;color:#99f6e4;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">OceanicCoder</p>
-                  <h1 style="margin:6px 0 0;font-size:26px;color:#ffffff;font-weight:700;">Invoice</h1>
+                  <img src="https://oceaniccoder.dev/images/logo/oceanic-logo.png" alt="OceanicCoder" width="140" style="display:block;margin-bottom:12px;" />
+                  <h1 style="margin:0;font-size:26px;color:#ffffff;font-weight:700;">Invoice</h1>
                 </td>
-                <td style="text-align:right;">
+                <td style="text-align:right;vertical-align:bottom;">
                   <p style="margin:0;font-size:13px;color:#99f6e4;">${invoiceNumber}</p>
                   <p style="margin:4px 0 0;font-size:12px;color:#b2f5ea;">Issued: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
                 </td>
