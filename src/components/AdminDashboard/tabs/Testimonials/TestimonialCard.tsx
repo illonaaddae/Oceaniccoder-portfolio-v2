@@ -21,13 +21,7 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
 }) => {
   const confirm = useConfirm();
   return (
-    <div
-      className={`glass-card border rounded-xl p-4 sm:p-6 transition-all duration-200 ${
-        theme === "dark"
-          ? "bg-gray-800/50 border-gray-700/80 hover:border-oceanic-500/50"
-          : "bg-white/50 border-oceanic-200/40 hover:border-oceanic-300/60"
-      }`}
-    >
+    <div className="glass-card card-hover p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Avatar */}
         <div className="flex-shrink-0">

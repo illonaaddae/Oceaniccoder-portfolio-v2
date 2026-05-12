@@ -135,10 +135,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
             color: "text-red-400",
           },
         ].map((stat) => (
-          <div
-            key={stat.label}
-            className={`rounded-xl p-4 border ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-white border-slate-200"}`}
-          >
+          <div key={stat.label} className="glass-card p-4">
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
             <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               {stat.label}
@@ -155,9 +152,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
           <div className="w-8 h-8 border-2 border-oceanic-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : bookings.length === 0 ? (
-        <div
-          className={`text-center py-20 rounded-xl border ${isDark ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-500"}`}
-        >
+        <div className="glass-card text-center py-20">
           <FaCalendarAlt className="mx-auto text-4xl mb-3 opacity-30" />
           <p className="font-medium">No bookings yet</p>
           <p className="text-sm mt-1">Bookings submitted via /booking will appear here</p>
@@ -165,12 +160,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
       ) : (
         <div className="space-y-4">
           {bookings.map((b) => (
-            <div
-              key={b.$id}
-              className={`rounded-xl border p-5 transition-all ${
-                isDark ? "bg-slate-800/50 border-slate-700" : "bg-white border-slate-200 shadow-sm"
-              }`}
-            >
+            <div key={b.$id} className="glass-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 {/* Left: name + meeting type */}
                 <div className="flex-1 min-w-0">
