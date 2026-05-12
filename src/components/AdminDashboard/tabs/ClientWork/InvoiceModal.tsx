@@ -28,6 +28,7 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
   ]);
   const [taxRate, setTaxRate] = useState(0);
   const [dueDate, setDueDate] = useState("");
+  const [estimatedDelivery, setEstimatedDelivery] = useState("");
   const [notes, setNotes] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -71,6 +72,7 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
         total,
         notes,
         dueDate,
+        estimatedDelivery,
         status: "sent",
       });
 
@@ -90,6 +92,7 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
           taxRate,
           total,
           dueDate,
+          estimatedDelivery,
           notes,
         }),
       });
@@ -244,8 +247,8 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
               </div>
             </div>
 
-            {/* Tax + Due Date */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            {/* Tax + Due Date + Estimated Delivery */}
+            <div className="grid sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-0.5">
                   Tax / VAT Rate (%)
@@ -274,6 +277,21 @@ export default function InvoiceModal({ inquiry, onClose, theme }: Props) {
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
+                  className={`${inputClass} w-full`}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-0.5">
+                  Est. Delivery Date (optional)
+                </label>
+                <p className="text-xs mb-1.5" style={{ color: "var(--text-secondary)" }}>
+                  When project / first phase is done
+                </p>
+                <input
+                  type="date"
+                  value={estimatedDelivery}
+                  onChange={(e) => setEstimatedDelivery(e.target.value)}
                   className={`${inputClass} w-full`}
                   style={inputStyle}
                 />

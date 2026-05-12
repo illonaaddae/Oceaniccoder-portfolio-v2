@@ -88,7 +88,11 @@ module.exports = async function (context, req) {
   // Verify HMAC-SHA512 signature
   const expectedHash = crypto.createHmac("sha512", secretKey).update(rawBody).digest("hex");
 
-  if (expectedHash !== signature) {
+  const sigBuf = Buffer.from(signature, "hex");
+  const expBuf = Buffer.from(expectedHash, "hex");
+  const sigMatch = sigBuf.length === expBuf.length && crypto.timingSafeEqual(expBuf, sigBuf);
+
+  if (!sigMatch) {
     context.log.warn("paystack-webhook: signature mismatch — possible spoofed request");
     ok();
     return;

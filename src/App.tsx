@@ -20,19 +20,25 @@ import {
 function App() {
   const { theme, toggleTheme } = useTheme();
 
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
-    const stored = localStorage.getItem("adminAuth");
-    return stored === "authenticated";
-  });
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // Verify Appwrite session on mount — overrides stale localStorage flag
+  // Auth gate: Appwrite session first, then hash-based fallback
   useEffect(() => {
     hasAppwriteSession().then((hasSession) => {
       if (hasSession) {
-        localStorage.setItem("adminAuth", "authenticated");
         setIsAdminLoggedIn(true);
+        return;
       }
-      // Don't auto-clear localStorage on no session — legacy hash-based login still uses it
+      // Fall back to stored password hash (offline/hash-based login)
+      const storedHash = localStorage.getItem("adminHash");
+      const expectedHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH as string | undefined;
+      if (storedHash && expectedHash && storedHash === expectedHash) {
+        setIsAdminLoggedIn(true);
+      } else {
+        localStorage.removeItem("adminAuth");
+        localStorage.removeItem("adminHash");
+        setIsAdminLoggedIn(false);
+      }
     });
   }, []);
 

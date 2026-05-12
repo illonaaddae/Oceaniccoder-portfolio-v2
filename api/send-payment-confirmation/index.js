@@ -7,6 +7,13 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
+function escHtml(s) {
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+}
+
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
@@ -52,6 +59,8 @@ module.exports = async function (context, req) {
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
   const sym = currencySymbol || currency;
+  const safeClientName = escHtml(clientName);
+  const safeInvoiceNumber = escHtml(invoiceNumber);
 
   if (!apiKey) {
     context.res = { status: 503, headers: CORS, body: JSON.stringify({ error: "Not configured" }) };
@@ -80,7 +89,7 @@ module.exports = async function (context, req) {
                 <td><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" /></td>
                 <td style="text-align:right;vertical-align:middle;">
                   <p style="margin:0;font-size:11px;color:#99f6e4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Payment Confirmed</p>
-                  <p style="margin:4px 0 0;font-size:18px;color:#ffffff;font-weight:800;">${invoiceNumber}</p>
+                  <p style="margin:4px 0 0;font-size:18px;color:#ffffff;font-weight:800;">${safeInvoiceNumber}</p>
                 </td>
               </tr>
             </table>
@@ -92,7 +101,7 @@ module.exports = async function (context, req) {
           <td style="background:#0a2e1a;padding:28px 40px;text-align:center;">
             <div style="width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,0.15);border:2px solid rgba(34,197,94,0.5);display:inline-block;line-height:64px;text-align:center;margin-bottom:16px;font-size:32px;color:#22c55e;">&#10003;</div>
             <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Payment Received!</p>
-            <p style="margin:8px 0 0;font-size:15px;color:#86efac;">Thank you, ${clientName}. Payment for invoice <strong>${invoiceNumber}</strong> has been confirmed.</p>
+            <p style="margin:8px 0 0;font-size:15px;color:#86efac;">Thank you, ${safeClientName}. Payment for invoice <strong>${safeInvoiceNumber}</strong> has been confirmed.</p>
           </td>
         </tr>
 
@@ -102,7 +111,7 @@ module.exports = async function (context, req) {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="padding:8px 0;color:#6b7280;font-size:14px;">Invoice</td>
-                <td style="padding:8px 0;color:#f1f5f9;font-size:14px;text-align:right;font-weight:600;">${invoiceNumber}</td>
+                <td style="padding:8px 0;color:#f1f5f9;font-size:14px;text-align:right;font-weight:600;">${safeInvoiceNumber}</td>
               </tr>
               <tr>
                 <td style="padding:8px 0;color:#6b7280;font-size:14px;">Amount Paid</td>

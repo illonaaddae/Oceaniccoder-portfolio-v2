@@ -7,6 +7,13 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
+function escHtml(s) {
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+}
+
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
@@ -113,7 +120,8 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const pt = projectType || "your project";
+  const safeName = escHtml(clientName);
+  const pt = escHtml(projectType || "your project");
   const h = tpl.hero;
 
   const html = `<!DOCTYPE html>
@@ -142,14 +150,14 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:${h.bg};padding:32px 40px;text-align:center;">
             <div style="width:68px;height:68px;border-radius:50%;background:${h.iconBg};border:2px solid ${h.iconBorder};display:inline-block;line-height:68px;font-size:34px;margin-bottom:16px;">${h.icon}</div>
-            <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">${tpl.heading(clientName)}</p>
+            <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">${tpl.heading(safeName)}</p>
           </td>
         </tr>
 
         <!-- Body -->
         <tr>
           <td style="background:#111827;padding:28px 40px;border-top:1px solid #1e293b;">
-            <p style="margin:0 0 16px;font-size:15px;color:#94a3b8;line-height:1.8;">${tpl.body(clientName, pt)}</p>
+            <p style="margin:0 0 16px;font-size:15px;color:#94a3b8;line-height:1.8;">${tpl.body(safeName, pt)}</p>
             <div style="background:#0f172a;border-left:3px solid #0d9488;border-radius:0 8px 8px 0;padding:14px 16px;">
               <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">${tpl.note}</p>
             </div>

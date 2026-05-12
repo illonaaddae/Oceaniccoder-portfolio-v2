@@ -54,7 +54,6 @@ module.exports = async function (context, req) {
   }
 
   // PAYSTACK_SECRET_KEY — set in Azure Portal Application settings
-  // Test key: sk_test_61f5dfbf147aef7bd2bfb52b42fd4df0dc52273c
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
     context.res = {

@@ -63,16 +63,16 @@ module.exports = async function (context, req) {
 
     const doc = result.documents[0];
 
-    // Return only safe, public-facing fields
+    // Return only safe, public-facing fields — no phone (PII not needed for payment)
     const safe = {
       invoiceNumber: doc.invoiceNumber,
       clientName: doc.clientName,
       clientEmail: doc.clientEmail,
-      clientPhone: doc.clientPhone || null,
       total: doc.total,
       currency: doc.currency,
       status: doc.status,
       dueDate: doc.dueDate || null,
+      estimatedDelivery: doc.estimatedDelivery || null,
     };
 
     context.res = {

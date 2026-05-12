@@ -7,6 +7,13 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
+function escHtml(s) {
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+}
+
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
@@ -125,15 +132,15 @@ module.exports = async function (context, req) {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr><td style="padding:8px 0;border-bottom:1px solid #334155;">
                 <span style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Name</span><br>
-                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${name || "N/A"}</span>
+                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${escHtml(name) || "N/A"}</span>
               </td></tr>
               <tr><td style="padding:8px 0;border-bottom:1px solid #334155;">
                 <span style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Email</span><br>
-                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${email || "N/A"}</span>
+                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${escHtml(email) || "N/A"}</span>
               </td></tr>
               <tr><td style="padding:8px 0;">
                 <span style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Project Type</span><br>
-                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${projectType || "N/A"}</span>
+                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${escHtml(projectType) || "N/A"}</span>
               </td></tr>
             </table>
             <a href="https://oceaniccoder.dev/dashboard" style="display:inline-block;margin-top:24px;background:linear-gradient(135deg,#0d9488 0%,#0d7a6e 100%);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px;">View in Dashboard</a>

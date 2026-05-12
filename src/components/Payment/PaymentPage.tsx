@@ -10,11 +10,11 @@ interface PublicInvoice {
   invoiceNumber: string;
   clientName: string;
   clientEmail: string;
-  clientPhone: string | null;
   total: number;
   currency: string;
   status: string;
   dueDate: string | null;
+  estimatedDelivery: string | null;
 }
 
 type PaymentTab = "card" | "momo" | "bank";
@@ -152,9 +152,67 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
         >
           Billed to
         </p>
-        <p className="text-base font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+        <p
+          className="text-base font-semibold"
+          style={{
+            color: "var(--text-primary)",
+            marginBottom: invoice.estimatedDelivery || invoice.dueDate ? "12px" : "16px",
+          }}
+        >
           {invoice.clientName}
         </p>
+
+        {/* Due / Delivery dates */}
+        {(invoice.dueDate || invoice.estimatedDelivery) && (
+          <div className="flex gap-3 flex-wrap mb-4">
+            {invoice.dueDate && (
+              <div
+                className="flex-1 rounded-lg px-3 py-2"
+                style={{
+                  background: "rgba(245,158,11,0.1)",
+                  border: "1px solid rgba(245,158,11,0.3)",
+                }}
+              >
+                <p
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={{ color: "#fbbf24" }}
+                >
+                  Payment Due
+                </p>
+                <p className="text-sm font-semibold mt-0.5" style={{ color: "#fde68a" }}>
+                  {new Date(invoice.dueDate).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            )}
+            {invoice.estimatedDelivery && (
+              <div
+                className="flex-1 rounded-lg px-3 py-2"
+                style={{
+                  background: "rgba(13,148,136,0.1)",
+                  border: "1px solid rgba(13,148,136,0.3)",
+                }}
+              >
+                <p
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={{ color: "#2dd4bf" }}
+                >
+                  Est. Delivery
+                </p>
+                <p className="text-sm font-semibold mt-0.5" style={{ color: "#99f6e4" }}>
+                  {new Date(invoice.estimatedDelivery).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div
           className="flex items-center justify-between rounded-xl px-4 py-3"

@@ -216,6 +216,7 @@ export interface Invoice {
   notes?: string;
   status: "draft" | "sent" | "paid";
   dueDate?: string;
+  estimatedDelivery?: string;
   $createdAt?: string;
   $updatedAt?: string;
 }

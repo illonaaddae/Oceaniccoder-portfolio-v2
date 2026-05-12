@@ -7,6 +7,13 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
+function escHtml(s) {
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+}
+
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
@@ -99,6 +106,7 @@ module.exports = async function (context, req) {
     taxRate,
     total,
     dueDate,
+    estimatedDelivery,
     notes,
   } = req.body || {};
 
@@ -124,6 +132,11 @@ module.exports = async function (context, req) {
     return;
   }
 
+  const safeClientName = escHtml(clientName);
+  const safeClientEmail = escHtml(clientEmail);
+  const safeClientPhone = clientPhone ? escHtml(clientPhone) : null;
+  const safeInvoiceNumber = escHtml(invoiceNumber);
+
   const issuedDate = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -136,12 +149,19 @@ module.exports = async function (context, req) {
         year: "numeric",
       })
     : null;
+  const estimatedDeliveryFormatted = estimatedDelivery
+    ? new Date(estimatedDelivery).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 
   const itemRows = items
     .map(
       (i, idx) => `
     <tr style="background:${idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)"};">
-      <td style="padding:12px 8px 12px 0;border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">${i.description}</td>
+      <td style="padding:12px 8px 12px 0;border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">${escHtml(i.description)}</td>
       <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:center;">${i.quantity}</td>
       <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:right;">${sym}${Number(i.unitPrice).toFixed(2)}</td>
       <td style="padding:12px 0 12px 8px;border-bottom:1px solid #1e293b;color:#0d9488;font-size:14px;text-align:right;font-weight:700;">${sym}${(i.quantity * i.unitPrice).toFixed(2)}</td>
@@ -179,7 +199,7 @@ module.exports = async function (context, req) {
                 </td>
                 <td style="text-align:right;vertical-align:middle;">
                   <p style="margin:0;font-size:11px;color:#99f6e4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Invoice</p>
-                  <p style="margin:4px 0 0;font-size:20px;color:#ffffff;font-weight:800;letter-spacing:0.01em;">${invoiceNumber}</p>
+                  <p style="margin:4px 0 0;font-size:20px;color:#ffffff;font-weight:800;letter-spacing:0.01em;">${safeInvoiceNumber}</p>
                   <p style="margin:4px 0 0;font-size:12px;color:#b2f5ea;">Issued ${issuedDate}</p>
                 </td>
               </tr>
@@ -197,12 +217,24 @@ module.exports = async function (context, req) {
                   <p style="margin:6px 0 0;font-size:36px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${sym}${Number(total).toFixed(2)} <span style="font-size:18px;font-weight:500;color:#5eead4;">${currency}</span></p>
                 </td>
                 ${
-                  dueDateFormatted
+                  dueDateFormatted || estimatedDeliveryFormatted
                     ? `<td style="text-align:right;vertical-align:middle;">
-                  <div style="display:inline-block;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px 16px;">
-                    <p style="margin:0;font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Due</p>
+                  ${
+                    dueDateFormatted
+                      ? `<div style="display:inline-block;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px 16px;${estimatedDeliveryFormatted ? "margin-bottom:8px;" : ""}">
+                    <p style="margin:0;font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Payment Due</p>
                     <p style="margin:3px 0 0;font-size:14px;color:#fde68a;font-weight:700;">${dueDateFormatted}</p>
-                  </div>
+                  </div>`
+                      : ""
+                  }
+                  ${
+                    estimatedDeliveryFormatted
+                      ? `<div style="display:inline-block;background:rgba(13,148,136,0.15);border:1px solid rgba(13,148,136,0.4);border-radius:8px;padding:8px 16px;">
+                    <p style="margin:0;font-size:11px;color:#2dd4bf;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Est. Delivery</p>
+                    <p style="margin:3px 0 0;font-size:14px;color:#99f6e4;font-weight:700;">${estimatedDeliveryFormatted}</p>
+                  </div>`
+                      : ""
+                  }
                 </td>`
                     : ""
                 }
@@ -224,9 +256,9 @@ module.exports = async function (context, req) {
                 </td>
                 <td style="width:50%;vertical-align:top;padding-left:20px;border-left:1px solid #1f2937;">
                   <p style="margin:0 0 8px;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Billed To</p>
-                  <p style="margin:0;font-size:14px;color:#f1f5f9;font-weight:700;">${clientName}</p>
-                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${clientEmail}</p>
-                  ${clientPhone ? `<p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${clientPhone}</p>` : ""}
+                  <p style="margin:0;font-size:14px;color:#f1f5f9;font-weight:700;">${safeClientName}</p>
+                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${safeClientEmail}</p>
+                  ${safeClientPhone ? `<p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${safeClientPhone}</p>` : ""}
                 </td>
               </tr>
             </table>
