@@ -165,7 +165,7 @@ module.exports = async function (context, req) {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
-                  <img src="https://oceaniccoder.dev/images/logo/oceanic-logo.png" alt="OceanicCoder" width="140" style="display:block;margin-bottom:12px;" />
+                  <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="140" style="display:block;margin-bottom:12px;" />
                   <h1 style="margin:0;font-size:26px;color:#ffffff;font-weight:700;">Invoice</h1>
                 </td>
                 <td style="text-align:right;vertical-align:bottom;">
