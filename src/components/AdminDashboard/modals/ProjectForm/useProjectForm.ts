@@ -28,6 +28,7 @@ export function useProjectForm(
         image: editingProject.image || "",
         liveUrl: editingProject.liveUrl || "",
         githubUrl: editingProject.githubUrl || "",
+        demoVideoUrl: editingProject.demoVideoUrl || "",
         featured: editingProject.featured || false,
         status: editingProject.status || "Completed",
         year: editingProject.year || new Date().getFullYear().toString(),

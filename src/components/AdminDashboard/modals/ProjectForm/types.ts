@@ -9,6 +9,7 @@ export interface ProjectFormData {
   image: string;
   liveUrl: string;
   githubUrl: string;
+  demoVideoUrl: string;
   featured: boolean;
   status: string;
   year: string;
@@ -46,6 +47,7 @@ export const DEFAULT_FORM_DATA: ProjectFormData = {
   image: "",
   liveUrl: "",
   githubUrl: "",
+  demoVideoUrl: "",
   featured: false,
   status: "Completed",
   year: new Date().getFullYear().toString(),

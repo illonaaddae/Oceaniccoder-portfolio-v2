@@ -9,6 +9,7 @@ export interface Project {
   image?: string;
   liveUrl?: string;
   githubUrl?: string;
+  demoVideoUrl?: string;
   featured?: boolean;
   status?: string;
   year?: string;
