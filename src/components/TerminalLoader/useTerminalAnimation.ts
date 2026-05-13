@@ -3,16 +3,19 @@ import { sequence, TerminalLine } from "./terminalTheme";
 
 const LOADER_KEY = "hasSeenLoader";
 
+const SKIP_PATHS = ["/pay/", "/dashboard", "/admin"];
+const shouldSkipForPath = () => SKIP_PATHS.some((p) => window.location.pathname.startsWith(p));
+
 export function useTerminalAnimation() {
   const isBot = typeof navigator !== "undefined" && navigator.webdriver === true;
   const [lines, setLines] = useState<TerminalLine[]>([]);
   const [loading, setLoading] = useState(
-    () => !isBot && sessionStorage.getItem(LOADER_KEY) !== "true",
+    () => !isBot && !shouldSkipForPath() && localStorage.getItem(LOADER_KEY) !== "true",
   );
 
   useEffect(() => {
-    // Skip for bots/headless browsers and returning visitors
-    if (isBot || sessionStorage.getItem(LOADER_KEY) === "true") return;
+    // Skip for bots, non-portfolio routes, and users who have already seen it
+    if (isBot || shouldSkipForPath() || localStorage.getItem(LOADER_KEY) === "true") return;
 
     const timeoutIds: NodeJS.Timeout[] = [];
     let accumulatedTime = 0;
@@ -25,10 +28,10 @@ export function useTerminalAnimation() {
       timeoutIds.push(id);
     });
 
-    // Mark as seen and dismiss the loader after the full sequence completes
+    // Mark as seen and dismiss after full sequence
     const finishId = setTimeout(() => {
       setLoading(false);
-      sessionStorage.setItem(LOADER_KEY, "true");
+      localStorage.setItem(LOADER_KEY, "true");
     }, accumulatedTime + 400);
     timeoutIds.push(finishId);
 
