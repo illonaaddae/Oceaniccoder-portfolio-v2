@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { verifyAdminPassword, setAdminPassword } from "@/services/api";
+import { verifyAdminPassword, setAdminPassword, hashPassword } from "@/services/api";
+import { account } from "@/lib/appwrite";
 
 export interface PasswordMessage {
   type: "success" | "error";
@@ -51,7 +52,20 @@ export function usePasswordForm() {
         return;
       }
 
+      // Update Appwrite Auth account password (primary login path)
+      try {
+        await account.updatePassword(newPassword, currentPassword);
+      } catch {
+        // No active Appwrite session or not using Appwrite Auth — fine, continue
+      }
+
+      // Update legacy hash in settings collection (fallback login path)
       await setAdminPassword(newPassword);
+
+      // Refresh localStorage hash so hash-based fallback stays valid
+      const newHash = await hashPassword(newPassword);
+      localStorage.setItem("adminHash", newHash);
+      localStorage.setItem("adminAuth", "authenticated");
 
       setCurrentPassword("");
       setNewPassword("");
@@ -60,10 +74,6 @@ export function usePasswordForm() {
         type: "success",
         text: "Password changed successfully!",
       });
-
-      localStorage.removeItem("adminAuth");
-      localStorage.removeItem("adminHash");
-      localStorage.setItem("adminAuth", "authenticated");
     } catch (error) {
       console.error("Error changing password:", error);
       setPasswordMessage({
