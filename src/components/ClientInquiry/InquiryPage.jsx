@@ -264,7 +264,7 @@ export default function InquiryPage() {
 
   return (
     <div
-      className="min-h-screen py-16 px-4"
+      className="min-h-screen pt-24 pb-16 px-4"
       style={{
         background:
           "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
