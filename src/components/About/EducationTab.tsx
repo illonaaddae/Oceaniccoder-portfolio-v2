@@ -13,7 +13,7 @@ interface EducationTabProps {
 }
 
 const EducationTab = React.memo(({ education, certifications, about }: EducationTabProps) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+  <div className="flex flex-col gap-8">
     <div className="space-y-6">
       <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
         <FaGraduationCap className="text-green-400" />
