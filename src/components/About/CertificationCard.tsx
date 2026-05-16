@@ -24,7 +24,11 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
                 : `${cert.platformColor} bg-current/10 text-current border-current/30`
             }`}
           >
-            <PlatformLogo platformName={cert.platform} className="w-4 h-4 flex-shrink-0" />
+            <PlatformLogo
+              platformName={cert.platform}
+              iconUrl={cert.platformIconUrl ?? undefined}
+              className="w-4 h-4 flex-shrink-0"
+            />
             {cert.platform}
           </span>
           <span className="text-xs text-gray-400 bg-gray-700/20 px-2 py-1 rounded cert-date">

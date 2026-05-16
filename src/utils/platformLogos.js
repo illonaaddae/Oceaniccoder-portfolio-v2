@@ -19,7 +19,7 @@ export const platformLogos = {
     fallback: "SB",
     color: "#2B283A",
   },
-  "AWS Training": {
+  AWS: {
     local:
       "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf8000fb4abc729/view?project=6943431e00253c8f9883",
     cdn: "https://cdn.simpleicons.org/amazonaws/FF9900",
@@ -45,6 +45,36 @@ export const platformLogos = {
     cdn: "https://cdn.simpleicons.org/udemy/A435F0",
     fallback: "UD",
     color: "#A435F0",
+  },
+  "LinkedIn Learning": {
+    local: null,
+    cdn: "https://cdn.simpleicons.org/linkedin/0A66C2",
+    fallback: "LI",
+    color: "#0A66C2",
+  },
+  Google: {
+    local: null,
+    cdn: "https://cdn.simpleicons.org/google/4285F4",
+    fallback: "GG",
+    color: "#4285F4",
+  },
+  Microsoft: {
+    local: null,
+    cdn: "https://cdn.simpleicons.org/microsoft/00A4EF",
+    fallback: "MS",
+    color: "#00A4EF",
+  },
+  Meta: {
+    local: null,
+    cdn: "https://cdn.simpleicons.org/meta/0081FB",
+    fallback: "MT",
+    color: "#0081FB",
+  },
+  FreeCodeCamp: {
+    local: null,
+    cdn: "https://cdn.simpleicons.org/freecodecamp/0A0A23",
+    fallback: "FCC",
+    color: "#0A0A23",
   },
 };
 

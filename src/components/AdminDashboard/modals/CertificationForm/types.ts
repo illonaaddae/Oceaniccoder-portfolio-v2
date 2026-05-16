@@ -11,6 +11,7 @@ export interface CertificationFormState {
   verifyLink: string;
   platformColor: string;
   image: string;
+  platformIconUrl: string;
 }
 
 export interface CertificationFormModalProps {

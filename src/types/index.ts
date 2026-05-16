@@ -41,6 +41,7 @@ export interface Certification {
   verifyLink?: string;
   platformColor?: string;
   image?: string;
+  platformIconUrl?: string;
 }
 
 // Education Types

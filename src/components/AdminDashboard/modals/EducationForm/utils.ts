@@ -1,18 +1,47 @@
-/** Format period string from start/end dates */
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** Format period string from start/end dates, including month when available */
 export const formatPeriod = (startDate: string, endDate: string, isOngoing: boolean): string => {
   if (!startDate) return "";
   const start = new Date(startDate);
   const startYear = start.getFullYear();
+  const startMonth = start.getMonth(); // 0-indexed
+
+  const formatDate = (year: number, month: number) => `${SHORT_MONTHS[month]} ${year}`;
 
   if (isOngoing) {
-    return `${startYear} - Present`;
+    return `${formatDate(startYear, startMonth)} – Present`;
   }
 
-  if (!endDate) return String(startYear);
+  if (!endDate) return formatDate(startYear, startMonth);
   const end = new Date(endDate);
   const endYear = end.getFullYear();
+  const endMonth = end.getMonth();
 
-  return `${startYear} - ${endYear}`;
+  // Same month+year → show once
+  if (startYear === endYear && startMonth === endMonth) {
+    return formatDate(startYear, startMonth);
+  }
+
+  // Same year, different month → "May – Aug 2025"
+  if (startYear === endYear) {
+    return `${SHORT_MONTHS[startMonth]} – ${SHORT_MONTHS[endMonth]} ${endYear}`;
+  }
+
+  return `${formatDate(startYear, startMonth)} – ${formatDate(endYear, endMonth)}`;
 };
 
 /** Parse a date string into month/year components */

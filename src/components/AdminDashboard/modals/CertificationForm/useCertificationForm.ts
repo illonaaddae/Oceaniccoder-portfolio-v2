@@ -14,6 +14,7 @@ const DEFAULT_FORM: CertificationFormState = {
   verifyLink: "",
   platformColor: "#3b82f6",
   image: "",
+  platformIconUrl: "",
 };
 
 export function useCertificationForm(
@@ -40,6 +41,7 @@ export function useCertificationForm(
         verifyLink: editingCertification.verifyLink || "",
         platformColor: editingCertification.platformColor || "#3b82f6",
         image: editingCertification.image || "",
+        platformIconUrl: editingCertification.platformIconUrl || "",
       });
     } else {
       setForm({ ...DEFAULT_FORM });

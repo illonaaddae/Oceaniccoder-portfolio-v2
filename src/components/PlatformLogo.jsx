@@ -5,11 +5,13 @@ import { getPlatformLogo } from "../utils/platformLogos";
  * PlatformLogo Component
  * Displays platform logos with fallback support
  * Tries local images first, then CDN, then fallback text
+ * @param {{ platformName: string, iconUrl?: string, className?: string }} props
  */
-const PlatformLogo = ({ platformName, className = "w-4 h-4" }) => {
+const PlatformLogo = ({ platformName, iconUrl = undefined, className = "w-4 h-4" }) => {
   const [imageError, setImageError] = useState(false);
   const [tryCDN, setTryCDN] = useState(false);
-  const logoInfo = getPlatformLogo(platformName);
+  const baseLogoInfo = getPlatformLogo(platformName);
+  const logoInfo = iconUrl ? { ...baseLogoInfo, local: iconUrl } : baseLogoInfo;
 
   // Determine which image source to use
   const imageSrc = tryCDN ? logoInfo.cdn : logoInfo.local || logoInfo.cdn;
@@ -59,9 +61,7 @@ const PlatformLogo = ({ platformName, className = "w-4 h-4" }) => {
 
   // Check if this platform should preserve original colors (no filters)
   const preserveColors =
-    platformName === "Frontend Masters" ||
-    platformName === "Scrimba" ||
-    platformName === "AWS Training";
+    platformName === "Frontend Masters" || platformName === "Scrimba" || platformName === "AWS";
 
   return (
     <img
