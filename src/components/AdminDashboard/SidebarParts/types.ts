@@ -15,7 +15,8 @@ export type TabType =
   | "settings"
   | "client-work"
   | "invoices"
-  | "analytics";
+  | "analytics"
+  | "storage";
 
 export interface SidebarProps {
   activeTab: string;

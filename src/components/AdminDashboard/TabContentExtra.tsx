@@ -5,6 +5,7 @@ import AnalyticsTab from "./tabs/AnalyticsTab";
 import { BookingsTab } from "./tabs/BookingsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GalleryTab } from "./tabs/GalleryTab";
+import { StorageCleanupTab } from "./tabs/StorageCleanupTab";
 import { EducationTab } from "./tabs/EducationTab";
 import { JourneyTab } from "./tabs/JourneyTab";
 import { AboutTab } from "./tabs/AboutTab";
@@ -102,6 +103,7 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
       {activeTab === "invoices" && !isReadOnly && <InvoicesTab theme={theme} />}
       {activeTab === "analytics" && !isReadOnly && <AnalyticsTab theme={theme} />}
       {activeTab === "settings" && !isReadOnly && <SettingsTab theme={theme} />}
+      {activeTab === "storage" && !isReadOnly && <StorageCleanupTab theme={theme} />}
     </>
   );
 };
