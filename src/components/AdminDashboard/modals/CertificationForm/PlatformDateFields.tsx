@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { PLATFORMS } from "./constants";
 import type { CertificationFormState } from "./types";
 import PlatformLogo from "@/components/PlatformLogo";
+import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
 
 const MONTHS = [
   { value: "01", label: "January" },
@@ -30,6 +31,7 @@ interface PlatformDateFieldsProps {
   updateForm: (updates: Partial<CertificationFormState>) => void;
   inputClass: string;
   labelClass: string;
+  theme: "light" | "dark";
 }
 
 const CUSTOM_VALUE = "__custom__";
@@ -39,6 +41,7 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
   updateForm,
   inputClass,
   labelClass,
+  theme,
 }) => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -187,7 +190,7 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
 
       {/* Custom platform fields */}
       {displayPlatform === CUSTOM_VALUE && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="space-y-4">
           <div>
             <label className={labelClass}>Platform Name *</label>
             <input
@@ -200,13 +203,17 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
             />
           </div>
           <div>
-            <label className={labelClass}>Platform Icon URL</label>
-            <input
-              type="url"
+            <label className={labelClass}>Platform Logo (optional)</label>
+            <p className={`text-xs mb-2 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+              Upload any PNG, JPG, SVG, or WebP — shown next to platform name on your cert card.
+            </p>
+            <ImageUpload
               value={form.platformIconUrl}
-              onChange={(e) => updateForm({ platformIconUrl: e.target.value })}
-              className={inputClass}
-              placeholder="https://... (optional)"
+              onChange={(url) => updateForm({ platformIconUrl: url })}
+              label="Platform Logo"
+              theme={theme}
+              maxSizeMB={2}
+              accept="image/*"
             />
           </div>
         </div>

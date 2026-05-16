@@ -50,6 +50,7 @@ export const CertificationFormModal: React.FC<CertificationFormModalProps> = ({
           updateForm={updateForm}
           inputClass={inputClass}
           labelClass={labelClass}
+          theme={theme}
         />
         <CredentialField
           form={form}

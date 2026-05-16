@@ -22,7 +22,7 @@ export const platformLogos = {
   AWS: {
     local:
       "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf8000fb4abc729/view?project=6943431e00253c8f9883",
-    cdn: "https://cdn.simpleicons.org/amazonaws/FF9900",
+    cdn: "https://cdn.simpleicons.org/amazonwebservices/FF9900",
     fallback: "AWS",
     color: "#FF9900",
   },
@@ -54,7 +54,7 @@ export const platformLogos = {
   },
   Google: {
     local: null,
-    cdn: "https://cdn.simpleicons.org/google/4285F4",
+    cdn: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg",
     fallback: "GG",
     color: "#4285F4",
   },
