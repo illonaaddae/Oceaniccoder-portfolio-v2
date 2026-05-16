@@ -147,8 +147,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [orphanPage, setOrphanPage] = useState(0);
   const [inUsePage, setInUsePage] = useState(0);
 
-  const card =
-    theme === "dark" ? "bg-gray-800/60 border border-gray-700" : "bg-white border border-gray-200";
+  const card = "glass-card";
   const text = theme === "dark" ? "text-white" : "text-slate-900";
   const sub = theme === "dark" ? "text-slate-400" : "text-slate-500";
   const badge = (orphan: boolean) =>
@@ -296,12 +295,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const subText = `text-sm ${sub}`;
 
   const renderFileRow = (f: StorageFile, showDelete: boolean) => (
-    <div
-      key={f.$id}
-      className={`flex items-center gap-3 p-3 rounded-xl ${
-        theme === "dark" ? (showDelete ? "bg-gray-700/40" : "bg-gray-700/20") : "bg-gray-50"
-      }`}
-    >
+    <div key={f.$id} className={`flex items-center gap-3 p-3 rounded-xl bg-gray-700/25`}>
       {f.mimeType.startsWith("image/") ? (
         <img
           src={f.url}
@@ -397,10 +391,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {platforms.map((p) => (
-            <div
-              key={p.name}
-              className={`rounded-xl p-4 space-y-3 ${theme === "dark" ? "bg-gray-700/50" : "bg-gray-50"}`}
-            >
+            <div key={p.name} className={`rounded-xl p-4 space-y-3 bg-gray-700/30`}>
               <div className="flex items-center gap-3">
                 {p.currentUrl ? (
                   <img
