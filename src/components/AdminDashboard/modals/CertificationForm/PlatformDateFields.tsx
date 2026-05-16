@@ -3,6 +3,28 @@ import { PLATFORMS } from "./constants";
 import type { CertificationFormState } from "./types";
 import PlatformLogo from "@/components/PlatformLogo";
 
+const MONTHS = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+const generateYears = () => {
+  const current = new Date().getFullYear();
+  const years: number[] = [];
+  for (let y = current; y >= current - 20; y--) years.push(y);
+  return years;
+};
+
 interface PlatformDateFieldsProps {
   form: CertificationFormState;
   updateForm: (updates: Partial<CertificationFormState>) => void;
@@ -130,14 +152,36 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
         {/* Date Obtained */}
         <div>
           <label className={labelClass}>Date Obtained *</label>
-          <input
-            type="text"
-            required
-            value={form.date}
-            onChange={(e) => updateForm({ date: e.target.value })}
-            className={inputClass}
-            placeholder="e.g., December 2024"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              value={form.dateMonth}
+              onChange={(e) => updateForm({ dateMonth: e.target.value })}
+              className={inputClass}
+              required
+              aria-label="Certificate month"
+            >
+              <option value="">Month</option>
+              {MONTHS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={form.dateYear}
+              onChange={(e) => updateForm({ dateYear: e.target.value })}
+              className={inputClass}
+              required
+              aria-label="Certificate year"
+            >
+              <option value="">Year</option>
+              {generateYears().map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

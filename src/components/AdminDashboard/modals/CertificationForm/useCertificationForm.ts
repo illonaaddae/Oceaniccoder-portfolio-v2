@@ -3,10 +3,46 @@ import type React from "react";
 import type { Certification } from "@/types";
 import type { CertificationFormState } from "./types";
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const parseCertDate = (dateStr: string): { month: string; year: string } => {
+  if (!dateStr) return { month: "", year: "" };
+  // Try "Month YYYY" format e.g. "December 2024"
+  const parts = dateStr.trim().split(" ");
+  if (parts.length === 2) {
+    const monthIndex = MONTH_NAMES.findIndex((m) => m.toLowerCase() === parts[0].toLowerCase());
+    if (monthIndex >= 0 && /^\d{4}$/.test(parts[1])) {
+      return { month: String(monthIndex + 1).padStart(2, "0"), year: parts[1] };
+    }
+  }
+  return { month: "", year: "" };
+};
+
+const formatCertDate = (month: string, year: string): string => {
+  if (!month || !year) return "";
+  const idx = parseInt(month, 10) - 1;
+  return `${MONTH_NAMES[idx]} ${year}`;
+};
+
 const DEFAULT_FORM: CertificationFormState = {
   title: "",
   issuer: "",
   date: "",
+  dateMonth: "",
+  dateYear: "",
   credential: "",
   skills: [],
   platform: "",
@@ -30,10 +66,13 @@ export function useCertificationForm(
 
   useEffect(() => {
     if (editingCertification) {
+      const { month, year } = parseCertDate(editingCertification.date || "");
       setForm({
         title: editingCertification.title || "",
         issuer: editingCertification.issuer || "",
         date: editingCertification.date || "",
+        dateMonth: month,
+        dateYear: year,
         credential: editingCertification.credential || "",
         skills: editingCertification.skills || [],
         platform: editingCertification.platform || "",
@@ -67,7 +106,11 @@ export function useCertificationForm(
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(form);
+      const { dateMonth, dateYear, ...rest } = form;
+      await onSubmit({
+        ...rest,
+        date: formatCertDate(dateMonth, dateYear) || form.date,
+      });
       onClose();
     } catch (err) {
       console.error("Error submitting certification:", err);

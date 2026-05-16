@@ -4,6 +4,11 @@ export interface JourneyFormState {
   role: string;
   company: string;
   period: string;
+  startMonth: string;
+  startYear: string;
+  endMonth: string;
+  endYear: string;
+  isOngoing: boolean;
   location: string;
   description: string;
   achievements: string[];

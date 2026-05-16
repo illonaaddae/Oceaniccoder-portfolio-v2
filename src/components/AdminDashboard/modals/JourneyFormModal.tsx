@@ -47,6 +47,7 @@ export const JourneyFormModal: React.FC<JourneyFormModalProps> = ({
           setForm={setForm}
           inputClass={inputClass}
           labelClass={labelClass}
+          theme={theme}
         />
         <ColorThemeSelect
           form={form}

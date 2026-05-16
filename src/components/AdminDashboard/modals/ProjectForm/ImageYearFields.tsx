@@ -21,13 +21,24 @@ export const ImageYearFields: React.FC<FormFieldProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div>
         <label className={labelClass}>Year</label>
-        <input
-          type="text"
+        <select
           value={form.year}
           onChange={(e) => setForm({ ...form, year: e.target.value })}
           className={inputClass}
-          placeholder="2024"
-        />
+          aria-label="Project year"
+        >
+          <option value="">Select Year</option>
+          {(() => {
+            const current = new Date().getFullYear();
+            const years: number[] = [];
+            for (let y = current; y >= current - 20; y--) years.push(y);
+            return years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ));
+          })()}
+        </select>
       </div>
     </div>
   </>

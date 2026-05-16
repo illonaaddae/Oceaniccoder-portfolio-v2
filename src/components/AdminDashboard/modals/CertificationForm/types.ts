@@ -4,6 +4,8 @@ export interface CertificationFormState {
   title: string;
   issuer: string;
   date: string;
+  dateMonth: string;
+  dateYear: string;
   credential: string;
   skills: string[];
   platform: string;

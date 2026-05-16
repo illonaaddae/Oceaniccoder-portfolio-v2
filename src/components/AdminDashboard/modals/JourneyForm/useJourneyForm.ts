@@ -2,10 +2,84 @@ import { useState, useEffect } from "react";
 import type { Journey } from "@/types";
 import type { JourneyFormState, JourneyFormModalProps } from "./types";
 
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+const formatJourneyPeriod = (
+  startMonth: string,
+  startYear: string,
+  endMonth: string,
+  endYear: string,
+  isOngoing: boolean,
+): string => {
+  if (!startYear) return "";
+  const startLabel = startMonth
+    ? `${SHORT_MONTHS[parseInt(startMonth, 10) - 1]} ${startYear}`
+    : startYear;
+
+  if (isOngoing) return `${startLabel} – Present`;
+  if (!endYear) return startLabel;
+
+  const endLabel = endMonth ? `${SHORT_MONTHS[parseInt(endMonth, 10) - 1]} ${endYear}` : endYear;
+
+  if (startYear === endYear && startMonth === endMonth) return startLabel;
+  if (startYear === endYear && startMonth && endMonth) {
+    return `${SHORT_MONTHS[parseInt(startMonth, 10) - 1]} – ${SHORT_MONTHS[parseInt(endMonth, 10) - 1]} ${endYear}`;
+  }
+  return `${startLabel} – ${endLabel}`;
+};
+
+const parseJourneyPeriod = (period: string) => {
+  if (!period)
+    return { startMonth: "", startYear: "", endMonth: "", endYear: "", isOngoing: false };
+
+  const isOngoing = /present/i.test(period);
+  const parts = period.split(/\s*[–-]\s*/);
+
+  const parsePart = (part: string) => {
+    const tokens = part.trim().split(" ");
+    if (tokens.length === 2) {
+      const mIdx = SHORT_MONTHS.findIndex((m) => m.toLowerCase() === tokens[0].toLowerCase());
+      if (mIdx >= 0) return { month: String(mIdx + 1).padStart(2, "0"), year: tokens[1] };
+      return { month: "", year: tokens[0] };
+    }
+    if (tokens.length === 1 && /^\d{4}$/.test(tokens[0])) return { month: "", year: tokens[0] };
+    return { month: "", year: "" };
+  };
+
+  const start = parsePart(parts[0] || "");
+  const end = isOngoing ? { month: "", year: "" } : parsePart(parts[1] || "");
+
+  return {
+    startMonth: start.month,
+    startYear: start.year,
+    endMonth: end.month,
+    endYear: end.year,
+    isOngoing,
+  };
+};
+
 const DEFAULT_FORM: JourneyFormState = {
   role: "",
   company: "",
   period: "",
+  startMonth: "",
+  startYear: "",
+  endMonth: "",
+  endYear: "",
+  isOngoing: false,
   location: "",
   description: "",
   achievements: [],
@@ -29,10 +103,16 @@ export function useJourneyForm({
 
   useEffect(() => {
     if (editingJourney) {
+      const parsed = parseJourneyPeriod(editingJourney.period || "");
       setForm({
         role: editingJourney.role || "",
         company: editingJourney.company || "",
         period: editingJourney.period || "",
+        startMonth: parsed.startMonth,
+        startYear: parsed.startYear,
+        endMonth: parsed.endMonth,
+        endYear: parsed.endYear,
+        isOngoing: parsed.isOngoing,
         location: editingJourney.location || "",
         description: editingJourney.description || "",
         achievements: editingJourney.achievements || [],
@@ -65,7 +145,10 @@ export function useJourneyForm({
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(form);
+      const { startMonth, startYear, endMonth, endYear, isOngoing, ...rest } = form;
+      const period =
+        formatJourneyPeriod(startMonth, startYear, endMonth, endYear, isOngoing) || form.period;
+      await onSubmit({ ...rest, period });
       onClose();
     } catch (err) {
       console.error("Error submitting journey:", err);
