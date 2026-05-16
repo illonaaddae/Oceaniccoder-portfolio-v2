@@ -85,9 +85,8 @@ const PlatformLogo = ({ platformName, iconUrl = undefined, className = "w-4 h-4"
     }
   };
 
-  // Check if this platform should preserve original colors (no filters)
-  const preserveColors =
-    platformName === "Frontend Masters" || platformName === "Scrimba" || platformName === "AWS";
+  // All logos preserve original brand colors — no tinting applied
+  const preserveColors = true;
 
   return (
     <img

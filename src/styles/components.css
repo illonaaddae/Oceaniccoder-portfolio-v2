@@ -539,38 +539,11 @@ body[data-theme="light"] svg.text-white,
   color: #6b21a8 !important;
 }
 
-/* Platform Logo Styling */
+/* Platform Logo Styling — preserve original brand colors for all logos */
 .platform-tag img {
-  filter: brightness(0) invert(1);
-  opacity: 0.9;
+  filter: none;
+  opacity: 1;
   transition: opacity 0.2s ease;
-}
-
-/* Remove filters for logos that already have proper branding colors */
-.platform-tag img[alt*="Frontend Masters"],
-.platform-tag img[alt*="Scrimba"],
-.platform-tag img[alt*="AWS"],
-.platform-tag .platform-logo-original {
-  filter: none !important;
-  opacity: 1 !important;
-}
-
-/* AWS logo specific: add drop shadow on dark mode for visibility */
-.platform-tag img[alt*="AWS"] {
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 8px rgba(249, 144, 0, 0.4)) !important;
-}
-
-[data-theme="light"] .platform-tag img {
-  filter: brightness(0) invert(0);
-  opacity: 0.8;
-}
-
-[data-theme="light"] .platform-tag img[alt*="Frontend Masters"],
-[data-theme="light"] .platform-tag img[alt*="Scrimba"],
-[data-theme="light"] .platform-tag img[alt*="AWS"],
-[data-theme="light"] .platform-tag .platform-logo-original {
-  filter: none !important;
-  opacity: 1 !important;
 }
 
 .platform-tag:hover img {
