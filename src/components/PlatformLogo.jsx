@@ -1,5 +1,23 @@
-import React, { useState } from "react";
-import { getPlatformLogo } from "../utils/platformLogos";
+import React, { useState, useEffect } from "react";
+import { getPlatformLogo, applyPlatformLogoOverrides } from "../utils/platformLogos";
+import { getPlatformLogoOverrides } from "../services/api/settings";
+
+let overridesLoaded = false;
+let overridesPromise = null;
+
+function ensureOverridesLoaded() {
+  if (overridesLoaded) return Promise.resolve();
+  if (overridesPromise) return overridesPromise;
+  overridesPromise = getPlatformLogoOverrides()
+    .then((overrides) => {
+      applyPlatformLogoOverrides(overrides);
+      overridesLoaded = true;
+    })
+    .catch(() => {
+      overridesLoaded = true;
+    });
+  return overridesPromise;
+}
 
 /**
  * PlatformLogo Component
@@ -10,6 +28,14 @@ import { getPlatformLogo } from "../utils/platformLogos";
 const PlatformLogo = ({ platformName, iconUrl = undefined, className = "w-4 h-4" }) => {
   const [imageError, setImageError] = useState(false);
   const [tryCDN, setTryCDN] = useState(false);
+  const [overridesReady, setOverridesReady] = useState(overridesLoaded);
+
+  useEffect(() => {
+    if (!overridesReady) {
+      ensureOverridesLoaded().then(() => setOverridesReady(true));
+    }
+  }, [overridesReady]);
+
   const baseLogoInfo = getPlatformLogo(platformName);
   const logoInfo = iconUrl ? { ...baseLogoInfo, local: iconUrl } : baseLogoInfo;
 

@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
 import { Query } from "appwrite";
 import { storage, STORAGE_BUCKET_ID, databases, DATABASE_ID } from "@/lib/appwrite";
-import { deleteImage, getFileIdFromUrl } from "@/services/api/storage";
+import { deleteImage } from "@/services/api/storage";
+import { getPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
+import { applyPlatformLogoOverrides } from "@/utils/platformLogos";
 import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
 
 interface StorageFile {
@@ -16,13 +18,12 @@ interface StorageFile {
   usedIn: string[];
 }
 
-interface PlatformLogoEntry {
+interface PlatformEntry {
   name: string;
-  fileId: string | null;
   currentUrl: string | null;
 }
 
-const COLLECTIONS = [
+const DB_COLLECTIONS = [
   { id: "projects", fields: ["image", "screenshots"] },
   { id: "certifications", fields: ["image", "platformIconUrl"] },
   { id: "education", fields: ["universityLogo", "logo"] },
@@ -36,13 +37,29 @@ const COLLECTIONS = [
 
 const BUCKET_BASE = `https://fra.cloud.appwrite.io/v1/storage/buckets/${STORAGE_BUCKET_ID}/files`;
 
-const PLATFORM_LOGOS: PlatformLogoEntry[] = [
-  { name: "Coursera", fileId: "69444cf7002630d6e37f", currentUrl: null },
-  { name: "Codecademy", fileId: "69444cf9000034490b06", currentUrl: null },
-  { name: "Scrimba", fileId: "69444cfa002656e07bf5", currentUrl: null },
-  { name: "AWS", fileId: "69444cf8000fb4abc729", currentUrl: null },
-  { name: "Frontend Masters", fileId: "69444cf90028bcba5187", currentUrl: null },
+// All platforms shown in the cert form dropdown
+const ALL_PLATFORMS = [
+  "Coursera",
+  "Codecademy",
+  "Scrimba",
+  "AWS",
+  "Frontend Masters",
+  "Udemy",
+  "LinkedIn Learning",
+  "Google",
+  "Microsoft",
+  "Meta",
+  "FreeCodeCamp",
 ];
+
+// Hardcoded fallback URLs for platforms that had files before settings-based overrides
+const HARDCODED_URLS: Record<string, string> = {
+  Codecademy: `${BUCKET_BASE}/69444cf9000034490b06/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
+  Scrimba: `${BUCKET_BASE}/69444cfa002656e07bf5/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
+  AWS: `${BUCKET_BASE}/6a08dac800096013ea70/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
+  "Frontend Masters": `${BUCKET_BASE}/69444cf90028bcba5187/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
+  Coursera: `${BUCKET_BASE}/69444cf7002630d6e37f/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
+};
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -60,8 +77,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [platformLogos, setPlatformLogos] = useState<PlatformLogoEntry[]>(PLATFORM_LOGOS);
+  const [platforms, setPlatforms] = useState<PlatformEntry[]>(
+    ALL_PLATFORMS.map((name) => ({ name, currentUrl: HARDCODED_URLS[name] ?? null })),
+  );
   const [replacingLogo, setReplacingLogo] = useState<string | null>(null);
+  const [savingLogo, setSavingLogo] = useState<string | null>(null);
 
   const card =
     theme === "dark" ? "bg-gray-800/60 border border-gray-700" : "bg-white border border-gray-200";
@@ -77,10 +97,20 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
+  // Load settings-based overrides on mount and merge over hardcoded defaults
+  useEffect(() => {
+    getPlatformLogoOverrides().then((overrides) => {
+      if (Object.keys(overrides).length === 0) return;
+      setPlatforms((prev) =>
+        prev.map((p) => (overrides[p.name] ? { ...p, currentUrl: overrides[p.name] } : p)),
+      );
+    });
+  }, []);
+
   const collectAllUrls = useCallback(async (): Promise<Set<string>> => {
     const urls = new Set<string>();
     await Promise.allSettled(
-      COLLECTIONS.map(async ({ id, fields }) => {
+      DB_COLLECTIONS.map(async ({ id, fields }) => {
         try {
           const res = await databases.listDocuments(DATABASE_ID, id, [Query.limit(500)]);
           for (const doc of res.documents) {
@@ -95,12 +125,14 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
             }
           }
         } catch {
-          // collection may not exist or have no docs — skip
+          // collection may not exist — skip
         }
       }),
     );
+    // Also mark all current platform logo URLs as referenced
+    platforms.forEach((p) => p.currentUrl && urls.add(p.currentUrl));
     return urls;
-  }, []);
+  }, [platforms]);
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
@@ -119,16 +151,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         for (const refUrl of referencedUrls) {
           if (refUrl.includes(f.$id)) {
             isOrphan = false;
-            const collMatch = COLLECTIONS.find(({ id }) => refUrl.includes(id));
+            const collMatch = DB_COLLECTIONS.find(({ id }) => refUrl.includes(id));
             if (collMatch && !usedIn.includes(collMatch.id)) usedIn.push(collMatch.id);
+            const platformMatch = platforms.find((p) => p.currentUrl?.includes(f.$id));
+            if (platformMatch && !usedIn.includes("platform-logo")) usedIn.push("platform-logo");
           }
-        }
-
-        // Platform logos are always "in use" even if not in a collection doc
-        const isPlatformLogo = PLATFORM_LOGOS.some((p) => p.fileId === f.$id);
-        if (isPlatformLogo) {
-          isOrphan = false;
-          usedIn.push("platform-logo");
         }
 
         return {
@@ -145,26 +172,17 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
 
       mapped.sort((a, b) => (a.isOrphan === b.isOrphan ? 0 : a.isOrphan ? -1 : 1));
       setFiles(mapped);
-
-      // Populate platform logo current URLs
-      setPlatformLogos(
-        PLATFORM_LOGOS.map((p) => ({
-          ...p,
-          currentUrl: p.fileId
-            ? `${BUCKET_BASE}/${p.fileId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`
-            : null,
-        })),
-      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load storage files");
     } finally {
       setLoading(false);
     }
-  }, [collectAllUrls]);
+  }, [collectAllUrls, platforms]);
 
   useEffect(() => {
     loadFiles();
-  }, [loadFiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDelete = async (fileId: string, fileName: string) => {
     if (!window.confirm(`Delete "${fileName}"? This cannot be undone.`)) return;
@@ -181,17 +199,23 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   };
 
   const handleReplaceLogo = async (platformName: string, newFileUrl: string) => {
-    // newFileUrl is already uploaded by ImageUpload — extract fileId and update platformLogos state
-    const newFileId = getFileIdFromUrl(newFileUrl);
-    setPlatformLogos((prev) =>
-      prev.map((p) =>
-        p.name === platformName ? { ...p, currentUrl: newFileUrl, fileId: newFileId } : p,
-      ),
-    );
-    setReplacingLogo(null);
-    showSuccess(`${platformName} logo updated — deploy to apply changes`);
-    // Reload file list to reflect new file
-    await loadFiles();
+    setSavingLogo(platformName);
+    try {
+      // Save to Appwrite settings so it persists across deploys
+      await setPlatformLogoUrl(platformName, newFileUrl);
+      // Apply override to in-memory platformLogos so PlatformLogo components update immediately
+      applyPlatformLogoOverrides({ [platformName]: newFileUrl });
+      setPlatforms((prev) =>
+        prev.map((p) => (p.name === platformName ? { ...p, currentUrl: newFileUrl } : p)),
+      );
+      setReplacingLogo(null);
+      showSuccess(`${platformName} logo updated`);
+      await loadFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save logo");
+    } finally {
+      setSavingLogo(null);
+    }
   };
 
   const orphans = files.filter((f) => f.isOrphan);
@@ -237,10 +261,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       <div className={`rounded-2xl p-6 ${card}`}>
         <h3 className={sectionHeader}>Platform Logos</h3>
         <p className={`${subText} mb-4`}>
-          Replace logos shown on certification cards. Upload any PNG, JPG, or SVG.
+          Replace logos shown on certification cards. Changes apply immediately — no redeploy
+          needed.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {platformLogos.map((p) => (
+          {platforms.map((p) => (
             <div
               key={p.name}
               className={`rounded-xl p-4 space-y-3 ${theme === "dark" ? "bg-gray-700/50" : "bg-gray-50"}`}
@@ -260,18 +285,29 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                     <FaImage className="text-gray-400 w-4 h-4" />
                   </div>
                 )}
-                <span className={`font-medium text-sm ${text}`}>{p.name}</span>
+                <div>
+                  <span className={`font-medium text-sm ${text}`}>{p.name}</span>
+                  {!p.currentUrl && (
+                    <p className="text-xs text-gray-500">No local file — using CDN</p>
+                  )}
+                </div>
               </div>
               {replacingLogo === p.name ? (
                 <div>
-                  <ImageUpload
-                    value=""
-                    onChange={(url) => handleReplaceLogo(p.name, url)}
-                    label={`${p.name} logo`}
-                    theme={theme}
-                    maxSizeMB={2}
-                    accept="image/*"
-                  />
+                  {savingLogo === p.name ? (
+                    <div className="flex items-center gap-2 text-xs text-oceanic-400 py-2">
+                      <FaSync className="animate-spin" /> Saving…
+                    </div>
+                  ) : (
+                    <ImageUpload
+                      value=""
+                      onChange={(url) => handleReplaceLogo(p.name, url)}
+                      label={`${p.name} logo`}
+                      theme={theme}
+                      maxSizeMB={2}
+                      accept="image/*"
+                    />
+                  )}
                   <button
                     onClick={() => setReplacingLogo(null)}
                     className={`text-xs mt-2 ${sub} hover:text-red-400`}
@@ -284,7 +320,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                   onClick={() => setReplacingLogo(p.name)}
                   className="w-full text-xs py-1.5 px-3 rounded-lg border border-oceanic-500/40 text-oceanic-400 hover:bg-oceanic-500/10 transition-colors"
                 >
-                  Replace Logo
+                  {p.currentUrl ? "Replace Logo" : "Upload Logo"}
                 </button>
               )}
             </div>

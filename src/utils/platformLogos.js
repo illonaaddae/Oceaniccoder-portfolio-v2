@@ -78,6 +78,13 @@ export const platformLogos = {
   },
 };
 
+// Runtime overrides loaded from Appwrite settings — applied by PlatformLogo on mount
+export const platformLogoOverrides = {};
+
+export const applyPlatformLogoOverrides = (overrides) => {
+  Object.assign(platformLogoOverrides, overrides);
+};
+
 /**
  * Get platform logo information
  * @param {string} platformName - Name of the platform
@@ -85,22 +92,26 @@ export const platformLogos = {
  */
 export const getPlatformLogo = (platformName) => {
   // Direct match
-  if (platformLogos[platformName]) {
-    return platformLogos[platformName];
-  }
+  const base = platformLogos[platformName];
 
   // Case-insensitive match
-  const normalizedName = Object.keys(platformLogos).find(
-    (key) => key.toLowerCase() === platformName.toLowerCase(),
-  );
+  const normalizedName = base
+    ? platformName
+    : Object.keys(platformLogos).find((key) => key.toLowerCase() === platformName.toLowerCase());
 
-  if (normalizedName) {
-    return platformLogos[normalizedName];
+  const info = normalizedName ? platformLogos[normalizedName] : null;
+
+  // Apply runtime override (from Appwrite settings) over local file ID
+  const overrideUrl =
+    platformLogoOverrides[platformName] ??
+    (normalizedName ? platformLogoOverrides[normalizedName] : undefined);
+
+  if (info) {
+    return overrideUrl ? { ...info, local: overrideUrl } : info;
   }
 
-  // Default fallback
   return {
-    local: null,
+    local: overrideUrl ?? null,
     cdn: null,
     fallback: platformName.substring(0, 2).toUpperCase(),
     color: "#6B7280",
