@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
+import {
+  FaTrash,
+  FaSync,
+  FaExclamationTriangle,
+  FaCheckCircle,
+  FaImage,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
 import { Query } from "appwrite";
 import { storage, STORAGE_BUCKET_ID, databases, DATABASE_ID } from "@/lib/appwrite";
 import { deleteImage } from "@/services/api/storage";
@@ -37,7 +45,6 @@ const DB_COLLECTIONS = [
 
 const BUCKET_BASE = `https://fra.cloud.appwrite.io/v1/storage/buckets/${STORAGE_BUCKET_ID}/files`;
 
-// All platforms shown in the cert form dropdown
 const ALL_PLATFORMS = [
   "Coursera",
   "Codecademy",
@@ -52,7 +59,6 @@ const ALL_PLATFORMS = [
   "FreeCodeCamp",
 ];
 
-// Hardcoded fallback URLs for platforms that had files before settings-based overrides
 const HARDCODED_URLS: Record<string, string> = {
   Codecademy: `${BUCKET_BASE}/69444cf9000034490b06/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
   Scrimba: `${BUCKET_BASE}/69444cfa002656e07bf5/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
@@ -61,11 +67,66 @@ const HARDCODED_URLS: Record<string, string> = {
   Coursera: `${BUCKET_BASE}/69444cf7002630d6e37f/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
 };
 
+const PAGE_SIZE = 10;
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
+
+interface PaginatorProps {
+  page: number;
+  total: number;
+  onPage: (p: number) => void;
+  sub: string;
+}
+
+const Paginator: React.FC<PaginatorProps> = ({ page, total, onPage, sub }) => {
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-700/40">
+      <span className={`text-xs ${sub}`}>
+        {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onPage(page - 1)}
+          disabled={page === 0}
+          title="Previous page"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <FaChevronLeft className="w-3 h-3" />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i).map((i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onPage(i)}
+            className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
+              i === page
+                ? "bg-oceanic-600 text-white"
+                : "text-gray-400 hover:text-white hover:bg-gray-700"
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => onPage(page + 1)}
+          disabled={page >= totalPages - 1}
+          title="Next page"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <FaChevronRight className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 interface StorageCleanupTabProps {
   theme: "light" | "dark";
@@ -77,11 +138,14 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [collectionErrors, setCollectionErrors] = useState<string[]>([]);
   const [platforms, setPlatforms] = useState<PlatformEntry[]>(
     ALL_PLATFORMS.map((name) => ({ name, currentUrl: HARDCODED_URLS[name] ?? null })),
   );
   const [replacingLogo, setReplacingLogo] = useState<string | null>(null);
   const [savingLogo, setSavingLogo] = useState<string | null>(null);
+  const [orphanPage, setOrphanPage] = useState(0);
+  const [inUsePage, setInUsePage] = useState(0);
 
   const card =
     theme === "dark" ? "bg-gray-800/60 border border-gray-700" : "bg-white border border-gray-200";
@@ -97,7 +161,6 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  // Load settings-based overrides on mount and merge over hardcoded defaults
   useEffect(() => {
     getPlatformLogoOverrides().then((overrides) => {
       if (Object.keys(overrides).length === 0) return;
@@ -109,6 +172,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
 
   const collectAllUrls = useCallback(async (): Promise<Set<string>> => {
     const urls = new Set<string>();
+    const errors: string[] = [];
+
     await Promise.allSettled(
       DB_COLLECTIONS.map(async ({ id, fields }) => {
         try {
@@ -124,12 +189,14 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
               }
             }
           }
-        } catch {
-          // collection may not exist — skip
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          errors.push(`${id}: ${msg}`);
         }
       }),
     );
-    // Also mark all current platform logo URLs as referenced
+
+    setCollectionErrors(errors);
     platforms.forEach((p) => p.currentUrl && urls.add(p.currentUrl));
     return urls;
   }, [platforms]);
@@ -172,6 +239,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
 
       mapped.sort((a, b) => (a.isOrphan === b.isOrphan ? 0 : a.isOrphan ? -1 : 1));
       setFiles(mapped);
+      setOrphanPage(0);
+      setInUsePage(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load storage files");
     } finally {
@@ -201,9 +270,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const handleReplaceLogo = async (platformName: string, newFileUrl: string) => {
     setSavingLogo(platformName);
     try {
-      // Save to Appwrite settings so it persists across deploys
       await setPlatformLogoUrl(platformName, newFileUrl);
-      // Apply override to in-memory platformLogos so PlatformLogo components update immediately
       applyPlatformLogoOverrides({ [platformName]: newFileUrl });
       setPlatforms((prev) =>
         prev.map((p) => (p.name === platformName ? { ...p, currentUrl: newFileUrl } : p)),
@@ -222,8 +289,60 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const inUse = files.filter((f) => !f.isOrphan);
   const orphanSize = orphans.reduce((s, f) => s + f.sizeOriginal, 0);
 
+  const orphanPage$ = orphans.slice(orphanPage * PAGE_SIZE, (orphanPage + 1) * PAGE_SIZE);
+  const inUsePage$ = inUse.slice(inUsePage * PAGE_SIZE, (inUsePage + 1) * PAGE_SIZE);
+
   const sectionHeader = `text-lg font-bold mb-4 ${text}`;
   const subText = `text-sm ${sub}`;
+
+  const renderFileRow = (f: StorageFile, showDelete: boolean) => (
+    <div
+      key={f.$id}
+      className={`flex items-center gap-3 p-3 rounded-xl ${
+        theme === "dark" ? (showDelete ? "bg-gray-700/40" : "bg-gray-700/20") : "bg-gray-50"
+      }`}
+    >
+      {f.mimeType.startsWith("image/") ? (
+        <img
+          src={f.url}
+          alt={f.name}
+          className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <div className="w-10 h-10 rounded-lg bg-gray-600 flex items-center justify-center flex-shrink-0">
+          <FaImage className="text-gray-400" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium truncate ${text}`}>{f.name}</p>
+        <p className={`text-xs ${sub}`}>
+          {formatBytes(f.sizeOriginal)} ·{" "}
+          {showDelete ? f.mimeType : `used in: ${f.usedIn.join(", ")}`}
+        </p>
+      </div>
+      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${badge(showDelete)}`}>
+        {showDelete ? "Orphan" : "In use"}
+      </span>
+      {showDelete && (
+        <button
+          type="button"
+          onClick={() => handleDelete(f.$id, f.name)}
+          disabled={deleting === f.$id}
+          className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+          title="Delete file"
+        >
+          {deleting === f.$id ? (
+            <FaSync className="animate-spin w-4 h-4" />
+          ) : (
+            <FaTrash className="w-4 h-4" />
+          )}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-8 p-6">
@@ -236,6 +355,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           </p>
         </div>
         <button
+          type="button"
           onClick={loadFiles}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-500 transition-colors disabled:opacity-50"
@@ -254,6 +374,17 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       {successMsg && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/20 text-green-400 border border-green-500/30 text-sm">
           <FaCheckCircle /> {successMsg}
+        </div>
+      )}
+      {collectionErrors.length > 0 && (
+        <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs space-y-1">
+          <p className="font-semibold">
+            Warning: some collections could not be scanned (files in these may be incorrectly
+            flagged as orphans):
+          </p>
+          {collectionErrors.map((e) => (
+            <p key={e}>• {e}</p>
+          ))}
         </div>
       )}
 
@@ -309,6 +440,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                     />
                   )}
                   <button
+                    type="button"
                     onClick={() => setReplacingLogo(null)}
                     className={`text-xs mt-2 ${sub} hover:text-red-400`}
                   >
@@ -317,6 +449,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                 </div>
               ) : (
                 <button
+                  type="button"
                   onClick={() => setReplacingLogo(p.name)}
                   className="w-full text-xs py-1.5 px-3 rounded-lg border border-oceanic-500/40 text-oceanic-400 hover:bg-oceanic-500/10 transition-colors"
                 >
@@ -345,45 +478,10 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
             <FaCheckCircle /> No orphaned files — storage is clean.
           </div>
         ) : (
-          <div className="space-y-2">
-            {orphans.map((f) => (
-              <div
-                key={f.$id}
-                className={`flex items-center gap-3 p-3 rounded-xl ${theme === "dark" ? "bg-gray-700/40" : "bg-gray-50"}`}
-              >
-                {f.mimeType.startsWith("image/") ? (
-                  <img
-                    src={f.url}
-                    alt={f.name}
-                    className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-gray-600 flex items-center justify-center flex-shrink-0">
-                    <FaImage className="text-gray-400" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium truncate ${text}`}>{f.name}</p>
-                  <p className={`text-xs ${sub}`}>
-                    {formatBytes(f.sizeOriginal)} · {f.mimeType}
-                  </p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${badge(true)}`}>Orphan</span>
-                <button
-                  onClick={() => handleDelete(f.$id, f.name)}
-                  disabled={deleting === f.$id}
-                  className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                  title="Delete file"
-                >
-                  {deleting === f.$id ? (
-                    <FaSync className="animate-spin w-4 h-4" />
-                  ) : (
-                    <FaTrash className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="space-y-2">{orphanPage$.map((f) => renderFileRow(f, true))}</div>
+            <Paginator page={orphanPage} total={orphans.length} onPage={setOrphanPage} sub={sub} />
+          </>
         )}
       </div>
 
@@ -394,36 +492,10 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         {loading ? (
           <p className={subText}>Loading…</p>
         ) : (
-          <div className="space-y-2">
-            {inUse.map((f) => (
-              <div
-                key={f.$id}
-                className={`flex items-center gap-3 p-3 rounded-xl ${theme === "dark" ? "bg-gray-700/20" : "bg-gray-50"}`}
-              >
-                {f.mimeType.startsWith("image/") || f.mimeType === "application/pdf" ? (
-                  <img
-                    src={f.mimeType.startsWith("image/") ? f.url : ""}
-                    alt={f.name}
-                    className="w-10 h-10 object-cover rounded-lg flex-shrink-0 bg-gray-700"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-gray-600 flex items-center justify-center flex-shrink-0">
-                    <FaImage className="text-gray-400" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium truncate ${text}`}>{f.name}</p>
-                  <p className={`text-xs ${sub}`}>
-                    {formatBytes(f.sizeOriginal)} · used in: {f.usedIn.join(", ")}
-                  </p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${badge(false)}`}>In use</span>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="space-y-2">{inUsePage$.map((f) => renderFileRow(f, false))}</div>
+            <Paginator page={inUsePage} total={inUse.length} onPage={setInUsePage} sub={sub} />
+          </>
         )}
       </div>
     </div>
