@@ -21,7 +21,7 @@ export const platformLogos = {
   },
   AWS: {
     local:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf8000fb4abc729/view?project=6943431e00253c8f9883",
+      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/6a08dac800096013ea70/view?project=6943431e00253c8f9883",
     cdn: "https://cdn.simpleicons.org/amazonwebservices/FF9900",
     fallback: "AWS",
     color: "#FF9900",
