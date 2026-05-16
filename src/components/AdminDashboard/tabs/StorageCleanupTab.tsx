@@ -146,6 +146,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [savingLogo, setSavingLogo] = useState<string | null>(null);
   const [orphanPage, setOrphanPage] = useState(0);
   const [inUsePage, setInUsePage] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const card = "glass-card";
   const text = theme === "dark" ? "text-white" : "text-slate-900";
@@ -252,13 +253,19 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDelete = async (fileId: string, fileName: string) => {
-    if (!window.confirm(`Delete "${fileName}"? This cannot be undone.`)) return;
+  const confirmAndDelete = (fileId: string, fileName: string) => {
+    setConfirmDelete({ id: fileId, name: fileName });
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    const { id: fileId, name: fileName } = confirmDelete;
+    setConfirmDelete(null);
     setDeleting(fileId);
     try {
       await deleteImage(fileId);
       setFiles((prev) => prev.filter((f) => f.$id !== fileId));
-      showSuccess(`Deleted "${fileName}"`);
+      showSuccess(`"${fileName}" deleted successfully`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     } finally {
@@ -323,7 +330,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       {showDelete && (
         <button
           type="button"
-          onClick={() => handleDelete(f.$id, f.name)}
+          onClick={() => confirmAndDelete(f.$id, f.name)}
           disabled={deleting === f.$id}
           className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
           title="Delete file"
@@ -339,157 +346,203 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   );
 
   return (
-    <div className="space-y-8 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`text-2xl font-bold ${text}`}>Storage Cleanup</h2>
-          <p className={subText}>
-            {files.length} files · {orphans.length} orphaned · {formatBytes(orphanSize)} reclaimable
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={loadFiles}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-500 transition-colors disabled:opacity-50"
-        >
-          <FaSync className={loading ? "animate-spin" : ""} />
-          {loading ? "Scanning…" : "Refresh"}
-        </button>
-      </div>
-
-      {/* Toast messages */}
-      {error && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-sm">
-          <FaExclamationTriangle /> {error}
-        </div>
-      )}
-      {successMsg && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/20 text-green-400 border border-green-500/30 text-sm">
-          <FaCheckCircle /> {successMsg}
-        </div>
-      )}
-      {collectionErrors.length > 0 && (
-        <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs space-y-1">
-          <p className="font-semibold">
-            Warning: some collections could not be scanned (files in these may be incorrectly
-            flagged as orphans):
-          </p>
-          {collectionErrors.map((e) => (
-            <p key={e}>• {e}</p>
-          ))}
-        </div>
-      )}
-
-      {/* Platform Logos Manager */}
-      <div className={`rounded-2xl p-6 ${card}`}>
-        <h3 className={sectionHeader}>Platform Logos</h3>
-        <p className={`${subText} mb-4`}>
-          Replace logos shown on certification cards. Changes apply immediately — no redeploy
-          needed.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {platforms.map((p) => (
-            <div key={p.name} className={`rounded-xl p-4 space-y-3 bg-gray-700/30`}>
-              <div className="flex items-center gap-3">
-                {p.currentUrl ? (
-                  <img
-                    src={p.currentUrl}
-                    alt={p.name}
-                    className="w-8 h-8 object-contain rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded bg-gray-600 flex items-center justify-center">
-                    <FaImage className="text-gray-400 w-4 h-4" />
-                  </div>
-                )}
-                <div>
-                  <span className={`font-medium text-sm ${text}`}>{p.name}</span>
-                  {!p.currentUrl && (
-                    <p className="text-xs text-gray-500">No local file — using CDN</p>
-                  )}
-                </div>
+    <>
+      {/* Custom delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                <FaTrash className="text-red-400 w-4 h-4" />
               </div>
-              {replacingLogo === p.name ? (
-                <div>
-                  {savingLogo === p.name ? (
-                    <div className="flex items-center gap-2 text-xs text-oceanic-400 py-2">
-                      <FaSync className="animate-spin" /> Saving…
-                    </div>
-                  ) : (
-                    <ImageUpload
-                      value=""
-                      onChange={(url) => handleReplaceLogo(p.name, url)}
-                      label={`${p.name} logo`}
-                      theme={theme}
-                      maxSizeMB={2}
-                      accept="image/*"
+              <h3 className={`text-lg font-bold ${text}`}>Delete File</h3>
+            </div>
+            <p className={`mb-6 text-sm ${sub}`}>
+              Are you sure you want to delete{" "}
+              <span className={`font-semibold ${text}`}>"{confirmDelete.name}"</span>? This cannot
+              be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(null)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="space-y-8 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className={`text-2xl font-bold ${text}`}>Storage Cleanup</h2>
+            <p className={subText}>
+              {files.length} files · {orphans.length} orphaned · {formatBytes(orphanSize)}{" "}
+              reclaimable
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={loadFiles}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-500 transition-colors disabled:opacity-50"
+          >
+            <FaSync className={loading ? "animate-spin" : ""} />
+            {loading ? "Scanning…" : "Refresh"}
+          </button>
+        </div>
+
+        {/* Toast messages */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-sm">
+            <FaExclamationTriangle /> {error}
+          </div>
+        )}
+        {successMsg && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/20 text-green-400 border border-green-500/30 text-sm">
+            <FaCheckCircle /> {successMsg}
+          </div>
+        )}
+        {collectionErrors.length > 0 && (
+          <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs space-y-1">
+            <p className="font-semibold">
+              Warning: some collections could not be scanned (files in these may be incorrectly
+              flagged as orphans):
+            </p>
+            {collectionErrors.map((e) => (
+              <p key={e}>• {e}</p>
+            ))}
+          </div>
+        )}
+
+        {/* Platform Logos Manager */}
+        <div className={`rounded-2xl p-6 ${card}`}>
+          <h3 className={sectionHeader}>Platform Logos</h3>
+          <p className={`${subText} mb-4`}>
+            Replace logos shown on certification cards. Changes apply immediately — no redeploy
+            needed.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {platforms.map((p) => (
+              <div key={p.name} className={`rounded-xl p-4 space-y-3 bg-gray-700/30`}>
+                <div className="flex items-center gap-3">
+                  {p.currentUrl ? (
+                    <img
+                      src={p.currentUrl}
+                      alt={p.name}
+                      className="w-8 h-8 object-contain rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-gray-600 flex items-center justify-center">
+                      <FaImage className="text-gray-400 w-4 h-4" />
+                    </div>
                   )}
+                  <div>
+                    <span className={`font-medium text-sm ${text}`}>{p.name}</span>
+                    {!p.currentUrl && (
+                      <p className="text-xs text-gray-500">No local file — using CDN</p>
+                    )}
+                  </div>
+                </div>
+                {replacingLogo === p.name ? (
+                  <div>
+                    {savingLogo === p.name ? (
+                      <div className="flex items-center gap-2 text-xs text-oceanic-400 py-2">
+                        <FaSync className="animate-spin" /> Saving…
+                      </div>
+                    ) : (
+                      <ImageUpload
+                        value=""
+                        onChange={(url) => handleReplaceLogo(p.name, url)}
+                        label={`${p.name} logo`}
+                        theme={theme}
+                        maxSizeMB={2}
+                        accept="image/*"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setReplacingLogo(null)}
+                      className={`text-xs mt-2 ${sub} hover:text-red-400`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => setReplacingLogo(null)}
-                    className={`text-xs mt-2 ${sub} hover:text-red-400`}
+                    onClick={() => setReplacingLogo(p.name)}
+                    className="w-full text-xs py-1.5 px-3 rounded-lg border border-oceanic-500/40 text-oceanic-400 hover:bg-oceanic-500/10 transition-colors"
                   >
-                    Cancel
+                    {p.currentUrl ? "Replace Logo" : "Upload Logo"}
                   </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setReplacingLogo(p.name)}
-                  className="w-full text-xs py-1.5 px-3 rounded-lg border border-oceanic-500/40 text-oceanic-400 hover:bg-oceanic-500/10 transition-colors"
-                >
-                  {p.currentUrl ? "Replace Logo" : "Upload Logo"}
-                </button>
-              )}
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Orphaned Files */}
+        <div className={`rounded-2xl p-6 ${card}`}>
+          <h3 className={sectionHeader}>
+            Orphaned Files{" "}
+            {orphans.length > 0 && (
+              <span className="text-sm font-normal text-red-400 ml-2">
+                ({orphans.length} · {formatBytes(orphanSize)})
+              </span>
+            )}
+          </h3>
+          {loading ? (
+            <p className={subText}>Scanning…</p>
+          ) : orphans.length === 0 ? (
+            <div className="flex items-center gap-2 text-green-400 text-sm">
+              <FaCheckCircle /> No orphaned files — storage is clean.
             </div>
-          ))}
+          ) : (
+            <>
+              <div className="space-y-2">{orphanPage$.map((f) => renderFileRow(f, true))}</div>
+              <Paginator
+                page={orphanPage}
+                total={orphans.length}
+                onPage={setOrphanPage}
+                sub={sub}
+              />
+            </>
+          )}
+        </div>
+
+        {/* In-Use Files */}
+        <div className={`rounded-2xl p-6 ${card}`}>
+          <h3 className={sectionHeader}>In-Use Files ({inUse.length})</h3>
+          <p className={`${subText} mb-4`}>These are referenced by your database. Safe to keep.</p>
+          {loading ? (
+            <p className={subText}>Loading…</p>
+          ) : (
+            <>
+              <div className="space-y-2">{inUsePage$.map((f) => renderFileRow(f, false))}</div>
+              <Paginator page={inUsePage} total={inUse.length} onPage={setInUsePage} sub={sub} />
+            </>
+          )}
         </div>
       </div>
-
-      {/* Orphaned Files */}
-      <div className={`rounded-2xl p-6 ${card}`}>
-        <h3 className={sectionHeader}>
-          Orphaned Files{" "}
-          {orphans.length > 0 && (
-            <span className="text-sm font-normal text-red-400 ml-2">
-              ({orphans.length} · {formatBytes(orphanSize)})
-            </span>
-          )}
-        </h3>
-        {loading ? (
-          <p className={subText}>Scanning…</p>
-        ) : orphans.length === 0 ? (
-          <div className="flex items-center gap-2 text-green-400 text-sm">
-            <FaCheckCircle /> No orphaned files — storage is clean.
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">{orphanPage$.map((f) => renderFileRow(f, true))}</div>
-            <Paginator page={orphanPage} total={orphans.length} onPage={setOrphanPage} sub={sub} />
-          </>
-        )}
-      </div>
-
-      {/* In-Use Files */}
-      <div className={`rounded-2xl p-6 ${card}`}>
-        <h3 className={sectionHeader}>In-Use Files ({inUse.length})</h3>
-        <p className={`${subText} mb-4`}>These are referenced by your database. Safe to keep.</p>
-        {loading ? (
-          <p className={subText}>Loading…</p>
-        ) : (
-          <>
-            <div className="space-y-2">{inUsePage$.map((f) => renderFileRow(f, false))}</div>
-            <Paginator page={inUsePage} total={inUse.length} onPage={setInUsePage} sub={sub} />
-          </>
-        )}
-      </div>
-    </div>
+    </>
   );
 };
 
