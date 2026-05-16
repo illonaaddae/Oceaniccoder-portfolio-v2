@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
+import { Query } from "appwrite";
 import { storage, STORAGE_BUCKET_ID, databases, DATABASE_ID } from "@/lib/appwrite";
 import { deleteImage, getFileIdFromUrl } from "@/services/api/storage";
 import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
@@ -81,7 +82,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     await Promise.allSettled(
       COLLECTIONS.map(async ({ id, fields }) => {
         try {
-          const res = await databases.listDocuments(DATABASE_ID, id, []);
+          const res = await databases.listDocuments(DATABASE_ID, id, [Query.limit(500)]);
           for (const doc of res.documents) {
             for (const field of fields) {
               const val = doc[field];
@@ -106,7 +107,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     setError(null);
     try {
       const [filesRes, referencedUrls] = await Promise.all([
-        storage.listFiles(STORAGE_BUCKET_ID),
+        storage.listFiles(STORAGE_BUCKET_ID, [Query.limit(500)]),
         collectAllUrls(),
       ]);
 
