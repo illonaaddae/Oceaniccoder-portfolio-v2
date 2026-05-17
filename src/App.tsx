@@ -2,14 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter } from "react-router-dom";
 import { PortfolioProvider } from "./Context";
-import ErrorBoundary from "./components/ErrorBoundary";
+import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import MainLayout from "./components/MainLayout";
 import AnimatedRoutes from "./components/AnimatedRoutes";
 import RouteChangeHandler from "./components/RouteChangeHandler";
 import TerminalLoader from "./components/TerminalLoader";
 import Chatbot from "./components/Chatbot";
 import useTheme from "./hooks/useTheme";
-import { logger } from "./utils/logger";
 import {
   verifyAdminPassword,
   hashPassword,
@@ -84,17 +83,10 @@ function App() {
 
   return (
     <HelmetProvider>
-      <ErrorBoundary
-        onError={(error, errorInfo) => {
-          logger.error("Application Error", {
-            error: error.message,
-            componentStack: errorInfo.componentStack,
-          });
-        }}
-      >
-        <PortfolioProvider>
-          <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
-            <BrowserRouter>
+      <PortfolioProvider>
+        <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
+          <BrowserRouter>
+            <RouteErrorBoundary>
               <MainLayout theme={theme} toggleTheme={toggleTheme}>
                 <TerminalLoader />
                 <React.Suspense fallback={<div className="min-h-screen bg-[#0d1117]" />}>
@@ -107,10 +99,10 @@ function App() {
                   <Chatbot />
                 </React.Suspense>
               </MainLayout>
-            </BrowserRouter>
-          </div>
-        </PortfolioProvider>
-      </ErrorBoundary>
+            </RouteErrorBoundary>
+          </BrowserRouter>
+        </div>
+      </PortfolioProvider>
     </HelmetProvider>
   );
 }
