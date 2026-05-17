@@ -91,6 +91,10 @@ export const applyPlatformLogoOverrides = (overrides) => {
  * @returns {object} Logo info with local, cdn, fallback text, and color
  */
 export const getPlatformLogo = (platformName) => {
+  if (!platformName) {
+    return { local: null, cdn: null, fallback: "?", color: "#6B7280" };
+  }
+
   // Direct match
   const base = platformLogos[platformName];
 
