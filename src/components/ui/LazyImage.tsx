@@ -23,7 +23,7 @@ const SIZE_PRESETS = {
   thumbnail: { width: 150, height: 150 },
   card: { width: 400, height: 300 },
   blog: { width: 800, height: 450 },
-  hero: { width: 1200, height: 675 },
+  hero: { width: 800, height: 450 },
   full: { width: 1920, height: 1080 },
 };
 
@@ -72,7 +72,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   // Generate srcSet for responsive images
   const srcSet = useMemo(() => {
     if (!src || disableOptimization || !isAppwriteUrl(src)) return "";
-    return generateSrcSet(src, [320, 640, 768, 1024, 1280]);
+    return generateSrcSet(src, [320, 480, 640, 768, 1024, 1280]);
   }, [src, disableOptimization]);
 
   // Intersection Observer to detect when image enters viewport
@@ -193,7 +193,13 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         <img
           src={currentSrc}
           srcSet={srcSet || undefined}
-          sizes={srcSet ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" : undefined}
+          sizes={
+            srcSet
+              ? displaySize === "hero" || displaySize === "full"
+                ? "100vw"
+                : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              : undefined
+          }
           alt={alt}
           loading={displaySize === "hero" ? "eager" : "lazy"}
           fetchPriority={displaySize === "hero" ? "high" : "auto"}
