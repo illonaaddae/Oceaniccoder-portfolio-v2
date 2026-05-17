@@ -20,10 +20,17 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
   const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(e.target as globalThis.Node)) {
+      const target = e.target as globalThis.Node;
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -77,6 +84,7 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
       {open &&
         createPortal(
           <div
+            ref={menuRef}
             style={dropdownStyle}
             className="glass-card border border-oceanic-500/30 rounded-xl overflow-hidden shadow-2xl shadow-black/50 overflow-y-auto"
           >
