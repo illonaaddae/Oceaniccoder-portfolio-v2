@@ -77,8 +77,8 @@ export function useContactForm() {
         errorMessage = "Request timed out. Please check your internet connection and try again.";
       }
 
-      if (!errorMessage.includes("info@illonaaddae.com") && !errorMessage.includes("email")) {
-        errorMessage += " Alternatively, you can contact me directly at info@illonaaddae.com";
+      if (!errorMessage.includes("info@oceaniccoder.dev") && !errorMessage.includes("email")) {
+        errorMessage += " Alternatively, you can contact me directly at info@oceaniccoder.dev";
       }
 
       setResponseMessage(errorMessage);

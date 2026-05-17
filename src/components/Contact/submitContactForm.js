@@ -37,7 +37,7 @@ export async function submitContactForm(formDataToSend, formData) {
     }
     if (fetchError instanceof TypeError && fetchError.message.includes("Failed to fetch")) {
       throw new Error(
-        "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at info@illonaaddae.com",
+        "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at info@oceaniccoder.dev",
       );
     }
     throw fetchError;
@@ -61,7 +61,7 @@ export async function submitContactForm(formDataToSend, formData) {
   if (json && json.success === false) {
     throw new Error(
       json.message ||
-        "The form submission was not successful. Please try again or contact me directly at info@illonaaddae.com",
+        "The form submission was not successful. Please try again or contact me directly at info@oceaniccoder.dev",
     );
   }
   // Save to database (fire-and-forget)
