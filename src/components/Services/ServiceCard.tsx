@@ -47,7 +47,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ pkg, index }) => (
 
     <div className="p-6 pt-0">
       <Link
-        to={`/contact?service=${encodeURIComponent(pkg.name)}`}
+        to={`/inquiry?service=${encodeURIComponent(pkg.name)}`}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all duration-300 bg-oceanic-600 hover:bg-oceanic-700 text-white shadow-lg hover:shadow-oceanic-500/30"
       >
         Get Started <FaArrowRight className="text-sm" />

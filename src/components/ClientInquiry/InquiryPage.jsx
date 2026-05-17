@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { FaBriefcase, FaCheckCircle, FaArrowRight } from "react-icons/fa";
 import { createInquiry } from "../../services/api/inquiries";
@@ -156,7 +157,13 @@ const INITIAL_FORM = {
 };
 
 export default function InquiryPage() {
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [searchParams] = useSearchParams();
+  const serviceParam = searchParams.get("service");
+
+  const [form, setForm] = useState({
+    ...INITIAL_FORM,
+    notes: serviceParam ? `Interested in the "${serviceParam}" package.` : "",
+  });
   const [status, setStatus] = useState("idle");
   const [errors, setErrors] = useState({});
 
