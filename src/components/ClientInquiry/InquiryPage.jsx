@@ -248,6 +248,7 @@ export default function InquiryPage() {
         body: JSON.stringify({ name: form.name, email: form.email, projectType: resolvedType }),
       }).catch(() => {});
       setStatus("success");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setStatus("error");
     }
