@@ -131,7 +131,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       clearTimeout(timeoutId);
       observer.disconnect();
     };
-  }, [optimizedSrc, currentSrc]);
+  }, [optimizedSrc, currentSrc, displaySize]);
 
   // Reset state when src changes
   useEffect(() => {
@@ -188,13 +188,13 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         <div className="absolute inset-0 backdrop-blur-sm bg-white/5" />
       </div>
 
-      {/* Actual image */}
+      {/* Actual image — only set src once in-view to give our observer control over load timing */}
       {currentSrc && (
         <img
-          src={currentSrc}
-          srcSet={srcSet || undefined}
+          src={isInView ? currentSrc : undefined}
+          srcSet={isInView && srcSet ? srcSet : undefined}
           sizes={
-            srcSet
+            isInView && srcSet
               ? displaySize === "hero" || displaySize === "full"
                 ? "100vw"
                 : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
