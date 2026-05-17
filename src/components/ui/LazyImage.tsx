@@ -95,6 +95,12 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       return false;
     };
 
+    // Hero images: skip observer entirely, mark in-view immediately
+    if (displaySize === "hero") {
+      setIsInView(true);
+      return;
+    }
+
     // Run visibility check with a small delay to ensure layout is complete
     const timeoutId = setTimeout(() => {
       if (checkInitialVisibility()) {
@@ -189,7 +195,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
           srcSet={srcSet || undefined}
           sizes={srcSet ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" : undefined}
           alt={alt}
-          loading="lazy"
+          loading={displaySize === "hero" ? "eager" : "lazy"}
+          fetchPriority={displaySize === "hero" ? "high" : "auto"}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
