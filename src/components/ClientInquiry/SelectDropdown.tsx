@@ -39,11 +39,16 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
   const handleOpen = () => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
+    const maxH = 320;
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    const openUpward = spaceBelow < maxH && spaceAbove > spaceBelow;
     setDropdownStyle({
       position: "fixed",
-      top: rect.bottom + 4,
+      ...(openUpward ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
       left: rect.left,
       width: rect.width,
+      maxHeight: Math.max(openUpward ? spaceAbove : spaceBelow, 200),
       zIndex: 9999,
     });
     setOpen((prev) => !prev);
@@ -73,7 +78,7 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
         createPortal(
           <div
             style={dropdownStyle}
-            className="glass-card border border-oceanic-500/30 rounded-xl overflow-hidden shadow-2xl shadow-black/50 max-h-60 overflow-y-auto"
+            className="glass-card border border-oceanic-500/30 rounded-xl overflow-hidden shadow-2xl shadow-black/50 overflow-y-auto"
           >
             <button
               type="button"
