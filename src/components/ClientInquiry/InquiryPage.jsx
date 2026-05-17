@@ -238,10 +238,7 @@ export default function InquiryPage() {
 
   if (status === "success") {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center px-4"
-        style={{ background: "var(--bg-primary)" }}
-      >
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <FaCheckCircle className="text-6xl text-oceanic-500 mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-3">Got it, thanks!</h1>
@@ -251,8 +248,7 @@ export default function InquiryPage() {
           </p>
           <a
             href="https://oceaniccoder.dev"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" }}
+            className="glass-btn bg-gradient-to-r from-oceanic-600 to-oceanic-900 text-white inline-flex items-center gap-2 px-6 py-3 font-semibold"
           >
             Back to Portfolio <FaArrowRight />
           </a>
@@ -260,14 +256,6 @@ export default function InquiryPage() {
       </div>
     );
   }
-
-  const inputClass =
-    "w-full px-4 py-3 rounded-xl text-[var(--text-primary)] outline-none transition-all focus:ring-2 focus:ring-oceanic-400/50";
-  const inputStyle = {
-    background: "var(--bg-secondary)",
-    border: "1px solid var(--border-subtle)",
-    fontSize: "16px",
-  };
 
   return (
     <div
@@ -293,10 +281,7 @@ export default function InquiryPage() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: "var(--accent-teal-subtle)" }}
-          >
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-oceanic-500/10">
             <FaBriefcase className="text-2xl" style={{ color: "var(--accent-teal)" }} />
           </div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
@@ -307,11 +292,7 @@ export default function InquiryPage() {
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6 rounded-2xl p-8"
-          style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
-        >
+        <form onSubmit={handleSubmit} className="glass-card space-y-6 p-8">
           {/* Name + Email */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -323,8 +304,7 @@ export default function InquiryPage() {
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 placeholder="Jane Doe"
-                className={inputClass}
-                style={inputStyle}
+                className="w-full glass-input"
               />
               {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
             </div>
@@ -337,8 +317,7 @@ export default function InquiryPage() {
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 placeholder="jane@example.com"
-                className={inputClass}
-                style={inputStyle}
+                className="w-full glass-input"
               />
               {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
             </div>
@@ -354,8 +333,7 @@ export default function InquiryPage() {
               value={form.phone}
               onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
               placeholder="+233 XX XXX XXXX"
-              className={inputClass}
-              style={inputStyle}
+              className="w-full glass-input"
             />
           </div>
 
@@ -367,8 +345,7 @@ export default function InquiryPage() {
             <select
               value={form.projectType}
               onChange={(e) => handleProjectTypeChange(e.target.value)}
-              className={inputClass}
-              style={inputStyle}
+              className="w-full glass-input"
             >
               <option value="">Select a type...</option>
               {PROJECT_TYPES.map((t) => (
@@ -383,8 +360,7 @@ export default function InquiryPage() {
                 value={form.otherProjectType}
                 onChange={(e) => setForm((p) => ({ ...p, otherProjectType: e.target.value }))}
                 placeholder="Describe your project type..."
-                className={`${inputClass} mt-2`}
-                style={inputStyle}
+                className="w-full glass-input mt-2"
               />
             )}
             {errors.projectType && (
@@ -402,8 +378,7 @@ export default function InquiryPage() {
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               placeholder="Describe what you want built, who it's for, and any key requirements..."
               rows={5}
-              className={inputClass}
-              style={{ ...inputStyle, resize: "vertical" }}
+              className="w-full glass-input"
             />
             {errors.description && (
               <p className="mt-1 text-xs text-red-400">{errors.description}</p>
@@ -431,15 +406,10 @@ export default function InquiryPage() {
                     key={f}
                     type="button"
                     onClick={() => toggleFeature(f)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                    style={
+                    className={
                       form.features.includes(f)
-                        ? { background: "var(--accent-teal)", color: "#fff" }
-                        : {
-                            background: "var(--bg-primary)",
-                            border: "1px solid var(--border-subtle)",
-                            color: "var(--text-secondary)",
-                          }
+                        ? "px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-oceanic-500 text-white"
+                        : "px-3 py-1.5 rounded-lg text-sm font-medium transition-all glass-btn text-[var(--text-secondary)]"
                     }
                   >
                     {f}
@@ -463,19 +433,10 @@ export default function InquiryPage() {
                   key={String(value)}
                   type="button"
                   onClick={() => setForm((p) => ({ ...p, hasLogo: value }))}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-                  style={
+                  className={
                     form.hasLogo === value
-                      ? {
-                          background: "var(--accent-teal)",
-                          color: "#fff",
-                          border: "1px solid transparent",
-                        }
-                      : {
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-subtle)",
-                          color: "var(--text-secondary)",
-                        }
+                      ? "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all bg-oceanic-500 text-white border border-transparent"
+                      : "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all glass-btn text-[var(--text-secondary)]"
                   }
                 >
                   {label}
@@ -504,19 +465,10 @@ export default function InquiryPage() {
                       domainExtension: value ? p.domainExtension : "",
                     }))
                   }
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-                  style={
+                  className={
                     form.needsDomain === value
-                      ? {
-                          background: "var(--accent-teal)",
-                          color: "#fff",
-                          border: "1px solid transparent",
-                        }
-                      : {
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-subtle)",
-                          color: "var(--text-secondary)",
-                        }
+                      ? "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all bg-oceanic-500 text-white border border-transparent"
+                      : "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all glass-btn text-[var(--text-secondary)]"
                   }
                 >
                   {label}
@@ -534,19 +486,10 @@ export default function InquiryPage() {
                       key={ext}
                       type="button"
                       onClick={() => setForm((p) => ({ ...p, domainExtension: ext }))}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex flex-col items-center gap-0.5"
-                      style={
+                      className={
                         form.domainExtension === ext
-                          ? {
-                              background: "var(--accent-teal)",
-                              color: "#fff",
-                              border: "1px solid transparent",
-                            }
-                          : {
-                              background: "var(--bg-primary)",
-                              border: "1px solid var(--border-subtle)",
-                              color: "var(--text-secondary)",
-                            }
+                          ? "px-4 py-2 rounded-lg text-sm font-medium transition-all flex flex-col items-center gap-0.5 bg-oceanic-500 text-white border border-transparent"
+                          : "px-4 py-2 rounded-lg text-sm font-medium transition-all flex flex-col items-center gap-0.5 glass-btn text-[var(--text-secondary)]"
                       }
                     >
                       <span className="font-bold">{ext}</span>
@@ -572,19 +515,10 @@ export default function InquiryPage() {
                   key={String(value)}
                   type="button"
                   onClick={() => setForm((p) => ({ ...p, needsHosting: value }))}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-                  style={
+                  className={
                     form.needsHosting === value
-                      ? {
-                          background: "var(--accent-teal)",
-                          color: "#fff",
-                          border: "1px solid transparent",
-                        }
-                      : {
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-subtle)",
-                          color: "var(--text-secondary)",
-                        }
+                      ? "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all bg-oceanic-500 text-white border border-transparent"
+                      : "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all glass-btn text-[var(--text-secondary)]"
                   }
                 >
                   {label}
@@ -602,8 +536,7 @@ export default function InquiryPage() {
               <select
                 value={form.timeline}
                 onChange={(e) => setForm((p) => ({ ...p, timeline: e.target.value }))}
-                className={inputClass}
-                style={inputStyle}
+                className="w-full glass-input"
               >
                 <option value="">Select...</option>
                 {TIMELINES.map((t) => (
@@ -620,8 +553,7 @@ export default function InquiryPage() {
               <select
                 value={form.budgetRange}
                 onChange={(e) => setForm((p) => ({ ...p, budgetRange: e.target.value }))}
-                className={inputClass}
-                style={inputStyle}
+                className="w-full glass-input"
               >
                 <option value="">Select...</option>
                 {BUDGET_RANGES.map((b) => (
@@ -643,8 +575,7 @@ export default function InquiryPage() {
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
               placeholder="Reference sites, design preferences, existing codebase, deadline..."
               rows={3}
-              className={inputClass}
-              style={{ ...inputStyle, resize: "vertical" }}
+              className="w-full glass-input"
             />
           </div>
 
@@ -655,8 +586,7 @@ export default function InquiryPage() {
           <button
             type="submit"
             disabled={status === "loading"}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" }}
+            className="w-full glass-btn bg-gradient-to-r from-oceanic-600 to-oceanic-900 text-white py-4 font-semibold transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <FaArrowRight />
             {status === "loading" ? "Submitting..." : "Submit Project Brief"}
