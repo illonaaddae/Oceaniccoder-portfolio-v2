@@ -4,6 +4,7 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   alt: string;
   placeholderClass?: string;
+  displaySize?: "hero" | "thumb" | string;
 }
 
 const LazyImage: React.FC<LazyImageProps> = ({
@@ -11,13 +12,16 @@ const LazyImage: React.FC<LazyImageProps> = ({
   alt,
   className = "",
   placeholderClass = "bg-gray-800/50 animate-pulse",
+  displaySize,
   ...props
 }) => {
+  const isHero = displaySize === "hero";
   const [loaded, setLoaded] = useState(false);
-  const [inView, setInView] = useState(false);
+  const [inView, setInView] = useState(isHero); // hero starts in-view immediately
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isHero) return; // skip observer for hero — load immediately
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -29,7 +33,7 @@ const LazyImage: React.FC<LazyImageProps> = ({
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, []);
+  }, [isHero]);
 
   return (
     <div ref={ref} className={`relative ${className}`}>
@@ -38,8 +42,9 @@ const LazyImage: React.FC<LazyImageProps> = ({
         <img
           src={src}
           alt={alt}
-          loading="lazy"
+          loading={isHero ? "eager" : "lazy"}
           decoding="async"
+          fetchPriority={isHero ? "high" : "auto"}
           onLoad={() => setLoaded(true)}
           className={`transition-opacity duration-300 ${
             loaded ? "opacity-100" : "opacity-0"
