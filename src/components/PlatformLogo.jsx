@@ -26,7 +26,6 @@ function ensureOverridesLoaded() {
  * @param {{ platformName: string, iconUrl?: string, className?: string }} props
  */
 const PlatformLogo = ({ platformName, iconUrl = undefined, className = "w-4 h-4" }) => {
-  if (!platformName) return null;
   const [imageError, setImageError] = useState(false);
   const [tryCDN, setTryCDN] = useState(false);
   const [overridesReady, setOverridesReady] = useState(overridesLoaded);
@@ -36,6 +35,8 @@ const PlatformLogo = ({ platformName, iconUrl = undefined, className = "w-4 h-4"
       ensureOverridesLoaded().then(() => setOverridesReady(true));
     }
   }, [overridesReady]);
+
+  if (!platformName) return null;
 
   const baseLogoInfo = getPlatformLogo(platformName);
   const logoInfo = iconUrl ? { ...baseLogoInfo, local: iconUrl } : baseLogoInfo;
