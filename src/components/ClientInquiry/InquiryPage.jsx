@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { FaBriefcase, FaCheckCircle, FaArrowRight } from "react-icons/fa";
 import { createInquiry } from "../../services/api/inquiries";
 import { apiUrl } from "../../utils/apiUrl";
+import SelectDropdown from "./SelectDropdown";
 
 const PROJECT_TYPES = [
   "Portfolio Website",
@@ -342,18 +343,12 @@ export default function InquiryPage() {
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
               Project Type *
             </label>
-            <select
+            <SelectDropdown
               value={form.projectType}
-              onChange={(e) => handleProjectTypeChange(e.target.value)}
-              className="w-full glass-input"
-            >
-              <option value="">Select a type...</option>
-              {PROJECT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+              onChange={handleProjectTypeChange}
+              options={PROJECT_TYPES}
+              placeholder="Select a type..."
+            />
             {form.projectType === "Other" && (
               <input
                 type="text"
@@ -533,35 +528,21 @@ export default function InquiryPage() {
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
                 Ideal Timeline
               </label>
-              <select
+              <SelectDropdown
                 value={form.timeline}
-                onChange={(e) => setForm((p) => ({ ...p, timeline: e.target.value }))}
-                className="w-full glass-input"
-              >
-                <option value="">Select...</option>
-                {TIMELINES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm((p) => ({ ...p, timeline: v }))}
+                options={TIMELINES}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
                 Budget Range
               </label>
-              <select
+              <SelectDropdown
                 value={form.budgetRange}
-                onChange={(e) => setForm((p) => ({ ...p, budgetRange: e.target.value }))}
-                className="w-full glass-input"
-              >
-                <option value="">Select...</option>
-                {BUDGET_RANGES.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm((p) => ({ ...p, budgetRange: v }))}
+                options={BUDGET_RANGES}
+              />
             </div>
           </div>
 
