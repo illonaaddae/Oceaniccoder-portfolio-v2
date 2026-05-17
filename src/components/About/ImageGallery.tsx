@@ -27,26 +27,16 @@ const ImageGallery = React.memo(({ galleryImages }: ImageGalleryProps) => {
       <div className="relative -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
         <div className="relative overflow-hidden rounded-b-2xl shadow-2xl border border-oceanic-500/30 bg-gradient-to-br from-gray-900 to-gray-800 gallery-container">
           {/* Image container */}
-          <div
-            className="relative w-full gallery-image-wrapper"
-            style={{ minHeight: "280px", maxHeight: "60vh" }}
-          >
-            <div className="flex items-center justify-center w-full h-full p-3 sm:p-4 md:p-6">
-              <LazyImage
-                src={galleryImages[currentImageIndex]?.src || ""}
-                alt={galleryImages[currentImageIndex]?.alt || "Gallery image"}
-                className="gallery-main-image rounded-lg"
-                placeholderColor="from-oceanic-900/30 to-slate-900"
-                fallbackSrc="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
-                displaySize="hero"
-                style={{
-                  objectPosition: "center",
-                  maxHeight: "60vh",
-                  width: "auto",
-                  maxWidth: "100%",
-                }}
-              />
-            </div>
+          <div className="relative w-full h-[360px]">
+            <LazyImage
+              src={galleryImages[currentImageIndex]?.src || ""}
+              alt={galleryImages[currentImageIndex]?.alt || "Gallery image"}
+              className="w-full h-full rounded-b-2xl"
+              placeholderColor="from-oceanic-900/30 to-slate-900"
+              fallbackSrc="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
+              displaySize="hero"
+              objectFit="contain"
+            />
           </div>
 
           {/* Navigation arrows */}
