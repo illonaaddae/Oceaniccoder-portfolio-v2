@@ -20,7 +20,7 @@ const AddonCard: React.FC<AddonCardProps> = ({ addon, index }) => (
     <p className="text-sm text-[var(--text-secondary)] mb-4 min-h-[48px]">{addon.description}</p>
     <div className="mt-4">
       <Link
-        to="/contact"
+        to={`/contact?service=${encodeURIComponent(addon.name)}`}
         className="text-sm text-oceanic-600 dark:text-oceanic-500 hover:text-oceanic-700 dark:hover:text-oceanic-400 transition-colors flex items-center gap-1 font-semibold"
       >
         Get Started <FaArrowRight className="text-xs" />

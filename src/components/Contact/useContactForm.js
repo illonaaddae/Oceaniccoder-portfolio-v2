@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { validateForm } from "./validateForm";
 import { submitContactForm } from "./submitContactForm";
 
 export function useContactForm() {
+  const [searchParams] = useSearchParams();
+  const serviceParam = searchParams.get("service");
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    subject: "",
+    subject: serviceParam ? `Inquiry: ${serviceParam}` : "",
     message: "",
   });
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
