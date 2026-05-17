@@ -57,7 +57,7 @@ const ProjectCaseStudy: React.FC = () => {
             <LazyImage
               src={project.image}
               alt={`${project.title} preview`}
-              className="w-full h-auto"
+              className="w-full aspect-video"
               displaySize="hero"
             />
           </div>
