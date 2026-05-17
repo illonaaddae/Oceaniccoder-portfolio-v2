@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { FaBriefcase, FaCheckCircle, FaArrowRight } from "react-icons/fa";
@@ -178,6 +178,12 @@ export default function InquiryPage() {
     description: useRef(null),
   };
 
+  useEffect(() => {
+    if (status === "success") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [status]);
+
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
@@ -248,7 +254,6 @@ export default function InquiryPage() {
         body: JSON.stringify({ name: form.name, email: form.email, projectType: resolvedType }),
       }).catch(() => {});
       setStatus("success");
-      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setStatus("error");
     }
