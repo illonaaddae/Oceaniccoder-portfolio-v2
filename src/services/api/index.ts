@@ -19,3 +19,4 @@ export * from "./bookings";
 export * from "./inquiries";
 export * from "./invoices";
 export * from "./payments";
+export * from "./projectVideos";
