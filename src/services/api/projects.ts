@@ -1,6 +1,28 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Project } from "../../types";
 
+// Strip fields the Appwrite "projects" collection doesn't have. The collection
+// hit the per-row attribute-size cap, so demoVideoUrl was never created — yet
+// the Project type still carries it for UI display via fallback sources.
+// Also drop Appwrite system fields ($id, $createdAt, etc.) which the SDK
+// rejects on writes.
+function stripUnknownAttrs(data: Record<string, unknown>): Record<string, unknown> {
+  const blocked = new Set([
+    "demoVideoUrl",
+    "$id",
+    "$createdAt",
+    "$updatedAt",
+    "$permissions",
+    "$databaseId",
+    "$collectionId",
+  ]);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (!blocked.has(k)) out[k] = v;
+  }
+  return out;
+}
+
 export async function getProjects(): Promise<Project[]> {
   const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECTS, [
     Query.orderDesc("$createdAt"),
@@ -30,7 +52,7 @@ export async function createProject(
     DATABASE_ID,
     COLLECTIONS.PROJECTS,
     ID.unique(),
-    project as Record<string, unknown>,
+    stripUnknownAttrs(project as Record<string, unknown>),
   );
   return result as unknown as Project;
 }
@@ -43,7 +65,7 @@ export async function updateProject(
     DATABASE_ID,
     COLLECTIONS.PROJECTS,
     projectId,
-    project as Record<string, unknown>,
+    stripUnknownAttrs(project as Record<string, unknown>),
   ) as unknown as Project;
 }
 
