@@ -47,7 +47,7 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
               >
                 {testimonial.name}
                 {testimonial.featured && (
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-oceanic-500/20 text-oceanic-400 rounded-full">
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-oceanic-500/20 text-brand-link dark:text-oceanic-300 rounded-full">
                     Featured
                   </span>
                 )}

@@ -32,7 +32,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       role="status"
       aria-label="Loading"
     />
-    {message && <p className={theme === "dark" ? "text-gray-400" : "text-slate-600"}>{message}</p>}
+    {message && <p className={theme === "dark" ? "text-gray-200" : "text-slate-600"}>{message}</p>}
   </div>
 );
 

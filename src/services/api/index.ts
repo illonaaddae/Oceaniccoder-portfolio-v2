@@ -18,3 +18,4 @@ export * from "./siteViews";
 export * from "./bookings";
 export * from "./inquiries";
 export * from "./invoices";
+export * from "./payments";

@@ -12,7 +12,7 @@ const SkillsSummary = React.memo(({ projects, about, totalTechnologies }) => (
         <h4 className="text-xl font-bold text-white mb-2 skills-summary-heading">
           {projects?.length || 15}+ Projects
         </h4>
-        <p className="text-gray-300 skills-summary-description">Built and deployed</p>
+        <p className="text-gray-200 skills-summary-description">Built and deployed</p>
       </div>
 
       <div className="glass-card p-6 text-center group hover:scale-105 transition-all duration-300">
@@ -22,7 +22,7 @@ const SkillsSummary = React.memo(({ projects, about, totalTechnologies }) => (
         <h4 className="text-xl font-bold text-white mb-2 skills-summary-heading">
           {totalTechnologies}+ Technologies
         </h4>
-        <p className="text-gray-300 skills-summary-description">Mastered and counting</p>
+        <p className="text-gray-200 skills-summary-description">Mastered and counting</p>
       </div>
 
       <div className="glass-card p-6 text-center group hover:scale-105 transition-all duration-300">
@@ -32,7 +32,7 @@ const SkillsSummary = React.memo(({ projects, about, totalTechnologies }) => (
         <h4 className="text-xl font-bold text-white mb-2 skills-summary-heading">
           {about?.studentsMentored || 40}+ Students
         </h4>
-        <p className="text-gray-300 skills-summary-description">Mentored and guided</p>
+        <p className="text-gray-200 skills-summary-description">Mentored and guided</p>
       </div>
     </div>
 

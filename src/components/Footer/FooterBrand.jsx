@@ -16,10 +16,10 @@ const FooterBrand = React.memo(({ theme }) => (
           theme === "dark" ? "brightness-0 invert sepia saturate-[5] hue-rotate-[175deg]" : ""
         }`}
       />
-      <p className="text-sm text-gray-400 mt-2">Illona Addae</p>
+      <p className="text-sm text-gray-200 mt-2">Illona Addae</p>
     </div>
 
-    <p className="text-gray-300 leading-relaxed mb-6 max-w-md">
+    <p className="text-gray-200 leading-relaxed mb-6 max-w-md">
       Passionate full-stack developer and community leader dedicated to creating inclusive tech
       spaces and building innovative solutions that make a difference.
     </p>

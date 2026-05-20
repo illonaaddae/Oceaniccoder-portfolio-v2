@@ -21,7 +21,7 @@ export const CommentsStats: React.FC<CommentsStatsProps> = ({
     <div className={`${cardStyles} border rounded-2xl p-4 transition-colors duration-200`}>
       <div className="flex items-center gap-3">
         <div className="p-2.5 rounded-xl bg-gradient-to-br from-oceanic-500/20 to-oceanic-900/20">
-          <FaComment className="text-oceanic-500" />
+          <FaComment className="text-brand-link dark:text-oceanic-400" />
         </div>
         <div>
           <p className={`text-2xl font-bold ${textPrimary}`}>{totalComments}</p>

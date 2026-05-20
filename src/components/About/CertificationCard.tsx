@@ -20,7 +20,7 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
           <span
             className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium shadow-sm platform-tag ${
               cert.platform === "Frontend Masters" || cert.platform === "Scrimba"
-                ? "border-gray-600/50 bg-gray-700/30 text-gray-300"
+                ? "border-gray-600/50 bg-gray-700/30 text-gray-200"
                 : `${cert.platformColor} bg-current/10 text-current border-current/30`
             }`}
           >
@@ -33,7 +33,7 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
             )}
             {cert.platform}
           </span>
-          <span className="text-xs text-gray-400 bg-gray-700/20 px-2 py-1 rounded cert-date">
+          <span className="text-xs text-gray-200 bg-gray-700/20 px-2 py-1 rounded cert-date">
             {cert.date}
           </span>
         </div>
@@ -50,7 +50,7 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
       {(cert.skills ?? []).map((skill: string) => (
         <span
           key={skill}
-          className="text-xs bg-gray-700/50 text-gray-300 px-2.5 py-1 rounded border border-gray-600/30 font-medium shadow-sm skill-tag"
+          className="text-xs bg-gray-700/50 text-gray-200 px-2.5 py-1 rounded border border-gray-600/30 font-medium shadow-sm skill-tag"
         >
           {skill}
         </span>

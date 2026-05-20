@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { FaGraduationCap, FaPlus, FaEdit, FaTrash, FaEye, FaEyeSlash } from "react-icons/fa";
+import {
+  FaGraduationCap,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaEye,
+  FaEyeSlash,
+  FaArrowUp,
+  FaArrowDown,
+} from "react-icons/fa";
 import type { Education } from "@/types";
 import { ToastContainer, useToast } from "../Toast";
 import { useConfirm } from "../ConfirmContext";
@@ -11,6 +20,7 @@ interface EducationTabProps {
   onDelete: (id: string) => void;
   onEdit?: (edu: Education) => void;
   onShowForm?: () => void;
+  onReorder?: (id: string, newOrder: number) => Promise<void>;
   isReadOnly?: boolean;
 }
 
@@ -21,11 +31,39 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   onDelete,
   onEdit,
   onShowForm,
+  onReorder,
   isReadOnly = false,
 }) => {
   const toast = useToast();
   const confirm = useConfirm();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+
+  const handleMove = async (index: number, direction: "up" | "down") => {
+    if (!onReorder) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= education.length) return;
+    const current = education[index];
+    const target = education[targetIndex];
+    const currentOrder = current.displayOrder ?? 0;
+    const targetOrder = target.displayOrder ?? 0;
+    setReorderingId(current.$id);
+    try {
+      // Swap displayOrder values. If both are the same default (0), assign descending fresh values.
+      if (currentOrder === targetOrder) {
+        const base = education.length - index;
+        await onReorder(current.$id, direction === "up" ? base + 1 : base - 1);
+        await onReorder(target.$id, direction === "up" ? base - 1 : base + 1);
+      } else {
+        await onReorder(current.$id, targetOrder);
+        await onReorder(target.$id, currentOrder);
+      }
+    } catch {
+      toast.error("Failed to reorder. Please try again.");
+    } finally {
+      setReorderingId(null);
+    }
+  };
 
   const handleDelete = async (edu: Education) => {
     const ok = await confirm({
@@ -98,7 +136,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {education.map((edu) => (
+          {education.map((edu, index) => (
             <div key={edu.$id} className="glass-card p-6">
               <div className="flex items-start justify-between">
                 <div className="flex gap-4">
@@ -156,7 +194,39 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                   </div>
                 </div>
                 {!isReadOnly && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-start">
+                    {onReorder && (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMove(index, "up")}
+                          disabled={index === 0 || reorderingId === edu.$id}
+                          className={`p-1.5 rounded-md transition text-xs ${
+                            theme === "dark"
+                              ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600 disabled:opacity-30"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30"
+                          } disabled:cursor-not-allowed`}
+                          title="Move up (show higher on site)"
+                          aria-label="Move up"
+                        >
+                          <FaArrowUp />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMove(index, "down")}
+                          disabled={index === education.length - 1 || reorderingId === edu.$id}
+                          className={`p-1.5 rounded-md transition text-xs ${
+                            theme === "dark"
+                              ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600 disabled:opacity-30"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30"
+                          } disabled:cursor-not-allowed`}
+                          title="Move down (show lower on site)"
+                          aria-label="Move down"
+                        >
+                          <FaArrowDown />
+                        </button>
+                      </div>
+                    )}
                     <button
                       onClick={() => onEdit?.(edu)}
                       className={`p-2 rounded-lg transition ${

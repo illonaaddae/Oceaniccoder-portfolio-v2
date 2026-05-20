@@ -84,7 +84,7 @@ const ServiceFeatures: React.FC<{
           {feature.included ? (
             <FaCheck className="text-emerald-500 mt-0.5 flex-shrink-0" />
           ) : (
-            <FaTimes className="text-gray-500 mt-0.5 flex-shrink-0" />
+            <FaTimes className="text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
           )}
           <span
             className={`text-sm ${

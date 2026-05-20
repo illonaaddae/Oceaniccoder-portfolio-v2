@@ -63,6 +63,7 @@ export interface Education {
   initials?: string;
   location?: string;
   isVisible?: boolean;
+  displayOrder?: number;
 }
 
 // About Types

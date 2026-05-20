@@ -9,7 +9,7 @@ const FeaturedPosts = React.memo(({ featuredPosts, onPostClick }) => {
   return (
     <div className="mb-16">
       <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6 flex items-center gap-3">
-        <FaBookOpen className="text-oceanic-400" />
+        <FaBookOpen className="text-brand-link dark:text-oceanic-400" />
         Featured Posts
       </h2>
       <div className="grid md:grid-cols-2 gap-6">
@@ -37,21 +37,23 @@ const FeaturedPosts = React.memo(({ featuredPosts, onPostClick }) => {
             <div className="p-6">
               <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)] mb-3">
                 <span className="flex items-center gap-1">
-                  <FaCalendarAlt className="text-oceanic-400" />
+                  <FaCalendarAlt className="text-brand-link dark:text-oceanic-400" />
                   {formatDate(post.publishedAt)}
                 </span>
                 <span className="flex items-center gap-1">
-                  <FaClock className="text-oceanic-400" />
+                  <FaClock className="text-brand-link dark:text-oceanic-400" />
                   {post.readTime}
                 </span>
               </div>
-              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 group-hover:text-oceanic-500 transition-colors">
+              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 group-hover:text-brand-link dark:group-hover:text-oceanic-400 transition-colors">
                 {post.title}
               </h3>
               <p className="text-[var(--text-secondary)] line-clamp-2 mb-4">{post.excerpt}</p>
               <div className="flex items-center justify-between">
-                <span className="text-oceanic-400 text-sm font-medium">{post.category}</span>
-                <span className="text-oceanic-500 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                <span className="text-brand-link dark:text-oceanic-400 text-sm font-medium">
+                  {post.category}
+                </span>
+                <span className="text-brand-link dark:text-oceanic-400 flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
                   Read More <FaArrowRight />
                 </span>
               </div>

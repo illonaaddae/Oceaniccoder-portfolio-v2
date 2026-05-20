@@ -49,7 +49,7 @@ export const PeriodLocationFields: React.FC<PeriodLocationFieldsProps> = ({
       active
         ? theme === "dark"
           ? "bg-oceanic-600 text-white shadow-md"
-          : "bg-oceanic-500 text-white shadow-md"
+          : "bg-brand-link text-white shadow-md"
         : theme === "dark"
           ? "bg-gray-700/50 text-gray-400 hover:bg-gray-700"
           : "bg-gray-100 text-gray-500 hover:bg-gray-200"

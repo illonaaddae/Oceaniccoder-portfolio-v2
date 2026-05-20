@@ -46,6 +46,7 @@ export function buildTabContentProps(s: DashboardState, isReadOnly: boolean): Ta
     handleUpdateGalleryOrder: s.adminData.handleUpdateGalleryOrder,
     handleToggleGalleryVisibility: s.adminData.handleToggleGalleryVisibility,
     handleDeleteEducation: s.adminData.handleDeleteEducation,
+    handleReorderEducation: s.adminData.handleReorderEducation,
     handleDeleteJourney: s.adminData.handleDeleteJourney,
     about: s.adminData.about,
     handleSaveAbout: s.adminData.handleSaveAbout,

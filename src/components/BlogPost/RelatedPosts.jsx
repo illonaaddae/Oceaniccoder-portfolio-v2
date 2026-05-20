@@ -32,7 +32,7 @@ const RelatedPosts = React.memo(({ posts }) => {
               <h3 className="text-white font-medium group-hover:text-oceanic-400 transition-colors line-clamp-2">
                 {relatedPost.title}
               </h3>
-              <p className="text-gray-400 text-sm mt-2">{relatedPost.readTime}</p>
+              <p className="text-gray-200 text-sm mt-2">{relatedPost.readTime}</p>
             </div>
           </Link>
         ))}

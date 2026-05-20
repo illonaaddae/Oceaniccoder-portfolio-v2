@@ -10,7 +10,7 @@ const BlogLoadingState = React.memo(() => (
   >
     <div className="text-center">
       <div className="w-16 h-16 border-4 border-oceanic-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-gray-400">Loading blog posts...</p>
+      <p className="text-gray-200">Loading blog posts...</p>
     </div>
   </section>
 ));

@@ -30,14 +30,14 @@ export const getMarkdownComponents = (isDark) => ({
     </h3>
   ),
   p: ({ children }) => (
-    <p className={`leading-relaxed mb-4 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+    <p className={`leading-relaxed mb-4 ${isDark ? "text-gray-200" : "text-gray-700"}`}>
       {children}
     </p>
   ),
   ul: ({ children }) => (
     <ul
       className={`list-disc list-inside mb-4 space-y-2 ${
-        isDark ? "text-gray-300" : "text-gray-700"
+        isDark ? "text-gray-200" : "text-gray-700"
       }`}
     >
       {children}
@@ -46,13 +46,13 @@ export const getMarkdownComponents = (isDark) => ({
   ol: ({ children }) => (
     <ol
       className={`list-decimal list-inside mb-4 space-y-2 ${
-        isDark ? "text-gray-300" : "text-gray-700"
+        isDark ? "text-gray-200" : "text-gray-700"
       }`}
     >
       {children}
     </ol>
   ),
-  li: ({ children }) => <li className={isDark ? "text-gray-300" : "text-gray-700"}>{children}</li>,
+  li: ({ children }) => <li className={isDark ? "text-gray-200" : "text-gray-700"}>{children}</li>,
   strong: ({ children }) => (
     <strong className={`font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
       {children}
@@ -64,7 +64,7 @@ export const getMarkdownComponents = (isDark) => ({
   blockquote: ({ children }) => (
     <blockquote
       className={`border-l-4 border-oceanic-500 pl-4 italic my-4 ${
-        isDark ? "text-gray-400" : "text-gray-600"
+        isDark ? "text-gray-200" : "text-gray-600"
       }`}
     >
       {children}

@@ -185,7 +185,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
                     <span
                       className={`flex items-center gap-1.5 ${isDark ? "text-slate-300" : "text-slate-700"}`}
                     >
-                      <FaEnvelope className="shrink-0 text-oceanic-400" />
+                      <FaEnvelope className="shrink-0 text-brand-link dark:text-oceanic-400" />
                       <a href={`mailto:${b.email}`} className="hover:underline">
                         {b.email}
                       </a>
@@ -194,7 +194,7 @@ export const BookingsTab: React.FC<BookingsTabProps> = ({ theme }) => {
                       <span
                         className={`flex items-center gap-1.5 ${isDark ? "text-slate-300" : "text-slate-700"}`}
                       >
-                        <FaPhone className="shrink-0 text-oceanic-400" />
+                        <FaPhone className="shrink-0 text-brand-link dark:text-oceanic-400" />
                         {b.phone}
                       </span>
                     )}

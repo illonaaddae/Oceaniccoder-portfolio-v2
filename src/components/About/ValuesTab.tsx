@@ -20,7 +20,7 @@ const ValuesTab = React.memo(() => (
             </div>
             <div className="flex-1">
               <h4 className="text-xl font-bold text-white mb-3">{value.title}</h4>
-              <p className="text-gray-300 leading-relaxed mb-4">{value.description}</p>
+              <p className="text-gray-200 leading-relaxed mb-4">{value.description}</p>
               <p className="text-sm text-oceanic-500 font-medium bg-gradient-to-r from-oceanic-500/10 to-blue-500/10 rounded-lg border border-oceanic-500/20 px-3 py-2">
                 Impact: {value.impact}
               </p>

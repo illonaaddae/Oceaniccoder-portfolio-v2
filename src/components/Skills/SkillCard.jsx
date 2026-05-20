@@ -15,7 +15,9 @@ const SkillCard = React.memo(({ skill, index, isAnimated }) => (
         </span>
         <span className="font-medium text-white">{skill.name}</span>
       </div>
-      <span className="text-sm font-bold text-oceanic-500">{skill.level}%</span>
+      <span className="text-sm font-bold text-brand-link dark:text-oceanic-400">
+        {skill.level}%
+      </span>
     </div>
 
     {/* Progress Bar */}
@@ -27,7 +29,7 @@ const SkillCard = React.memo(({ skill, index, isAnimated }) => (
     </div>
 
     {/* Skill Level Indicator */}
-    <div className="flex justify-between text-xs text-gray-400 mt-1 skills-level-label">
+    <div className="flex justify-between text-xs text-gray-200 mt-1 skills-level-label">
       <span>Beginner</span>
       <span>Intermediate</span>
       <span>Expert</span>

@@ -55,6 +55,7 @@ export interface TabContentProps {
   handleUpdateGalleryOrder: (id: string, order: number) => Promise<void>;
   handleToggleGalleryVisibility: (id: string, visible: boolean) => Promise<void>;
   handleDeleteEducation: (id: string) => Promise<void>;
+  handleReorderEducation: (id: string, order: number) => Promise<void>;
   handleDeleteJourney: (id: string) => Promise<void>;
   about: About | null;
   handleSaveAbout: (data: Partial<About>) => Promise<void>;

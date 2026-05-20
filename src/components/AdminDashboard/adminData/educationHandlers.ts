@@ -33,5 +33,20 @@ export function createEducationHandlers(loadData: LoadDataFn) {
     }
   };
 
-  return { handleAddEducation, handleUpdateEducation, handleDeleteEducation };
+  const handleReorderEducation = async (eduId: string, newOrder: number) => {
+    try {
+      await updateEducation(eduId, { displayOrder: newOrder });
+      await loadData(false);
+    } catch (err) {
+      console.error("Failed to reorder education:", err);
+      throw err;
+    }
+  };
+
+  return {
+    handleAddEducation,
+    handleUpdateEducation,
+    handleDeleteEducation,
+    handleReorderEducation,
+  };
 }

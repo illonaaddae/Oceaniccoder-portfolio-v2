@@ -12,6 +12,7 @@ const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
 const DATABASE_ID = "6943493400018e7c314c";
 const COLLECTION_ID = "invoices";
+const PAYMENTS_COLLECTION_ID = "payments";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -151,6 +152,30 @@ module.exports = async function (context, req) {
 
         const clientName = doc.clientName || "Client";
         const clientEmail = doc.clientEmail;
+
+        // Create payment record (audit log)
+        try {
+          // Paystack channel: "card", "mobile_money", "bank", "bank_transfer", etc.
+          const channel = (data.channel || "").toLowerCase();
+          let method = "card";
+          if (channel.includes("mobile")) method = "momo";
+          else if (channel.includes("bank")) method = "bank";
+
+          await db.createDocument(DATABASE_ID, PAYMENTS_COLLECTION_ID, sdk.ID.unique(), {
+            invoiceNumber,
+            clientName,
+            clientEmail: clientEmail || "",
+            amount: amountPaid,
+            currency,
+            method,
+            paystackReference: data.reference || "",
+            paidAt: new Date().toISOString(),
+            status: "success",
+          });
+          context.log.info(`paystack-webhook: payment record created for ${invoiceNumber}`);
+        } catch (pErr) {
+          context.log.error("paystack-webhook: failed to create payment record:", pErr.message);
+        }
 
         // Send confirmation to client
         if (resendKey && clientEmail) {

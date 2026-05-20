@@ -14,7 +14,7 @@ const SocialLinks = React.memo(() => (
           href={social.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 text-gray-400 hover:text-oceanic-500 transition-colors duration-300 text-sm"
+          className="flex items-center gap-3 text-gray-200 hover:text-brand-link dark:hover:text-oceanic-400 transition-colors duration-300 text-sm"
         >
           <span className="text-base">
             <social.Icon />
@@ -61,7 +61,7 @@ const SocialLinks = React.memo(() => (
               20% OFF
             </span>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-xs">
+          <p className="text-gray-600 dark:text-gray-200 text-xs">
             Learn to code with my exclusive discount!
           </p>
         </div>

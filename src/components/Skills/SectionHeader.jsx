@@ -6,7 +6,7 @@ const SectionHeader = React.memo(() => (
       <span className="text-gray-700 dark:text-gray-100">Skills &</span>
       <span className="text-oceanic-600 dark:text-oceanic-500 font-bold"> Expertise</span>
     </h2>
-    <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-300">
+    <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-200">
       Technologies, tools, and methodologies that power my development workflow
     </p>
   </div>

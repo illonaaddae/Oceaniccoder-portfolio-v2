@@ -399,7 +399,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
             type="button"
             onClick={loadFiles}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-500 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-link text-white text-sm font-medium hover:bg-brand-accent-strong transition-colors disabled:opacity-50"
           >
             <FaSync className={loading ? "animate-spin" : ""} />
             {loading ? "Scanning…" : "Refresh"}
@@ -464,7 +464,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                 {replacingLogo === p.name ? (
                   <div>
                     {savingLogo === p.name ? (
-                      <div className="flex items-center gap-2 text-xs text-oceanic-400 py-2">
+                      <div className="flex items-center gap-2 text-xs text-brand-link dark:text-oceanic-400 py-2">
                         <FaSync className="animate-spin" /> Saving…
                       </div>
                     ) : (
@@ -489,7 +489,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                   <button
                     type="button"
                     onClick={() => setReplacingLogo(p.name)}
-                    className="w-full text-xs py-1.5 px-3 rounded-lg border border-oceanic-500/40 text-oceanic-400 hover:bg-oceanic-500/10 transition-colors"
+                    className="w-full text-xs py-1.5 px-3 rounded-lg border border-oceanic-500/40 text-brand-link dark:text-oceanic-400 hover:bg-oceanic-500/10 transition-colors"
                   >
                     {p.currentUrl ? "Replace Logo" : "Upload Logo"}
                   </button>

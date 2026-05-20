@@ -46,7 +46,7 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
           onClick={onShowForm}
           className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
             theme === "dark"
-              ? "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-500 shadow-oceanic-500/20"
+              ? "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-700 shadow-oceanic-500/20"
               : "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-700 shadow-oceanic-500/30"
           }`}
         >

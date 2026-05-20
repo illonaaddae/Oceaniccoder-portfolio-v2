@@ -22,7 +22,7 @@ const SectionHeader = React.memo(({ isVisible, stats }: SectionHeaderProps) => (
       <span className="text-gray-700 dark:text-gray-100">About </span>
       <span className="text-oceanic-600 dark:text-oceanic-500 font-bold">Me</span>
     </h2>
-    <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-300">
+    <p className="text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-200">
       Empowering communities through technology and building bridges for inclusive innovation
     </p>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 max-w-4xl mx-auto">
@@ -37,7 +37,7 @@ const SectionHeader = React.memo(({ isVisible, stats }: SectionHeaderProps) => (
             {stat.icon}
           </div>
           <div className="text-3xl font-bold text-white mb-1">{stat.number}</div>
-          <div className="text-sm text-gray-300">{stat.label}</div>
+          <div className="text-sm text-gray-200">{stat.label}</div>
         </div>
       ))}
     </div>

@@ -334,7 +334,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
                 ))}
                 <button
                   onClick={() => setItems((prev) => [...prev, emptyItem()])}
-                  className="flex items-center gap-1.5 text-sm text-oceanic-400 hover:text-oceanic-300 transition mt-1"
+                  className="flex items-center gap-1.5 text-sm text-brand-link dark:text-oceanic-400 hover:text-brand-accent-strong dark:hover:text-oceanic-300 transition mt-1"
                 >
                   <FaPlus className="text-xs" /> Add another item
                 </button>

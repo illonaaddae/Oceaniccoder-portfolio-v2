@@ -8,6 +8,8 @@ export interface MomoPaymentProps {
     currency: string;
     clientName: string;
   };
+  // Called after Paystack popup callback fires. Server-side webhook
+  // (/api/paystack-webhook) owns invoice "paid" status + payments row creation.
   onSuccess: () => void;
 }
 

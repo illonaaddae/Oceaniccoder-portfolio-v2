@@ -317,7 +317,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-            <FaChartLine className="text-oceanic-500" /> Analytics
+            <FaChartLine className="text-brand-link dark:text-oceanic-400" /> Analytics
           </h2>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
             Revenue, expenses, and project insights

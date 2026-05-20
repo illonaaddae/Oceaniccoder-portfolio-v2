@@ -8,7 +8,7 @@ const StoryContent = React.memo(() => (
         <FaHeart className="text-red-400 flex-shrink-0 text-lg sm:text-xl" />
         <span>My Story</span>
       </h3>
-      <div className="space-y-3 sm:space-y-4 md:space-y-6 text-gray-300 leading-relaxed">
+      <div className="space-y-3 sm:space-y-4 md:space-y-6 text-gray-200 leading-relaxed">
         <p className="text-story-lg">
           I was raised{" "}
           <strong className="text-oceanic-500 text-strong">
@@ -45,7 +45,7 @@ const StoryContent = React.memo(() => (
           conversation. Technology is for everyone, gender, wealth, or background should never limit
           one's potential to innovate and succeed."
         </blockquote>
-        <cite className="text-caption text-gray-400 mt-2 block text-xs sm:text-sm">
+        <cite className="text-caption text-gray-200 mt-2 block text-xs sm:text-sm">
           — Illona Addae
         </cite>
       </div>
@@ -57,7 +57,7 @@ const StoryContent = React.memo(() => (
         <FaRocket className="text-purple-400 flex-shrink-0 text-base sm:text-lg" />
         <span>Mission Statement</span>
       </h3>
-      <p className="text-gray-300 text-story-lg">
+      <p className="text-gray-200 text-story-lg">
         To create a tech ecosystem where talent thrives regardless of gender, background, or
         circumstance. Through education, mentorship, and community building, I'm working to ensure
         that the next generation of technologists reflects the diversity of our world.

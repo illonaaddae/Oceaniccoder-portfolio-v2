@@ -9,7 +9,7 @@ const BackToTop = React.memo(() => {
   return (
     <button
       onClick={scrollToTop}
-      className="glass-btn p-3 text-gray-400 hover:text-oceanic-500 hover:scale-110 transition-all duration-300 group"
+      className="glass-btn p-3 text-gray-200 hover:text-brand-link dark:hover:text-oceanic-400 hover:scale-110 transition-all duration-300 group"
       aria-label="Back to top"
     >
       <FaArrowUp className="w-4 h-4 group-hover:animate-bounce" />

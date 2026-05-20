@@ -92,7 +92,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
           )}
         </div>
         <div className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-slate-500"}`}>
-          <span className="text-oceanic-500 hover:text-oceanic-500 font-medium">
+          <span className="text-brand-link dark:text-oceanic-400 hover:text-brand-accent-strong dark:hover:text-oceanic-300 font-medium">
             Click to upload
           </span>{" "}
           or drag and drop

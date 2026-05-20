@@ -8,7 +8,7 @@ const CTASection = React.memo(() => {
     <div className="mt-20 text-center">
       <div className="glass-card p-8 max-w-2xl mx-auto">
         <h3 className="text-2xl font-bold text-white mb-4">Like What You See?</h3>
-        <p className="text-gray-300 mb-6">
+        <p className="text-gray-200 mb-6">
           I'm always excited to work on new projects and collaborate with amazing teams. Let's build
           something incredible together!
         </p>
