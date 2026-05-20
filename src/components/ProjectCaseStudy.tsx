@@ -13,6 +13,7 @@ import {
   Screenshots,
   NavigationButtons,
   RelatedProjects,
+  DemoVideo,
 } from "./CaseStudy";
 
 const ProjectCaseStudy: React.FC = () => {
@@ -62,6 +63,9 @@ const ProjectCaseStudy: React.FC = () => {
             />
           </div>
         )}
+
+        {/* Demo video (YouTube / Loom / direct MP4) */}
+        <DemoVideo url={project.demoVideoUrl} title={project.title} />
 
         <TechStack technologies={project.technologies} />
         <CaseStudyContent project={project} />

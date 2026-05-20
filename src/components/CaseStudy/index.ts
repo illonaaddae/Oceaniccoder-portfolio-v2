@@ -7,3 +7,4 @@ export { default as CaseStudyContent } from "./CaseStudyContent";
 export { default as Screenshots } from "./Screenshots";
 export { default as NavigationButtons } from "./NavigationButtons";
 export { default as RelatedProjects } from "./RelatedProjects";
+export { default as DemoVideo } from "./DemoVideo";

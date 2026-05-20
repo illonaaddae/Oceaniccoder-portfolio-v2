@@ -6,10 +6,24 @@ import { getStatusColor } from "./projectsUtils";
 const isYouTubeOrLoom = (url) => /youtube\.com|youtu\.be|loom\.com/.test(url);
 const isDirectVideo = (url) => /\.(mp4|webm|ogg)(\?|$)/i.test(url);
 
+// Extract YouTube video id from any supported URL form:
+//   youtu.be/<id>?si=...
+//   youtube.com/watch?v=<id>&...
+//   youtube.com/shorts/<id>
+//   youtube.com/embed/<id>
+const getYouTubeId = (url) => {
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : null;
+};
+
 const getDemoEmbedUrl = (url) => {
-  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-  if (ytMatch)
-    return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytMatch[1]}`;
+  const ytId = getYouTubeId(url);
+  if (ytId) {
+    // Use youtube-nocookie.com domain to avoid the "Sign in to confirm you're
+    // not a bot" gate that fires on hover-preview iframes. Also drop the ?si
+    // tracking param the SDK doesn't need.
+    return `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&modestbranding=1&rel=0&playsinline=1`;
+  }
   const loomMatch = url.match(/loom\.com\/share\/([\w-]+)/);
   if (loomMatch) return `https://www.loom.com/embed/${loomMatch[1]}?autoplay=1&hide_controls=1`;
   return null;
