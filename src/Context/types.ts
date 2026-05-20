@@ -26,6 +26,7 @@ export interface ProjectData {
   featured?: boolean;
   status?: string;
   year?: string;
+  demoVideoUrl?: string;
   $createdAt?: string;
 }
 
