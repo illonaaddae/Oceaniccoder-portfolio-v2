@@ -54,6 +54,29 @@ export async function uploadImage(file: File): Promise<string> {
   }
 }
 
+// Upload a video file (MP4/WebM/Ogg) to the same storage bucket as images.
+// Used for project demo videos so we can serve direct video instead of relying
+// on YouTube embeds (which sometimes show a bot-check screen).
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB hard cap
+
+export async function uploadVideo(file: File): Promise<string> {
+  if (!/^video\/(mp4|webm|ogg)/i.test(file.type)) {
+    throw new Error("Unsupported video format. Use MP4, WebM, or Ogg.");
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error(`Video too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 50 MB.`);
+  }
+  try {
+    const response = await storage.createFile(STORAGE_BUCKET_ID, ID.unique(), file);
+    return storage.getFileView(STORAGE_BUCKET_ID, response.$id).toString();
+  } catch (error: unknown) {
+    const err = error as { code?: number };
+    if (err.code === 401) throw new Error("Storage permission denied.");
+    if (err.code === 404) throw new Error("Storage bucket not found.");
+    throw error;
+  }
+}
+
 export async function deleteImage(fileId: string): Promise<void> {
   await storage.deleteFile(STORAGE_BUCKET_ID, fileId);
 }
