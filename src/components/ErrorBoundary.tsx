@@ -83,14 +83,14 @@ class ErrorBoundary extends Component<Props, State> {
 
             {/* Error Message */}
             <h1 className="text-2xl font-bold text-white mb-3">Something went wrong</h1>
-            <p className="text-gray-400 mb-6">
+            <p className="text-gray-200 mb-6">
               We apologize for the inconvenience. An unexpected error has occurred.
             </p>
 
             {/* Error Details (Development only) */}
             {import.meta.env.DEV && this.state.error && (
               <details className="text-left mb-6 p-4 bg-slate-800/50 rounded-lg overflow-auto max-h-48">
-                <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-300">
+                <summary className="text-sm text-gray-200 cursor-pointer hover:text-gray-100">
                   Error Details (Dev Only)
                 </summary>
                 <pre className="mt-2 text-xs text-red-400 whitespace-pre-wrap">
@@ -120,7 +120,7 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             {/* Support Info */}
-            <p className="mt-6 text-sm text-gray-500">
+            <p className="mt-6 text-sm text-gray-600 dark:text-gray-200">
               If this problem persists, please{" "}
               <a href="mailto:illona@oceaniccoder.dev" className="text-oceanic-500 hover:underline">
                 contact support

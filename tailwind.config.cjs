@@ -25,6 +25,10 @@ module.exports = {
           "dark-4": "#1d2340",
           "text-light": "#F2FAFD",
           "text-gray": "#EAEAEB",
+          // Accessible-on-light tokens — WCAG AA verified
+          "link": "#0a6e7d", // 5.93:1 on white — body links / CTA backgrounds
+          "accent-strong": "#085866", // 8.08:1 on white — strong accent text/icons
+          "accent-decorative": "#26a9c5", // FAILS AA — decorative only (icons over dark bg, large headings, glow)
         },
         oceanic: {
           50: "#e6f7fa",

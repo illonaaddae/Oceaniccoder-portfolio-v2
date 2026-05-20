@@ -26,17 +26,17 @@ const BlogCard = React.memo(({ post, onClick }) => (
     <div className="p-5 flex-1 flex flex-col">
       <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)] mb-3">
         <span className="flex items-center gap-1">
-          <FaCalendarAlt className="text-oceanic-400" />
+          <FaCalendarAlt className="text-brand-link dark:text-oceanic-400" />
           {formatDate(post.publishedAt)}
         </span>
         {post.readTime && (
           <span className="flex items-center gap-1">
-            <FaClock className="text-oceanic-400" />
+            <FaClock className="text-brand-link dark:text-oceanic-400" />
             {post.readTime}
           </span>
         )}
       </div>
-      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2 group-hover:text-oceanic-500 transition-colors line-clamp-2">
+      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2 group-hover:text-brand-link dark:group-hover:text-oceanic-400 transition-colors line-clamp-2">
         {post.title}
       </h3>
       <p className="text-[var(--text-secondary)] text-sm line-clamp-3 mb-4 flex-1">
@@ -50,13 +50,13 @@ const BlogCard = React.memo(({ post, onClick }) => (
               className="px-2 py-0.5 text-[var(--text-secondary)] text-xs rounded flex items-center gap-1"
               style={{ background: "var(--bg-secondary)" }}
             >
-              <FaTag className="text-oceanic-400" />
+              <FaTag className="text-brand-link dark:text-oceanic-400" />
               {tag}
             </span>
           ))}
         </div>
       )}
-      <div className="flex items-center text-oceanic-500 text-sm font-medium group-hover:gap-3 transition-all gap-2 mt-auto">
+      <div className="flex items-center text-brand-link dark:text-oceanic-400 text-sm font-medium group-hover:gap-3 transition-all gap-2 mt-auto">
         Read Article <FaArrowRight />
       </div>
     </div>

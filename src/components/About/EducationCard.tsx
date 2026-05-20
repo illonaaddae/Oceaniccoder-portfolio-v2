@@ -19,7 +19,7 @@ const EducationCard = React.memo(({ edu }: EducationCardProps) => (
           {edu.field && <span className="text-oceanic-500 font-normal"> in {edu.field}</span>}
         </h4>
         <p className="text-oceanic-500 font-medium edu-institution mb-1">{edu.institution}</p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-400 edu-period mb-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-200 edu-period mb-3">
           <span>{edu.period}</span>
           {edu.location && (
             <span className="flex items-center gap-1">
@@ -34,7 +34,7 @@ const EducationCard = React.memo(({ edu }: EducationCardProps) => (
               {edu.achievement}
             </div>
           ) : (
-            <div className="inline-block bg-gradient-to-r from-gray-500/20 to-slate-500/20 text-gray-400 text-xs px-3 py-1.5 rounded-full border border-gray-500/30 font-medium shadow-sm edu-badge">
+            <div className="inline-block bg-gradient-to-r from-gray-500/20 to-slate-500/20 text-gray-200 text-xs px-3 py-1.5 rounded-full border border-gray-500/30 font-medium shadow-sm edu-badge">
               Not Applicable
             </div>
           )}
@@ -48,7 +48,7 @@ const EducationCard = React.memo(({ edu }: EducationCardProps) => (
             {edu.isOngoing ? "In Progress" : "Completed"}
           </div>
           {edu.universityLogo && (
-            <div className="inline-flex items-center gap-2 bg-gray-700/30 text-gray-300 text-xs px-3 py-1.5 rounded-full border border-gray-600/50 font-medium shadow-sm">
+            <div className="inline-flex items-center gap-2 bg-gray-700/30 text-gray-200 text-xs px-3 py-1.5 rounded-full border border-gray-600/50 font-medium shadow-sm">
               <img
                 src={edu.universityLogo}
                 alt={`${edu.institution} logo`}
@@ -73,7 +73,7 @@ const EducationCard = React.memo(({ edu }: EducationCardProps) => (
             </div>
           )}
         </div>
-        <p className="text-gray-300 text-sm leading-relaxed edu-description">{edu.description}</p>
+        <p className="text-gray-200 text-sm leading-relaxed edu-description">{edu.description}</p>
       </div>
     </div>
   </div>

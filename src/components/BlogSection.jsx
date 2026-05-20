@@ -75,7 +75,7 @@ const BlogSection = () => {
         />
 
         {(searchQuery || selectedCategory !== "All") && (
-          <p className="text-gray-400 mb-6">
+          <p className="text-gray-200 mb-6">
             Found {filteredPosts.length} post
             {filteredPosts.length !== 1 ? "s" : ""}
             {searchQuery && ` for "${searchQuery}"`}

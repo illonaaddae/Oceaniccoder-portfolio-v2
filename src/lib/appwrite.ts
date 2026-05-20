@@ -38,6 +38,7 @@ export const COLLECTIONS = {
   PROJECT_INQUIRIES: "project_inquiries",
   INVOICES: "invoices",
   EXPENSES: "expenses",
+  PAYMENTS: "payments",
 } as const;
 
 export default client;

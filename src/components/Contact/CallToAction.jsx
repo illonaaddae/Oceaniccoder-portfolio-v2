@@ -5,7 +5,7 @@ const CallToAction = React.memo(({ resumeUrl }) => (
   <div className="mt-20 text-center">
     <div className="glass-card p-8 max-w-2xl mx-auto">
       <h3 className="text-2xl font-bold text-white mb-4">Ready to Build Something Amazing?</h3>
-      <p className="text-gray-300 mb-6">
+      <p className="text-gray-200 mb-6">
         Let's turn your ideas into reality. Whether it's a web application, mobile app, or
         innovative tech solution, I'm here to help bring your vision to life.
       </p>

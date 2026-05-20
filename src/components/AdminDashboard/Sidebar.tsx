@@ -25,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           tab.id !== "bookings" &&
           tab.id !== "client-work" &&
           tab.id !== "invoices" &&
+          tab.id !== "payments" &&
           tab.id !== "analytics",
       )
     : allTabs;

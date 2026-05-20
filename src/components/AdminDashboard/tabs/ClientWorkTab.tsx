@@ -149,7 +149,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-            <FaBriefcase className="text-oceanic-500" /> Client Work
+            <FaBriefcase className="text-brand-link dark:text-oceanic-400" /> Client Work
           </h2>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
             {inquiries.length} {inquiries.length === 1 ? "inquiry" : "inquiries"}
@@ -292,15 +292,17 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                           href={`mailto:${inq.email}`}
                           className="flex items-center gap-1 hover:text-[var(--accent-teal)] transition"
                         >
-                          <FaEnvelope className="text-oceanic-400" /> {inq.email}
+                          <FaEnvelope className="text-brand-link dark:text-oceanic-400" />{" "}
+                          {inq.email}
                         </a>
                         {inq.phone && (
                           <span className="flex items-center gap-1">
-                            <FaPhone className="text-oceanic-400" /> {inq.phone}
+                            <FaPhone className="text-brand-link dark:text-oceanic-400" />{" "}
+                            {inq.phone}
                           </span>
                         )}
                         <span className="flex items-center gap-1">
-                          <FaCalendarAlt className="text-oceanic-400" />{" "}
+                          <FaCalendarAlt className="text-brand-link dark:text-oceanic-400" />{" "}
                           {formatDate(inq.$createdAt)}
                         </span>
                       </div>
@@ -317,7 +319,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                     className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                     style={{ background: "var(--bg-primary)" }}
                   >
-                    <FaLayerGroup className="text-oceanic-400 flex-shrink-0" />
+                    <FaLayerGroup className="text-brand-link dark:text-oceanic-400 flex-shrink-0" />
                     <div className="min-w-0">
                       <p
                         className="text-xs font-medium mb-0.5"
@@ -335,7 +337,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                       style={{ background: "var(--bg-primary)" }}
                     >
-                      <FaClock className="text-oceanic-400 flex-shrink-0" />
+                      <FaClock className="text-brand-link dark:text-oceanic-400 flex-shrink-0" />
                       <div className="min-w-0">
                         <p
                           className="text-xs font-medium mb-0.5"
@@ -354,7 +356,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                       style={{ background: "var(--bg-primary)" }}
                     >
-                      <FaMoneyBillWave className="text-oceanic-400 flex-shrink-0" />
+                      <FaMoneyBillWave className="text-brand-link dark:text-oceanic-400 flex-shrink-0" />
                       <div className="min-w-0">
                         <p
                           className="text-xs font-medium mb-0.5"
@@ -389,7 +391,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                               color: "var(--text-secondary)",
                             }}
                           >
-                            <FaFileInvoiceDollar className="text-oceanic-400" />
+                            <FaFileInvoiceDollar className="text-brand-link dark:text-oceanic-400" />
                             <span>{latest.invoiceNumber}</span>
                             <span
                               className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${latest.status === "paid" ? "bg-green-500/20 text-green-400" : "bg-teal-500/20 text-teal-400"}`}
@@ -541,11 +543,13 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                   href={`mailto:${selectedInquiry.email}`}
                   className="flex items-center gap-1.5 hover:text-[var(--accent-teal)] transition"
                 >
-                  <FaEnvelope className="text-oceanic-400" /> {selectedInquiry.email}
+                  <FaEnvelope className="text-brand-link dark:text-oceanic-400" />{" "}
+                  {selectedInquiry.email}
                 </a>
                 {selectedInquiry.phone && (
                   <span className="flex items-center gap-1.5">
-                    <FaPhone className="text-oceanic-400" /> {selectedInquiry.phone}
+                    <FaPhone className="text-brand-link dark:text-oceanic-400" />{" "}
+                    {selectedInquiry.phone}
                   </span>
                 )}
               </div>
@@ -603,7 +607,8 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                   className="text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  <FaFileAlt className="text-oceanic-400" /> Project Description
+                  <FaFileAlt className="text-brand-link dark:text-oceanic-400" /> Project
+                  Description
                 </p>
                 <div
                   className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words"

@@ -71,7 +71,7 @@ const SupportButton: React.FC = () => {
               <span className="text-white">{link.icon}</span>
               <div className="flex flex-col">
                 <span className="font-semibold text-sm text-white">{link.name}</span>
-                <span className="text-xs text-gray-300">{link.description}</span>
+                <span className="text-xs text-gray-200">{link.description}</span>
               </div>
             </Link>
           ) : (
@@ -95,7 +95,7 @@ const SupportButton: React.FC = () => {
                 </span>
                 <span
                   className={`text-xs ${
-                    link.id === "buymeacoffee" ? "text-gray-600" : "text-gray-300"
+                    link.id === "buymeacoffee" ? "text-gray-600" : "text-gray-200"
                   }`}
                 >
                   {link.description}

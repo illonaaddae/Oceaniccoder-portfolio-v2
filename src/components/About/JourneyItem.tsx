@@ -40,7 +40,7 @@ const JourneyItem = React.memo(({ item, index, isLast }: JourneyItemProps) => (
             <p className="text-sm text-gray-200 font-medium bg-gray-700/30 px-2 py-1 rounded journey-period">
               {item.period}
             </p>
-            <p className="text-xs text-gray-300 flex items-center gap-1 mt-1 journey-location-wrapper">
+            <p className="text-xs text-gray-200 flex items-center gap-1 mt-1 journey-location-wrapper">
               <FaMapMarkerAlt className="w-3 h-3 text-oceanic-500 journey-location-icon" />
               <span className="bg-gray-700/20 px-1.5 py-0.5 rounded text-gray-200 journey-location">
                 {item.location}
@@ -48,7 +48,7 @@ const JourneyItem = React.memo(({ item, index, isLast }: JourneyItemProps) => (
             </p>
           </div>
         </div>
-        <p className="text-gray-300 mb-4 text-story-base journey-description">{item.description}</p>
+        <p className="text-gray-200 mb-4 text-story-base journey-description">{item.description}</p>
         <div className="space-y-2">
           <h5 className="text-sm font-semibold text-white journey-achievements-title">
             Key Achievements:
@@ -57,7 +57,7 @@ const JourneyItem = React.memo(({ item, index, isLast }: JourneyItemProps) => (
             {item.achievements?.map((achievement: string) => (
               <li
                 key={achievement}
-                className="text-caption text-gray-300 flex items-start gap-2 journey-achievement"
+                className="text-caption text-gray-200 flex items-start gap-2 journey-achievement"
               >
                 <span className="text-green-400 mt-1 journey-achievement-bullet">•</span>
                 <span className="journey-achievement-text">{achievement}</span>

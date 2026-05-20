@@ -52,7 +52,7 @@ export const StatsSection: React.FC<Props> = ({
     <div className={getCardClass(theme)}>
       <div className="flex items-center justify-between mb-4">
         <h3 className={getHeadingClass(theme)}>
-          <FaChartBar className="text-oceanic-500" />
+          <FaChartBar className="text-brand-link dark:text-oceanic-400" />
           Stats (Displayed on About Page)
         </h3>
       </div>

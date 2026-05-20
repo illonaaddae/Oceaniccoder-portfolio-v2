@@ -255,6 +255,14 @@ const PaymentPage: React.FC = () => {
 
   const isSuccess = isSuccessParam || paid;
 
+  // Payment record creation + invoice "paid" status update are owned by
+  // `/api/paystack-webhook` (server-side, atomic). Client only flips UI to
+  // success view here — webhook fires async from Paystack and writes both
+  // invoice.status="paid" and a payments collection row.
+  const handlePaymentSuccess = useCallback(() => {
+    setPaid(true);
+  }, []);
+
   const doFetch = useCallback(async () => {
     if (!invoiceNumber) return;
     setLoading(true);
@@ -425,7 +433,7 @@ const PaymentPage: React.FC = () => {
                           currency: invoice.currency,
                           clientName: invoice.clientName,
                         }}
-                        onSuccess={() => setPaid(true)}
+                        onSuccess={handlePaymentSuccess}
                       />
                     )}
                     {activeTab === "momo" && (
@@ -437,7 +445,7 @@ const PaymentPage: React.FC = () => {
                           currency: invoice.currency,
                           clientName: invoice.clientName,
                         }}
-                        onSuccess={() => setPaid(true)}
+                        onSuccess={handlePaymentSuccess}
                       />
                     )}
                     {activeTab === "bank" && <BankTransfer invoiceNumber={invoice.invoiceNumber} />}

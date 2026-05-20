@@ -25,44 +25,44 @@
   --bg-tertiary: #1a365d;
   --bg-accent: #2d3748;
   --brand-ocean-1: #0d253f;
-  --brand-ocean-2: #0c8599;
-  --brand-ocean-3: #26a9c5;
-  --brand-ocean-4: #52bfd7;
+  --brand-ocean-2: #26a9c5; /* brightened from #0c8599 — AA on dark (6.53:1 on bg-primary) */
+  --brand-ocean-3: #52bfd7;
+  --brand-ocean-4: #8dd7e7;
   --text-primary: #f7fafc;
-  --text-secondary: #e2e8f0;
-  --text-accent: #cbd5e0;
-  --glass-bg: rgba(12, 133, 153, 0.08);
-  --glass-border: rgba(12, 133, 153, 0.15);
-  --shadow-ocean: rgba(12, 133, 153, 0.2);
-  --accent-teal: #0c8599;
-  --accent-teal-subtle: rgba(12, 133, 153, 0.1);
-  --accent-teal-border: rgba(12, 133, 153, 0.2);
-  --border-subtle: rgba(12, 133, 153, 0.15);
+  --text-secondary: #edf2f7; /* brightened from #e2e8f0 */
+  --text-accent: #d6dde6; /* brightened from #cbd5e0 */
+  --glass-bg: rgba(38, 169, 197, 0.1);
+  --glass-border: rgba(38, 169, 197, 0.22);
+  --shadow-ocean: rgba(38, 169, 197, 0.22);
+  --accent-teal: #26a9c5; /* AA on dark (7.07:1 on dark-1) */
+  --accent-teal-subtle: rgba(38, 169, 197, 0.1);
+  --accent-teal-border: rgba(38, 169, 197, 0.25);
+  --border-subtle: rgba(38, 169, 197, 0.18);
 }
 
 [data-theme="light"] {
-  /* Clear, higher-contrast light palette */
+  /* Clear, higher-contrast light palette — WCAG AA compliant */
   --bg-primary: #ffffff; /* page base */
   --bg-secondary: #f6fffb; /* subtle teal tint */
   --bg-tertiary: #eef8f6; /* gentle layered tone */
   --bg-accent: #fbfffe;
 
   --brand-ocean-1: #e6f7f5;
-  --brand-ocean-2: #0c8599;
-  --brand-ocean-3: #085866;
-  --brand-ocean-4: #26a9c5;
+  --brand-ocean-2: #0a6e7d; /* AA on white (5.93:1) — links/CTAs */
+  --brand-ocean-3: #085866; /* AA on white (8.08:1) — strong accent */
+  --brand-ocean-4: #26a9c5; /* DECORATIVE ONLY — fails AA on white */
 
   --text-primary: #0f1724; /* dark slate for body text */
   --text-secondary: #334155; /* secondary headings */
   --text-accent: #475569; /* accents and muted text */
 
   --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(12, 133, 153, 0.12);
-  --shadow-ocean: rgba(12, 133, 153, 0.08);
-  --accent-teal: #085866;
-  --accent-teal-subtle: rgba(8, 88, 102, 0.08);
-  --accent-teal-border: rgba(8, 88, 102, 0.15);
-  --border-subtle: rgba(12, 133, 153, 0.12);
+  --glass-border: rgba(10, 110, 125, 0.18);
+  --shadow-ocean: rgba(10, 110, 125, 0.1);
+  --accent-teal: #0a6e7d;
+  --accent-teal-subtle: rgba(10, 110, 125, 0.08);
+  --accent-teal-border: rgba(10, 110, 125, 0.2);
+  --border-subtle: rgba(10, 110, 125, 0.15);
 }
 
 /* Wider light-theme selectors so theme works when set on html or body */
@@ -75,7 +75,7 @@ body[data-theme="light"],
   --bg-accent: #fbfffe;
 
   --brand-ocean-1: #e6f7f5;
-  --brand-ocean-2: #0c8599;
+  --brand-ocean-2: #0a6e7d;
   --brand-ocean-3: #085866;
   --brand-ocean-4: #26a9c5;
 
@@ -84,12 +84,12 @@ body[data-theme="light"],
   --text-accent: #475569;
 
   --glass-bg: rgba(255, 255, 255, 0.95);
-  --glass-border: rgba(12, 133, 153, 0.12);
+  --glass-border: rgba(10, 110, 125, 0.18);
   --shadow-ocean: rgba(16, 24, 32, 0.06);
-  --accent-teal: #085866;
-  --accent-teal-subtle: rgba(8, 88, 102, 0.08);
-  --accent-teal-border: rgba(8, 88, 102, 0.15);
-  --border-subtle: rgba(12, 133, 153, 0.12);
+  --accent-teal: #0a6e7d;
+  --accent-teal-subtle: rgba(10, 110, 125, 0.08);
+  --accent-teal-border: rgba(10, 110, 125, 0.2);
+  --border-subtle: rgba(10, 110, 125, 0.15);
 }
 
 /* Global light-mode overrides: force a white page background and dark text */

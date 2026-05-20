@@ -1,6 +1,7 @@
 import React from "react";
 import ClientWorkTab from "./tabs/ClientWorkTab";
 import InvoicesTab from "./tabs/InvoicesTab";
+import PaymentsTab from "./tabs/PaymentsTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 import { BookingsTab } from "./tabs/BookingsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
@@ -38,6 +39,7 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
           onShowForm={props.openNewEducation}
           onEdit={props.openEditEducation}
           onDelete={props.handleDeleteEducation}
+          onReorder={props.handleReorderEducation}
           isReadOnly={isReadOnly}
         />
       )}
@@ -101,6 +103,7 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
       {activeTab === "bookings" && !isReadOnly && <BookingsTab theme={theme} />}
       {activeTab === "client-work" && !isReadOnly && <ClientWorkTab theme={theme} />}
       {activeTab === "invoices" && !isReadOnly && <InvoicesTab theme={theme} />}
+      {activeTab === "payments" && !isReadOnly && <PaymentsTab theme={theme} />}
       {activeTab === "analytics" && !isReadOnly && <AnalyticsTab theme={theme} />}
       {activeTab === "settings" && !isReadOnly && <SettingsTab theme={theme} />}
       {activeTab === "storage" && !isReadOnly && <StorageCleanupTab theme={theme} />}

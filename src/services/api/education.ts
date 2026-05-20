@@ -1,8 +1,13 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
+import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Education } from "../../types";
 
+// Education list — sorted by displayOrder DESC so the highest value shows first
+// on the main site. Admin reorders via up/down buttons in EducationTab which
+// swap displayOrder between adjacent rows (handleReorderEducation).
 export async function getEducation(): Promise<Education[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.EDUCATION);
+  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.EDUCATION, [
+    Query.orderDesc("displayOrder"),
+  ]);
   return response.documents as unknown as Education[];
 }
 
@@ -25,6 +30,7 @@ export async function createEducation(edu: Omit<Education, "$id">): Promise<Educ
   if (edu.initials) cleanedData.initials = edu.initials;
   if (edu.location) cleanedData.location = edu.location;
   if (edu.isVisible !== undefined) cleanedData.isVisible = edu.isVisible;
+  if (edu.displayOrder !== undefined) cleanedData.displayOrder = edu.displayOrder;
 
   const result = await databases.createDocument(
     DATABASE_ID,
@@ -57,6 +63,7 @@ export async function updateEducation(
   if (edu.initials !== undefined) cleanedData.initials = edu.initials || null;
   if (edu.location !== undefined) cleanedData.location = edu.location || null;
   if (edu.isVisible !== undefined) cleanedData.isVisible = edu.isVisible;
+  if (edu.displayOrder !== undefined) cleanedData.displayOrder = edu.displayOrder;
 
   const result = await databases.updateDocument(
     DATABASE_ID,

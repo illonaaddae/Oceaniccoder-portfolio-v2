@@ -27,7 +27,10 @@ export const BlogContentEditor: React.FC<BlogContentEditorProps> = ({
       <label
         className={`block text-sm font-semibold ${theme === "dark" ? "text-slate-200" : "text-slate-700"}`}
       >
-        Content * <span className="text-oceanic-500 font-normal">(Markdown supported)</span>
+        Content *{" "}
+        <span className="text-brand-link dark:text-oceanic-400 font-normal">
+          (Markdown supported)
+        </span>
       </label>
       <button
         type="button"

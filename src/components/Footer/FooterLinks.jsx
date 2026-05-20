@@ -14,14 +14,14 @@ const FooterLinks = React.memo(() => {
             {link.href && link.href.startsWith("/") ? (
               <button
                 onClick={() => navigate(link.href)}
-                className="text-gray-400 hover:text-oceanic-500 transition-colors duration-300 text-sm"
+                className="text-gray-200 hover:text-brand-link dark:hover:text-oceanic-400 transition-colors duration-300 text-sm"
               >
                 {link.label}
               </button>
             ) : (
               <a
                 href={link.href}
-                className="text-gray-400 hover:text-oceanic-500 transition-colors duration-300 text-sm"
+                className="text-gray-200 hover:text-brand-link dark:hover:text-oceanic-400 transition-colors duration-300 text-sm"
               >
                 {link.label}
               </a>

@@ -12,7 +12,7 @@ const ReactionsSection = React.memo(
           <h3 className="text-lg font-semibold text-white mb-1">
             Did you find this article helpful?
           </h3>
-          <p className="text-gray-400 text-sm">Let me know your thoughts!</p>
+          <p className="text-gray-200 text-sm">Let me know your thoughts!</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -24,7 +24,7 @@ const ReactionsSection = React.memo(
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300 cursor-pointer select-none ${
               userReaction === "like"
                 ? "bg-oceanic-500/30 text-oceanic-400 border border-oceanic-500/50 scale-105"
-                : "bg-white/5 text-gray-300 border border-white/10 hover:bg-oceanic-500/10 hover:text-oceanic-400 hover:border-oceanic-500/30 hover:scale-105"
+                : "bg-white/5 text-gray-200 border border-white/10 hover:bg-oceanic-500/10 hover:text-oceanic-400 hover:border-oceanic-500/30 hover:scale-105"
             } ${reactionLoading ? "opacity-50 cursor-wait" : ""}`}
           >
             {userReaction === "like" ? (
@@ -43,7 +43,7 @@ const ReactionsSection = React.memo(
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300 cursor-pointer select-none ${
               userReaction === "dislike"
                 ? "bg-red-500/30 text-red-400 border border-red-500/50 scale-105"
-                : "bg-white/5 text-gray-300 border border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 hover:scale-105"
+                : "bg-white/5 text-gray-200 border border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 hover:scale-105"
             } ${reactionLoading ? "opacity-50 cursor-wait" : ""}`}
           >
             {userReaction === "dislike" ? (

@@ -5,7 +5,7 @@ const ProjectCardContent = React.memo(({ project }) => (
   <div className="p-6">
     <div className="flex items-center justify-between mb-3">
       <span className="text-sm text-oceanic-500 font-medium">{project.category}</span>
-      <div className="flex items-center gap-1 text-xs text-gray-400">
+      <div className="flex items-center gap-1 text-xs text-gray-200">
         <FaCalendar className="w-3 h-3" />
         {project.year}
       </div>
@@ -15,7 +15,7 @@ const ProjectCardContent = React.memo(({ project }) => (
       {project.title}
     </h3>
 
-    <p className="text-gray-300 text-sm mb-4 leading-relaxed">{project.description}</p>
+    <p className="text-gray-200 text-sm mb-4 leading-relaxed">{project.description}</p>
 
     <div className="flex flex-wrap gap-2 mb-4">
       {project.technologies.slice(0, 3).map((tech, index) => (
@@ -27,7 +27,7 @@ const ProjectCardContent = React.memo(({ project }) => (
         </span>
       ))}
       {project.technologies.length > 3 && (
-        <span className="text-xs text-gray-400 px-2 py-1">
+        <span className="text-xs text-gray-200 px-2 py-1">
           +{project.technologies.length - 3} more
         </span>
       )}

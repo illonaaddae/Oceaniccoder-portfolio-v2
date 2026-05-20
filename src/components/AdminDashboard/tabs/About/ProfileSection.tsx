@@ -28,7 +28,7 @@ export const ProfileSection: React.FC<Props> = ({
     <div className={getCardClass(theme)}>
       <div className="flex items-center justify-between mb-4">
         <h3 className={getHeadingClass(theme)}>
-          <FaUser className="text-oceanic-500" />
+          <FaUser className="text-brand-link dark:text-oceanic-400" />
           Profile Information
         </h3>
         <SaveButton

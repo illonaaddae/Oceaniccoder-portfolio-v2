@@ -21,7 +21,7 @@ const HeroContent = React.memo(function HeroContent({ displayText, onViewProject
       </h2>
 
       {/* Tagline */}
-      <p className="text-base sm:text-lg lg:text-xl max-w-2xl lg:max-w-none leading-relaxed text-gray-200 dark:text-gray-300 font-light">
+      <p className="text-base sm:text-lg lg:text-xl max-w-2xl lg:max-w-none leading-relaxed text-gray-200 dark:text-gray-200 font-light">
         <span className="text-white font-medium">
           "In a world of can'ts, she whispers I can, and in doing so, she became an unstoppable
           force."

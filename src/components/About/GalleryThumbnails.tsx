@@ -64,7 +64,7 @@ const GalleryThumbnails = React.memo(
       {/* Navigation hint */}
       <div className="flex justify-center mt-2 mb-4">
         <div className="glass-card bg-white/5 border border-white/10 rounded-lg px-2.5 py-0.5">
-          <span className="text-small text-gray-400">← Swipe or click to navigate →</span>
+          <span className="text-small text-gray-200">← Swipe or click to navigate →</span>
         </div>
       </div>
     </div>

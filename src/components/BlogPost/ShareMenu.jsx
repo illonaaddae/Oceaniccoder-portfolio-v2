@@ -32,7 +32,7 @@ const ShareMenu = React.memo(({ title }) => {
     <div className="relative ml-auto">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+        className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors"
       >
         <FaShare /> Share
       </button>
@@ -41,25 +41,25 @@ const ShareMenu = React.memo(({ title }) => {
         <div className="absolute right-0 top-full mt-2 glass-card rounded-lg p-2 min-w-[150px] z-20">
           <button
             onClick={() => handleShare("twitter")}
-            className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 text-gray-200 hover:text-white hover:bg-white/10 rounded transition-colors"
           >
             <FaTwitter className="text-blue-400" /> Twitter
           </button>
           <button
             onClick={() => handleShare("linkedin")}
-            className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 text-gray-200 hover:text-white hover:bg-white/10 rounded transition-colors"
           >
             <FaLinkedin className="text-blue-500" /> LinkedIn
           </button>
           <button
             onClick={() => handleShare("facebook")}
-            className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 text-gray-200 hover:text-white hover:bg-white/10 rounded transition-colors"
           >
             <FaFacebook className="text-blue-600" /> Facebook
           </button>
           <button
             onClick={() => handleShare("copy")}
-            className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 text-gray-200 hover:text-white hover:bg-white/10 rounded transition-colors"
           >
             <FaLink className="text-oceanic-400" />
             {copied ? "Copied!" : "Copy Link"}

@@ -104,7 +104,7 @@ const CodeBlock = React.memo(({ language, children, isDark }) => {
         onClick={handleCopy}
         className={`absolute top-3 right-3 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100 ${
           isDark
-            ? "bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+            ? "bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white"
             : "bg-black/5 hover:bg-black/10 text-gray-500 hover:text-gray-800"
         }`}
         title="Copy code"

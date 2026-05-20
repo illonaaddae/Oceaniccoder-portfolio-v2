@@ -40,7 +40,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
       <div className="flex items-center gap-3">
         <div
-          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-oceanic-500/20 to-oceanic-900/20 text-oceanic-500 ${isReadOnly ? "blur-sm" : ""}`}
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-oceanic-500/20 to-oceanic-900/20 text-brand-link dark:text-oceanic-400 ${isReadOnly ? "blur-sm" : ""}`}
         >
           {isReadOnly ? "•" : comment.authorName.charAt(0).toUpperCase()}
         </div>
@@ -80,7 +80,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
       <Link
         to={`/blog/${getPostSlug(comment.postId)}`}
         target="_blank"
-        className="flex items-center gap-2 text-sm text-oceanic-500 hover:text-oceanic-500 transition-colors"
+        className="flex items-center gap-2 text-sm text-brand-link dark:text-oceanic-400 hover:text-brand-accent-strong dark:hover:text-oceanic-300 transition-colors"
       >
         <FaExternalLinkAlt className="text-xs" />
         <span className="line-clamp-1">{getPostTitle(comment.postId)}</span>

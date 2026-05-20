@@ -9,6 +9,7 @@ import {
   FaMoneyBillWave,
 } from "react-icons/fa";
 import { getInvoices, updateInvoice, deleteInvoice } from "@/services/api/invoices";
+import { createPayment } from "@/services/api/payments";
 import { apiUrl } from "@/utils/apiUrl";
 import type { Invoice } from "@/types";
 import { useConfirm } from "../ConfirmContext";
@@ -85,6 +86,25 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
     setConfirming((prev) => ({ ...prev, [inv.$id]: true }));
     try {
       await updateInvoice(inv.$id, { status: "paid" });
+
+      // Audit log: create matching payment record for invoices marked paid manually
+      // (off-platform — bank transfer, cash, etc.). Paystack-initiated payments
+      // are recorded server-side by /api/paystack-webhook, so we skip method=card/momo here.
+      try {
+        await createPayment({
+          invoiceNumber: inv.invoiceNumber,
+          clientName: inv.clientName,
+          clientEmail: inv.clientEmail,
+          amount: inv.total,
+          currency: inv.currency,
+          method: "bank",
+          paidAt: new Date().toISOString(),
+          status: "success",
+        });
+      } catch (payErr) {
+        // Don't block flow if payment record fails — invoice update already succeeded.
+        console.error("Failed to create payment record:", payErr);
+      }
 
       const items: { description: string; quantity: number; unitPrice: number }[] =
         typeof inv.items === "string" ? (JSON.parse(inv.items) as typeof items) : [];
@@ -171,7 +191,7 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-            <FaFileInvoiceDollar className="text-oceanic-500" /> Invoices
+            <FaFileInvoiceDollar className="text-brand-link dark:text-oceanic-400" /> Invoices
           </h2>
           <p
             className="text-sm mt-1 flex items-center gap-3"
@@ -254,7 +274,8 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
                         className="text-xs hover:text-[var(--accent-teal)] transition flex items-center gap-1 mt-0.5"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        <FaEnvelope className="text-oceanic-400" /> {inv.clientEmail}
+                        <FaEnvelope className="text-brand-link dark:text-oceanic-400" />{" "}
+                        {inv.clientEmail}
                       </a>
                     </div>
 
@@ -279,11 +300,12 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
                     style={{ color: "var(--text-secondary)" }}
                   >
                     <span className="flex items-center gap-1">
-                      <FaClock className="text-oceanic-400" /> Sent {formatDate(inv.$createdAt)}
+                      <FaClock className="text-brand-link dark:text-oceanic-400" /> Sent{" "}
+                      {formatDate(inv.$createdAt)}
                     </span>
                     {inv.dueDate && (
                       <span className="flex items-center gap-1">
-                        <FaMoneyBillWave className="text-oceanic-400" /> Due{" "}
+                        <FaMoneyBillWave className="text-brand-link dark:text-oceanic-400" /> Due{" "}
                         {formatDate(inv.dueDate)}
                       </span>
                     )}

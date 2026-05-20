@@ -13,7 +13,7 @@ const NotFoundState = React.memo(() => (
   >
     <div className="text-center">
       <h1 className="text-4xl font-bold text-white mb-4">Post Not Found</h1>
-      <p className="text-gray-400 mb-8">
+      <p className="text-gray-200 mb-8">
         The blog post you&apos;re looking for doesn&apos;t exist.
       </p>
       <Link

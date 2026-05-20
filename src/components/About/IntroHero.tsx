@@ -15,7 +15,7 @@ const IntroHero = React.memo(() => {
         />
       </div>
       <h3 className="text-2xl font-bold text-white mb-2">Hello, I'm Illona</h3>
-      <p className="text-gray-300 max-w-2xl">
+      <p className="text-gray-200 max-w-2xl">
         I'm a full-stack developer, community leader and mentor. Below is a deeper look at my story,
         work, and the impact I aim to create.
       </p>

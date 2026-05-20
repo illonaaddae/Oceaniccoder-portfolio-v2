@@ -15,6 +15,7 @@ export type TabType =
   | "settings"
   | "client-work"
   | "invoices"
+  | "payments"
   | "analytics"
   | "storage";
 

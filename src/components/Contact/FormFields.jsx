@@ -73,7 +73,7 @@ const FormFields = React.memo(({ formData, handleInputChange }) => (
     {/* Message Textarea */}
     <div>
       <label htmlFor="message" className="block text-sm font-medium text-white mb-2">
-        Message * <span className="text-gray-400 text-xs font-normal">(minimum 10 characters)</span>
+        Message * <span className="text-gray-200 text-xs font-normal">(minimum 10 characters)</span>
       </label>
       <textarea
         id="message"

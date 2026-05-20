@@ -59,7 +59,7 @@ export const ResumeSection: React.FC<Props> = ({
               href={form.resumeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-oceanic-500 hover:text-oceanic-500 truncate block"
+              className="text-xs text-brand-link dark:text-oceanic-400 hover:text-brand-accent-strong dark:hover:text-oceanic-300 truncate block"
             >
               {form.resumeUrl.length > 50
                 ? form.resumeUrl.substring(0, 50) + "..."
