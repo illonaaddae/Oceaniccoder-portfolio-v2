@@ -64,6 +64,7 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
           featured: p.featured,
           status: p.status,
           year: p.year,
+          demoVideoUrl: p.demoVideoUrl,
           $createdAt: p.$createdAt,
         }));
         transformed.sort((a, b) => (b.$createdAt || "").localeCompare(a.$createdAt || ""));
