@@ -317,7 +317,7 @@ export default function InquiryPage() {
         form.projectType === "Other" && form.otherProjectType.trim()
           ? form.otherProjectType.trim()
           : form.projectType;
-      // eslint-disable-next-line no-unused-vars
+
       const {
         otherProjectType: _omit,
         hasLogo,
