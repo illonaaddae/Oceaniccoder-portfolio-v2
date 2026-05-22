@@ -33,9 +33,9 @@ describe("generateId", () => {
 
 describe("trapFocus", () => {
   let container: HTMLDivElement;
-  let btn1: HTMLButtonElement;
+  let btn1: HTMLElement;
   let input1: HTMLInputElement;
-  let btn2: HTMLButtonElement;
+  let btn2: HTMLElement;
 
   beforeEach(() => {
     container = document.createElement("div");
@@ -46,9 +46,9 @@ describe("trapFocus", () => {
     `;
     document.body.appendChild(container);
 
-    btn1 = document.getElementById("btn1") as HTMLButtonElement;
+    btn1 = document.getElementById("btn1") as HTMLElement;
     input1 = document.getElementById("input1") as HTMLInputElement;
-    btn2 = document.getElementById("btn2") as HTMLButtonElement;
+    btn2 = document.getElementById("btn2") as HTMLElement;
 
     // We need to mock focus behavior as JSDOM might not fully emulate it
     // but actual focus() calls work in vitest with document attached
