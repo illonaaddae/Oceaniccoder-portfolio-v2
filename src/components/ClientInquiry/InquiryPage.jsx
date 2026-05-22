@@ -5,6 +5,7 @@ import { FaBriefcase, FaCheckCircle, FaArrowRight, FaArrowLeft } from "react-ico
 import { createInquiry } from "../../services/api/inquiries";
 import { apiUrl } from "../../utils/apiUrl";
 import SelectDropdown from "./SelectDropdown";
+import { FORM_CONFIG } from "../../config/constants";
 import { useToast } from "../AdminDashboard/useToastHook";
 import { ToastContainer } from "../AdminDashboard/Toast";
 
@@ -464,7 +465,7 @@ export default function InquiryPage() {
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                      placeholder="jane@example.com"
+                      placeholder={FORM_CONFIG.emailPlaceholder}
                       className="w-full glass-input"
                     />
                     {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
@@ -480,7 +481,7 @@ export default function InquiryPage() {
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                    placeholder="+233 XX XXX XXXX"
+                    placeholder={FORM_CONFIG.phonePlaceholderGH}
                     className="w-full glass-input"
                   />
                 </div>

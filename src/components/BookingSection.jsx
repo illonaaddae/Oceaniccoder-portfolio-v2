@@ -17,6 +17,7 @@ import {
 } from "react-icons/fa";
 import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
 import { apiUrl } from "../utils/apiUrl";
+import { FORM_CONFIG } from "../config/constants";
 
 const MEETING_TYPES = [
   {
@@ -425,7 +426,7 @@ export default function BookingSection() {
                           type="email"
                           value={form.email}
                           onChange={(v) => handleChange("email", v)}
-                          placeholder="jane@example.com"
+                          placeholder={FORM_CONFIG.emailPlaceholder}
                         />
                         <FormField
                           icon={<FaPhone />}
@@ -433,7 +434,7 @@ export default function BookingSection() {
                           type="tel"
                           value={form.phone}
                           onChange={(v) => handleChange("phone", v)}
-                          placeholder="+1 (555) 000-0000"
+                          placeholder={FORM_CONFIG.phonePlaceholderUS}
                         />
                         <button
                           disabled={!canProceedStep1}

@@ -48,6 +48,7 @@ vi.mock("../utils/apiUrl", () => ({
 
 import BookingSection from "./BookingSection";
 import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
+import { FORM_CONFIG } from "../config/constants";
 
 const mockCreateBooking = createBooking as ReturnType<typeof vi.fn>;
 const mockGetBookedTimes = getBookedTimesForDate as ReturnType<typeof vi.fn>;
@@ -72,7 +73,7 @@ const fillStep1 = () => {
   fireEvent.change(screen.getByPlaceholderText("Jane Smith"), {
     target: { value: "Ada Lovelace" },
   });
-  fireEvent.change(screen.getByPlaceholderText("jane@example.com"), {
+  fireEvent.change(screen.getByPlaceholderText(FORM_CONFIG.emailPlaceholder), {
     target: { value: "ada@example.com" },
   });
 };
