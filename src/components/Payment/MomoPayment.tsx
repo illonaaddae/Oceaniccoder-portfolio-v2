@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { config } from "@/config/env";
 
 export interface MomoPaymentProps {
   invoice: {
@@ -102,7 +103,7 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice, onSuccess }) => {
       const ref = `OC-${invoice.invoiceNumber}-${Date.now()}`;
 
       const handler = PaystackPop.setup({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string,
+        key: config.payment.paystackPublicKey,
         email: invoice.clientEmail,
         amount: Math.round(invoice.total * 100),
         currency: invoice.currency,

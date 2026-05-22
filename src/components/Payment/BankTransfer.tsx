@@ -1,16 +1,9 @@
 import React, { useState } from "react";
+import { config } from "@/config/env";
 
 interface BankTransferProps {
   invoiceNumber: string;
 }
-
-// Bank and MoMo details come from environment variables (set in Azure Portal).
-// Fallback placeholders are shown when variables are not set.
-const BANK_NAME = import.meta.env.VITE_BANK_NAME || "GCB Bank";
-const BANK_ACCOUNT_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || "Illona Addae";
-const BANK_ACCOUNT_NUMBER = import.meta.env.VITE_BANK_ACCOUNT_NUMBER || "XXXXXXXXXXXX";
-const MOMO_NUMBER = import.meta.env.VITE_MOMO_NUMBER || "0XX XXX XXXX";
-const MOMO_NETWORK = import.meta.env.VITE_MOMO_NETWORK || "MTN MoMo";
 
 interface CopyButtonProps {
   text: string;
@@ -133,9 +126,9 @@ const BankTransfer: React.FC<BankTransferProps> = ({ invoiceNumber }) => {
           border: "1px solid var(--border-subtle)",
         }}
       >
-        <DetailRow label="Bank" value={BANK_NAME} />
-        <DetailRow label="Account Name" value={BANK_ACCOUNT_NAME} />
-        <DetailRow label="Account Number" value={BANK_ACCOUNT_NUMBER} copyable />
+        <DetailRow label="Bank" value={config.payment.bankName} />
+        <DetailRow label="Account Name" value={config.payment.bankAccountName} />
+        <DetailRow label="Account Number" value={config.payment.bankAccountNumber} copyable />
       </div>
 
       {/* MoMo details */}
@@ -154,8 +147,8 @@ const BankTransfer: React.FC<BankTransferProps> = ({ invoiceNumber }) => {
             border: "1px solid var(--border-subtle)",
           }}
         >
-          <DetailRow label="Network" value={MOMO_NETWORK} />
-          <DetailRow label="Number" value={MOMO_NUMBER} copyable />
+          <DetailRow label="Network" value={config.payment.momoNetwork} />
+          <DetailRow label="Number" value={config.payment.momoNumber} copyable />
         </div>
       </div>
 
