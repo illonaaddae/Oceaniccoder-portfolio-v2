@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FaTrash,
   FaSync,
@@ -291,9 +291,18 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     }
   };
 
-  const orphans = files.filter((f) => f.isOrphan);
-  const inUse = files.filter((f) => !f.isOrphan);
-  const orphanSize = orphans.reduce((s, f) => s + f.sizeOriginal, 0);
+  const { orphans, inUse, orphanSize } = useMemo(() => {
+    const result = { orphans: [] as StorageFile[], inUse: [] as StorageFile[], orphanSize: 0 };
+    for (const f of files) {
+      if (f.isOrphan) {
+        result.orphans.push(f);
+        result.orphanSize += f.sizeOriginal;
+      } else {
+        result.inUse.push(f);
+      }
+    }
+    return result;
+  }, [files]);
 
   const orphanPage$ = orphans.slice(orphanPage * PAGE_SIZE, (orphanPage + 1) * PAGE_SIZE);
   const inUsePage$ = inUse.slice(inUsePage * PAGE_SIZE, (inUsePage + 1) * PAGE_SIZE);
