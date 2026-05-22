@@ -18,10 +18,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("should update the value after the default delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value),
-      { initialProps: { value: "initial" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value), {
+      initialProps: { value: "initial" },
+    });
 
     expect(result.current).toBe("initial");
 
@@ -47,10 +46,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("should work with a custom delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
-      { initialProps: { value: "initial", delay: 500 } }
-    );
+    const { result, rerender } = renderHook(({ value, delay }) => useDebouncedValue(value, delay), {
+      initialProps: { value: "initial", delay: 500 },
+    });
 
     expect(result.current).toBe("initial");
 
@@ -76,10 +74,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("should cancel the timeout if the value updates again before the delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value),
-      { initialProps: { value: "initial" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value), {
+      initialProps: { value: "initial" },
+    });
 
     // Update the value to "update1"
     rerender({ value: "update1" });
@@ -109,10 +106,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("should clear the timeout on unmount", () => {
-    const { unmount, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value),
-      { initialProps: { value: "initial" } }
-    );
+    const { unmount, rerender } = renderHook(({ value }) => useDebouncedValue(value), {
+      initialProps: { value: "initial" },
+    });
 
     rerender({ value: "updated" });
 
