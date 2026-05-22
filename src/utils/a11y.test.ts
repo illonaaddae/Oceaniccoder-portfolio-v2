@@ -86,7 +86,12 @@ describe("trapFocus", () => {
     expect(document.activeElement?.id).toBe("btn1");
 
     // Simulate Shift+Tab keydown
-    const shiftTabEvent = new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true });
+    const shiftTabEvent = new KeyboardEvent("keydown", {
+      key: "Tab",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
     btn1.dispatchEvent(shiftTabEvent);
 
     expect(shiftTabEvent.defaultPrevented).toBe(true);
@@ -117,7 +122,11 @@ describe("trapFocus", () => {
     expect(document.activeElement?.id).toBe("btn2");
 
     // Simulate Enter keydown
-    const enterEvent = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    const enterEvent = new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    });
     btn2.dispatchEvent(enterEvent);
 
     expect(enterEvent.defaultPrevented).toBe(false);
