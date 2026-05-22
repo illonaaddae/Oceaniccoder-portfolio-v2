@@ -317,13 +317,7 @@ export default function InquiryPage() {
         form.projectType === "Other" && form.otherProjectType.trim()
           ? form.otherProjectType.trim()
           : form.projectType;
-      const {
-        hasLogo,
-        needsDomain,
-        domainExtension,
-        needsHosting,
-        ...rest
-      } = form;
+      const { hasLogo, needsDomain, domainExtension, needsHosting, ...rest } = form;
       delete rest.otherProjectType;
 
       const inquiryData = {
