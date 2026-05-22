@@ -11,7 +11,6 @@ import Chatbot from "./components/Chatbot";
 import useTheme from "./hooks/useTheme";
 import {
   verifyAdminPassword,
-  hashPassword,
   incrementSiteViews,
   hasAppwriteSession,
   logoutAdmin,
@@ -22,22 +21,15 @@ function App() {
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // Auth gate: Appwrite session first, then hash-based fallback
+  // Auth gate: Appwrite server-side session is the single source of truth.
+  // The legacy localStorage hash fallback was removed (it required exposing
+  // VITE_ADMIN_PASSWORD_HASH in the client bundle).
   useEffect(() => {
     hasAppwriteSession().then((hasSession) => {
-      if (hasSession) {
-        setIsAdminLoggedIn(true);
-        return;
-      }
-      // Fall back to stored password hash (offline/hash-based login)
-      const storedHash = localStorage.getItem("adminHash");
-      const expectedHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH as string | undefined;
-      if (storedHash && expectedHash && storedHash === expectedHash) {
-        setIsAdminLoggedIn(true);
-      } else {
+      setIsAdminLoggedIn(hasSession);
+      if (!hasSession) {
         localStorage.removeItem("adminAuth");
-        localStorage.removeItem("adminHash");
-        setIsAdminLoggedIn(false);
+        localStorage.removeItem("adminHash"); // clean up stale legacy key
       }
     });
   }, []);
@@ -46,9 +38,10 @@ function App() {
     try {
       const isValid = await verifyAdminPassword(password);
       if (isValid) {
+        // verifyAdminPassword creates an Appwrite session; that session IS the
+        // auth state. localStorage.adminAuth kept only as a UI hint for legacy
+        // code paths that haven't been migrated yet — it's no longer a secret.
         localStorage.setItem("adminAuth", "authenticated");
-        const hash = await hashPassword(password);
-        localStorage.setItem("adminHash", hash);
         setIsAdminLoggedIn(true);
       } else {
         // eslint-disable-next-line no-alert

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { verifyAdminPassword, setAdminPassword, hashPassword } from "@/services/api";
+import { verifyAdminPassword } from "@/services/api";
 import { account } from "@/lib/appwrite";
 
 export interface PasswordMessage {
@@ -52,19 +52,10 @@ export function usePasswordForm() {
         return;
       }
 
-      // Update Appwrite Auth account password (primary login path)
-      try {
-        await account.updatePassword(newPassword, currentPassword);
-      } catch {
-        // No active Appwrite session or not using Appwrite Auth — fine, continue
-      }
+      // Update Appwrite Auth account password — this is the sole login path
+      // since the legacy SHA-256 hash fallback was removed.
+      await account.updatePassword(newPassword, currentPassword);
 
-      // Update legacy hash in settings collection (fallback login path)
-      await setAdminPassword(newPassword);
-
-      // Refresh localStorage hash so hash-based fallback stays valid
-      const newHash = await hashPassword(newPassword);
-      localStorage.setItem("adminHash", newHash);
       localStorage.setItem("adminAuth", "authenticated");
 
       setCurrentPassword("");
