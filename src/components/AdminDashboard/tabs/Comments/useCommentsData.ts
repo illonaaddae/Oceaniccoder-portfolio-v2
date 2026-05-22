@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Comment, BlogPost } from "@/types";
 import { getAllComments, updateComment, deleteComment, getBlogPosts } from "@/services/api";
 
@@ -34,14 +34,21 @@ export function useCommentsData(isReadOnly: boolean) {
     loadData();
   }, []);
 
+  const blogPostsMap = useMemo(() => {
+    return blogPosts.reduce((acc, post) => {
+      acc.set(post.$id, post);
+      return acc;
+    }, new Map<string, BlogPost>());
+  }, [blogPosts]);
+
   const getPostTitle = useCallback(
-    (postId: string) => blogPosts.find((p) => p.$id === postId)?.title || "Unknown Post",
-    [blogPosts],
+    (postId: string) => blogPostsMap.get(postId)?.title || "Unknown Post",
+    [blogPostsMap],
   );
 
   const getPostSlug = useCallback(
-    (postId: string) => blogPosts.find((p) => p.$id === postId)?.slug || postId,
-    [blogPosts],
+    (postId: string) => blogPostsMap.get(postId)?.slug || postId,
+    [blogPostsMap],
   );
 
   const formatDate = (dateStr?: string) => {
