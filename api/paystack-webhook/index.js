@@ -110,7 +110,7 @@ module.exports = async function (context, req) {
   const data = event.data || {};
   const metadata = data.metadata || {};
 
-  // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp)
+  // Extracts invoice number from metadata or parses it from reference (PAY-INV-XXXXXX-timestamp)
   let invoiceNumber =
     metadata.invoiceNumber ||
     (data.reference && data.reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
