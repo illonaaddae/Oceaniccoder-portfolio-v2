@@ -33,6 +33,9 @@ describe("generateId", () => {
 
 describe("trapFocus", () => {
   let container: HTMLDivElement;
+  let btn1: HTMLButtonElement;
+  let input1: HTMLInputElement;
+  let btn2: HTMLButtonElement;
 
   beforeEach(() => {
     container = document.createElement("div");
@@ -42,6 +45,13 @@ describe("trapFocus", () => {
       <button id="btn2">Button 2</button>
     `;
     document.body.appendChild(container);
+
+    btn1 = document.getElementById("btn1") as HTMLButtonElement;
+    input1 = document.getElementById("input1") as HTMLInputElement;
+    btn2 = document.getElementById("btn2") as HTMLButtonElement;
+
+    // We need to mock focus behavior as JSDOM might not fully emulate it
+    // but actual focus() calls work in vitest with document attached
   });
 
   afterEach(() => {
@@ -53,9 +63,88 @@ describe("trapFocus", () => {
     expect(document.activeElement?.id).toBe("btn1");
   });
 
+  it("should wrap focus to first element when pressing Tab on last element", () => {
+    trapFocus(container);
+
+    // Set focus to the last element
+    btn2.focus();
+    expect(document.activeElement?.id).toBe("btn2");
+
+    // Simulate Tab keydown on the container (which catches the bubbled event)
+    const tabEvent = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    btn2.dispatchEvent(tabEvent);
+
+    expect(tabEvent.defaultPrevented).toBe(true);
+    expect(document.activeElement?.id).toBe("btn1");
+  });
+
+  it("should wrap focus to last element when pressing Shift+Tab on first element", () => {
+    trapFocus(container);
+
+    // Set focus to the first element
+    btn1.focus();
+    expect(document.activeElement?.id).toBe("btn1");
+
+    // Simulate Shift+Tab keydown
+    const shiftTabEvent = new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true });
+    btn1.dispatchEvent(shiftTabEvent);
+
+    expect(shiftTabEvent.defaultPrevented).toBe(true);
+    expect(document.activeElement?.id).toBe("btn2");
+  });
+
+  it("should not intercept Tab when focused on middle elements", () => {
+    trapFocus(container);
+
+    // Set focus to the middle element
+    input1.focus();
+    expect(document.activeElement?.id).toBe("input1");
+
+    // Simulate Tab keydown
+    const tabEvent = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    input1.dispatchEvent(tabEvent);
+
+    expect(tabEvent.defaultPrevented).toBe(false);
+    // document.activeElement will still be input1 because JSDOM doesn't move focus on default Tab
+    // but the key thing is we didn't call event.preventDefault() and didn't manually move focus
+  });
+
+  it("should not affect focus on other keys", () => {
+    trapFocus(container);
+
+    // Set focus to the last element
+    btn2.focus();
+    expect(document.activeElement?.id).toBe("btn2");
+
+    // Simulate Enter keydown
+    const enterEvent = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    btn2.dispatchEvent(enterEvent);
+
+    expect(enterEvent.defaultPrevented).toBe(false);
+    expect(document.activeElement?.id).toBe("btn2"); // Still focused on btn2
+  });
+
   it("should return cleanup function", () => {
     const cleanup = trapFocus(container);
     expect(typeof cleanup).toBe("function");
+  });
+
+  it("should remove event listener on cleanup", () => {
+    const cleanup = trapFocus(container);
+
+    // Set focus to the last element
+    btn2.focus();
+
+    // Cleanup
+    cleanup();
+
+    // Simulate Tab keydown after cleanup
+    const tabEvent = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    btn2.dispatchEvent(tabEvent);
+
+    // Should not have intercepted
+    expect(tabEvent.defaultPrevented).toBe(false);
+    expect(document.activeElement?.id).toBe("btn2"); // Still focused on btn2, not btn1
   });
 });
 
