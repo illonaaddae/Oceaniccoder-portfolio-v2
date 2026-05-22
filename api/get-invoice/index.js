@@ -1,4 +1,4 @@
-// GET /api/get-invoice?number=INV-XXXXXX
+// GET /api/get-invoice?number=INV-123456
 // Fetches invoice by invoice number for public access (no auth required).
 // Uses APPWRITE_API_KEY env var — set this in Azure Portal > Configuration.
 
