@@ -82,14 +82,13 @@ To run manually: `npx lint-staged`
 
 All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never reads them at runtime.
 
-| Variable                    | Purpose                 |
-| --------------------------- | ----------------------- |
-| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint   |
-| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project        |
-| `VITE_APPWRITE_DATABASE_ID` | Appwrite database       |
-| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket |
-| `VITE_ADMIN_EMAIL`          | Admin account email     |
-| `VITE_ADMIN_PASSWORD_HASH`  | SHA-256 fallback hash   |
+| Variable                    | Purpose                             |
+| --------------------------- | ----------------------------------- |
+| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint               |
+| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project                    |
+| `VITE_APPWRITE_DATABASE_ID` | Appwrite database                   |
+| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket             |
+| `VITE_ADMIN_EMAIL`          | Admin account email (Appwrite Auth) |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
 

@@ -210,20 +210,29 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         collectAllUrls(),
       ]);
 
+      // Precompute collection ids + platform-logo URL list once — O(N+M) vs O(N*M) per-file scan.
+      const collectionIds = DB_COLLECTIONS.map((c) => c.id);
+      const platformLogoUrls = platforms.map((p) => p.currentUrl).filter((u): u is string => !!u);
+
       const mapped: StorageFile[] = filesRes.files.map((f) => {
         const url = `${BUCKET_BASE}/${f.$id}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
-        const usedIn: string[] = [];
+        const usedInSet = new Set<string>();
         let isOrphan = true;
+        const hasPlatformLogo = platformLogoUrls.some((u) => u.includes(f.$id));
 
         for (const refUrl of referencedUrls) {
           if (refUrl.includes(f.$id)) {
             isOrphan = false;
-            const collMatch = DB_COLLECTIONS.find(({ id }) => refUrl.includes(id));
-            if (collMatch && !usedIn.includes(collMatch.id)) usedIn.push(collMatch.id);
-            const platformMatch = platforms.find((p) => p.currentUrl?.includes(f.$id));
-            if (platformMatch && !usedIn.includes("platform-logo")) usedIn.push("platform-logo");
+            for (const id of collectionIds) {
+              if (refUrl.includes(id)) {
+                usedInSet.add(id);
+                break;
+              }
+            }
+            if (hasPlatformLogo) usedInSet.add("platform-logo");
           }
         }
+        const usedIn: string[] = Array.from(usedInSet);
 
         return {
           $id: f.$id,
@@ -291,8 +300,14 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     }
   };
 
-  const orphans = files.filter((f) => f.isOrphan);
-  const inUse = files.filter((f) => !f.isOrphan);
+  // Single-pass partition — previously two .filter() walks over the same array.
+  const { orphans, inUse } = files.reduce<{ orphans: StorageFile[]; inUse: StorageFile[] }>(
+    (acc, f) => {
+      (f.isOrphan ? acc.orphans : acc.inUse).push(f);
+      return acc;
+    },
+    { orphans: [], inUse: [] },
+  );
   const orphanSize = orphans.reduce((s, f) => s + f.sizeOriginal, 0);
 
   const orphanPage$ = orphans.slice(orphanPage * PAGE_SIZE, (orphanPage + 1) * PAGE_SIZE);

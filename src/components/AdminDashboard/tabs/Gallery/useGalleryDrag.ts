@@ -45,11 +45,12 @@ export function useGalleryDrag({ sortedGallery, onUpdateOrder }: UseGalleryDragP
       const newGallery = [...sortedGallery];
       const [removed] = newGallery.splice(sourceIndex, 1);
       newGallery.splice(targetIndex, 0, removed);
-      for (let i = 0; i < newGallery.length; i++) {
-        if (newGallery[i].order !== i) {
-          await onUpdateOrder(newGallery[i].$id, i);
-        }
-      }
+      // Promise.all parallelizes N reorder requests — previously serial (N round-trips).
+      await Promise.all(
+        newGallery.map((item, i) =>
+          item.order !== i ? onUpdateOrder(item.$id, i) : Promise.resolve(),
+        ),
+      );
     } catch (err) {
       console.error("Failed to reorder:", err);
     } finally {

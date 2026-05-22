@@ -1,18 +1,4 @@
 import { account } from "../../lib/appwrite";
-import { getSetting, setSetting } from "./settings";
-
-export async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-export async function setAdminPassword(newPassword: string): Promise<void> {
-  const hash = await hashPassword(newPassword);
-  await setSetting("admin_password_hash", hash);
-}
 
 // True if an active Appwrite session exists for this browser
 export async function hasAppwriteSession(): Promise<boolean> {
@@ -24,52 +10,36 @@ export async function hasAppwriteSession(): Promise<boolean> {
   }
 }
 
-// Tries Appwrite Auth first (if VITE_ADMIN_EMAIL is set & user exists in Appwrite Console)
-// Falls back to the legacy SHA-256 hash check so existing setups keep working
+// Verify admin password via Appwrite Auth. The legacy SHA-256 fallback was
+// removed because it required exposing VITE_ADMIN_PASSWORD_HASH in the client
+// bundle — anyone inspecting the JS could read the password hash.
+//
+// Setup requirement: create an admin user in the Appwrite Console, then set
+// VITE_ADMIN_EMAIL in GitHub Actions secrets to that user's email.
 export async function verifyAdminPassword(password: string): Promise<boolean> {
-  // Path 1 — real Appwrite Auth (preferred)
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-  if (adminEmail) {
-    try {
-      // Clear any stale session before creating a new one
-      try {
-        await account.deleteSession("current");
-      } catch {
-        /* no session — fine */
-      }
-      // Newer Appwrite SDKs: createEmailPasswordSession; older: createEmailSession
-      const acc = account as unknown as Record<string, (e: string, p: string) => Promise<unknown>>;
-      const fn = acc.createEmailPasswordSession || acc.createEmailSession;
-      if (typeof fn === "function") {
-        await fn.call(account, adminEmail, password);
-        return true;
-      }
-    } catch {
-      // Fall through to legacy auth
-    }
+  if (!adminEmail) {
+    console.error("verifyAdminPassword: VITE_ADMIN_EMAIL is not set — admin auth is disabled.");
+    return false;
   }
 
-  // Path 2 — legacy SHA-256 hash (settings collection or env var)
   try {
-    const storedHash = await getSetting("admin_password_hash");
-    if (!storedHash) {
-      const envHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH;
-      if (envHash) {
-        const inputHash = await hashPassword(password);
-        if (inputHash === envHash) {
-          await setAdminPassword(password);
-          return true;
-        }
-      }
-      return false;
+    // Clear any stale session before creating a new one
+    try {
+      await account.deleteSession("current");
+    } catch {
+      /* no session — fine */
     }
-    const inputHash = await hashPassword(password);
-    return inputHash === storedHash.value;
+    // Newer Appwrite SDKs: createEmailPasswordSession; older: createEmailSession
+    const acc = account as unknown as Record<string, (e: string, p: string) => Promise<unknown>>;
+    const fn = acc.createEmailPasswordSession || acc.createEmailSession;
+    if (typeof fn === "function") {
+      await fn.call(account, adminEmail, password);
+      return true;
+    }
+    return false;
   } catch {
-    const envHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH;
-    if (!envHash) return false;
-    const inputHash = await hashPassword(password);
-    return inputHash === envHash;
+    return false;
   }
 }
 

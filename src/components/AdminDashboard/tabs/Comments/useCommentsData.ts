@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Comment, BlogPost } from "@/types";
 import { getAllComments, updateComment, deleteComment, getBlogPosts } from "@/services/api";
 
@@ -34,14 +34,20 @@ export function useCommentsData(isReadOnly: boolean) {
     loadData();
   }, []);
 
-  const getPostTitle = useCallback(
-    (postId: string) => blogPosts.find((p) => p.$id === postId)?.title || "Unknown Post",
+  // Pre-build id→post Map once — O(1) lookup vs O(N) .find() per call inside map/filter callbacks.
+  const blogPostsById = useMemo(
+    () => blogPosts.reduce((acc, p) => acc.set(p.$id, p), new Map<string, BlogPost>()),
     [blogPosts],
   );
 
+  const getPostTitle = useCallback(
+    (postId: string) => blogPostsById.get(postId)?.title || "Unknown Post",
+    [blogPostsById],
+  );
+
   const getPostSlug = useCallback(
-    (postId: string) => blogPosts.find((p) => p.$id === postId)?.slug || postId,
-    [blogPosts],
+    (postId: string) => blogPostsById.get(postId)?.slug || postId,
+    [blogPostsById],
   );
 
   const formatDate = (dateStr?: string) => {
