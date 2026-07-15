@@ -43,3 +43,27 @@ export async function setPlatformLogoUrl(platformName: string, url: string): Pro
   current[platformName] = url;
   await setSetting(PLATFORM_LOGOS_KEY, JSON.stringify(current));
 }
+
+// ── Hero profile images (light/dark) — editable from the dashboard ──────────────
+const HERO_IMAGES_KEY = "hero_images";
+
+export interface HeroImages {
+  light?: string;
+  dark?: string;
+}
+
+export async function getHeroImages(): Promise<HeroImages> {
+  try {
+    const setting = await getSetting(HERO_IMAGES_KEY);
+    if (!setting?.value) return {};
+    return JSON.parse(setting.value) as HeroImages;
+  } catch {
+    return {};
+  }
+}
+
+export async function setHeroImage(mode: "light" | "dark", url: string): Promise<void> {
+  const current = await getHeroImages();
+  current[mode] = url;
+  await setSetting(HERO_IMAGES_KEY, JSON.stringify(current));
+}

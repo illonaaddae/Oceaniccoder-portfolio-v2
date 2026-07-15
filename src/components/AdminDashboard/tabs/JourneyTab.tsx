@@ -1,6 +1,10 @@
 import { FaRoad, FaPlus } from "react-icons/fa";
 import type { Journey } from "@/types";
 import { JourneyCard } from "./Journey/JourneyCard";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+
+const PAGE_SIZE = 10;
 
 interface JourneyTabProps {
   theme: "light" | "dark";
@@ -21,6 +25,7 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
   onShowForm,
   isReadOnly = false,
 }) => {
+  const { page, setPage, pageItems, totalItems } = usePagination(journey, PAGE_SIZE);
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -74,7 +79,7 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {journey.map((item) => (
+          {pageItems.map((item) => (
             <JourneyCard
               key={item.$id}
               item={item}
@@ -84,6 +89,13 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
               onDelete={onDelete}
             />
           ))}
+          <Pagination
+            page={page}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            theme={theme}
+          />
         </div>
       )}
     </div>

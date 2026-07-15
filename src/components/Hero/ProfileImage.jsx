@@ -1,11 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PROFILE_IMAGE_DARK_URL, PROFILE_IMAGE_LIGHT_URL } from "./heroData";
+import { getHeroImages } from "@/services/api/settings";
 
 const ProfileImage = React.memo(function ProfileImage() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [imageReady, setImageReady] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+  // Dashboard-managed overrides (fall back to the bundled defaults).
+  const [overrides, setOverrides] = useState({ light: "", dark: "" });
   const imgRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    getHeroImages()
+      .then((imgs) => {
+        if (active) setOverrides({ light: imgs.light ?? "", dark: imgs.dark ?? "" });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Track theme changes by observing the html element's class list
   useEffect(() => {
@@ -19,7 +34,9 @@ const ProfileImage = React.memo(function ProfileImage() {
     return () => observer.disconnect();
   }, []);
 
-  const imageUrl = isDark ? PROFILE_IMAGE_DARK_URL : PROFILE_IMAGE_LIGHT_URL;
+  const imageUrl = isDark
+    ? overrides.dark || PROFILE_IMAGE_DARK_URL
+    : overrides.light || PROFILE_IMAGE_LIGHT_URL;
 
   useEffect(() => {
     setProfileLoaded(false);

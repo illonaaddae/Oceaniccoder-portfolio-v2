@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  FaTrash,
-  FaSync,
-  FaExclamationTriangle,
-  FaCheckCircle,
-  FaImage,
-  FaChevronLeft,
-  FaChevronRight,
-} from "react-icons/fa";
+import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
+import { Pagination } from "@/components/common/Pagination";
 import { Query } from "appwrite";
 import { storage, STORAGE_BUCKET_ID, databases, DATABASE_ID } from "@/lib/appwrite";
 import { deleteImage } from "@/services/api/storage";
@@ -74,66 +67,6 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
-
-interface PaginatorProps {
-  page: number;
-  total: number;
-  onPage: (p: number) => void;
-  sub: string;
-  theme: "light" | "dark";
-}
-
-const Paginator: React.FC<PaginatorProps> = ({ page, total, onPage, sub, theme }) => {
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  if (totalPages <= 1) return null;
-  const ctrl =
-    theme === "dark"
-      ? "text-gray-400 hover:text-white hover:bg-gray-700"
-      : "text-slate-500 hover:text-slate-900 hover:bg-slate-100";
-  return (
-    <div
-      className={`flex items-center justify-between mt-4 pt-3 border-t ${
-        theme === "dark" ? "border-gray-700/40" : "border-slate-200"
-      }`}
-    >
-      <span className={`text-xs ${sub}`}>
-        {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
-      </span>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => onPage(page - 1)}
-          disabled={page === 0}
-          title="Previous page"
-          className={`p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors ${ctrl}`}
-        >
-          <FaChevronLeft className="w-3 h-3" />
-        </button>
-        {Array.from({ length: totalPages }, (_, i) => i).map((i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => onPage(i)}
-            className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
-              i === page ? "bg-oceanic-600 text-white" : ctrl
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => onPage(page + 1)}
-          disabled={page >= totalPages - 1}
-          title="Next page"
-          className={`p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors ${ctrl}`}
-        >
-          <FaChevronRight className="w-3 h-3" />
-        </button>
-      </div>
-    </div>
-  );
-};
 
 interface StorageCleanupTabProps {
   theme: "light" | "dark";
@@ -548,11 +481,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           ) : (
             <>
               <div className="space-y-2">{orphanPage$.map((f) => renderFileRow(f, true))}</div>
-              <Paginator
-                page={orphanPage}
-                total={orphans.length}
-                onPage={setOrphanPage}
-                sub={sub}
+              <Pagination
+                page={orphanPage + 1}
+                totalItems={orphans.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={(p) => setOrphanPage(p - 1)}
                 theme={theme}
               />
             </>
@@ -568,11 +501,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           ) : (
             <>
               <div className="space-y-2">{inUsePage$.map((f) => renderFileRow(f, false))}</div>
-              <Paginator
-                page={inUsePage}
-                total={inUse.length}
-                onPage={setInUsePage}
-                sub={sub}
+              <Pagination
+                page={inUsePage + 1}
+                totalItems={inUse.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={(p) => setInUsePage(p - 1)}
                 theme={theme}
               />
             </>
