@@ -7,6 +7,7 @@ interface SidebarNavProps {
   theme: string;
   onTabChange: (tab: TabType) => void;
   pendingBookings?: number;
+  isCollapsed?: boolean;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -15,6 +16,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   theme,
   onTabChange,
   pendingBookings = 0,
+  isCollapsed = false,
 }) => {
   return (
     <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 overflow-y-auto overflow-x-hidden min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
@@ -26,7 +28,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`w-full flex items-center gap-3 px-3 sm:px-4 py-3 sm:py-2.5 rounded-xl transition-all duration-200 touch-manipulation min-h-[44px] ${
+            title={tab.label}
+            className={`relative w-full flex items-center gap-3 px-3 sm:px-4 py-3 sm:py-2.5 rounded-xl transition-all duration-200 touch-manipulation min-h-[44px] ${
+              isCollapsed ? "lg:justify-center lg:gap-0 lg:px-0" : ""
+            } ${
               isActive
                 ? theme === "dark"
                   ? "bg-oceanic-500/15 border border-oceanic-500/30 text-oceanic-500"
@@ -41,9 +46,19 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                 isActive ? (theme === "dark" ? "text-oceanic-500" : "text-oceanic-600") : ""
               }`}
             />
-            <span className="font-medium text-sm flex-1 text-left">{tab.label}</span>
+            <span
+              className={`font-medium text-sm flex-1 text-left ${isCollapsed ? "lg:hidden" : ""}`}
+            >
+              {tab.label}
+            </span>
             {badge > 0 && (
-              <span className="ml-auto min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full flex items-center justify-center bg-yellow-500 text-white">
+              <span
+                className={`ml-auto min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full flex items-center justify-center bg-warning-500 text-white ${
+                  isCollapsed
+                    ? "lg:absolute lg:top-1 lg:right-1 lg:ml-0 lg:min-w-[16px] lg:h-4"
+                    : ""
+                }`}
+              >
                 {badge}
               </span>
             )}

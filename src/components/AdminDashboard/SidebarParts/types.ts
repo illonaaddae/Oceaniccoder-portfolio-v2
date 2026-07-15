@@ -27,4 +27,7 @@ export interface SidebarProps {
   onLogout?: () => void;
   isReadOnly?: boolean;
   pendingBookings?: number;
+  /** Desktop-only: collapse the sidebar to an icon-only rail. */
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
