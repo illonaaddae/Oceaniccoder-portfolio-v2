@@ -17,13 +17,13 @@ export const contactInfo = [
     href: "mailto:info@oceaniccoder.dev",
   },
   {
-    icon: <FaPhone className="text-green-400" />,
+    icon: <FaPhone className="text-oceanic-400" />,
     label: "Phone",
     value: "+233 54 449 7456",
     href: "tel:+233544497456",
   },
   {
-    icon: <FaMapMarkerAlt className="text-red-400" />,
+    icon: <FaMapMarkerAlt className="text-oceanic-400" />,
     label: "Location",
     value: "Accra, Ghana",
     href: "#",
@@ -35,7 +35,7 @@ export const socialLinks = [
     icon: <FaLinkedin />,
     label: "LinkedIn",
     href: "https://www.linkedin.com/in/illonaaddae/",
-    color: "hover:text-blue-400",
+    color: "hover:text-oceanic-400",
   },
   {
     icon: <FaGithub />,
@@ -47,12 +47,12 @@ export const socialLinks = [
     icon: <FaTwitter />,
     label: "Twitter",
     href: "https://x.com/illonaaddae?s=21",
-    color: "hover:text-blue-400",
+    color: "hover:text-oceanic-400",
   },
   {
     icon: <FaInstagram />,
     label: "Instagram",
     href: "https://www.instagram.com/illonaaddae/",
-    color: "hover:text-pink-400",
+    color: "hover:text-oceanic-400",
   },
 ];

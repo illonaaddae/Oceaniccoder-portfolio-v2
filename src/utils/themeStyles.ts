@@ -74,9 +74,9 @@ export const getButtonStyles = (
         ? "bg-gray-700/80 text-gray-200 hover:bg-gray-600/80"
         : "bg-slate-200/80 text-slate-700 hover:bg-slate-300/80",
     danger:
-      "bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-500 hover:to-red-600 shadow-lg shadow-red-500/20",
+      "bg-gradient-to-r from-error-500 to-error-700 text-white hover:from-error-400 hover:to-error-500 shadow-lg shadow-error-500/20",
     success:
-      "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500",
+      "bg-gradient-to-r from-success-500 to-success-700 text-white hover:from-success-400 hover:to-success-500",
     ghost:
       theme === "dark"
         ? "bg-transparent text-gray-300 hover:bg-gray-700/50"
@@ -91,7 +91,7 @@ export const getButtonStyles = (
 export const getInputStyles = (theme: Theme): string => {
   return theme === "dark"
     ? "bg-gray-700/50 border-gray-600/80 text-white placeholder-gray-400 focus:border-oceanic-500/50 focus:ring-oceanic-500/30"
-    : "bg-white/80 border-slate-300/80 text-slate-900 placeholder-slate-400 focus:border-blue-500/50 focus:ring-blue-500/30";
+    : "bg-white/80 border-slate-300/80 text-slate-900 placeholder-slate-400 focus:border-oceanic-500/50 focus:ring-oceanic-500/30";
 };
 
 /**
@@ -115,10 +115,10 @@ export const getIconColor = (
 export const getStatGradient = (color: "cyan" | "green" | "purple" | "orange" | "pink"): string => {
   const gradients = {
     cyan: "from-oceanic-500/20 to-oceanic-900/20 border-oceanic-500/30",
-    green: "from-green-500/20 to-emerald-500/20 border-green-500/30",
-    purple: "from-purple-500/20 to-pink-500/20 border-purple-500/30",
-    orange: "from-orange-500/20 to-amber-500/20 border-orange-500/30",
-    pink: "from-pink-500/20 to-rose-500/20 border-pink-500/30",
+    green: "from-success-500/20 to-success-700/20 border-success-500/30",
+    purple: "from-oceanic-500/20 to-oceanic-700/20 border-oceanic-500/30",
+    orange: "from-warning-500/20 to-warning-700/20 border-warning-500/30",
+    pink: "from-oceanic-400/20 to-oceanic-600/20 border-oceanic-400/30",
   };
   return `bg-gradient-to-br ${gradients[color]}`;
 };

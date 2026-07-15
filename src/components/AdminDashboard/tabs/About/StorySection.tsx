@@ -26,7 +26,7 @@ export const StorySection: React.FC<Props> = ({
   <div className={getCardClass(theme)}>
     <div className="flex items-center justify-between mb-4">
       <h3 className={getHeadingClass(theme)}>
-        <FaBook className="text-purple-400" />
+        <FaBook className="text-oceanic-400" />
         My Story
       </h3>
       <SaveButton

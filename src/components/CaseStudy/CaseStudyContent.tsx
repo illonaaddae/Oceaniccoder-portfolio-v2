@@ -34,9 +34,9 @@ const CaseStudyContent: React.FC<Props> = React.memo(({ project }) => {
     <div className="space-y-8">
       {project.challenge && (
         <Section
-          icon={<FaLightbulb className="text-red-400" />}
+          icon={<FaLightbulb className="text-oceanic-400" />}
           title="The Challenge"
-          gradient="from-red-500/20 to-orange-500/20"
+          gradient="from-oceanic-500/20 to-oceanic-700/20"
         >
           <Text>{project.challenge}</Text>
         </Section>
@@ -52,9 +52,9 @@ const CaseStudyContent: React.FC<Props> = React.memo(({ project }) => {
       )}
       {keyFeatures.length > 0 && (
         <Section
-          icon={<FaCheckCircle className="text-purple-400" />}
+          icon={<FaCheckCircle className="text-oceanic-400" />}
           title="Key Features"
-          gradient="from-purple-500/20 to-pink-500/20"
+          gradient="from-oceanic-500/20 to-oceanic-700/20"
         >
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {keyFeatures.map((feature, idx) => (
@@ -68,18 +68,18 @@ const CaseStudyContent: React.FC<Props> = React.memo(({ project }) => {
       )}
       {project.results && (
         <Section
-          icon={<FaCheckCircle className="text-green-400" />}
+          icon={<FaCheckCircle className="text-oceanic-400" />}
           title="Results & Impact"
-          gradient="from-green-500/20 to-emerald-500/20"
+          gradient="from-oceanic-500/20 to-oceanic-700/20"
         >
           <Text>{project.results}</Text>
         </Section>
       )}
       {project.lessonsLearned && (
         <Section
-          icon={<FaLightbulb className="text-yellow-400" />}
+          icon={<FaLightbulb className="text-oceanic-400" />}
           title="Lessons Learned"
-          gradient="from-yellow-500/20 to-amber-500/20"
+          gradient="from-oceanic-500/20 to-oceanic-700/20"
         >
           <Text>{project.lessonsLearned}</Text>
         </Section>

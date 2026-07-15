@@ -10,7 +10,7 @@ export const eventsAprJul: Event[] = [
     iconName: "egg",
     startDate: { month: 4, day: 20 },
     endDate: { month: 4, day: 21 },
-    bgGradient: "from-violet-500 via-teal-400 to-oceanic-400",
+    bgGradient: "from-oceanic-400 to-oceanic-600",
     showConfetti: true,
   },
   {
@@ -22,7 +22,7 @@ export const eventsAprJul: Event[] = [
     iconName: "birthday",
     startDate: { month: 4, day: 28 },
     endDate: { month: 4, day: 28 },
-    bgGradient: "from-oceanic-600 via-teal-500 to-emerald-500",
+    bgGradient: "from-oceanic-500 via-oceanic-600 to-oceanic-800",
     showConfetti: true,
   },
   {
@@ -34,7 +34,7 @@ export const eventsAprJul: Event[] = [
     iconName: "star",
     startDate: { month: 5, day: 1 },
     endDate: { month: 5, day: 1 },
-    bgGradient: "from-teal-600 via-oceanic-500 to-emerald-600",
+    bgGradient: "from-oceanic-500 to-oceanic-800",
     showConfetti: false,
   },
   {
@@ -45,7 +45,7 @@ export const eventsAprJul: Event[] = [
     iconName: "heart",
     startDate: { month: 5, day: 11 },
     endDate: { month: 5, day: 11 },
-    bgGradient: "from-pink-500 via-rose-400 to-teal-400",
+    bgGradient: "from-oceanic-400 to-oceanic-700",
     showConfetti: true,
   },
   {
@@ -56,7 +56,7 @@ export const eventsAprJul: Event[] = [
     iconName: "flag",
     startDate: { month: 5, day: 26 },
     endDate: { month: 5, day: 26 },
-    bgGradient: "from-slate-700 via-teal-600 to-slate-700",
+    bgGradient: "from-oceanic-700 to-oceanic-900",
     showConfetti: false,
   },
   {
@@ -67,7 +67,7 @@ export const eventsAprJul: Event[] = [
     iconName: "gift",
     startDate: { month: 6, day: 15 },
     endDate: { month: 6, day: 15 },
-    bgGradient: "from-oceanic-600 via-teal-500 to-oceanic-900",
+    bgGradient: "from-oceanic-600 to-oceanic-900",
     showConfetti: true,
   },
   {
@@ -78,7 +78,7 @@ export const eventsAprJul: Event[] = [
     iconName: "heart",
     startDate: { month: 6, day: 1 },
     endDate: { month: 6, day: 30 },
-    bgGradient: "from-rose-500 via-violet-500 to-teal-500",
+    bgGradient: "from-oceanic-400 via-oceanic-500 to-oceanic-700",
     showConfetti: true,
   },
   {
@@ -89,7 +89,7 @@ export const eventsAprJul: Event[] = [
     iconName: "star",
     startDate: { month: 6, day: 19 },
     endDate: { month: 6, day: 19 },
-    bgGradient: "from-emerald-700 via-teal-600 to-slate-700",
+    bgGradient: "from-oceanic-600 to-oceanic-900",
     showConfetti: false,
   },
   {
@@ -100,7 +100,7 @@ export const eventsAprJul: Event[] = [
     iconName: "star",
     startDate: { month: 7, day: 1 },
     endDate: { month: 7, day: 1 },
-    bgGradient: "from-red-600 via-amber-500 to-emerald-600",
+    bgGradient: "from-oceanic-500 via-oceanic-600 to-oceanic-800",
     showConfetti: true,
   },
   {
@@ -111,7 +111,7 @@ export const eventsAprJul: Event[] = [
     iconName: "flag",
     startDate: { month: 7, day: 4 },
     endDate: { month: 7, day: 4 },
-    bgGradient: "from-blue-600 via-teal-400 to-rose-500",
+    bgGradient: "from-oceanic-500 to-oceanic-800",
     showConfetti: true,
   },
 ];

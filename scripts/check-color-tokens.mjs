@@ -50,11 +50,16 @@ function walk(dir, out) {
   }
 }
 
+// Files intentionally exempt: tech-stack logo icons keep their real brand colors
+// (React cyan, Vue green, etc.) — recognizable by design, not decorative rainbow.
+const EXEMPT = ["/utils/data/skillIcons.jsx", "/utils/data/skills.jsx"];
+
 const files = [];
 walk(ROOT, files);
 
 const violations = [];
 for (const file of files) {
+  if (EXEMPT.some((e) => file.endsWith(e))) continue;
   const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((line, i) => {
     const matches = line.match(UTILITY_RE);

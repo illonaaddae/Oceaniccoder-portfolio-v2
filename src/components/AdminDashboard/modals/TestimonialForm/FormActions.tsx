@@ -27,8 +27,8 @@ export const FormActions: React.FC<FormActionsProps> = ({ onClose, loading, isEd
         disabled={loading}
         className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
           loading
-            ? "opacity-50 cursor-not-allowed bg-gradient-to-r from-purple-500 to-pink-400 text-white"
-            : "bg-gradient-to-r from-purple-500 to-pink-400 text-white hover:from-purple-600 hover:to-pink-500"
+            ? "opacity-50 cursor-not-allowed bg-gradient-to-r from-oceanic-500 to-oceanic-700 text-white"
+            : "bg-gradient-to-r from-oceanic-500 to-oceanic-700 text-white hover:from-oceanic-600 hover:to-oceanic-800"
         }`}
       >
         <FaSave />

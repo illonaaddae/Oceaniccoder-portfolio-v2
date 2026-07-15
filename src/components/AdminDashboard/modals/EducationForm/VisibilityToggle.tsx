@@ -23,10 +23,10 @@ export const VisibilityToggle: React.FC<VisibilityToggleProps> = ({
         onClick={() => updateForm({ isVisible: true })}
         className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 border ${
           form.isVisible
-            ? "bg-gradient-to-r from-emerald-500 to-teal-400 text-white border-emerald-400 shadow-lg shadow-emerald-500/20"
+            ? "bg-gradient-to-r from-success-500 to-success-700 text-white border-success-400 shadow-lg shadow-success-500/20"
             : theme === "dark"
               ? "bg-gray-800/80 border-gray-700 text-gray-400 hover:border-gray-600"
-              : "bg-white/50 border-blue-200/50 text-slate-600 hover:border-blue-300"
+              : "bg-white/50 border-oceanic-200/50 text-slate-600 hover:border-oceanic-300"
         }`}
       >
         <FaEye />
@@ -40,7 +40,7 @@ export const VisibilityToggle: React.FC<VisibilityToggleProps> = ({
             ? "bg-gradient-to-r from-slate-500 to-gray-500 text-white border-slate-400 shadow-lg shadow-slate-500/20"
             : theme === "dark"
               ? "bg-gray-800/80 border-gray-700 text-gray-400 hover:border-gray-600"
-              : "bg-white/50 border-blue-200/50 text-slate-600 hover:border-blue-300"
+              : "bg-white/50 border-oceanic-200/50 text-slate-600 hover:border-oceanic-300"
         }`}
       >
         <FaEyeSlash />

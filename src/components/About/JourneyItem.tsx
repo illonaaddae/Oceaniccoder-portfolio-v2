@@ -10,10 +10,10 @@ interface JourneyItemProps {
 }
 
 const DOT_GRADIENTS = [
-  "from-oceanic-400 to-teal-400",
-  "from-teal-400 to-emerald-400",
-  "from-violet-400 to-oceanic-400",
-  "from-oceanic-500 to-emerald-500",
+  "from-oceanic-400 to-oceanic-600",
+  "from-oceanic-400 to-oceanic-700",
+  "from-oceanic-500 to-oceanic-700",
+  "from-oceanic-500 to-oceanic-800",
 ];
 
 const JourneyItem = React.memo(({ item, index, isLast }: JourneyItemProps) => (
@@ -59,7 +59,7 @@ const JourneyItem = React.memo(({ item, index, isLast }: JourneyItemProps) => (
                 key={achievement}
                 className="text-caption text-gray-200 flex items-start gap-2 journey-achievement"
               >
-                <span className="text-green-400 mt-1 journey-achievement-bullet">•</span>
+                <span className="text-oceanic-400 mt-1 journey-achievement-bullet">•</span>
                 <span className="journey-achievement-text">{achievement}</span>
               </li>
             ))}

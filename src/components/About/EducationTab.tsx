@@ -16,7 +16,7 @@ const EducationTab = React.memo(({ education, certifications, about }: Education
   <div className="flex flex-col gap-8">
     <div className="space-y-6">
       <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-        <FaGraduationCap className="text-green-400" />
+        <FaGraduationCap className="text-oceanic-400" />
         Education
       </h3>
       {education
@@ -27,7 +27,7 @@ const EducationTab = React.memo(({ education, certifications, about }: Education
     </div>
     <div className="space-y-6">
       <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-        <FaCertificate className="text-purple-400" />
+        <FaCertificate className="text-oceanic-400" />
         Certifications
       </h3>
       {certifications.map((cert) => (

@@ -11,7 +11,7 @@ export const eventsSepDec: Event[] = [
     iconName: "star",
     startDate: { month: 8, day: 4 },
     endDate: { month: 8, day: 4 },
-    bgGradient: "from-red-600 via-amber-500 to-emerald-600",
+    bgGradient: "from-oceanic-500 via-oceanic-600 to-oceanic-800",
     showConfetti: true,
   },
   {
@@ -22,7 +22,7 @@ export const eventsSepDec: Event[] = [
     iconName: "star",
     startDate: { month: 9, day: 1 },
     endDate: { month: 9, day: 1 },
-    bgGradient: "from-teal-600 via-oceanic-500 to-oceanic-900",
+    bgGradient: "from-oceanic-500 to-oceanic-900",
     showConfetti: false,
   },
   {
@@ -33,7 +33,7 @@ export const eventsSepDec: Event[] = [
     iconName: "ghost",
     startDate: { month: 10, day: 31 },
     endDate: { month: 10, day: 31 },
-    bgGradient: "from-orange-500 via-teal-600 to-slate-800",
+    bgGradient: "from-oceanic-500 via-oceanic-700 to-oceanic-900",
     showConfetti: true,
   },
   {
@@ -44,7 +44,7 @@ export const eventsSepDec: Event[] = [
     iconName: "flag",
     startDate: { month: 11, day: 11 },
     endDate: { month: 11, day: 11 },
-    bgGradient: "from-slate-700 via-teal-600 to-slate-700",
+    bgGradient: "from-oceanic-700 to-oceanic-900",
     showConfetti: false,
   },
   {
@@ -55,7 +55,7 @@ export const eventsSepDec: Event[] = [
     iconName: "leaf",
     startDate: { month: 11, day: 27 },
     endDate: { month: 11, day: 28 },
-    bgGradient: "from-teal-600 via-oceanic-500 to-emerald-500",
+    bgGradient: "from-oceanic-500 via-oceanic-600 to-oceanic-800",
     showConfetti: true,
   },
   {
@@ -66,7 +66,7 @@ export const eventsSepDec: Event[] = [
     iconName: "tree",
     startDate: { month: 12, day: 24 },
     endDate: { month: 12, day: 26 },
-    bgGradient: "from-emerald-600 via-teal-500 to-oceanic-500",
+    bgGradient: "from-oceanic-400 via-oceanic-500 to-oceanic-700",
     showConfetti: true,
   },
   {
@@ -77,7 +77,7 @@ export const eventsSepDec: Event[] = [
     iconName: "star",
     startDate: { month: 12, day: 14 },
     endDate: { month: 12, day: 22 },
-    bgGradient: "from-blue-500 via-oceanic-400 to-teal-400",
+    bgGradient: "from-oceanic-400 to-oceanic-600",
     showConfetti: true,
   },
   {
@@ -88,7 +88,7 @@ export const eventsSepDec: Event[] = [
     iconName: "drum",
     startDate: { month: 12, day: 26 },
     endDate: { month: 12, day: 31 },
-    bgGradient: "from-emerald-700 via-teal-700 to-red-800",
+    bgGradient: "from-oceanic-600 to-oceanic-900",
     showConfetti: true,
   },
   {
@@ -99,7 +99,7 @@ export const eventsSepDec: Event[] = [
     iconName: "star",
     startDate: { month: 12, day: 31 },
     endDate: { month: 12, day: 31 },
-    bgGradient: "from-teal-600 via-oceanic-500 to-emerald-500",
+    bgGradient: "from-oceanic-500 via-oceanic-600 to-oceanic-800",
     showConfetti: true,
   },
 ];

@@ -32,7 +32,7 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
               className="w-16 h-16 rounded-full object-cover border-2 border-oceanic-500/50"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-oceanic-500 to-teal-500 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-oceanic-500 to-oceanic-700 flex items-center justify-center">
               <FaUser className="text-white text-xl" />
             </div>
           )}
@@ -95,8 +95,8 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   theme === "dark"
-                    ? "bg-red-500/20 text-red-300 hover:bg-red-500/30"
-                    : "bg-red-100 text-red-700 hover:bg-red-200"
+                    ? "bg-error-500/20 text-error-400 hover:bg-error-500/30"
+                    : "bg-error-100 text-error-700 hover:bg-error-400/20"
                 }`}
               >
                 <FaTrash className="w-3 h-3" />

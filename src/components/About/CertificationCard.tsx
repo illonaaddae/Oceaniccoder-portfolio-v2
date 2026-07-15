@@ -14,7 +14,7 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
     <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-3">
       <div className="flex-1 min-w-0">
         <h4 className="text-base sm:text-lg font-bold text-white cert-title mb-1">{cert.title}</h4>
-        <p className="text-purple-400 font-medium cert-issuer mb-2">{cert.issuer}</p>
+        <p className="text-oceanic-400 font-medium cert-issuer mb-2">{cert.issuer}</p>
         {/* Platform Tag */}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span
@@ -39,7 +39,7 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
         </div>
       </div>
       <div className="text-right ml-0 sm:ml-4 flex-shrink-0">
-        <span className="inline-block text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 px-2.5 py-1 rounded border border-purple-500/30 sm:whitespace-nowrap font-medium shadow-sm cert-credential">
+        <span className="inline-block text-xs bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 text-oceanic-400 px-2.5 py-1 rounded border border-oceanic-500/30 sm:whitespace-nowrap font-medium shadow-sm cert-credential">
           {cert.credential}
         </span>
       </div>

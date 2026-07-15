@@ -24,10 +24,10 @@ const ContactForm = () => {
           <div
             role="status"
             aria-live="polite"
-            className="p-3 rounded bg-green-100 border border-green-200 text-green-800 flex items-center gap-3 dark:bg-green-600/20 dark:border-green-500/30 dark:text-green-200"
+            className="p-3 rounded bg-success-100 border border-success-500/30 text-success-700 flex items-center gap-3 dark:bg-success-400/10 dark:border-success-400/30 dark:text-success-400"
           >
             <FaCheckCircle
-              className="w-5 h-5 text-green-600 dark:text-green-300 flex-shrink-0"
+              className="w-5 h-5 text-success-700 dark:text-success-400 flex-shrink-0"
               aria-hidden="true"
             />
             <span>{responseMessage}</span>
@@ -37,7 +37,7 @@ const ContactForm = () => {
           <div
             role="alert"
             aria-live="assertive"
-            className="p-3 rounded bg-red-600/10 border border-red-500/20 text-red-300"
+            className="p-3 rounded bg-error-400/10 border border-error-400/30 text-error-400"
           >
             {responseMessage}
           </div>
@@ -47,7 +47,7 @@ const ContactForm = () => {
         <button
           type="submit"
           disabled={status === "sending"}
-          className={`w-full glass-btn bg-gradient-to-r from-oceanic-600 to-purple-600 text-white py-3 font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+          className={`w-full glass-btn bg-gradient-to-r from-oceanic-600 to-oceanic-800 text-white py-3 font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
             status === "sending" ? "opacity-70 cursor-wait" : "hover:scale-105"
           }`}
         >

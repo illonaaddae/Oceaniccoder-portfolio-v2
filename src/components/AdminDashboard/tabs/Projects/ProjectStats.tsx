@@ -27,19 +27,19 @@ export const ProjectStats: React.FC<ProjectStatsProps> = ({ theme, projects }) =
       label: "Total Projects",
       value: projects.length,
       icon: FaProjectDiagram,
-      gradient: "from-blue-600 to-oceanic-900",
+      gradient: "from-oceanic-500 to-oceanic-900",
     },
     {
       label: "Published",
       value: published,
       icon: FaCheckCircle,
-      gradient: "from-green-600 to-green-500",
+      gradient: "from-success-500 to-success-700",
     },
     {
       label: "Drafts",
       value: drafts,
       icon: FaClock,
-      gradient: "from-orange-600 to-orange-500",
+      gradient: "from-warning-500 to-warning-700",
     },
   ];
 

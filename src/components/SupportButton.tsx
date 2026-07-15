@@ -102,7 +102,7 @@ const SupportButton: React.FC = () => {
                 </span>
               </div>
               {link.badge && (
-                <span className="ml-2 px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
+                <span className="ml-2 px-2 py-0.5 bg-oceanic-500 text-white text-xs font-bold rounded-full animate-pulse">
                   {link.badge}
                 </span>
               )}
@@ -117,7 +117,7 @@ const SupportButton: React.FC = () => {
         className={`group relative p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl ${
           isExpanded
             ? "bg-gray-700 hover:bg-gray-600"
-            : "bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+            : "bg-gradient-to-r from-oceanic-500 to-oceanic-700 hover:from-oceanic-600 hover:to-oceanic-800"
         }`}
         aria-label={isExpanded ? "Close support menu" : "Support me"}
       >
@@ -133,7 +133,7 @@ const SupportButton: React.FC = () => {
 
         {/* Pulse ring animation when collapsed */}
         {!isExpanded && (
-          <span className="absolute inset-0 rounded-full bg-pink-400 animate-ping opacity-25" />
+          <span className="absolute inset-0 rounded-full bg-oceanic-400 animate-ping opacity-25" />
         )}
       </button>
     </div>

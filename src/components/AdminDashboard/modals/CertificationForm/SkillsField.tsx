@@ -53,14 +53,16 @@ export const SkillsField: React.FC<SkillsFieldProps> = ({
         <span
           key={skill}
           className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
-            theme === "dark" ? "bg-purple-500/20 text-purple-300" : "bg-purple-100 text-purple-700"
+            theme === "dark"
+              ? "bg-oceanic-500/20 text-oceanic-300"
+              : "bg-oceanic-100 text-oceanic-700"
           }`}
         >
           {skill}
           <button
             type="button"
             onClick={() => onRemove(skill)}
-            className="hover:text-red-400"
+            className="hover:text-error-400"
             title={`Remove ${skill}`}
             aria-label={`Remove ${skill}`}
           >

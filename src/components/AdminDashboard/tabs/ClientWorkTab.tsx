@@ -34,27 +34,27 @@ const STATUS_CONFIG: Record<
 > = {
   new: {
     label: "New",
-    pill: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-    borderLeft: "#3b82f6",
-    dot: "bg-blue-400",
+    pill: "bg-info-400/10 text-info-400 border-info-400/30",
+    borderLeft: "#0C8599",
+    dot: "bg-info-400",
   },
   reviewed: {
     label: "Reviewed",
-    pill: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    pill: "bg-warning-400/10 text-warning-400 border-warning-400/30",
     borderLeft: "#eab308",
-    dot: "bg-yellow-400",
+    dot: "bg-warning-400",
   },
   quoted: {
     label: "Quoted",
-    pill: "bg-teal-500/15 text-teal-400 border-teal-500/30",
-    borderLeft: "#0c8599",
-    dot: "bg-teal-400",
+    pill: "bg-success-400/10 text-success-400 border-success-400/30",
+    borderLeft: "#22c55e",
+    dot: "bg-success-400",
   },
   declined: {
     label: "Declined",
-    pill: "bg-red-500/15 text-red-400 border-red-500/30",
+    pill: "bg-error-400/10 text-error-400 border-error-400/30",
     borderLeft: "#ef4444",
-    dot: "bg-red-400",
+    dot: "bg-error-400",
   },
 };
 
@@ -154,7 +154,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
             {inquiries.length} {inquiries.length === 1 ? "inquiry" : "inquiries"}
             {newCount > 0 && (
-              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-info-500/20 text-info-400">
                 {newCount} new
               </span>
             )}
@@ -394,7 +394,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                             <FaFileInvoiceDollar className="text-brand-link dark:text-oceanic-400" />
                             <span>{latest.invoiceNumber}</span>
                             <span
-                              className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${latest.status === "paid" ? "bg-green-500/20 text-green-400" : "bg-teal-500/20 text-teal-400"}`}
+                              className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${latest.status === "paid" ? "bg-success-500/20 text-success-400" : "bg-warning-500/20 text-warning-400"}`}
                             >
                               {latest.status}
                             </span>
@@ -465,7 +465,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                   <button
                     type="button"
                     onClick={() => handleDelete(inq.$id)}
-                    className="ml-auto p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition"
+                    className="ml-auto p-2 rounded-lg text-error-400 hover:bg-error-500/10 transition"
                     title="Delete inquiry"
                   >
                     <FaTrash />
@@ -657,7 +657,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                     border: "1px solid rgba(234,179,8,0.25)",
                   }}
                 >
-                  <FaStickyNote className="text-yellow-400 flex-shrink-0 mt-0.5 text-sm" />
+                  <FaStickyNote className="text-warning-400 flex-shrink-0 mt-0.5 text-sm" />
                   <p
                     className="text-sm italic leading-relaxed"
                     style={{ color: "var(--text-secondary)" }}

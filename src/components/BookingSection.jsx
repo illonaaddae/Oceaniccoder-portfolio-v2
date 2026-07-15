@@ -223,9 +223,9 @@ export default function BookingSection() {
     >
       {/* Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-teal-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-oceanic-500/5 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-oceanic-500/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-600/3 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-oceanic-600/3 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10 max-w-6xl">
@@ -282,8 +282,8 @@ export default function BookingSection() {
                       onClick={() => handleChange("meetingType", m.id)}
                       className={`w-full text-left rounded-xl p-4 border transition-all duration-200 ${
                         form.meetingType === m.id
-                          ? "border-teal-500 bg-teal-500/10"
-                          : "border-transparent hover:border-teal-500/40 hover:bg-teal-500/5"
+                          ? "border-oceanic-500 bg-oceanic-500/10"
+                          : "border-transparent hover:border-oceanic-500/40 hover:bg-oceanic-500/5"
                       }`}
                       style={{
                         borderColor: form.meetingType === m.id ? "var(--accent-teal)" : undefined,
@@ -467,7 +467,7 @@ export default function BookingSection() {
                               className="block text-sm font-semibold"
                               style={{ color: "var(--text-secondary)" }}
                             >
-                              Meeting Type <span className="text-red-400">*</span>
+                              Meeting Type <span className="text-error-400">*</span>
                             </p>
                             <div className="grid grid-cols-2 gap-2">
                               {MEETING_TYPES.map((m) => (
@@ -518,7 +518,7 @@ export default function BookingSection() {
                             className="block text-sm font-semibold"
                             style={{ color: "var(--text-secondary)" }}
                           >
-                            Preferred Date <span className="text-red-400">*</span>
+                            Preferred Date <span className="text-error-400">*</span>
                           </label>
                           <div className="relative w-full">
                             <span
@@ -554,7 +554,7 @@ export default function BookingSection() {
                               className="block text-sm font-semibold"
                               style={{ color: "var(--text-secondary)" }}
                             >
-                              Preferred Time <span className="text-red-400">*</span>
+                              Preferred Time <span className="text-error-400">*</span>
                             </p>
                             {loadingSlots && (
                               <span
@@ -780,8 +780,8 @@ export default function BookingSection() {
                         </div>
 
                         {error && (
-                          <div className="rounded-xl p-3 border border-red-500/30 bg-red-500/10">
-                            <p className="text-red-400 text-sm mb-2">{error}</p>
+                          <div className="rounded-xl p-3 border border-error-400/30 bg-error-400/10">
+                            <p className="text-error-400 text-sm mb-2">{error}</p>
                             {error.includes("already booked") && (
                               <button
                                 onClick={() => {
@@ -957,7 +957,7 @@ function FormField({ icon, label, required, type = "text", value, onChange, plac
         className="block text-sm font-semibold"
         style={{ color: "var(--text-secondary)" }}
       >
-        {label} {required && <span className="text-red-400">*</span>}
+        {label} {required && <span className="text-error-400">*</span>}
       </label>
       <div className="relative">
         <span

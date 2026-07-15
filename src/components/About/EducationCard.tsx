@@ -10,8 +10,8 @@ interface EducationCardProps {
 const EducationCard = React.memo(({ edu }: EducationCardProps) => (
   <div className="glass-card w-full max-w-none p-6 hover:scale-105 transition-all duration-300 education-card">
     <div className="flex items-start gap-4">
-      <div className="text-3xl text-blue-400 edu-icon">
-        <FaGraduationCap className="text-blue-400" />
+      <div className="text-3xl text-oceanic-400 edu-icon">
+        <FaGraduationCap className="text-oceanic-400" />
       </div>
       <div className="flex-1">
         <h4 className="text-lg font-bold text-white edu-title mb-1">
@@ -23,14 +23,14 @@ const EducationCard = React.memo(({ edu }: EducationCardProps) => (
           <span>{edu.period}</span>
           {edu.location && (
             <span className="flex items-center gap-1">
-              <FaMapMarkerAlt className="text-red-400 text-xs" />
+              <FaMapMarkerAlt className="text-oceanic-400 text-xs" />
               {edu.location}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap mb-3">
           {edu.achievement && edu.achievement !== "N/A" ? (
-            <div className="inline-block bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full border border-green-500/30 font-medium shadow-sm edu-badge">
+            <div className="inline-block bg-gradient-to-r from-success-500/20 to-success-700/20 text-success-400 text-xs px-3 py-1.5 rounded-full border border-success-500/30 font-medium shadow-sm edu-badge">
               {edu.achievement}
             </div>
           ) : (
@@ -41,8 +41,8 @@ const EducationCard = React.memo(({ edu }: EducationCardProps) => (
           <div
             className={`inline-block text-xs px-3 py-1.5 rounded-full border font-medium shadow-sm ${
               edu.isOngoing
-                ? "bg-gradient-to-r from-blue-500/20 to-oceanic-500/20 text-blue-400 border-blue-500/30"
-                : "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30"
+                ? "bg-gradient-to-r from-info-500/20 to-info-700/20 text-info-400 border-info-500/30"
+                : "bg-gradient-to-r from-success-500/20 to-success-700/20 text-success-400 border-success-500/30"
             }`}
           >
             {edu.isOngoing ? "In Progress" : "Completed"}
@@ -68,7 +68,7 @@ const EducationCard = React.memo(({ edu }: EducationCardProps) => (
             </div>
           )}
           {edu.gpa && (
-            <div className="inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 text-xs px-3 py-1.5 rounded-full border border-purple-500/30 font-medium shadow-sm">
+            <div className="inline-block bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 text-oceanic-400 text-xs px-3 py-1.5 rounded-full border border-oceanic-500/30 font-medium shadow-sm">
               GPA: {edu.gpa}
             </div>
           )}

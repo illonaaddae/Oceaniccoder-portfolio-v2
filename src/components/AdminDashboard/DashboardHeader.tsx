@@ -72,8 +72,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <span
           className={`absolute top-0 right-0 w-5 h-5 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg ${
             theme === "dark"
-              ? "bg-gradient-to-r from-red-500 to-pink-500 shadow-red-500/50"
-              : "bg-gradient-to-r from-red-400 to-pink-400 shadow-red-400/50"
+              ? "bg-gradient-to-r from-error-500 to-error-700 shadow-error-500/50"
+              : "bg-gradient-to-r from-error-400 to-error-500 shadow-error-400/50"
           }`}
         >
           {newMessages}

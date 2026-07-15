@@ -30,8 +30,8 @@ export const BlogHeader: React.FC<BlogHeaderProps> = ({ theme, isReadOnly, onNew
         onClick={onNewPost}
         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm sm:text-base transition duration-200 border shadow-lg ${
           theme === "dark"
-            ? "bg-gradient-to-r from-emerald-600 to-oceanic-600 border-emerald-500/50 text-white hover:from-emerald-500 hover:to-oceanic-500 shadow-emerald-500/20"
-            : "bg-gradient-to-r from-emerald-500 to-oceanic-500 border-emerald-400/50 text-white hover:from-emerald-600 hover:to-oceanic-600 shadow-emerald-400/30"
+            ? "bg-gradient-to-r from-oceanic-600 to-oceanic-800 border-oceanic-500/50 text-white hover:from-oceanic-500 hover:to-oceanic-700 shadow-oceanic-500/20"
+            : "bg-gradient-to-r from-oceanic-500 to-oceanic-700 border-oceanic-400/50 text-white hover:from-oceanic-600 hover:to-oceanic-800 shadow-oceanic-400/30"
         }`}
       >
         <FaPlus /> New Post

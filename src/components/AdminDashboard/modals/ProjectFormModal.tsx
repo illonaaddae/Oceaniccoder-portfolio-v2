@@ -63,8 +63,8 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           label="Technologies"
           placeholder="Add technology (e.g., React, Node.js)"
           tagColor={{
-            dark: "bg-blue-500/20 text-blue-300",
-            light: "bg-blue-100 text-blue-700",
+            dark: "bg-oceanic-500/20 text-oceanic-300",
+            light: "bg-oceanic-100 text-oceanic-700",
           }}
         />
         <ImageYearFields {...fieldProps} />
@@ -93,8 +93,8 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               label="Key Features"
               placeholder="Add a key feature"
               tagColor={{
-                dark: "bg-green-500/20 text-green-300",
-                light: "bg-green-100 text-green-700",
+                dark: "bg-oceanic-500/20 text-oceanic-300",
+                light: "bg-oceanic-100 text-oceanic-700",
               }}
               getRemoveLabel={(item) => `"${item}"`}
             />
@@ -113,8 +113,8 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             inputType="url"
             truncateItems
             tagColor={{
-              dark: "bg-purple-500/20 text-purple-300",
-              light: "bg-purple-100 text-purple-700",
+              dark: "bg-oceanic-500/20 text-oceanic-300",
+              light: "bg-oceanic-100 text-oceanic-700",
             }}
             getRemoveLabel={() => "screenshot"}
           />

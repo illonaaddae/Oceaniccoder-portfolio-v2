@@ -31,8 +31,8 @@ export const CommentsStats: React.FC<CommentsStatsProps> = ({
     </div>
     <div className={`${cardStyles} border rounded-2xl p-4 transition-colors duration-200`}>
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20">
-          <FaClock className="text-amber-500" />
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-warning-500/20 to-warning-700/20">
+          <FaClock className="text-warning-500" />
         </div>
         <div>
           <p className={`text-2xl font-bold ${textPrimary}`}>{pendingComments}</p>
@@ -42,8 +42,8 @@ export const CommentsStats: React.FC<CommentsStatsProps> = ({
     </div>
     <div className={`${cardStyles} border rounded-2xl p-4 transition-colors duration-200`}>
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20">
-          <FaCheck className="text-green-500" />
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-success-500/20 to-success-700/20">
+          <FaCheck className="text-success-500" />
         </div>
         <div>
           <p className={`text-2xl font-bold ${textPrimary}`}>{approvedComments}</p>

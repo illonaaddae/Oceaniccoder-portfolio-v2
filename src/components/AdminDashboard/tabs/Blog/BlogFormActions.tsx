@@ -16,7 +16,7 @@ export const BlogFormActions: React.FC<BlogFormActionsProps> = ({
 }) => (
   <div
     className={`flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t ${
-      theme === "dark" ? "border-white/10" : "border-blue-200/30"
+      theme === "dark" ? "border-white/10" : "border-oceanic-200/30"
     }`}
   >
     <button
@@ -32,7 +32,7 @@ export const BlogFormActions: React.FC<BlogFormActionsProps> = ({
     </button>
     <button
       type="submit"
-      className={`w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-oceanic-500 to-emerald-500 text-white rounded-xl hover:from-oceanic-600 hover:to-emerald-600 transition-all font-medium shadow-lg shadow-oceanic-500/20 flex items-center justify-center gap-2 ${
+      className={`w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-oceanic-500 to-oceanic-700 text-white rounded-xl hover:from-oceanic-600 hover:to-oceanic-800 transition-all font-medium shadow-lg shadow-oceanic-500/20 flex items-center justify-center gap-2 ${
         submitting ? "opacity-50 cursor-not-allowed" : ""
       }`}
       disabled={submitting}

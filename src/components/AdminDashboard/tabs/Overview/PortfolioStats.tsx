@@ -30,31 +30,31 @@ export const PortfolioStats: React.FC<PortfolioStatsProps> = ({
       label: "Proj",
       fullLabel: "Projects",
       value: totalProjects,
-      color: "from-oceanic-500 to-oceanic-900",
+      color: "from-oceanic-800 to-oceanic-600",
     },
     {
       label: "Skill",
       fullLabel: "Skills",
       value: totalSkills,
-      color: "from-purple-500 to-purple-400",
+      color: "from-oceanic-700 to-oceanic-500",
     },
     {
       label: "Cert",
       fullLabel: "Certs",
       value: totalCertifications,
-      color: "from-amber-500 to-amber-400",
+      color: "from-oceanic-600 to-oceanic-400",
     },
     {
       label: "Img",
       fullLabel: "Gallery",
       value: totalGallery,
-      color: "from-green-500 to-green-400",
+      color: "from-oceanic-500 to-oceanic-300",
     },
     {
       label: "Msg",
       fullLabel: "Messages",
       value: totalMessages,
-      color: "from-oceanic-500 to-oceanic-400",
+      color: "from-oceanic-400 to-oceanic-200",
     },
   ];
 
