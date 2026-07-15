@@ -13,6 +13,12 @@ import { createPayment } from "@/services/api/payments";
 import { apiUrl } from "@/utils/apiUrl";
 import type { Invoice } from "@/types";
 import { useConfirm } from "../ConfirmContext";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/hooks/usePagination";
+
+const PAGE_SIZE = 10;
+
+type StatusFilter = "all" | "sent" | "paid";
 
 interface InvoicesTabProps {
   theme: "light" | "dark";
@@ -54,12 +60,13 @@ function formatDate(dateStr?: string) {
   });
 }
 
-export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
+export default function InvoicesTab({ theme }: InvoicesTabProps) {
   const confirm = useConfirm();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<Record<string, boolean>>({});
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,6 +173,62 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
   const paidCount = invoices.filter((i) => i.status === "paid").length;
   const pendingCount = invoices.filter((i) => i.status === "sent").length;
 
+  const sumBy = (pred: (i: Invoice) => boolean) =>
+    invoices.filter(pred).reduce((s, i) => s + Number(i.total || 0), 0);
+  // Dominant currency for the summary figures (invoices are almost always one currency).
+  const domCurrency =
+    Object.entries(
+      invoices.reduce<Record<string, number>>((acc, i) => {
+        acc[i.currency] = (acc[i.currency] || 0) + 1;
+        return acc;
+      }, {}),
+    ).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "GHS";
+  const symD = CURRENCY_SYMBOLS[domCurrency] ?? domCurrency;
+  const fmtMoney = (n: number) =>
+    `${symD}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const statCards = [
+    {
+      key: "all" as const,
+      label: "Total Invoices",
+      count: invoices.length,
+      amount: sumBy(() => true),
+      icon: FaFileInvoiceDollar,
+      grad: "from-oceanic-500 to-oceanic-700",
+    },
+    {
+      key: "paid" as const,
+      label: "Paid",
+      count: paidCount,
+      amount: sumBy((i) => i.status === "paid"),
+      icon: FaCheckCircle,
+      grad: "from-success-500 to-success-700",
+    },
+    {
+      key: "sent" as const,
+      label: "Pending",
+      count: pendingCount,
+      amount: sumBy((i) => i.status === "sent"),
+      icon: FaClock,
+      grad: "from-warning-500 to-warning-700",
+    },
+  ];
+
+  const tabs: { key: StatusFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: invoices.length },
+    { key: "sent", label: "Pending", count: pendingCount },
+    { key: "paid", label: "Paid", count: paidCount },
+  ];
+
+  const filtered =
+    activeStatus === "all" ? invoices : invoices.filter((i) => i.status === activeStatus);
+  const { page, setPage, pageItems, totalItems } = usePagination(filtered, PAGE_SIZE);
+
+  const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
+  const pillBase = "px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap";
+  const pillInactive =
+    theme === "dark" ? "text-slate-300 hover:bg-white/5" : "text-slate-600 hover:bg-slate-100";
+
   return (
     <div className="space-y-6">
       {emailError && (
@@ -193,21 +256,8 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
           <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
             <FaFileInvoiceDollar className="text-brand-link dark:text-oceanic-400" /> Invoices
           </h2>
-          <p
-            className="text-sm mt-1 flex items-center gap-3"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {invoices.length} total
-            {paidCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-success-500/20 text-success-400">
-                {paidCount} paid
-              </span>
-            )}
-            {pendingCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-warning-500/20 text-warning-400">
-                {pendingCount} pending
-              </span>
-            )}
+          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+            Track and manage client invoices
           </p>
         </div>
         <button
@@ -219,6 +269,60 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
           <FaSync className={loading ? "animate-spin" : ""} /> Refresh
         </button>
       </div>
+
+      {!loading && invoices.length > 0 && (
+        <>
+          {/* Summary stat cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {statCards.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.key} className="glass-card p-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p
+                      className={`text-[11px] font-bold uppercase tracking-wider truncate ${subText}`}
+                    >
+                      {s.label}
+                    </p>
+                    <p className="text-2xl font-bold mt-1 text-[var(--text-primary)]">{s.count}</p>
+                    <p className={`text-xs mt-0.5 truncate ${subText}`}>{fmtMoney(s.amount)}</p>
+                  </div>
+                  <div
+                    className={`p-2.5 rounded-xl bg-gradient-to-br ${s.grad} shadow-lg flex-shrink-0`}
+                  >
+                    <Icon className="text-white text-lg" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Status tabs */}
+          <div
+            className={`inline-flex flex-wrap gap-1 p-1 rounded-xl ${
+              theme === "dark" ? "bg-white/5" : "bg-slate-100"
+            }`}
+          >
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveStatus(t.key)}
+                className={`${pillBase} ${
+                  activeStatus === t.key ? "bg-oceanic-600 text-white shadow" : pillInactive
+                }`}
+              >
+                {t.label}
+                <span
+                  className={`ml-2 text-xs ${activeStatus === t.key ? "text-white/80" : subText}`}
+                >
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {loading ? (
         <div className="text-center py-16" style={{ color: "var(--text-secondary)" }}>
@@ -235,9 +339,13 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
             Generate invoices from Client Work tab.
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass-card text-center py-12">
+          <p className={subText}>No invoices in this view.</p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {invoices.map((inv) => {
+          {pageItems.map((inv) => {
             const sc = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.sent;
             const sym = CURRENCY_SYMBOLS[inv.currency] ?? inv.currency;
             const isPaid = inv.status === "paid";
@@ -361,6 +469,13 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
               </div>
             );
           })}
+          <Pagination
+            page={page}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            theme={theme}
+          />
         </div>
       )}
     </div>
