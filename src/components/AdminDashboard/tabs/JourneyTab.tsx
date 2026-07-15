@@ -1,10 +1,16 @@
-import { FaRoad, FaPlus, FaBuilding, FaTrophy } from "react-icons/fa";
+import { useState } from "react";
+import { FaRoad, FaPlus, FaBriefcase, FaCheckCircle } from "react-icons/fa";
 import type { Journey } from "@/types";
 import { JourneyCard } from "./Journey/JourneyCard";
 import { usePagination } from "@/hooks/usePagination";
 import { Pagination } from "@/components/common/Pagination";
 
 const PAGE_SIZE = 10;
+
+type JourneyFilter = "all" | "current" | "past";
+
+// An entry is "current" when its period is open-ended (ends in "Present"/"Now"/"Current").
+const isCurrent = (j: Journey) => /present|current|now|ongoing/i.test(j.period ?? "");
 
 interface JourneyTabProps {
   theme: "light" | "dark";
@@ -25,41 +31,53 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
   onShowForm,
   isReadOnly = false,
 }) => {
-  const { page, setPage, pageItems, totalItems } = usePagination(journey, PAGE_SIZE);
+  const [activeStatus, setActiveStatus] = useState<JourneyFilter>("all");
 
-  // Summary stats — derived honestly from the Journey data (no status field exists).
-  const totalExperiences = journey.length;
-  const companyCount = new Set(journey.map((j) => j.company?.trim().toLowerCase()).filter(Boolean))
-    .size;
-  const withAchievements = journey.filter((j) => (j.achievements?.length ?? 0) > 0).length;
+  const currentCount = journey.filter(isCurrent).length;
+  const pastCount = journey.length - currentCount;
+
+  const filtered =
+    activeStatus === "all"
+      ? journey
+      : journey.filter((j) => (activeStatus === "current" ? isCurrent(j) : !isCurrent(j)));
+  const { page, setPage, pageItems, totalItems } = usePagination(filtered, PAGE_SIZE);
 
   const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
+  const pillBase = "px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap";
+  const pillInactive =
+    theme === "dark" ? "text-slate-300 hover:bg-white/5" : "text-slate-600 hover:bg-slate-100";
 
   const statCards = [
     {
       key: "total",
       label: "Total Experiences",
-      count: totalExperiences,
+      count: journey.length,
       sublabel: "career milestones",
       icon: FaRoad,
       grad: "from-oceanic-500 to-oceanic-700",
     },
     {
-      key: "companies",
-      label: "Companies",
-      count: companyCount,
-      sublabel: "distinct organizations",
-      icon: FaBuilding,
-      grad: "from-oceanic-600 to-oceanic-900",
+      key: "current",
+      label: "Current",
+      count: currentCount,
+      sublabel: "ongoing roles",
+      icon: FaBriefcase,
+      grad: "from-success-500 to-success-700",
     },
     {
-      key: "achievements",
-      label: "With Achievements",
-      count: withAchievements,
-      sublabel: "list key wins",
-      icon: FaTrophy,
-      grad: "from-oceanic-400 to-oceanic-700",
+      key: "past",
+      label: "Past",
+      count: pastCount,
+      sublabel: "completed roles",
+      icon: FaCheckCircle,
+      grad: "from-oceanic-600 to-oceanic-900",
     },
+  ];
+
+  const tabs: { key: JourneyFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: journey.length },
+    { key: "current", label: "Current", count: currentCount },
+    { key: "past", label: "Past", count: pastCount },
   ];
 
   return (
@@ -122,6 +140,32 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
         </div>
       )}
 
+      {!loading && journey.length > 0 && (
+        <div
+          className={`inline-flex flex-wrap gap-1 p-1 rounded-xl ${
+            theme === "dark" ? "bg-white/5" : "bg-slate-100"
+          }`}
+        >
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveStatus(t.key)}
+              className={`${pillBase} ${
+                activeStatus === t.key ? "bg-oceanic-600 text-white shadow" : pillInactive
+              }`}
+            >
+              {t.label}
+              <span
+                className={`ml-2 text-xs ${activeStatus === t.key ? "text-white/80" : subText}`}
+              >
+                {t.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12">
           <p className={theme === "dark" ? "text-slate-300" : "text-slate-600"}>
@@ -137,6 +181,12 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
           />
           <p className={theme === "dark" ? "text-slate-300" : "text-slate-600"}>
             No journey milestones yet
+          </p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass-card p-12 text-center">
+          <p className={theme === "dark" ? "text-slate-300" : "text-slate-600"}>
+            No experiences in this view.
           </p>
         </div>
       ) : (
