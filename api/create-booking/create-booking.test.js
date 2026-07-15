@@ -146,4 +146,77 @@ describe("create-booking Azure Function", () => {
 
     expect(ctx.res.status).toBe(200);
   });
+
+  it("returns the Meet link when the calendar insert response already has entry points", async () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "fake-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+
+    stubHttps(200, { access_token: "tok" }); // OAuth
+    stubHttps(200, {
+      id: "evt1",
+      htmlLink: "https://calendar.google.com/event?eid=evt1",
+      conferenceData: {
+        entryPoints: [{ entryPointType: "video", uri: "https://meet.google.com/abc-defg-hij" }],
+      },
+    }); // calendar insert — link already present
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(200);
+    const body = JSON.parse(ctx.res.body);
+    expect(body.meetLink).toBe("https://meet.google.com/abc-defg-hij");
+    expect(mockRequest).toHaveBeenCalledTimes(2); // OAuth + insert, no poll needed
+  });
+
+  it("polls for the Meet link when the insert response is still pending", async () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "fake-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+
+    stubHttps(200, { access_token: "tok" }); // OAuth
+    stubHttps(200, {
+      id: "evt2",
+      htmlLink: "https://calendar.google.com/event?eid=evt2",
+      conferenceData: { createRequest: { status: { statusCode: "pending" } } },
+    }); // insert — Meet link not ready yet
+    stubHttps(200, {
+      id: "evt2",
+      conferenceData: {
+        entryPoints: [{ entryPointType: "video", uri: "https://meet.google.com/xyz-1234-abc" }],
+      },
+    }); // first poll GET — link now populated
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(200);
+    const body = JSON.parse(ctx.res.body);
+    expect(body.meetLink).toBe("https://meet.google.com/xyz-1234-abc");
+    expect(mockRequest).toHaveBeenCalledTimes(3); // OAuth + insert + one poll
+  });
+
+  it("falls back to hangoutLink when entry points are absent", async () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "fake-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+
+    stubHttps(200, { access_token: "tok" }); // OAuth
+    stubHttps(200, {
+      id: "evt3",
+      htmlLink: "https://calendar.google.com/event?eid=evt3",
+      hangoutLink: "https://meet.google.com/legacy-link",
+    }); // insert — only hangoutLink present
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(200);
+    const body = JSON.parse(ctx.res.body);
+    expect(body.meetLink).toBe("https://meet.google.com/legacy-link");
+  });
 });
