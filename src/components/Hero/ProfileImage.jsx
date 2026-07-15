@@ -83,7 +83,7 @@ const ProfileImage = React.memo(function ProfileImage() {
   return (
     <div className="flex justify-center lg:justify-start order-1 lg:order-2">
       <div className="relative group">
-        <div className="absolute -inset-4 bg-gradient-to-r from-teal-600/15 to-oceanic-900/15 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+        <div className="absolute -inset-4 bg-gradient-to-r from-oceanic-600/15 to-oceanic-900/15 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
         <div className="relative">
           <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[26rem] lg:h-[26rem] xl:w-[28rem] xl:h-[28rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
             <img

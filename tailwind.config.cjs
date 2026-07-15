@@ -42,6 +42,13 @@ module.exports = {
           800: "#064350",
           900: "#04333B", // brand dark shade
         },
+        // ── Semantic accents — status/badges ONLY, never decoration ──────────────
+        // Use as bg-<name>-100 + text-<name>-700 pairs (Wild Oasis pattern).
+        // Design system: brand = oceanic, neutrals = slate, decoration = none.
+        success: { 100: "#dcfce7", 700: "#15803d" },
+        warning: { 100: "#fef9c3", 700: "#a16207" },
+        error: { 100: "#fee2e2", 700: "#b91c1c" },
+        info: { 100: "#c1ecf4", 700: "#085866" }, // oceanic-derived
       },
       fontFamily: {
         heading: ["Space Grotesk", "sans-serif"],

@@ -30,10 +30,12 @@ const HeroContent = React.memo(function HeroContent({ displayText, onViewProject
 
       {/* Role Display */}
       <div className="flex justify-center lg:justify-start">
-        <div className="glass-card bg-gradient-to-r from-white/10 to-white/5 border border-teal-600/25 rounded-xl px-6 py-3 backdrop-blur-md inline-block">
+        <div className="glass-card bg-gradient-to-r from-white/10 to-white/5 border border-oceanic-600/25 rounded-xl px-6 py-3 backdrop-blur-md inline-block">
           <h3 className="text-lg lg:text-xl font-bold">
             <span className="text-oceanic-600 dark:text-oceanic-500 font-bold">{displayText}</span>
-            <span className="ml-1 text-teal-500 dark:text-teal-300 animate-pulse text-xl">|</span>
+            <span className="ml-1 text-oceanic-500 dark:text-oceanic-300 animate-pulse text-xl">
+              |
+            </span>
           </h3>
         </div>
       </div>

@@ -6,7 +6,7 @@ const ScrollIndicator = React.memo(function ScrollIndicator({ onScroll }) {
     <div className="mt-12 lg:mt-16 pb-8 flex justify-center">
       <button
         onClick={onScroll}
-        className="flex flex-col items-center space-y-2 text-teal-500/70 dark:text-teal-400/70 hover:text-teal-500 dark:hover:text-teal-400 transition-all duration-300 group animate-bounce"
+        className="flex flex-col items-center space-y-2 text-oceanic-500/70 dark:text-oceanic-400/70 hover:text-oceanic-500 dark:hover:text-oceanic-400 transition-all duration-300 group animate-bounce"
         aria-label="Explore skills section"
       >
         <div className="flex flex-col items-center">
