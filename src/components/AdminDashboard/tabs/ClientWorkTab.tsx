@@ -16,6 +16,9 @@ import {
   FaPlus,
   FaEye,
   FaFileAlt,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaInbox,
 } from "react-icons/fa";
 import { getInquiries, updateInquiry, deleteInquiry } from "@/services/api/inquiries";
 import { getInvoices } from "@/services/api/invoices";
@@ -23,6 +26,12 @@ import type { ProjectInquiry, Invoice } from "@/types";
 import InvoiceModal from "./ClientWork/InvoiceModal";
 import { useConfirm } from "../ConfirmContext";
 import { apiUrl } from "@/utils/apiUrl";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/hooks/usePagination";
+
+const PAGE_SIZE = 10;
+
+type StatusFilter = "all" | "new" | "reviewed" | "quoted" | "declined";
 
 interface ClientWorkTabProps {
   theme: "light" | "dark";
@@ -88,6 +97,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     existing?: Invoice;
   } | null>(null);
   const [selectedInquiry, setSelectedInquiry] = useState<ProjectInquiry | null>(null);
+  const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -141,7 +151,64 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     setInquiries((prev) => prev.filter((i) => i.$id !== id));
   };
 
-  const newCount = inquiries.filter((i) => i.status === "new").length;
+  const countBy = (s: string) => inquiries.filter((i) => i.status === s).length;
+  const newCount = countBy("new");
+  const reviewedCount = countBy("reviewed");
+  const quotedCount = countBy("quoted");
+  const declinedCount = countBy("declined");
+
+  const statCards = [
+    {
+      key: "all" as const,
+      label: "Total Inquiries",
+      count: inquiries.length,
+      sub: "All project briefs",
+      icon: FaBriefcase,
+      grad: "from-oceanic-500 to-oceanic-700",
+    },
+    {
+      key: "new" as const,
+      label: "New",
+      count: newCount,
+      sub: "Awaiting review",
+      icon: FaInbox,
+      grad: "from-info-500 to-info-700",
+    },
+    {
+      key: "quoted" as const,
+      label: "Quoted",
+      count: quotedCount,
+      sub: "Quote sent",
+      icon: FaCheckCircle,
+      grad: "from-success-500 to-success-700",
+    },
+    {
+      key: "declined" as const,
+      label: "Declined",
+      count: declinedCount,
+      sub: "Not proceeding",
+      icon: FaTimesCircle,
+      grad: "from-error-500 to-error-700",
+    },
+  ];
+
+  // Only surface pills for statuses that actually exist in the data.
+  const tabs: { key: StatusFilter; label: string; count: number }[] = [
+    { key: "all" as const, label: "All", count: inquiries.length },
+    { key: "new" as const, label: "New", count: newCount },
+    { key: "reviewed" as const, label: "Reviewed", count: reviewedCount },
+    { key: "quoted" as const, label: "Quoted", count: quotedCount },
+    { key: "declined" as const, label: "Declined", count: declinedCount },
+  ].filter((t) => t.key === "all" || t.count > 0);
+
+  const filtered =
+    activeStatus === "all" ? inquiries : inquiries.filter((i) => i.status === activeStatus);
+  const { page, setPage, pageItems, totalItems } = usePagination(filtered, PAGE_SIZE);
+
+  const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
+  const pillBase = "px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap";
+  const pillInactive =
+    theme === "dark" ? "text-slate-300 hover:bg-white/5" : "text-slate-600 hover:bg-slate-100";
 
   return (
     <div className="space-y-6">
@@ -205,6 +272,60 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
         </code>
       </div>
 
+      {!loading && inquiries.length > 0 && (
+        <>
+          {/* Summary stat cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {statCards.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.key} className="glass-card p-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p
+                      className={`text-[11px] font-bold uppercase tracking-wider truncate ${subText}`}
+                    >
+                      {s.label}
+                    </p>
+                    <p className="text-2xl font-bold mt-1 text-[var(--text-primary)]">{s.count}</p>
+                    <p className={`text-xs mt-0.5 truncate ${subText}`}>{s.sub}</p>
+                  </div>
+                  <div
+                    className={`p-2.5 rounded-xl bg-gradient-to-br ${s.grad} shadow-lg flex-shrink-0`}
+                  >
+                    <Icon className="text-white text-lg" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Status tabs */}
+          <div
+            className={`inline-flex flex-wrap gap-1 p-1 rounded-xl ${
+              theme === "dark" ? "bg-white/5" : "bg-slate-100"
+            }`}
+          >
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveStatus(t.key)}
+                className={`${pillBase} ${
+                  activeStatus === t.key ? "bg-oceanic-600 text-white shadow" : pillInactive
+                }`}
+              >
+                {t.label}
+                <span
+                  className={`ml-2 text-xs ${activeStatus === t.key ? "text-white/80" : subText}`}
+                >
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Inquiries */}
       {loading ? (
         <div className="text-center py-16" style={{ color: "var(--text-secondary)" }}>
@@ -221,9 +342,13 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
             Share your inquiry link to get started.
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass-card text-center py-12">
+          <p className={subText}>No inquiries in this view.</p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {inquiries.map((inq) => {
+          {pageItems.map((inq) => {
             const sc = STATUS_CONFIG[inq.status] ?? STATUS_CONFIG.new;
 
             return (
@@ -474,6 +599,13 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
               </div>
             );
           })}
+          <Pagination
+            page={page}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            theme={theme}
+          />
         </div>
       )}
 

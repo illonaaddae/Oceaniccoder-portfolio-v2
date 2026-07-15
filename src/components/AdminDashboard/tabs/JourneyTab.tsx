@@ -1,4 +1,4 @@
-import { FaRoad, FaPlus } from "react-icons/fa";
+import { FaRoad, FaPlus, FaBuilding, FaTrophy } from "react-icons/fa";
 import type { Journey } from "@/types";
 import { JourneyCard } from "./Journey/JourneyCard";
 import { usePagination } from "@/hooks/usePagination";
@@ -26,6 +26,42 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
   isReadOnly = false,
 }) => {
   const { page, setPage, pageItems, totalItems } = usePagination(journey, PAGE_SIZE);
+
+  // Summary stats — derived honestly from the Journey data (no status field exists).
+  const totalExperiences = journey.length;
+  const companyCount = new Set(journey.map((j) => j.company?.trim().toLowerCase()).filter(Boolean))
+    .size;
+  const withAchievements = journey.filter((j) => (j.achievements?.length ?? 0) > 0).length;
+
+  const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
+
+  const statCards = [
+    {
+      key: "total",
+      label: "Total Experiences",
+      count: totalExperiences,
+      sublabel: "career milestones",
+      icon: FaRoad,
+      grad: "from-oceanic-500 to-oceanic-700",
+    },
+    {
+      key: "companies",
+      label: "Companies",
+      count: companyCount,
+      sublabel: "distinct organizations",
+      icon: FaBuilding,
+      grad: "from-oceanic-600 to-oceanic-900",
+    },
+    {
+      key: "achievements",
+      label: "With Achievements",
+      count: withAchievements,
+      sublabel: "list key wins",
+      icon: FaTrophy,
+      grad: "from-oceanic-400 to-oceanic-700",
+    },
+  ];
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -59,6 +95,32 @@ export const JourneyTab: React.FC<JourneyTabProps> = ({
           </button>
         )}
       </div>
+
+      {!loading && journey.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {statCards.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.key} className="glass-card p-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p
+                    className={`text-[11px] font-bold uppercase tracking-wider truncate ${subText}`}
+                  >
+                    {s.label}
+                  </p>
+                  <p className="text-2xl font-bold mt-1 text-[var(--text-primary)]">{s.count}</p>
+                  <p className={`text-xs mt-0.5 truncate ${subText}`}>{s.sublabel}</p>
+                </div>
+                <div
+                  className={`p-2.5 rounded-xl bg-gradient-to-br ${s.grad} shadow-lg flex-shrink-0`}
+                >
+                  <Icon className="text-white text-lg" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12">
