@@ -2,17 +2,22 @@ import React from "react";
 
 interface SidebarHeaderProps {
   theme: string;
+  isCollapsed?: boolean;
 }
 
-export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme }) => {
+export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme, isCollapsed = false }) => {
   return (
     <div
       className={`flex-shrink-0 p-4 sm:p-6 pt-14 lg:pt-6 border-b ${
-        theme === "dark" ? "border-gray-800" : "border-blue-200/30"
-      }`}
+        isCollapsed ? "lg:px-0" : ""
+      } ${theme === "dark" ? "border-gray-800" : "border-blue-200/30"}`}
     >
       {/* Profile Image */}
-      <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+      <div
+        className={`flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4 ${
+          isCollapsed ? "lg:justify-center lg:gap-0 lg:mb-0" : ""
+        }`}
+      >
         <div
           className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex-shrink-0 ${
             theme === "dark"
@@ -40,7 +45,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme }) => {
             OC
           </div>
         </div>
-        <div className="flex-1 min-w-0">
+        <div className={`flex-1 min-w-0 ${isCollapsed ? "lg:hidden" : ""}`}>
           <h3
             className={`font-bold truncate transition-colors duration-300 ${
               theme === "dark" ? "text-white" : "text-slate-900"
@@ -58,20 +63,22 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme }) => {
         </div>
       </div>
 
-      <h2
-        className={`text-xl font-bold transition-colors duration-300 ${
-          theme === "dark" ? "text-white" : "text-slate-900"
-        }`}
-      >
-        Admin Panel
-      </h2>
-      <p
-        className={`text-sm transition-colors duration-300 ${
-          theme === "dark" ? "text-slate-300" : "text-slate-600"
-        }`}
-      >
-        Manage your portfolio
-      </p>
+      <div className={isCollapsed ? "lg:hidden" : ""}>
+        <h2
+          className={`text-xl font-bold transition-colors duration-300 ${
+            theme === "dark" ? "text-white" : "text-slate-900"
+          }`}
+        >
+          Admin Panel
+        </h2>
+        <p
+          className={`text-sm transition-colors duration-300 ${
+            theme === "dark" ? "text-slate-300" : "text-slate-600"
+          }`}
+        >
+          Manage your portfolio
+        </p>
+      </div>
     </div>
   );
 };

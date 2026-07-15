@@ -68,7 +68,7 @@ export const LinksFields: React.FC<FormFieldProps> = ({
           value={form.demoVideoUrl}
           onChange={(e) => setForm({ ...form, demoVideoUrl: e.target.value })}
           className={inputClass}
-          placeholder="Paste an MP4, YouTube, or Loom URL — or upload an MP4 below"
+          placeholder="Paste an MP4, YouTube, or Loom URL, or upload an MP4 below"
         />
 
         {/* Upload button — for direct MP4 hosting (bypasses YouTube bot-gate) */}
@@ -117,7 +117,7 @@ export const LinksFields: React.FC<FormFieldProps> = ({
 
         <p className="mt-2 text-xs opacity-60">
           MP4 upload (max 50 MB) plays inline reliably. YouTube/Loom URLs may trigger a bot-check
-          screen — upload MP4 for best results.
+          screen; upload MP4 for best results.
         </p>
       </div>
     </div>

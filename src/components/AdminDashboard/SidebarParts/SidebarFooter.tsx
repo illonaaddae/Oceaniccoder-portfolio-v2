@@ -5,6 +5,7 @@ interface SidebarFooterProps {
   isReadOnly: boolean;
   onThemeToggle: () => void;
   onLogout?: () => void;
+  isCollapsed?: boolean;
 }
 
 export const SidebarFooter: React.FC<SidebarFooterProps> = ({
@@ -12,6 +13,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
   isReadOnly,
   onThemeToggle,
   onLogout,
+  isCollapsed = false,
 }) => {
   return (
     <div
@@ -23,13 +25,15 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
       {isReadOnly && (
         <div
           className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${
+            isCollapsed ? "lg:px-0" : ""
+          } ${
             theme === "dark"
               ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
               : "bg-blue-100 text-blue-700 border border-blue-200"
           }`}
         >
           <span>👁️</span>
-          <span>View Only Mode</span>
+          <span className={isCollapsed ? "lg:hidden" : ""}>View Only Mode</span>
         </div>
       )}
 
@@ -39,7 +43,10 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
           onThemeToggle();
         }}
         type="button"
+        title={theme === "dark" ? "Light Mode" : "Dark Mode"}
         className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 touch-manipulation min-h-[44px] cursor-pointer select-none ${
+          isCollapsed ? "lg:justify-center lg:gap-0 lg:px-0" : ""
+        } ${
           theme === "dark"
             ? "bg-gray-800/80 text-amber-400 hover:bg-gray-800 border border-gray-700 hover:border-amber-500/40 active:bg-gray-700"
             : "bg-white/50 text-slate-700 hover:bg-white/70 border border-blue-200/30 hover:border-blue-300/50 active:bg-white/90"
@@ -50,7 +57,9 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
         ) : (
           <FaMoon className="text-slate-600" />
         )}
-        <span className="font-medium">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+        <span className={`font-medium ${isCollapsed ? "lg:hidden" : ""}`}>
+          {theme === "dark" ? "Light Mode" : "Dark Mode"}
+        </span>
       </button>
 
       {/* Only show logout for admin users */}
@@ -61,14 +70,17 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
             onLogout?.();
           }}
           type="button"
+          title="Logout"
           className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 border touch-manipulation min-h-[44px] cursor-pointer select-none ${
+            isCollapsed ? "lg:justify-center lg:gap-0 lg:px-0" : ""
+          } ${
             theme === "dark"
               ? "text-red-400 hover:bg-red-500/10 border-transparent hover:border-red-500/30 active:bg-red-500/20"
               : "text-red-600 hover:bg-red-50 border-transparent hover:border-red-200 active:bg-red-100"
           }`}
         >
           <FaSignOutAlt />
-          <span className="font-medium">Logout</span>
+          <span className={`font-medium ${isCollapsed ? "lg:hidden" : ""}`}>Logout</span>
         </button>
       )}
     </div>

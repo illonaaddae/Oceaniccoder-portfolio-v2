@@ -140,7 +140,7 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
       } catch (emailErr) {
         const msg =
           emailErr instanceof Error && emailErr.name === "AbortError"
-            ? "Email request timed out (server was starting up). The email may still be on its way — wait 30s and check the client's inbox before retrying."
+            ? "Email request timed out (server was starting up). The email may still be on its way; wait 30s and check the client's inbox before retrying."
             : `Email error: ${emailErr instanceof Error ? emailErr.message : "unknown"}`;
         setEmailError(msg);
       }

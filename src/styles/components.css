@@ -167,36 +167,29 @@ body[data-theme="light"] svg.text-white,
 }
 
 /* Enhanced Glass Morphism Effects */
+/* Clear glass — flat, clean surface. No backdrop blur, no gloss/sheen. */
 .glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid var(--glass-border);
+  background: #131c2e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   box-shadow:
-    0 8px 32px rgba(12, 133, 153, 0.1),
-    0 16px 64px rgba(12, 133, 153, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 8px 24px rgba(0, 0, 0, 0.16);
   position: relative;
   overflow: visible;
 }
 
+/* No decorative top-line sheen. */
 .glass-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--brand-ocean-3), transparent);
+  content: none;
 }
 
 [data-theme="light"] .glass-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(12, 133, 153, 0.2);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 36, 0.08);
   box-shadow:
-    0 8px 32px rgba(12, 133, 153, 0.08),
-    0 16px 64px rgba(0, 0, 0, 0.02);
+    0 1px 2px rgba(16, 24, 32, 0.04),
+    0 8px 24px rgba(16, 24, 32, 0.06);
 }
 
 .glass-btn {
@@ -448,11 +441,11 @@ body[data-theme="light"] svg.text-white,
 }
 
 .card-hover:hover .glass-card {
-  background: rgba(12, 133, 153, 0.12);
-  border-color: var(--brand-ocean-3);
+  border-color: rgba(38, 169, 197, 0.4);
   box-shadow:
-    0 24px 64px var(--shadow-ocean),
-    0 48px 128px rgba(12, 133, 153, 0.1);
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 12px 32px rgba(0, 0, 0, 0.22);
+  transform: translateY(-2px);
 }
 
 /* Light-mode card hover should be subtle and keep contrast */
@@ -483,11 +476,11 @@ body[data-theme="light"] svg.text-white,
 }
 
 [data-theme="light"] .glass-card {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(13, 148, 136, 0.2);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 36, 0.08);
   box-shadow:
-    0 8px 24px rgba(13, 148, 136, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.05);
+    0 1px 2px rgba(16, 24, 32, 0.04),
+    0 8px 24px rgba(16, 24, 32, 0.06);
   color: var(--text-primary);
 }
 

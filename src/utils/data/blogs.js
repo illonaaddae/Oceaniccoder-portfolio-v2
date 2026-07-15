@@ -4,7 +4,7 @@ export const BLOGS_DATA = [
     title: "Breaking Barriers: Women in Tech Leadership",
     excerpt:
       "Exploring the challenges and opportunities for women in technology leadership roles, and how we can create more inclusive environments.",
-    content: `In a society where women are often underestimated, I am determined to shift the conversation. Technology is for everyone—gender, wealth, or background should never limit one's potential to innovate and succeed.
+    content: `In a society where women are often underestimated, I am determined to shift the conversation. Technology is for everyone: gender, wealth, or background should never limit one's potential to innovate and succeed.
 
     Through my journey as the Executive Director of Slint Tech, I've witnessed firsthand the transformative power of inclusive leadership in technology. This post explores the barriers women face in tech leadership and practical strategies for creating more equitable opportunities.
 
@@ -18,7 +18,7 @@ export const BLOGS_DATA = [
 
     ## My Mission
 
-    I believe in a world where opportunities are equal, dreams are boundless, and success is driven by determination, hard work, and talent—not defined by gender.`,
+    I believe in a world where opportunities are equal, dreams are boundless, and success is driven by determination, hard work, and talent, not defined by gender.`,
     category: "Leadership",
     tags: ["Women in Tech", "Leadership", "Diversity", "Inclusion"],
     publishedAt: "2024-01-15",

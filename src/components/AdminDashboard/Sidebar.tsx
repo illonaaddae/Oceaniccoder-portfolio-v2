@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaBars, FaTimes } from "react-icons/fa";
+import { FaBars, FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { SidebarHeader } from "./SidebarParts/SidebarHeader";
 import { SidebarNav } from "./SidebarParts/SidebarNav";
 import { SidebarFooter } from "./SidebarParts/SidebarFooter";
@@ -15,6 +15,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   isReadOnly = false,
   pendingBookings = 0,
+  isCollapsed = false,
+  onToggleCollapse,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -63,6 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 h-[100dvh] w-64 flex flex-col transition-all duration-300 ${
+          isCollapsed ? "lg:w-20" : "lg:w-64"
+        } ${
           theme === "dark"
             ? "bg-[#111827] border-r border-gray-800 shadow-xl shadow-black/30"
             : "bg-gradient-to-b from-white/80 to-white/60 border-r border-blue-200/30 shadow-xl shadow-blue-100/10"
@@ -70,19 +74,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        <SidebarHeader theme={theme} />
+        {/* Desktop collapse toggle */}
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className={`hidden lg:flex absolute -right-3 top-20 z-[55] w-6 h-6 items-center justify-center rounded-full border shadow-md transition-all duration-200 ${
+              theme === "dark"
+                ? "bg-[#111827] border-gray-700 text-gray-300 hover:text-oceanic-400 hover:border-oceanic-500/50"
+                : "bg-white border-blue-200 text-slate-600 hover:text-oceanic-600 hover:border-oceanic-400/60"
+            }`}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <FaChevronRight className="text-[10px]" />
+            ) : (
+              <FaChevronLeft className="text-[10px]" />
+            )}
+          </button>
+        )}
+
+        <SidebarHeader theme={theme} isCollapsed={isCollapsed} />
         <SidebarNav
           tabs={tabs}
           activeTab={activeTab}
           theme={theme}
           onTabChange={handleTabChange}
           pendingBookings={pendingBookings}
+          isCollapsed={isCollapsed}
         />
         <SidebarFooter
           theme={theme}
           isReadOnly={isReadOnly}
           onThemeToggle={onThemeToggle}
           onLogout={onLogout}
+          isCollapsed={isCollapsed}
         />
       </aside>
     </>

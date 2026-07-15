@@ -180,7 +180,7 @@ The clearer your purpose, the easier every other decision becomes.
 
 ### 1. Accessibility First
 
-Accessibility isn't an afterthought—it's a foundation.
+Accessibility isn't an afterthought; it's a foundation.
 
 - **Physical accessibility** - Choose venues that work for everyone
 - **Financial accessibility** - Keep events free or low-cost when possible
@@ -246,7 +246,7 @@ That's the real measure of impact.
 
 Building an inclusive community is hard work. It requires patience, empathy, and a willingness to constantly learn and adapt.
 
-But when you see someone land their first job because of a connection they made in your community, or watch a nervous newcomer become a confident contributor—that's when you know it's worth it.
+But when you see someone land their first job because of a connection they made in your community, or watch a nervous newcomer become a confident contributor, that's when you know it's worth it.
 
 **Let's build communities that change lives.**`,
     category: "Community",
@@ -387,7 +387,7 @@ Glass morphism is used in:
 
 ## Conclusion
 
-Glass morphism, when used thoughtfully, creates interfaces that feel modern, elegant, and dimensional. The key is subtlety—let the effect enhance your design without overwhelming it.
+Glass morphism, when used thoughtfully, creates interfaces that feel modern, elegant, and dimensional. The key is subtlety: let the effect enhance your design without overwhelming it.
 
 Now go create something beautiful!`,
     category: "Development",

@@ -58,6 +58,43 @@ function toDateTime(date, hours, minutes) {
   return `${date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
 }
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Pull the Meet video URL out of an event resource (entryPoints preferred, hangoutLink fallback).
+function extractMeetLink(ev) {
+  const fromEntry =
+    ev?.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
+  return fromEntry || ev?.hangoutLink || null;
+}
+
+// Google Meet conference creation is async: the events.insert response often returns
+// conferenceData.createRequest.status.statusCode === "pending" with no entryPoints yet.
+// Re-fetch the event a few times until the Meet link is populated.
+async function pollMeetLink(
+  accessToken,
+  calendarId,
+  eventId,
+  { attempts = 4, intervalMs = 800 } = {},
+) {
+  const path =
+    `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}` +
+    `?conferenceDataVersion=1`;
+  for (let i = 0; i < attempts; i++) {
+    await delay(intervalMs);
+    const res = await httpsRequest(
+      "www.googleapis.com",
+      path,
+      "GET",
+      { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      "",
+    );
+    if (res.status !== 200) continue;
+    const link = extractMeetLink(JSON.parse(res.body));
+    if (link) return link;
+  }
+  return null;
+}
+
 async function getAccessToken() {
   const body = querystring.stringify({
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -290,6 +327,60 @@ async function sendBookerZoomEmail(
     context.log.error("Booker Zoom email failed:", result.status, result.body);
   } else {
     context.log.info("Booker Zoom confirmation sent to", email);
+  }
+}
+
+async function sendBookerMeetEmail(
+  context,
+  { name, email, meetingType, preferredDate, preferredTime, timezone, meetLink, calendarEventLink },
+) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !meetLink) return;
+
+  const label = MEETING_LABELS[meetingType] ?? meetingType;
+  const duration = MEETING_DURATIONS[meetingType] ?? 30;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+      <div style="background:#0f766e;padding:24px 32px;border-radius:8px 8px 0 0">
+        <h1 style="margin:0;color:#fff;font-size:20px">Your Google Meet is Confirmed 🎉</h1>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
+        <p style="margin:0 0 16px;font-size:15px">Hi ${name}, your booking with Illona Addae is confirmed.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:6px 0;color:#6b7280;width:140px">Meeting</td><td style="padding:6px 0;font-weight:600">${label} (${duration} min)</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Date &amp; time</td><td style="padding:6px 0;font-weight:600">${preferredDate} at ${preferredTime}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Timezone</td><td style="padding:6px 0">${timezone || "UTC"}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">Google Meet</td></tr>
+        </table>
+        <div style="margin-top:24px">
+          <a href="${meetLink}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Google Meet →</a>
+        </div>
+        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link — you'll need it to join the call.</p>
+        ${calendarEventLink ? `<p style="margin-top:8px;font-size:13px"><a href="${calendarEventLink}" style="color:#0f766e">Add to Google Calendar</a></p>` : ""}
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
+        <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
+      </div>
+    </div>`;
+
+  const result = await httpsRequest(
+    "api.resend.com",
+    "/emails",
+    "POST",
+    { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    {
+      from: `Illona Addae (OceanicCoder) <${fromEmail}>`,
+      to: [email],
+      subject: `Your Google Meet is Confirmed — ${preferredDate} at ${preferredTime}`,
+      html,
+    },
+  );
+
+  if (result.status !== 200 && result.status !== 201) {
+    context.log.error("Booker Meet email failed:", result.status, result.body);
+  } else {
+    context.log.info("Booker Meet confirmation sent to", email);
   }
 }
 
@@ -547,23 +638,43 @@ module.exports = async function (context, req) {
     }
 
     const ev = JSON.parse(calRes.body);
-    const meetLink =
-      ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
+    let meetLink = extractMeetLink(ev);
     const calendarEventLink = ev.htmlLink ?? null;
 
-    sendNotificationEmail(context, {
-      name,
-      email,
-      phone,
-      meetingType,
-      preferredDate,
-      preferredTime,
-      timezone,
-      message,
-      meetLink,
-      zoomLink: null,
-      calendarEventLink,
-    }).catch((e) => context.log.error("Notification error:", e.message));
+    // Meet link is created asynchronously — if it's not ready in the insert response,
+    // poll the event until Google populates the conference entry points.
+    if (!meetLink && ev.id) {
+      meetLink = await pollMeetLink(accessToken, calendarId, ev.id).catch((e) => {
+        context.log.warn("Meet link poll failed:", e.message);
+        return null;
+      });
+    }
+
+    await Promise.allSettled([
+      sendNotificationEmail(context, {
+        name,
+        email,
+        phone,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        message,
+        meetLink,
+        zoomLink: null,
+        calendarEventLink,
+      }).catch((e) => context.log.error("Notification error:", e.message)),
+      sendBookerMeetEmail(context, {
+        name,
+        email,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        meetLink,
+        calendarEventLink,
+      }).catch((e) => context.log.error("Booker Meet email error:", e.message)),
+    ]);
     ok(context, { success: true, zoomLink: null, meetLink, calendarEventLink });
   } catch (err) {
     const msg = String(err);

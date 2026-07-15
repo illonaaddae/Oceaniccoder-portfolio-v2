@@ -114,15 +114,11 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
               <div className="mb-4">
                 <div
                   className={`w-full h-2 rounded-full overflow-hidden transition-colors duration-300 ${
-                    theme === "dark" ? "bg-white/10" : "bg-blue-200/30"
+                    theme === "dark" ? "bg-white/10" : "bg-oceanic-100"
                   }`}
                 >
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      theme === "dark"
-                        ? "bg-gradient-to-r from-oceanic-500 to-oceanic-400"
-                        : "bg-gradient-to-r from-blue-400 to-oceanic-400"
-                    }`}
+                    className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-oceanic-500 to-oceanic-400"
                     style={{ width: `${skill.percentage}%` }}
                   />
                 </div>

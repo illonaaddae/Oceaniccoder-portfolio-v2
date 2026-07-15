@@ -31,10 +31,10 @@ export const ColorThemeSelect: React.FC<ColorThemeSelectProps> = ({
           <p
             className={`text-sm font-medium ${theme === "dark" ? "text-white" : "text-slate-800"}`}
           >
-            {selected.label.split(" — ")[0]}
+            {selected.label.split(": ")[0]}
           </p>
           <p className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-            {selected.label.split(" — ")[1] ?? ""}
+            {selected.label.split(": ")[1] ?? ""}
           </p>
         </div>
       </div>

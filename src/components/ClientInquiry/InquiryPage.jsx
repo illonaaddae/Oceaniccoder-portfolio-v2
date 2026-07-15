@@ -546,7 +546,7 @@ export default function InquiryPage() {
                   <textarea
                     value={form.description}
                     onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                    placeholder="Describe what you want built, who it's for, and any key requirements. At least 20 characters — the more detail you give, the better I can help."
+                    placeholder="Describe what you want built, who it's for, and any key requirements. At least 20 characters. The more detail you give, the better I can help."
                     rows={5}
                     className="w-full glass-input"
                   />
@@ -661,7 +661,7 @@ export default function InquiryPage() {
                   {form.needsDomain === true && (
                     <div>
                       <p className="text-xs mb-2 text-gray-600 dark:text-gray-200">
-                        Pick an extension — Namecheap pricing (registration fee, billed annually):
+                        Pick an extension. Namecheap pricing (registration fee, billed annually):
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {DOMAIN_EXTENSIONS.map(({ ext, price }) => (

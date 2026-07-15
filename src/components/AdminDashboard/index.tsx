@@ -11,8 +11,23 @@ import { ToastContainer } from "./Toast";
 import type { AdminDashboardProps } from "./types";
 import { ConfirmProvider } from "./ConfirmContext";
 
+const SIDEBAR_COLLAPSED_KEY = "oc-admin-sidebar-collapsed";
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isReadOnly = false }) => {
   const s = useDashboardState(isReadOnly);
+
+  const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  });
+
+  const toggleCollapse = React.useCallback(() => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  }, []);
 
   return (
     <ConfirmProvider>
@@ -31,8 +46,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
           onLogout={onLogout}
           isReadOnly={isReadOnly}
           pendingBookings={s.pendingBookings}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={toggleCollapse}
         />
-        <main className="flex-1 flex flex-col h-screen overflow-hidden ml-0 lg:ml-64 transition-all duration-300 relative z-0">
+        <main
+          className={`flex-1 flex flex-col h-screen overflow-hidden ml-0 transition-all duration-300 relative z-0 ${
+            isCollapsed ? "lg:ml-20" : "lg:ml-64"
+          }`}
+        >
           <DashboardHeader
             theme={s.theme}
             searchQuery={s.searchQuery}

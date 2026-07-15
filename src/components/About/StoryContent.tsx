@@ -46,7 +46,7 @@ const StoryContent = React.memo(() => (
           one's potential to innovate and succeed."
         </blockquote>
         <cite className="text-caption text-gray-200 mt-2 block text-xs sm:text-sm">
-          — Illona Addae
+          Illona Addae
         </cite>
       </div>
     </div>

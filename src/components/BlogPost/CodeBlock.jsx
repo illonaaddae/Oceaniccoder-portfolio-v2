@@ -109,7 +109,7 @@ const CodeBlock = React.memo(({ language, children, isDark }) => {
         }`}
         title="Copy code"
       >
-        {copied ? <FaCheck className="text-emerald-500" /> : <FaCopy className="text-sm" />}
+        {copied ? <FaCheck className="text-success-500" /> : <FaCopy className="text-sm" />}
       </button>
 
       <SyntaxHighlighter
