@@ -35,6 +35,9 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+      - name: Check color tokens (single-brand palette)
+        run: npm run check:colors
+
   # ============================================
   # Unit & Integration Tests
   # ============================================

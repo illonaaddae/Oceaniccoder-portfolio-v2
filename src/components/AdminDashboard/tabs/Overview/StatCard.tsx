@@ -7,32 +7,16 @@ interface StatCardProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
-const badgeColors = [
-  {
-    dark: "bg-blue-500/20 text-blue-300 border-blue-400/30 hover:bg-blue-500/30",
-    light: "bg-blue-100 text-blue-700 border-blue-200/60",
-    dot: "bg-blue-400",
-  },
-  {
-    dark: "bg-purple-500/20 text-purple-300 border-purple-400/30 hover:bg-purple-500/30",
-    light: "bg-purple-100 text-purple-700 border-purple-200/60",
-    dot: "bg-purple-400",
-  },
-  {
-    dark: "bg-amber-500/20 text-amber-300 border-amber-400/30 hover:bg-amber-500/30",
-    light: "bg-amber-100 text-amber-700 border-amber-200/60",
-    dot: "bg-amber-400",
-  },
-  {
-    dark: "bg-oceanic-500/20 text-oceanic-500 border-oceanic-500/30 hover:bg-oceanic-500/30",
-    light: "bg-oceanic-100 text-oceanic-700 border-oceanic-200/60",
-    dot: "bg-oceanic-500",
-  },
-];
+// Single brand accent — no per-index rainbow.
+const badgeColor = {
+  dark: "bg-oceanic-500/20 text-oceanic-300 border-oceanic-400/30 hover:bg-oceanic-500/30",
+  light: "bg-oceanic-100 text-oceanic-700 border-oceanic-200/60",
+  dot: "bg-oceanic-400",
+};
 
-export const StatCard: React.FC<StatCardProps> = ({ stat, index, theme, onNavigateToTab }) => {
+export const StatCard: React.FC<StatCardProps> = ({ stat, theme, onNavigateToTab }) => {
   const IconComponent = stat.icon;
-  const colors = badgeColors[index % badgeColors.length];
+  const colors = badgeColor;
 
   return (
     <div

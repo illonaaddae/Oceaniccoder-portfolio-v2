@@ -15,8 +15,8 @@ export const MessageRow: React.FC<MessageRowProps> = ({ message, theme }) => (
   >
     <td className="px-3 sm:px-4 py-2 sm:py-3">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-purple-500/30 flex items-center justify-center flex-shrink-0">
-          <FaEnvelope className="text-purple-400 text-[10px] sm:text-xs" />
+        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-oceanic-500/30 flex items-center justify-center flex-shrink-0">
+          <FaEnvelope className="text-oceanic-400 text-[10px] sm:text-xs" />
         </div>
         <span
           className={`font-medium transition-colors duration-300 text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none ${
@@ -38,7 +38,7 @@ export const MessageRow: React.FC<MessageRowProps> = ({ message, theme }) => (
       <span
         className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold ${
           message.status === "new"
-            ? "bg-blue-500/20 text-blue-400"
+            ? "bg-info-500/20 text-info-400"
             : "bg-slate-500/20 text-slate-400"
         }`}
       >

@@ -36,7 +36,7 @@ export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({ testimonia
               {testimonials.length}
             </p>
           </div>
-          <div className="p-3 rounded-xl backdrop-blur-md bg-gradient-to-br from-oceanic-500 to-teal-500 shadow-lg">
+          <div className="p-3 rounded-xl backdrop-blur-md bg-gradient-to-br from-oceanic-500 to-oceanic-700 shadow-lg">
             <FaQuoteRight className="text-white text-xl font-bold" />
           </div>
         </div>
@@ -61,7 +61,7 @@ export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({ testimonia
               {testimonials.filter((t) => t.featured).length}
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500 to-oceanic-600 shadow-lg">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-oceanic-500 to-oceanic-700 shadow-lg">
             <FaStar className="text-white text-xl font-bold" />
           </div>
         </div>
@@ -86,7 +86,7 @@ export const TestimonialsStats: React.FC<TestimonialsStatsProps> = ({ testimonia
               {avgRating}
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-gradient-to-br from-oceanic-400 to-emerald-500 shadow-lg">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-oceanic-400 to-oceanic-600 shadow-lg">
             <FaStar className="text-white text-xl font-bold" />
           </div>
         </div>

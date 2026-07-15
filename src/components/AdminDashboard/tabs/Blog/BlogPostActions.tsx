@@ -37,8 +37,8 @@ export const BlogPostActions: React.FC<BlogPostActionsProps> = ({
           onClick={() => onEdit(post)}
           className={`p-1.5 md:p-2 rounded-lg transition-all duration-200 ${
             theme === "dark"
-              ? "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/15"
-              : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-100"
+              ? "text-slate-400 hover:text-oceanic-400 hover:bg-oceanic-500/15"
+              : "text-slate-500 hover:text-oceanic-600 hover:bg-oceanic-100"
           }`}
           title="Edit"
         >
@@ -48,8 +48,8 @@ export const BlogPostActions: React.FC<BlogPostActionsProps> = ({
           onClick={() => onDelete(post.$id)}
           className={`p-1.5 md:p-2 rounded-lg transition-all duration-200 ${
             theme === "dark"
-              ? "text-slate-400 hover:text-red-400 hover:bg-red-500/15"
-              : "text-slate-500 hover:text-red-600 hover:bg-red-100"
+              ? "text-slate-400 hover:text-error-400 hover:bg-error-500/15"
+              : "text-slate-500 hover:text-error-700 hover:bg-error-100"
           }`}
           title="Delete"
         >

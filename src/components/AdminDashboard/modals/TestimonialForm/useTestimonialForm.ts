@@ -57,10 +57,10 @@ export function useTestimonialForm({
     }
   };
 
-  const inputClass = `w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
+  const inputClass = `w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 ${
     theme === "dark"
-      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-purple-500/60"
-      : "bg-white/50 border-purple-200/50 text-slate-900 placeholder-slate-500"
+      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-oceanic-500/60"
+      : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500"
   }`;
 
   const labelClass = `block text-sm font-semibold mb-2 ${

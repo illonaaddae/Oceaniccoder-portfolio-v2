@@ -32,7 +32,7 @@ export const CertificationRow: React.FC<CertificationRowProps> = ({
         }`}
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-600 to-teal-800 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-oceanic-600 to-oceanic-800 flex items-center justify-center">
             <FaAward className="text-white text-sm" />
           </div>
           <span className="font-bold text-sm">{cert.title}</span>
@@ -59,7 +59,7 @@ export const CertificationRow: React.FC<CertificationRowProps> = ({
 
       {/* Status Badge */}
       <td className="px-4 py-4">
-        <span className="px-3 py-1 rounded-full text-xs font-bold border bg-teal-500/15 text-teal-400 border-teal-500/30">
+        <span className="px-3 py-1 rounded-full text-xs font-bold border bg-info-400/10 text-info-400 border-info-400/30">
           {cert.platform || "certified"}
         </span>
       </td>

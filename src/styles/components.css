@@ -115,36 +115,8 @@ body[data-theme="light"] .text-gray-50,
   color: var(--text-secondary) !important;
 }
 
-/* Make light-theme accent utility classes darker for readability (quotes, badges, accents) */
-[data-theme="light"] .text-cyan-300,
-html[data-theme="light"] .text-cyan-300,
-body[data-theme="light"] .text-cyan-300 {
-  color: var(--brand-ocean-2) !important; /* readable teal */
-}
-
-[data-theme="light"] .text-cyan-400,
-html[data-theme="light"] .text-cyan-400,
-body[data-theme="light"] .text-cyan-400 {
-  color: var(--brand-ocean-3) !important;
-}
-
-[data-theme="light"] .text-green-300,
-html[data-theme="light"] .text-green-300,
-body[data-theme="light"] .text-green-300,
-[data-theme="light"] .text-green-400,
-html[data-theme="light"] .text-green-400,
-body[data-theme="light"] .text-green-400 {
-  color: #085866 !important; /* slightly darker green for contrast */
-}
-
-[data-theme="light"] .text-purple-300,
-html[data-theme="light"] .text-purple-300,
-body[data-theme="light"] .text-purple-300,
-[data-theme="light"] .text-purple-400,
-html[data-theme="light"] .text-purple-400,
-body[data-theme="light"] .text-purple-400 {
-  color: #6b21a8 !important; /* deeper purple for readability */
-}
+/* (Legacy cyan/green/purple readability overrides removed — those utility
+   classes were migrated to the oceanic/semantic palette.) */
 
 html[data-theme="light"] .text-gray-400,
 body[data-theme="light"] .text-gray-400,

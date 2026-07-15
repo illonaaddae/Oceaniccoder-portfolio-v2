@@ -21,7 +21,7 @@ const journey = [
       "Built partnerships with 5+ international tech organizations",
       "Launched scholarship program supporting 50+ students",
     ],
-    color: "from-purple-500 to-pink-500",
+    color: "from-oceanic-500 to-oceanic-700",
   },
   {
     role: "Frontend Developer",
@@ -45,7 +45,7 @@ const journey = [
     description:
       " Monitoring project timelines and ensured timely follow-ups on assigned tasks and deliverables to support the software development team.",
     achievements: ["Monitored project timelines", "Assisted in compiling progress reports "],
-    color: "from-orange-500 to-red-500",
+    color: "from-oceanic-400 to-oceanic-600",
   },
 ];
 

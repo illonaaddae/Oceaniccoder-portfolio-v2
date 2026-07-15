@@ -50,11 +50,11 @@ const ContactInfoCard = React.memo(() => (
       </div>
 
       {/* Availability Status */}
-      <div className="mt-8 p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
+      <div className="mt-8 p-4 bg-gradient-to-r from-success-500/10 to-success-700/10 rounded-lg border border-success-500/20">
         <div className="flex items-center gap-3">
-          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+          <div className="w-3 h-3 bg-success-400 rounded-full animate-pulse"></div>
           <div>
-            <div className="text-green-600 dark:text-green-400 font-medium">
+            <div className="text-success-700 dark:text-success-400 font-medium">
               Available for Projects
             </div>
             <div className="text-sm text-[var(--text-secondary)]">

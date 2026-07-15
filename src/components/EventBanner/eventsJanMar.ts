@@ -10,7 +10,7 @@ export const eventsJanMar: Event[] = [
     iconName: "star",
     startDate: { month: 1, day: 1 },
     endDate: { month: 1, day: 3 },
-    bgGradient: "from-teal-600 via-oceanic-600 to-teal-500",
+    bgGradient: "from-oceanic-500 via-oceanic-600 to-oceanic-800",
     showConfetti: true,
   },
   {
@@ -21,7 +21,7 @@ export const eventsJanMar: Event[] = [
     iconName: "heart",
     startDate: { month: 1, day: 20 },
     endDate: { month: 1, day: 20 },
-    bgGradient: "from-slate-700 via-teal-700 to-slate-800",
+    bgGradient: "from-oceanic-700 to-oceanic-900",
     showConfetti: false,
   },
   {
@@ -32,7 +32,7 @@ export const eventsJanMar: Event[] = [
     iconName: "heart",
     startDate: { month: 2, day: 14 },
     endDate: { month: 2, day: 14 },
-    bgGradient: "from-rose-500 via-pink-500 to-teal-500",
+    bgGradient: "from-oceanic-400 to-oceanic-700",
     showConfetti: true,
   },
   {
@@ -43,7 +43,7 @@ export const eventsJanMar: Event[] = [
     iconName: "star",
     startDate: { month: 2, day: 1 },
     endDate: { month: 2, day: 28 },
-    bgGradient: "from-slate-800 via-teal-600 to-emerald-600",
+    bgGradient: "from-oceanic-600 to-oceanic-900",
     showConfetti: false,
   },
   {
@@ -55,7 +55,7 @@ export const eventsJanMar: Event[] = [
     iconName: "star",
     startDate: { month: 3, day: 6 },
     endDate: { month: 3, day: 6 },
-    bgGradient: "from-red-600 via-amber-500 to-emerald-600",
+    bgGradient: "from-oceanic-500 via-oceanic-600 to-oceanic-800",
     showConfetti: true,
   },
   {
@@ -66,7 +66,7 @@ export const eventsJanMar: Event[] = [
     iconName: "heart",
     startDate: { month: 3, day: 8 },
     endDate: { month: 3, day: 8 },
-    bgGradient: "from-purple-600 via-teal-500 to-oceanic-500",
+    bgGradient: "from-oceanic-400 via-oceanic-500 to-oceanic-700",
     showConfetti: false,
   },
   {
@@ -77,7 +77,7 @@ export const eventsJanMar: Event[] = [
     iconName: "leaf",
     startDate: { month: 3, day: 17 },
     endDate: { month: 3, day: 17 },
-    bgGradient: "from-emerald-600 via-teal-500 to-oceanic-500",
+    bgGradient: "from-oceanic-400 to-oceanic-600",
     showConfetti: true,
   },
 ];

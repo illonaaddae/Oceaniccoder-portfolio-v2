@@ -15,7 +15,7 @@ export const BlogFormToggles: React.FC<BlogFormTogglesProps> = ({
 }) => (
   <div
     className={`flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6 p-4 rounded-xl border ${
-      theme === "dark" ? "bg-white/5 border-white/10" : "bg-slate-50 border-blue-200/30"
+      theme === "dark" ? "bg-white/5 border-white/10" : "bg-slate-50 border-oceanic-200/30"
     }`}
   >
     <label className="flex items-center gap-3 cursor-pointer group">
@@ -23,7 +23,7 @@ export const BlogFormToggles: React.FC<BlogFormTogglesProps> = ({
         type="checkbox"
         checked={formData.featured}
         onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-        className="w-5 h-5 rounded text-yellow-500 focus:ring-yellow-400/50 focus:ring-offset-0"
+        className="w-5 h-5 rounded text-oceanic-500 focus:ring-oceanic-400/50 focus:ring-offset-0"
       />
       <span
         className={`flex items-center gap-2 transition-colors ${
@@ -33,7 +33,7 @@ export const BlogFormToggles: React.FC<BlogFormTogglesProps> = ({
         }`}
       >
         {formData.featured ? (
-          <FaStar className="text-yellow-500" />
+          <FaStar className="text-oceanic-500" />
         ) : (
           <FaRegStar className={theme === "dark" ? "text-slate-500" : "text-slate-400"} />
         )}
@@ -46,7 +46,7 @@ export const BlogFormToggles: React.FC<BlogFormTogglesProps> = ({
         type="checkbox"
         checked={formData.published}
         onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
-        className="w-5 h-5 rounded text-emerald-500 focus:ring-emerald-400/50 focus:ring-offset-0"
+        className="w-5 h-5 rounded text-success-500 focus:ring-success-400/50 focus:ring-offset-0"
       />
       <span
         className={`transition-colors ${

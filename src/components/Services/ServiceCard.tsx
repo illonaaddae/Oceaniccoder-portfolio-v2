@@ -82,7 +82,7 @@ const ServiceFeatures: React.FC<{
       {features.map((feature) => (
         <li key={feature.name} className="flex items-start gap-3">
           {feature.included ? (
-            <FaCheck className="text-emerald-500 mt-0.5 flex-shrink-0" />
+            <FaCheck className="text-success-500 mt-0.5 flex-shrink-0" />
           ) : (
             <FaTimes className="text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
           )}

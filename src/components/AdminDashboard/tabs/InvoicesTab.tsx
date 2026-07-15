@@ -30,18 +30,18 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 const STATUS_CONFIG: Record<string, { label: string; pill: string; dot: string }> = {
   sent: {
     label: "Sent",
-    pill: "bg-teal-500/15 text-teal-400 border-teal-500/30",
-    dot: "bg-teal-400",
+    pill: "bg-warning-400/10 text-warning-400 border-warning-400/30",
+    dot: "bg-warning-400",
   },
   paid: {
     label: "Paid",
-    pill: "bg-teal-500/15 text-teal-400 border-teal-500/30",
-    dot: "bg-teal-400",
+    pill: "bg-success-400/10 text-success-400 border-success-400/30",
+    dot: "bg-success-400",
   },
   overdue: {
     label: "Overdue",
-    pill: "bg-red-500/15 text-red-400 border-red-500/30",
-    dot: "bg-red-400",
+    pill: "bg-error-400/10 text-error-400 border-error-400/30",
+    dot: "bg-error-400",
   },
 };
 
@@ -199,12 +199,12 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
           >
             {invoices.length} total
             {paidCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-success-500/20 text-success-400">
                 {paidCount} paid
               </span>
             )}
             {pendingCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-500/20 text-teal-400">
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-warning-500/20 text-warning-400">
                 {pendingCount} pending
               </span>
             )}
@@ -332,7 +332,7 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
                     </button>
                   )}
                   {isPaid && (
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-green-400">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-success-400">
                       <FaCheckCircle /> Payment Confirmed
                     </span>
                   )}
@@ -352,7 +352,7 @@ export default function InvoicesTab({ theme: _theme }: InvoicesTabProps) {
                   <button
                     type="button"
                     onClick={() => handleDelete(inv.$id)}
-                    className="ml-auto p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition"
+                    className="ml-auto p-2 rounded-lg text-error-400 hover:bg-error-500/10 transition"
                     title="Delete invoice"
                   >
                     <FaTrash />

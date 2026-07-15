@@ -56,7 +56,7 @@ export const MetaFields: React.FC<MetaFieldsProps> = ({
             type="checkbox"
             checked={form.featured}
             onChange={(e) => setForm((prev) => ({ ...prev, featured: e.target.checked }))}
-            className="w-5 h-5 rounded border-2 text-purple-500 focus:ring-purple-400"
+            className="w-5 h-5 rounded border-2 text-oceanic-500 focus:ring-oceanic-400"
           />
           <span className={`font-medium ${theme === "dark" ? "text-slate-200" : "text-slate-700"}`}>
             Featured Testimonial

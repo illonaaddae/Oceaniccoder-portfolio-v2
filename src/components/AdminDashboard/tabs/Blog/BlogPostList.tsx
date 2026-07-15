@@ -60,8 +60,8 @@ export const BlogPostList: React.FC<BlogPostListProps> = ({
             onClick={onNewPost}
             className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 inline-flex items-center gap-2 shadow-lg ${
               theme === "dark"
-                ? "bg-gradient-to-r from-emerald-600 to-oceanic-600 text-white hover:from-emerald-500 hover:to-oceanic-500 shadow-emerald-500/20"
-                : "bg-gradient-to-r from-emerald-500 to-oceanic-500 text-white hover:from-emerald-600 hover:to-oceanic-600 shadow-emerald-400/30"
+                ? "bg-gradient-to-r from-oceanic-600 to-oceanic-800 text-white hover:from-oceanic-500 hover:to-oceanic-700 shadow-oceanic-500/20"
+                : "bg-gradient-to-r from-oceanic-500 to-oceanic-700 text-white hover:from-oceanic-600 hover:to-oceanic-800 shadow-oceanic-400/30"
             }`}
           >
             <FaPlus /> Create Post

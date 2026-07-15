@@ -191,7 +191,7 @@ const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
   return (
     <div
       className="rounded-xl px-3 py-2 text-sm font-semibold shadow-xl"
-      style={{ background: "#0d1f3c", border: "1px solid #0d9488", color: "#e2e8f0" }}
+      style={{ background: "#0d1f3c", border: "1px solid #0C8599", color: "#e2e8f0" }}
     >
       <p className="text-xs mb-0.5" style={{ color: "#94a3b8" }}>
         {label}
@@ -405,7 +405,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                   <span
                     key={cur}
                     className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(45,212,191,0.15)", color: "#c1ecf4" }}
+                    style={{ background: "rgba(38,169,197,0.15)", color: "#c1ecf4" }}
                   >
                     {CURRENCY_SYMBOLS[cur] ?? cur}
                     {amt.toFixed(2)} {cur}
@@ -458,14 +458,14 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            icon: <FaMoneyBillWave className="text-green-400" />,
+            icon: <FaMoneyBillWave className="text-success-400" />,
             label: "Total Earned",
             value: formatGHS(totalEarnedGHS),
             sub: `${paidInvoices.length} paid invoice${paidInvoices.length !== 1 ? "s" : ""}`,
             color: "#22c55e",
           },
           {
-            icon: <FaArrowUp className="text-amber-400" />,
+            icon: <FaArrowUp className="text-warning-400" />,
             label: "Pending",
             value: formatGHS(totalPendingGHS),
             sub: `${pendingInvoices.length} awaiting payment`,
@@ -479,11 +479,11 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
             color: "var(--accent-teal)",
           },
           {
-            icon: <FaWallet className="text-purple-400" />,
+            icon: <FaWallet className="text-oceanic-400" />,
             label: "Avg. Project",
             value: formatGHS(avgProjectGHS),
             sub: "per paid invoice",
-            color: "#a78bfa",
+            color: "#26a9c5",
           },
         ].map((stat) => (
           <div key={stat.label} className="glass-card p-4">
@@ -651,7 +651,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                   ]}
                   contentStyle={{
                     background: "#0d1f3c",
-                    border: "1px solid #0d9488",
+                    border: "1px solid #0C8599",
                     borderRadius: "10px",
                     color: "#e2e8f0",
                   }}
@@ -669,7 +669,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
         {/* Expenses by category */}
         <div className="glass-card p-5">
           <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2 mb-4">
-            <FaChartPie className="text-red-400" /> Expenses by Category
+            <FaChartPie className="text-error-400" /> Expenses by Category
           </h3>
           {expensePieData.length === 0 ? (
             <div
@@ -694,7 +694,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                   {expensePieData.map((_, index) => (
                     <Cell
                       key={index}
-                      fill={["#ef4444", "#f97316", "#eab308", "#8b5cf6", "#ec4899"][index % 5]}
+                      fill={["#0C8599", "#26a9c5", "#52bfd7", "#085866", "#064350"][index % 5]}
                     />
                   ))}
                 </Pie>
@@ -728,7 +728,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
             >
               Earned
             </p>
-            <p className="text-xl font-extrabold text-green-400">{formatGHS(totalEarnedGHS)}</p>
+            <p className="text-xl font-extrabold text-success-400">{formatGHS(totalEarnedGHS)}</p>
           </div>
           <div
             className="text-center"
@@ -743,7 +743,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
             >
               Expenses
             </p>
-            <p className="text-xl font-extrabold text-red-400">{formatGHS(totalExpensesGHS)}</p>
+            <p className="text-xl font-extrabold text-error-400">{formatGHS(totalExpensesGHS)}</p>
           </div>
           <div className="text-center">
             <p
@@ -753,7 +753,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
               Net Income
             </p>
             <p
-              className={`text-xl font-extrabold ${netIncomeGHS >= 0 ? "text-[var(--accent-teal)]" : "text-red-400"}`}
+              className={`text-xl font-extrabold ${netIncomeGHS >= 0 ? "text-[var(--accent-teal)]" : "text-error-400"}`}
             >
               {formatGHS(netIncomeGHS)}
             </p>
@@ -768,7 +768,7 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
           style={{ borderBottom: "1px solid var(--border-subtle)" }}
         >
           <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
-            <FaMoneyBillWave className="text-red-400" /> Expense Log
+            <FaMoneyBillWave className="text-error-400" /> Expense Log
             {expenses.length > 0 && (
               <span className="text-xs font-normal ml-1" style={{ color: "var(--text-secondary)" }}>
                 ({expenses.length})
@@ -950,10 +950,10 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                     style={{
                       background:
                         {
-                          domain: "#0c8599",
-                          hosting: "#0e7490",
-                          tools: "#f97316",
-                          software: "#8b5cf6",
+                          domain: "#0C8599",
+                          hosting: "#26a9c5",
+                          tools: "#52bfd7",
+                          software: "#085866",
                           other: "#6b7280",
                         }[exp.category] ?? "#6b7280",
                     }}
@@ -966,14 +966,14 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                       {CATEGORY_LABELS[exp.category] ?? exp.category} · {exp.date}
                     </p>
                   </div>
-                  <p className="text-sm font-bold flex-shrink-0 text-red-400">
+                  <p className="text-sm font-bold flex-shrink-0 text-error-400">
                     {sym}
                     {exp.amount.toFixed(2)} {exp.currency}
                   </p>
                   <button
                     type="button"
                     onClick={() => handleDeleteExpense(exp.$id)}
-                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition flex-shrink-0"
+                    className="p-1.5 rounded-lg text-error-400 hover:bg-error-500/10 transition flex-shrink-0"
                   >
                     <FaTrash className="text-xs" />
                   </button>

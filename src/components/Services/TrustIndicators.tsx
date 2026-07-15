@@ -20,7 +20,7 @@ const TrustIndicators: React.FC = () => (
     <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 text-[var(--text-accent)]">
       {indicators.map((text) => (
         <div key={text} className="flex items-center gap-2">
-          <FaCheck className="text-emerald-500" />
+          <FaCheck className="text-success-500" />
           <span>{text}</span>
         </div>
       ))}
