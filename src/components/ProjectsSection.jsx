@@ -29,21 +29,15 @@ const ProjectsSection = () => {
         <title>Projects | OceanicCoder Portfolio</title>
         <meta
           name="description"
-          content="Explore full-stack web and mobile projects built by Illona Addae — from e-commerce platforms to custom dashboards."
+          content="Explore full-stack web and mobile projects built by Illona Addae, from e-commerce platforms to custom dashboards."
         />
         <meta property="og:title" content="Projects | OceanicCoder Portfolio" />
         <meta
           property="og:description"
-          content="Explore full-stack web and mobile projects built by Illona Addae — from e-commerce platforms to custom dashboards."
+          content="Explore full-stack web and mobile projects built by Illona Addae, from e-commerce platforms to custom dashboards."
         />
         <meta property="og:url" content="https://oceaniccoder.dev/projects" />
       </Helmet>
-      {/* Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="liquid-morph absolute top-40 left-20 w-96 h-96 bg-gradient-to-r from-oceanic-500/8 to-oceanic-700/10 blur-3xl"></div>
-        <div className="liquid-morph absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-r from-oceanic-400/6 to-oceanic-600/8 blur-3xl"></div>
-      </div>
-
       <div className="container mx-auto px-6 relative z-10">
         <SectionHeader />
         <CategoryFilter

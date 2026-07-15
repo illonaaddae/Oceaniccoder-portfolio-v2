@@ -33,12 +33,6 @@ const BlogPost = () => {
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)",
       }}
     >
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="liquid-morph absolute top-20 right-10 w-96 h-96 bg-gradient-to-r from-oceanic-500/8 to-oceanic-700/10 blur-3xl"></div>
-        <div className="liquid-morph absolute bottom-20 left-10 w-80 h-80 bg-gradient-to-r from-oceanic-400/6 to-oceanic-600/8 blur-3xl"></div>
-      </div>
-
       <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-4xl">
         {/* Back button */}
         <button

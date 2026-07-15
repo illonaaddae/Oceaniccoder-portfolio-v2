@@ -205,7 +205,7 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
           <div>
             <label className={labelClass}>Platform Logo (optional)</label>
             <p className={`text-xs mb-2 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-              Upload any PNG, JPG, SVG, or WebP — shown next to platform name on your cert card.
+              Upload any PNG, JPG, SVG, or WebP. Shown next to platform name on your cert card.
             </p>
             <ImageUpload
               value={form.platformIconUrl}

@@ -39,7 +39,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
       if (inquiry.needsDomain && inquiry.domainExtension) {
         const price = DOMAIN_PRICES[inquiry.domainExtension] ?? 0;
         auto.push({
-          description: `Domain Registration (${inquiry.domainExtension}) — 1 yr (USD price)`,
+          description: `Domain Registration (${inquiry.domainExtension}), 1 yr (USD price)`,
           quantity: 1,
           unitPrice: price,
         });
@@ -249,7 +249,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
                   </>
                 )}
                 {inquiry.needsHosting && <>Hosting line item (set price manually). </>}
-                Domain price is USD — adjust the currency or price if billing in another currency.
+                Domain price is USD. Adjust the currency or price if billing in another currency.
               </div>
             )}
 

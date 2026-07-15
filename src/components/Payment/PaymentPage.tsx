@@ -320,7 +320,7 @@ const PaymentPage: React.FC = () => {
             </div>
             {slowWarning && (
               <p className="text-center text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
-                Server is waking up — this takes a few seconds on first load...
+                Server is waking up. This takes a few seconds on first load...
               </p>
             )}
           </div>
@@ -343,7 +343,7 @@ const PaymentPage: React.FC = () => {
                 </h2>
                 <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
                   The payment server was asleep and is taking longer than usual to wake up. Try
-                  again — it should load immediately now.
+                  again. It should load immediately now.
                 </p>
                 <button
                   type="button"

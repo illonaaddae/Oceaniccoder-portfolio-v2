@@ -463,7 +463,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         <div className={`rounded-2xl p-6 ${card}`}>
           <h3 className={sectionHeader}>Platform Logos</h3>
           <p className={`${subText} mb-4`}>
-            Replace logos shown on certification cards. Changes apply immediately — no redeploy
+            Replace logos shown on certification cards. Changes apply immediately. No redeploy
             needed.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -487,7 +487,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                   <div>
                     <span className={`font-medium text-sm ${text}`}>{p.name}</span>
                     {!p.currentUrl && (
-                      <p className="text-xs text-gray-500">No local file — using CDN</p>
+                      <p className="text-xs text-gray-500">No local file: using CDN</p>
                     )}
                   </div>
                 </div>
@@ -543,7 +543,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
             <p className={subText}>Scanning…</p>
           ) : orphans.length === 0 ? (
             <div className="flex items-center gap-2 text-green-400 text-sm">
-              <FaCheckCircle /> No orphaned files — storage is clean.
+              <FaCheckCircle /> No orphaned files. Storage is clean.
             </div>
           ) : (
             <>

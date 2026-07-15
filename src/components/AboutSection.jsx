@@ -75,12 +75,12 @@ const AboutSection = () => {
         <title>About Illona | OceanicCoder</title>
         <meta
           name="description"
-          content="Learn about Illona Addae — full-stack developer, tech leader, and mentor. Passionate about building impactful digital products."
+          content="Learn about Illona Addae, full-stack developer, tech leader, and mentor. Passionate about building impactful digital products."
         />
         <meta property="og:title" content="About Illona | OceanicCoder" />
         <meta
           property="og:description"
-          content="Learn about Illona Addae — full-stack developer, tech leader, and mentor. Passionate about building impactful digital products."
+          content="Learn about Illona Addae, full-stack developer, tech leader, and mentor. Passionate about building impactful digital products."
         />
         <meta property="og:url" content="https://oceaniccoder.dev/about" />
       </Helmet>

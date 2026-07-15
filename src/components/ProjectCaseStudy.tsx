@@ -31,12 +31,6 @@ const ProjectCaseStudy: React.FC = () => {
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)",
       }}
     >
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="liquid-morph absolute top-20 right-10 w-96 h-96 bg-gradient-to-r from-orange-500/8 to-red-500/10 blur-3xl" />
-        <div className="liquid-morph absolute bottom-20 left-10 w-80 h-80 bg-gradient-to-r from-oceanic-500/6 to-blue-500/8 blur-3xl" />
-      </div>
-
       <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-5xl">
         {/* Back button */}
         <button

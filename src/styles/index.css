@@ -224,16 +224,10 @@ textarea:focus {
   animation: gradientShift 15s ease infinite;
 }
 
-/* Optimized Liquid Morphing - GPU accelerated */
+/* Liquid morph blobs retired for the clean/clear-glass look — kept as no-op so
+   existing markup stays inert until the JSX is removed. */
 .liquid-morph {
-  position: absolute;
-  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  filter: blur(30px);
-  opacity: 0.35;
-  animation: liquid1 25s ease-in-out infinite;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  contain: layout style paint;
+  display: none !important;
 }
 
 .liquid-morph:nth-child(2) {

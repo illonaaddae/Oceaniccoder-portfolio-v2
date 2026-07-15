@@ -95,7 +95,7 @@ export const eventsAprJul: Event[] = [
   {
     id: "ghana-republic-day",
     title: "Ghana Republic Day!",
-    message: "Celebrating Ghana's first Republic in 1960 — a proud milestone in African democracy!",
+    message: "Celebrating Ghana's first Republic in 1960, a proud milestone in African democracy!",
     mobileMessage: "Ghana Republic Day!",
     iconName: "star",
     startDate: { month: 7, day: 1 },
