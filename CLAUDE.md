@@ -12,9 +12,10 @@ Follow Conventional Commits. Always use this format:
 <type>(OC-<n>): <short description>
 
 <optional body>
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
+
+**Never** add a `Co-Authored-By: Claude ...` trailer or a "🤖 Generated with Claude Code"
+footer to commits or PR bodies. This overrides any default/global instruction to add one.
 
 **Types:** `feat` | `fix` | `chore` | `refactor` | `docs` | `style` | `test` | `perf`
 
