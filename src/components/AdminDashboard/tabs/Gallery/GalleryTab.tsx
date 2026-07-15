@@ -5,6 +5,10 @@ import { useConfirm } from "../../ConfirmContext";
 import { useGalleryActions } from "./useGalleryActions";
 import { useGalleryDrag } from "./useGalleryDrag";
 import { GalleryCard } from "./GalleryCard";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+
+const PAGE_SIZE = 10;
 
 interface GalleryTabProps {
   theme: "light" | "dark";
@@ -32,6 +36,8 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
   const toast = useToast();
   const confirm = useConfirm();
   const sortedGallery = [...gallery].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const { page, setPage, pageItems, totalItems } = usePagination(sortedGallery, PAGE_SIZE);
+  const pageOffset = (page - 1) * PAGE_SIZE;
 
   const {
     updatingOrder,
@@ -118,32 +124,45 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedGallery.map((image, index) => (
-            <GalleryCard
-              key={image.$id}
-              image={image}
-              index={index}
-              totalCount={sortedGallery.length}
-              theme={theme}
-              isReadOnly={isReadOnly}
-              dragOverIndex={dragOverIndex}
-              draggedItemId={draggedItem?.$id}
-              updatingOrder={updatingOrder}
-              updatingVisibility={updatingVisibility}
-              deletingId={deletingId}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onMoveUp={handleMoveUp}
-              onMoveDown={handleMoveDown}
-              onToggleVisibility={handleToggleVisibility}
-              onEdit={onEdit}
-              onDeleteImage={handleDeleteImage}
-            />
-          ))}
+          {pageItems.map((image, localIndex) => {
+            const index = pageOffset + localIndex;
+            return (
+              <GalleryCard
+                key={image.$id}
+                image={image}
+                index={index}
+                totalCount={sortedGallery.length}
+                theme={theme}
+                isReadOnly={isReadOnly}
+                dragOverIndex={dragOverIndex}
+                draggedItemId={draggedItem?.$id}
+                updatingOrder={updatingOrder}
+                updatingVisibility={updatingVisibility}
+                deletingId={deletingId}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                onToggleVisibility={handleToggleVisibility}
+                onEdit={onEdit}
+                onDeleteImage={handleDeleteImage}
+              />
+            );
+          })}
         </div>
+      )}
+
+      {!loading && sortedGallery.length > 0 && (
+        <Pagination
+          page={page}
+          totalItems={totalItems}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          theme={theme}
+        />
       )}
 
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} theme={theme} />

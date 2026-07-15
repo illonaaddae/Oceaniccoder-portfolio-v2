@@ -3,6 +3,10 @@ import { FaQuoteRight, FaPlus } from "react-icons/fa";
 import type { Testimonial } from "@/types";
 import { TestimonialsStats } from "./Testimonials/TestimonialsStats";
 import { TestimonialCard } from "./Testimonials/TestimonialCard";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+
+const PAGE_SIZE = 10;
 
 interface TestimonialsTabProps {
   theme: "light" | "dark";
@@ -22,84 +26,96 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
   onEdit,
   onShowForm,
   isReadOnly = false,
-}) => (
-  <div className="space-y-4 sm:space-y-6">
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-      <div>
-        <h1
-          className={`text-2xl sm:text-3xl font-bold transition-colors duration-300 ${
-            theme === "dark" ? "text-white" : "text-slate-900"
-          }`}
-        >
-          Testimonials
-        </h1>
-        <p
-          className={`text-sm sm:text-base transition-colors duration-300 ${
-            theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"
-          }`}
-        >
-          Manage client and colleague testimonials
-        </p>
-      </div>
-      {!isReadOnly && (
-        <button
-          onClick={onShowForm}
-          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
-            theme === "dark"
-              ? "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-700 shadow-oceanic-500/20"
-              : "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-700 shadow-oceanic-500/30"
-          }`}
-        >
-          <FaPlus className="text-sm" />
-          Add Testimonial
-        </button>
-      )}
-    </div>
-
-    <TestimonialsStats testimonials={testimonials} theme={theme} />
-
-    {loading ? (
-      <div className="flex items-center justify-center h-48">
-        <div className="w-10 h-10 border-4 border-oceanic-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    ) : testimonials.length === 0 ? (
-      <div
-        className={`text-center py-12 rounded-2xl border ${
-          theme === "dark"
-            ? "bg-gray-800/30 border-oceanic-500/20"
-            : "bg-white/30 border-oceanic-200/30"
-        }`}
-      >
-        <FaQuoteRight
-          className={`mx-auto text-4xl mb-4 ${
-            theme === "dark" ? "text-gray-600" : "text-gray-400"
-          }`}
-        />
-        <p className={`text-lg ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-          No testimonials yet
-        </p>
+}) => {
+  const { page, setPage, pageItems, totalItems } = usePagination(testimonials, PAGE_SIZE);
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+        <div>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold transition-colors duration-300 ${
+              theme === "dark" ? "text-white" : "text-slate-900"
+            }`}
+          >
+            Testimonials
+          </h1>
+          <p
+            className={`text-sm sm:text-base transition-colors duration-300 ${
+              theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"
+            }`}
+          >
+            Manage client and colleague testimonials
+          </p>
+        </div>
         {!isReadOnly && (
           <button
             onClick={onShowForm}
-            className="mt-4 px-6 py-2 bg-oceanic-600 text-white rounded-xl hover:bg-oceanic-700 transition-all"
+            className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-bold text-sm sm:text-base transition duration-200 border shadow-lg ${
+              theme === "dark"
+                ? "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-700 shadow-oceanic-500/20"
+                : "bg-oceanic-600 border-oceanic-500/50 text-white hover:bg-oceanic-700 shadow-oceanic-500/30"
+            }`}
           >
-            Add Your First Testimonial
+            <FaPlus className="text-sm" />
+            Add Testimonial
           </button>
         )}
       </div>
-    ) : (
-      <div className="grid gap-4">
-        {testimonials.map((testimonial) => (
-          <TestimonialCard
-            key={testimonial.$id}
-            testimonial={testimonial}
-            theme={theme}
-            isReadOnly={isReadOnly}
-            onEdit={onEdit}
-            onDelete={onDelete}
+
+      <TestimonialsStats testimonials={testimonials} theme={theme} />
+
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <div className="w-10 h-10 border-4 border-oceanic-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : testimonials.length === 0 ? (
+        <div
+          className={`text-center py-12 rounded-2xl border ${
+            theme === "dark"
+              ? "bg-gray-800/30 border-oceanic-500/20"
+              : "bg-white/30 border-oceanic-200/30"
+          }`}
+        >
+          <FaQuoteRight
+            className={`mx-auto text-4xl mb-4 ${
+              theme === "dark" ? "text-gray-600" : "text-gray-400"
+            }`}
           />
-        ))}
-      </div>
-    )}
-  </div>
-);
+          <p className={`text-lg ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            No testimonials yet
+          </p>
+          {!isReadOnly && (
+            <button
+              onClick={onShowForm}
+              className="mt-4 px-6 py-2 bg-oceanic-600 text-white rounded-xl hover:bg-oceanic-700 transition-all"
+            >
+              Add Your First Testimonial
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4">
+            {pageItems.map((testimonial) => (
+              <TestimonialCard
+                key={testimonial.$id}
+                testimonial={testimonial}
+                theme={theme}
+                isReadOnly={isReadOnly}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+          <Pagination
+            page={page}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            theme={theme}
+          />
+        </>
+      )}
+    </div>
+  );
+};

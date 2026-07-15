@@ -7,14 +7,8 @@ import ProjectGrid from "./Projects/ProjectGrid";
 import CTASection from "./Projects/CTASection";
 
 const ProjectsSection = () => {
-  const {
-    filteredProjects,
-    visibleProjects,
-    projectFilters,
-    activeProjectFilter,
-    handleFilterClick,
-    loadMoreProjects,
-  } = useProjectsData();
+  const { filteredProjects, projectFilters, activeProjectFilter, handleFilterClick } =
+    useProjectsData();
 
   return (
     <section
@@ -45,11 +39,7 @@ const ProjectsSection = () => {
           activeFilter={activeProjectFilter}
           onFilterClick={handleFilterClick}
         />
-        <ProjectGrid
-          projects={filteredProjects}
-          visibleCount={visibleProjects}
-          onLoadMore={loadMoreProjects}
-        />
+        <ProjectGrid projects={filteredProjects} />
         <CTASection />
       </div>
     </section>

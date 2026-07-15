@@ -1,5 +1,9 @@
 import type { Certification } from "@/types";
 import { CertificationRow } from "./CertificationRow";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+
+const PAGE_SIZE = 10;
 
 interface CertificationsTableProps {
   certifications: Certification[];
@@ -18,6 +22,7 @@ export const CertificationsTable: React.FC<CertificationsTableProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { page, setPage, pageItems, totalItems } = usePagination(certifications, PAGE_SIZE);
   return (
     <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto">
@@ -45,7 +50,7 @@ export const CertificationsTable: React.FC<CertificationsTableProps> = ({
               theme === "dark" ? "divide-white/5" : "divide-blue-200/20"
             }`}
           >
-            {certifications.map((cert) => (
+            {pageItems.map((cert) => (
               <CertificationRow
                 key={cert.$id}
                 cert={cert}
@@ -58,6 +63,13 @@ export const CertificationsTable: React.FC<CertificationsTableProps> = ({
           </tbody>
         </table>
       </div>
+      <Pagination
+        page={page}
+        totalItems={totalItems}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        theme={theme}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { FaSave } from "react-icons/fa";
 import type { About } from "@/types";
 import { useAboutForm } from "./useAboutForm";
 import { ProfileSection } from "./ProfileSection";
+import { HeroImagesSection } from "./HeroImagesSection";
 import { ResumeSection } from "./ResumeSection";
 import { StatsSection } from "./StatsSection";
 import { StorySection } from "./StorySection";
@@ -72,6 +73,12 @@ export const AboutTab: React.FC<AboutTabProps> = ({
       ) : (
         <div className="space-y-6">
           <ProfileSection {...shared} />
+          <HeroImagesSection
+            theme={theme}
+            isReadOnly={isReadOnly}
+            onSuccess={onSuccess}
+            onError={onError}
+          />
           <ResumeSection {...shared} />
           <StatsSection {...shared} />
           <StorySection {...shared} />

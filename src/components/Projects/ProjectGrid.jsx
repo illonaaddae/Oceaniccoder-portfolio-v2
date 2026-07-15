@@ -1,26 +1,31 @@
-import React from "react";
+import React, { useEffect } from "react";
 import ProjectCard from "./ProjectCard";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 
-const ProjectGrid = React.memo(({ projects, visibleCount, onLoadMore }) => (
-  <>
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-      {projects.slice(0, visibleCount).map((project) => (
-        <ProjectCard key={project.id} project={project} />
-      ))}
-    </div>
+const PAGE_SIZE = 9; // clean 3×3 grid on desktop
 
-    {visibleCount < projects.length && (
-      <div className="text-center">
-        <button
-          onClick={onLoadMore}
-          className="glass-btn bg-gradient-to-r from-oceanic-500 to-oceanic-900 text-white px-8 py-3 font-medium hover:scale-105 transition-transform duration-300"
-        >
-          Load More Projects
-        </button>
+const ProjectGrid = React.memo(({ projects }) => {
+  const { page, setPage, pageItems, totalItems } = usePagination(projects, PAGE_SIZE);
+
+  // Jump back to the top of the section when the page changes.
+  useEffect(() => {
+    if (typeof window !== "undefined")
+      document.getElementById("projects")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [page]);
+
+  return (
+    <>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-4">
+        {pageItems.map((project) => (
+          <ProjectCard key={project.id} project={project} />
+        ))}
       </div>
-    )}
-  </>
-));
+
+      <Pagination page={page} totalItems={totalItems} pageSize={PAGE_SIZE} onPageChange={setPage} />
+    </>
+  );
+});
 
 ProjectGrid.displayName = "ProjectGrid";
 

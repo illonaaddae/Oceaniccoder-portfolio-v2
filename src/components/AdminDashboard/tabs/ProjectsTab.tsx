@@ -14,12 +14,19 @@ import { ProjectSearch } from "./Projects/ProjectSearch";
 import { ProjectMobileCard } from "./Projects/ProjectMobileCard";
 // prettier-ignore
 import { ProjectTableRow } from "./Projects/ProjectTableRow";
+// prettier-ignore
+import { usePagination } from "@/hooks/usePagination";
+// prettier-ignore
+import { Pagination } from "@/components/common/Pagination";
+
+const PAGE_SIZE = 10;
 
 // prettier-ignore
 type Props = { theme: "light"|"dark"; loading: boolean; filteredProjects: Project[]; onDelete: (id: string) => Promise<void>|void; onEdit?: (p: Project) => void; onShowForm?: () => void; isReadOnly?: boolean; };
 
 // prettier-ignore
 export const ProjectsTab: React.FC<Props> = ({ theme, loading, filteredProjects, onDelete, onEdit, onShowForm, isReadOnly = false }) => {
+  const { page, setPage, pageItems, totalItems } = usePagination(filteredProjects, PAGE_SIZE);
   const [toast, setToast] = useState<{type:"success"|"error"; message:string}|null>(null);
   const showToast = (type:"success"|"error", message:string) => { setToast({type,message}); setTimeout(()=>setToast(null),4000); };
   const handleDelete = async (id:string) => {
@@ -50,16 +57,17 @@ export const ProjectsTab: React.FC<Props> = ({ theme, loading, filteredProjects,
         </div>
       ) : (<>
         <div className="block md:hidden space-y-4">
-          {filteredProjects.map((p)=>(<ProjectMobileCard key={p.$id} theme={theme} project={p} isReadOnly={isReadOnly} onEdit={onEdit} onDelete={handleDelete}/>))}
+          {pageItems.map((p)=>(<ProjectMobileCard key={p.$id} theme={theme} project={p} isReadOnly={isReadOnly} onEdit={onEdit} onDelete={handleDelete}/>))}
         </div>
         <div className={tableCard}><div className="overflow-x-auto"><table className="w-full">
           <thead><tr className={`border-b transition-colors duration-300 ${theme==="dark"?"border-white/20":"border-blue-200/40"}`}>
             <th className={`${th} py-4`}>Project Name</th><th className={th}>Status</th><th className={th}>Technologies</th><th className={th}>Actions</th>
           </tr></thead>
           <tbody className={`divide-y transition-colors duration-300 ${theme==="dark"?"divide-white/5":"divide-blue-200/20"}`}>
-            {filteredProjects.map((p)=>(<ProjectTableRow key={p.$id} theme={theme} project={p} isReadOnly={isReadOnly} onEdit={onEdit} onDelete={handleDelete}/>))}
+            {pageItems.map((p)=>(<ProjectTableRow key={p.$id} theme={theme} project={p} isReadOnly={isReadOnly} onEdit={onEdit} onDelete={handleDelete}/>))}
           </tbody>
         </table></div></div>
+        <Pagination page={page} totalItems={totalItems} pageSize={PAGE_SIZE} onPageChange={setPage} theme={theme}/>
       </>)}
     </div>
   );

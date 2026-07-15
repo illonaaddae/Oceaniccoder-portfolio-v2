@@ -2,6 +2,10 @@ import { FaComment, FaTimes, FaCheckCircle, FaExclamationCircle, FaLock } from "
 import { useCommentsData } from "./useCommentsData";
 import { CommentsStats } from "./CommentsStats";
 import { CommentCard } from "./CommentCard";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+
+const PAGE_SIZE = 10;
 
 interface CommentsTabProps {
   theme: "light" | "dark";
@@ -27,6 +31,8 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({ theme, isReadOnly = fa
     handleToggleApproval,
     handleDelete,
   } = useCommentsData(isReadOnly);
+
+  const { page, setPage, pageItems, totalItems } = usePagination(filteredComments, PAGE_SIZE);
 
   const cardStyles = "glass-card";
   const textPrimary = theme === "dark" ? "text-white" : "text-slate-900";
@@ -128,7 +134,7 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({ theme, isReadOnly = fa
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredComments.map((comment) => (
+          {pageItems.map((comment) => (
             <CommentCard
               key={comment.$id}
               comment={comment}
@@ -147,6 +153,13 @@ export const CommentsTab: React.FC<CommentsTabProps> = ({ theme, isReadOnly = fa
               onDelete={handleDelete}
             />
           ))}
+          <Pagination
+            page={page}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            theme={theme}
+          />
         </div>
       )}
     </div>
