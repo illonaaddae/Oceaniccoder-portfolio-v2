@@ -102,6 +102,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
         theme={theme}
         message={selectedMessage}
         onMarkAsRead={(id) => onStatusChange(id, "read")}
+        onMarkReplied={(id) => onStatusChange(id, "replied")}
         isReadOnly={isReadOnly}
       />
     </div>

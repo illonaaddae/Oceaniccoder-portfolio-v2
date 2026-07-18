@@ -9,6 +9,7 @@ interface MessageDetailModalProps {
   theme: "light" | "dark";
   message: Message | null;
   onMarkAsRead?: (messageId: string) => void;
+  onMarkReplied?: (messageId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -18,6 +19,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
   theme,
   message,
   onMarkAsRead,
+  onMarkReplied,
   isReadOnly = false,
 }) => {
   if (!message) return null;
@@ -135,6 +137,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
             <a
               href={getMailtoUrl()}
+              onClick={() => onMarkReplied?.(message.$id)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 no-underline ${
                 theme === "dark"
                   ? "bg-gradient-to-r from-oceanic-500 to-oceanic-900 hover:from-oceanic-400 hover:to-oceanic-400 text-white shadow-lg shadow-oceanic-500/25"
