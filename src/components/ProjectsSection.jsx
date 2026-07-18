@@ -13,7 +13,7 @@ const ProjectsSection = () => {
   return (
     <section
       id="projects"
-      className="min-h-screen py-20 relative"
+      className="min-h-screen pt-28 pb-20 relative scroll-mt-24 sm:scroll-mt-28"
       style={{
         background:
           "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",
