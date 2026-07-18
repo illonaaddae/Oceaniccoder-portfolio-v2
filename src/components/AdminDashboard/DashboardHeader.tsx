@@ -1,20 +1,25 @@
 import React from "react";
-import { FaBell, FaSearch } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
+import { NotificationsMenu } from "./NotificationsMenu";
+import type { NotificationItem } from "./useNotifications";
+import type { TabType } from "./types";
 
 interface DashboardHeaderProps {
   theme: "light" | "dark";
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  newMessages: number;
-  onNotificationClick: () => void;
+  notifications: NotificationItem[];
+  notificationCount: number;
+  onNavigate: (tab: TabType) => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   theme,
   searchQuery,
   onSearchChange,
-  newMessages,
-  onNotificationClick,
+  notifications,
+  notificationCount,
+  onNavigate,
 }) => (
   <header
     className={`glass-card !rounded-none transition-all duration-300 border-b border-x-0 border-t-0 px-4 sm:px-8 py-4 flex items-center justify-between gap-4 sm:gap-6 relative z-10 ${
@@ -54,31 +59,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       </div>
     </div>
 
-    <button
-      onClick={onNotificationClick}
-      title={
-        newMessages > 0
-          ? `${newMessages} new message${newMessages > 1 ? "s" : ""}`
-          : "No new messages"
-      }
-      className={`relative p-2 rounded-lg transition flex-shrink-0 ${
-        theme === "dark"
-          ? "text-slate-200 hover:text-oceanic-400 hover:bg-white/10"
-          : "text-slate-700 hover:text-oceanic-600 hover:bg-white/40"
-      }`}
-    >
-      <FaBell className="text-xl" />
-      {newMessages > 0 && (
-        <span
-          className={`absolute top-0 right-0 w-5 h-5 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg ${
-            theme === "dark"
-              ? "bg-gradient-to-r from-error-500 to-error-700 shadow-error-500/50"
-              : "bg-gradient-to-r from-error-400 to-error-500 shadow-error-400/50"
-          }`}
-        >
-          {newMessages}
-        </span>
-      )}
-    </button>
+    <NotificationsMenu
+      theme={theme}
+      items={notifications}
+      count={notificationCount}
+      onNavigate={onNavigate}
+    />
   </header>
 );

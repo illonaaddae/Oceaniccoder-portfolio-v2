@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import useTheme from "@/hooks/useTheme";
 import { useAdminData } from "./useAdminData";
 import { useFilteredData } from "./useFilteredData";
+import { useNotifications } from "./useNotifications";
 import { useToast } from "./Toast";
 import { getBookings } from "@/services/api/bookings";
 import type { TabType } from "./types";
@@ -31,6 +32,8 @@ export function useDashboardCore() {
   );
 
   const newMessages = messages.filter((m) => !m.status || m.status === "new").length;
+
+  const { items: notifications, count: notificationCount } = useNotifications(messages);
 
   const [pendingBookings, setPendingBookings] = useState(0);
   const prevPendingRef = useRef<number | null>(null);
@@ -73,6 +76,8 @@ export function useDashboardCore() {
     gallery,
     loading,
     newMessages,
+    notifications,
+    notificationCount,
     pendingBookings,
   };
 }
