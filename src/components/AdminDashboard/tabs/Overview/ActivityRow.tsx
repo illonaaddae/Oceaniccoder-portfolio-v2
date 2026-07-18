@@ -7,22 +7,28 @@ interface ActivityRowProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
-const toneClasses = (tone: StatusTone, isDark: boolean): string => {
-  const map: Record<StatusTone, string> = {
-    success: "text-success-500 bg-success-500/10 border-success-500/30",
-    warning: "text-warning-500 bg-warning-500/10 border-warning-500/30",
-    info: "text-info-500 bg-info-500/10 border-info-500/30",
-    neutral: isDark
-      ? "text-slate-300 bg-slate-500/15 border-slate-400/30"
-      : "text-slate-600 bg-slate-500/10 border-slate-400/40",
-    featured: "text-white bg-gradient-to-r from-oceanic-500 to-oceanic-700 border-transparent",
-  };
-  return map[tone];
+// Real statuses keep their semantic colors; Featured keeps its filled gradient
+// badge; metadata (neutral) uses the Certifications table's teal outline pill.
+const OUTLINE = "px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold border";
+const pillClass = (tone: StatusTone): string => {
+  switch (tone) {
+    case "featured":
+      return "px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r from-oceanic-500 to-oceanic-700 text-white";
+    case "success":
+      return `${OUTLINE} bg-success-400/10 text-success-400 border-success-400/30`;
+    case "warning":
+      return `${OUTLINE} bg-warning-400/10 text-warning-400 border-warning-400/30`;
+    case "info":
+      return `${OUTLINE} bg-info-400/10 text-info-400 border-info-400/30`;
+    case "neutral":
+    default:
+      return `${OUTLINE} bg-info-400/10 text-info-400 border-info-400/30`;
+  }
 };
 
 export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigateToTab }) => {
   const Icon = item.icon;
-  const tone = toneClasses(item.statusTone ?? "neutral", theme === "dark");
+  const pill = pillClass(item.statusTone ?? "neutral");
   return (
     <tr
       onClick={() => onNavigateToTab?.(item.tab)}
@@ -57,7 +63,7 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigat
         {item.status && (
           <span
             title={item.status}
-            className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium border truncate inline-block max-w-[140px] align-middle ${tone}`}
+            className={`${pill} truncate inline-block max-w-[160px] align-middle`}
           >
             {item.status}
           </span>
