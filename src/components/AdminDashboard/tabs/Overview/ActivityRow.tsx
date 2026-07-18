@@ -7,17 +7,22 @@ interface ActivityRowProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
-const TONE_CLASSES: Record<StatusTone, string> = {
-  success: "text-success-400 bg-success-400/10 border-success-400/30",
-  warning: "text-warning-400 bg-warning-400/10 border-warning-400/30",
-  info: "text-info-400 bg-info-500/20 border-info-400/30",
-  neutral: "text-slate-400 bg-slate-400/10 border-slate-400/30",
-  featured: "text-white bg-gradient-to-r from-oceanic-500 to-oceanic-700 border-transparent",
+const toneClasses = (tone: StatusTone, isDark: boolean): string => {
+  const map: Record<StatusTone, string> = {
+    success: "text-success-500 bg-success-500/10 border-success-500/30",
+    warning: "text-warning-500 bg-warning-500/10 border-warning-500/30",
+    info: "text-info-500 bg-info-500/10 border-info-500/30",
+    neutral: isDark
+      ? "text-slate-300 bg-slate-500/15 border-slate-400/30"
+      : "text-slate-600 bg-slate-500/10 border-slate-400/40",
+    featured: "text-white bg-gradient-to-r from-oceanic-500 to-oceanic-700 border-transparent",
+  };
+  return map[tone];
 };
 
 export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigateToTab }) => {
   const Icon = item.icon;
-  const tone = TONE_CLASSES[item.statusTone ?? "neutral"];
+  const tone = toneClasses(item.statusTone ?? "neutral", theme === "dark");
   return (
     <tr
       onClick={() => onNavigateToTab?.(item.tab)}
@@ -51,7 +56,8 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigat
       <td className="px-3 sm:px-4 py-2 sm:py-3">
         {item.status && (
           <span
-            className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium border truncate inline-block max-w-[140px] ${tone}`}
+            title={item.status}
+            className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium border truncate inline-block max-w-[140px] align-middle ${tone}`}
           >
             {item.status}
           </span>
