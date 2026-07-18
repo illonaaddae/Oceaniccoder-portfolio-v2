@@ -3,6 +3,7 @@ import type { OverviewTabProps, StatItem } from "./Overview/types";
 import { OverviewHeader } from "./Overview/OverviewHeader";
 import { StatsGrid } from "./Overview/StatsGrid";
 import { RecentActivity } from "./Overview/RecentActivity";
+import { buildRecentActivity } from "./Overview/buildActivity";
 import { StorageUsage } from "./Overview/StorageUsage";
 import { PortfolioStats } from "./Overview/PortfolioStats";
 
@@ -15,8 +16,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   totalCertifications,
   totalGallery,
   totalMessages,
-  recentMessages = [],
-  recentProjects = [],
+  activityProjects = [],
+  activityMessages = [],
+  activityCertifications = [],
+  activityGallery = [],
+  activityEducation = [],
+  activityJourney = [],
+  activityBlogPosts = [],
+  activityTestimonials = [],
   onNewProject,
   onAddCertification,
   onNavigateToTab,
@@ -25,6 +32,17 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   siteViews = 0,
 }) => {
   const skillCategories = new Set(filteredSkills.map((s) => s.category)).size;
+  const activityItems = buildRecentActivity({
+    projects: activityProjects,
+    messages: activityMessages,
+    certifications: activityCertifications,
+    skills: filteredSkills,
+    gallery: activityGallery,
+    education: activityEducation,
+    journey: activityJourney,
+    blogPosts: activityBlogPosts,
+    testimonials: activityTestimonials,
+  });
   const stats: StatItem[] = [
     {
       label: "Total Projects",
@@ -72,12 +90,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       <StatsGrid theme={theme} loading={loading} stats={stats} onNavigateToTab={onNavigateToTab} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <RecentActivity
-          theme={theme}
-          recentProjects={recentProjects}
-          recentMessages={recentMessages}
-          onNavigateToTab={onNavigateToTab}
-        />
+        <RecentActivity theme={theme} items={activityItems} onNavigateToTab={onNavigateToTab} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 sm:gap-6">
           <StorageUsage theme={theme} onNavigateToTab={onNavigateToTab} />
