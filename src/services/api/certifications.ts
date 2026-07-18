@@ -20,6 +20,7 @@ export async function createCertification(
   if (cert.downloadLink) cleanedData.downloadLink = cert.downloadLink;
   if (cert.verifyLink) cleanedData.verifyLink = cert.verifyLink;
   if (cert.platformColor) cleanedData.platformColor = cert.platformColor;
+  if (cert.platformIconUrl) cleanedData.platformIconUrl = cert.platformIconUrl;
   if (cert.image) cleanedData.image = cert.image;
 
   return databases.createDocument(
@@ -42,6 +43,8 @@ export async function updateCertification(
   if (cert.credential !== undefined) cleanedData.credential = cert.credential || null;
   if (cert.skills !== undefined) cleanedData.skills = cert.skills;
   if (cert.platformColor !== undefined) cleanedData.platformColor = cert.platformColor || null;
+  if (cert.platformIconUrl !== undefined)
+    cleanedData.platformIconUrl = cert.platformIconUrl || null;
   if (cert.downloadLink !== undefined) cleanedData.downloadLink = cert.downloadLink || null;
   if (cert.verifyLink !== undefined) cleanedData.verifyLink = cert.verifyLink || null;
   if (cert.image !== undefined) cleanedData.image = cert.image || null;
