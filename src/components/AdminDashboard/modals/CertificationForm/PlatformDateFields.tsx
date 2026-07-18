@@ -73,6 +73,15 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
   const selectedLabel =
     displayPlatform === CUSTOM_VALUE ? "Custom Platform" : form.platform || "Select Platform";
 
+  const isDark = theme === "dark";
+  const menuCls = isDark ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-white";
+  const optHover = isDark ? "hover:bg-gray-800" : "hover:bg-gray-100";
+  const optText = isDark ? "text-gray-200" : "text-gray-900";
+  const optSelectedBg = isDark ? "bg-gray-800" : "bg-gray-100";
+  const mutedText = isDark ? "text-gray-400" : "text-gray-500";
+  const borderCls = isDark ? "border-gray-700" : "border-gray-200";
+  const badgeCls = isDark ? "bg-gray-700 text-gray-300" : "bg-gray-200 text-gray-600";
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -110,12 +119,12 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
               <ul
                 role="listbox"
                 title="Select certification platform"
-                className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-gray-700 bg-gray-900 shadow-xl"
+                className={`absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border shadow-xl ${menuCls}`}
               >
                 <li
                   role="option"
                   aria-selected={!form.platform ? "true" : "false"}
-                  className="px-3 py-2 text-sm text-gray-400 cursor-pointer hover:bg-gray-800"
+                  className={`px-3 py-2 text-sm cursor-pointer ${mutedText} ${optHover}`}
                   onClick={() => handleSelect("", "#3b82f6")}
                 >
                   Select Platform
@@ -125,8 +134,8 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
                     key={platform.value}
                     role="option"
                     aria-selected={form.platform === platform.value ? "true" : "false"}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-800 ${
-                      form.platform === platform.value ? "bg-gray-800 font-medium" : ""
+                    className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer ${optText} ${optHover} ${
+                      form.platform === platform.value ? `${optSelectedBg} font-medium` : ""
                     }`}
                     onClick={() => handleSelect(platform.value, platform.color)}
                   >
@@ -137,12 +146,14 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
                 <li
                   role="option"
                   aria-selected={displayPlatform === CUSTOM_VALUE ? "true" : "false"}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-800 border-t border-gray-700 ${
-                    displayPlatform === CUSTOM_VALUE ? "bg-gray-800 font-medium" : ""
+                  className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer border-t ${borderCls} ${optText} ${optHover} ${
+                    displayPlatform === CUSTOM_VALUE ? `${optSelectedBg} font-medium` : ""
                   }`}
                   onClick={() => handleSelect(CUSTOM_VALUE, "#6B7280")}
                 >
-                  <span className="w-4 h-4 flex-shrink-0 inline-flex items-center justify-center text-[10px] font-bold rounded bg-gray-700 text-gray-300">
+                  <span
+                    className={`w-4 h-4 flex-shrink-0 inline-flex items-center justify-center text-[10px] font-bold rounded ${badgeCls}`}
+                  >
                     +
                   </span>
                   <span>Custom / Other</span>
