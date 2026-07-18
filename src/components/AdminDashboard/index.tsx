@@ -58,8 +58,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
             theme={s.theme}
             searchQuery={s.searchQuery}
             onSearchChange={s.setSearchQuery}
-            newMessages={s.newMessages}
-            onNotificationClick={() => s.setActiveTab("messages")}
+            notifications={s.notifications}
+            notificationCount={s.notificationCount}
+            onNavigate={(tab) => s.setActiveTab(tab)}
           />
           <TabContent {...buildTabContentProps(s, isReadOnly)} />
         </main>
