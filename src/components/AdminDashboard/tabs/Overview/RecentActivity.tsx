@@ -1,19 +1,16 @@
 import { FaChartLine } from "react-icons/fa";
-import type { Message, Project } from "@/types";
-import { ProjectRow } from "./ProjectRow";
-import { MessageRow } from "./MessageRow";
+import type { ActivityItem } from "./buildActivity";
+import { ActivityRow } from "./ActivityRow";
 
 interface RecentActivityProps {
   theme: "light" | "dark";
-  recentProjects: Project[];
-  recentMessages: Message[];
+  items: ActivityItem[];
   onNavigateToTab?: (tab: string) => void;
 }
 
 export const RecentActivity: React.FC<RecentActivityProps> = ({
   theme,
-  recentProjects,
-  recentMessages,
+  items,
   onNavigateToTab,
 }) => (
   <div className="lg:col-span-2 glass-card p-4 sm:p-6">
@@ -26,16 +23,6 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
         <FaChartLine className="inline mr-2" />
         Recent Activity
       </h2>
-      <button
-        onClick={() => onNavigateToTab?.("projects")}
-        className={`text-sm font-bold transition-colors duration-200 ${
-          theme === "dark"
-            ? "text-oceanic-500 hover:text-oceanic-400"
-            : "text-oceanic-600 hover:text-oceanic-700"
-        }`}
-      >
-        View all
-      </button>
     </div>
 
     <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -59,13 +46,15 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
           </tr>
         </thead>
         <tbody>
-          {recentProjects.slice(0, 5).map((proj) => (
-            <ProjectRow key={proj.$id} project={proj} theme={theme} />
+          {items.map((item) => (
+            <ActivityRow
+              key={item.id}
+              item={item}
+              theme={theme}
+              onNavigateToTab={onNavigateToTab}
+            />
           ))}
-          {recentMessages.slice(0, 2).map((msg) => (
-            <MessageRow key={msg.$id} message={msg} theme={theme} />
-          ))}
-          {recentMessages.length === 0 && recentProjects.length === 0 && (
+          {items.length === 0 && (
             <tr>
               <td colSpan={4} className="px-4 py-8 text-center">
                 <p

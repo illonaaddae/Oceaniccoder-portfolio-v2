@@ -23,8 +23,14 @@ export const TabContentMain: React.FC<TabContentProps> = (props) => {
           totalGallery={searchQuery ? props.filteredGallery.length : props.totalGallery}
           newMessages={props.newMessages}
           totalMessages={searchQuery ? props.filteredMessages.length : props.totalMessages}
-          recentMessages={props.filteredMessages.slice(0, 3)}
-          recentProjects={props.filteredProjects.slice(0, 5)}
+          activityProjects={props.filteredProjects}
+          activityMessages={props.filteredMessages}
+          activityCertifications={props.filteredCertifications}
+          activityGallery={props.filteredGallery}
+          activityEducation={props.filteredEducation}
+          activityJourney={props.filteredJourney}
+          activityBlogPosts={props.filteredBlogPosts}
+          activityTestimonials={props.testimonials}
           searchQuery={searchQuery}
           onSearchChange={props.onSearchChange}
           onNewProject={props.openNewProject}
