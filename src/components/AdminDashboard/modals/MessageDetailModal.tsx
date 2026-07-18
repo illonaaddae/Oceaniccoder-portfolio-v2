@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FaEnvelope, FaUser, FaClock, FaReply } from "react-icons/fa";
 import { Modal } from "./Modal";
+import { apiUrl } from "@/utils/apiUrl";
 import type { Message } from "@/types";
 
 interface MessageDetailModalProps {
@@ -9,6 +10,7 @@ interface MessageDetailModalProps {
   theme: "light" | "dark";
   message: Message | null;
   onMarkAsRead?: (messageId: string) => void;
+  onMarkReplied?: (messageId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -18,8 +20,23 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
   theme,
   message,
   onMarkAsRead,
+  onMarkReplied,
   isReadOnly = false,
 }) => {
+  const [subject, setSubject] = useState("");
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  // Reset the composer whenever a different message is opened.
+  useEffect(() => {
+    if (message) {
+      setSubject(`Re: ${message.subject || "Your Message"}`);
+      setReply("");
+      setError("");
+    }
+  }, [message?.$id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!message) return null;
 
   const formatDate = (dateString?: string) => {
@@ -33,10 +50,37 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
     });
   };
 
-  const getMailtoUrl = () => {
-    const subject = encodeURIComponent(`Re: ${message.subject || "Your Message"}`);
-    return `mailto:${message.email}?subject=${subject}`;
+  const handleSend = async () => {
+    if (!reply.trim() || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch(apiUrl("/api/send-message-reply"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: message.email,
+          subject,
+          message: reply,
+          recipientName: message.name,
+        }),
+      });
+      if (!res.ok) throw new Error(`send failed (${res.status})`);
+      // Only mark replied once the email actually went out.
+      onMarkReplied?.(message.$id);
+      onClose();
+    } catch {
+      setError("Failed to send reply. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
+
+  const inputClass = `w-full px-3 py-2 rounded-lg border text-sm transition-colors duration-300 ${
+    theme === "dark"
+      ? "bg-slate-800/50 border-slate-700 text-slate-100 placeholder-slate-500"
+      : "bg-white border-slate-300 text-slate-900 placeholder-slate-400"
+  }`;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Message Details" theme={theme} size="lg">
@@ -130,32 +174,61 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Reply composer */}
         {!isReadOnly && (
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <a
-              href={getMailtoUrl()}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 no-underline ${
-                theme === "dark"
-                  ? "bg-gradient-to-r from-oceanic-500 to-oceanic-900 hover:from-oceanic-400 hover:to-oceanic-400 text-white shadow-lg shadow-oceanic-500/25"
-                  : "bg-gradient-to-r from-blue-500 to-oceanic-500 hover:from-blue-600 hover:to-oceanic-600 text-white shadow-lg shadow-blue-500/25"
+          <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <label
+              className={`flex items-center gap-2 text-sm font-medium ${
+                theme === "dark" ? "text-slate-300" : "text-slate-600"
               }`}
             >
-              <FaReply />
-              Reply via Email
-            </a>
-            {message.status === "new" && onMarkAsRead && (
+              <FaReply className="text-xs" />
+              Reply to {message.name}
+            </label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Subject"
+              className={inputClass}
+              disabled={sending}
+            />
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder={`Write your reply to ${message.email}…`}
+              rows={5}
+              className={`${inputClass} resize-y`}
+              disabled={sending}
+            />
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={() => onMarkAsRead(message.$id)}
-                className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all duration-300 border ${
+                onClick={handleSend}
+                disabled={sending || !reply.trim()}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                   theme === "dark"
-                    ? "border-slate-600 text-slate-300 hover:bg-slate-700"
-                    : "border-slate-300 text-slate-700 hover:bg-slate-100"
+                    ? "bg-gradient-to-r from-oceanic-500 to-oceanic-900 hover:from-oceanic-400 hover:to-oceanic-400 text-white shadow-lg shadow-oceanic-500/25"
+                    : "bg-gradient-to-r from-blue-500 to-oceanic-500 hover:from-blue-600 hover:to-oceanic-600 text-white shadow-lg shadow-blue-500/25"
                 }`}
               >
-                Mark as Read
+                <FaReply />
+                {sending ? "Sending…" : "Send Reply"}
               </button>
-            )}
+              {message.status === "new" && onMarkAsRead && (
+                <button
+                  onClick={() => onMarkAsRead(message.$id)}
+                  disabled={sending}
+                  className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all duration-300 border disabled:opacity-50 ${
+                    theme === "dark"
+                      ? "border-slate-600 text-slate-300 hover:bg-slate-700"
+                      : "border-slate-300 text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  Mark as Read
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
