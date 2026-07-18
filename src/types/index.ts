@@ -31,6 +31,7 @@ export interface Project {
 // Certification Types
 export interface Certification {
   $id: string;
+  $createdAt?: string;
   title: string;
   issuer: string;
   date: string;
