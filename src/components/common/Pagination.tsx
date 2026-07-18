@@ -11,6 +11,8 @@ interface PaginationProps {
   theme?: "light" | "dark";
   /** Size of the numbered window (default 3 → e.g. "1 2 3", arrows to move). */
   maxSlots?: number;
+  /** Draw the top divider line above the row (default true). */
+  divider?: boolean;
   className?: string;
 }
 
@@ -44,6 +46,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
   theme,
   maxSlots = 3,
+  divider = true,
   className = "",
 }) => {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -69,8 +72,8 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 mt-6 pt-4 border-t ${
-        isDark ? "border-white/10" : "border-slate-200"
+      className={`flex flex-wrap items-center justify-between gap-3 mt-6 ${
+        divider ? `pt-4 border-t ${isDark ? "border-white/10" : "border-slate-200"}` : ""
       } ${className}`}
     >
       <p className={`text-xs sm:text-sm ${sub}`}>

@@ -50,6 +50,7 @@ const EducationTab = React.memo(({ education, certifications, about }: Education
           totalItems={certTotal}
           pageSize={CERTS_PER_PAGE}
           onPageChange={setPage}
+          divider={false}
         />
         <DownloadCVCard about={about} />
       </div>
