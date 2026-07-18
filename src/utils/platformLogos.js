@@ -76,6 +76,19 @@ export const platformLogos = {
     fallback: "FCC",
     color: "#0A0A23",
   },
+  "Boot.dev": {
+    local: null,
+    // Boot.dev has no Simple Icons entry; use their favicon PNG, falls back to "BD" badge.
+    cdn: "https://www.boot.dev/favicon-32x32.png",
+    fallback: "BD",
+    color: "#7C3AED",
+  },
+  DataCamp: {
+    local: null,
+    cdn: "https://cdn.simpleicons.org/datacamp/03EF62",
+    fallback: "DC",
+    color: "#03EF62",
+  },
 };
 
 // Runtime overrides loaded from Appwrite settings — applied by PlatformLogo on mount

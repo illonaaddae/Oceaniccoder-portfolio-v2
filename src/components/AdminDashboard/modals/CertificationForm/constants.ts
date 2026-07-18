@@ -10,5 +10,7 @@ export const PLATFORMS: { value: string; color: string }[] = [
   { value: "Meta", color: "#0081FB" },
   { value: "FreeCodeCamp", color: "#0A0A23" },
   { value: "Codecademy", color: "#1F4056" },
+  { value: "Boot.dev", color: "#7C3AED" },
+  { value: "DataCamp", color: "#03EF62" },
   { value: "Other", color: "#6B7280" },
 ];
