@@ -12,7 +12,7 @@ export const BlogSearch: React.FC<BlogSearchProps> = ({ theme, searchQuery, onSe
     className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
       theme === "dark"
         ? "bg-gray-800/80 border border-gray-700 focus-within:border-oceanic-500/60 focus-within:bg-gray-800"
-        : "bg-white/60 border border-blue-200/40 focus-within:border-blue-400/60 focus-within:bg-white/80"
+        : "bg-white/60 border border-oceanic-200/40 focus-within:border-oceanic-400/60 focus-within:bg-white/80"
     }`}
   >
     <FaSearch

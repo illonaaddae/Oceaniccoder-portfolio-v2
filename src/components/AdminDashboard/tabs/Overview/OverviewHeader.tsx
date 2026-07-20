@@ -39,7 +39,7 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
           className={`flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3 sm:px-5 py-1.5 xs:py-2 rounded-lg xs:rounded-xl font-bold text-xs xs:text-sm sm:text-base transition duration-200 border ${
             theme === "dark"
               ? "bg-gray-800/80 border-gray-700 text-gray-200 hover:bg-gray-800 hover:border-gray-600"
-              : "bg-white/40 border-blue-200/40 text-slate-900 hover:bg-white/60 hover:border-blue-200/60"
+              : "bg-white/40 border-oceanic-200/40 text-slate-900 hover:bg-white/60 hover:border-oceanic-200/60"
           }`}
         >
           <FaCheck className="text-xs xs:text-sm" />

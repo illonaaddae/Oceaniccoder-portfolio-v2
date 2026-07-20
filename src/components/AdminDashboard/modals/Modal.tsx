@@ -54,7 +54,7 @@ export const Modal: React.FC<ModalProps> = ({
           } rounded-t-2xl sm:rounded-2xl border shadow-2xl transition-all duration-300 max-h-[95vh] sm:max-h-[90vh] flex flex-col ${
             theme === "dark"
               ? "bg-gradient-to-br from-slate-900 via-slate-900/98 to-slate-800 border-white/15 shadow-black/30"
-              : "bg-gradient-to-br from-white to-slate-50 border-blue-200/60 shadow-blue-100/20"
+              : "bg-gradient-to-br from-white to-slate-50 border-oceanic-200/60 shadow-oceanic-100/20"
           }`}
         >
           {/* Header */}
@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
             className={`sticky top-0 z-10 flex items-center justify-between p-4 sm:p-6 border-b rounded-t-2xl flex-shrink-0 ${
               theme === "dark"
                 ? "bg-slate-900/95 backdrop-blur-sm border-white/10"
-                : "bg-white/95 backdrop-blur-sm border-blue-200/30"
+                : "bg-white/95 backdrop-blur-sm border-oceanic-200/30"
             }`}
           >
             <h2

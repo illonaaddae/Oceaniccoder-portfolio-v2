@@ -91,8 +91,8 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
             className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border ${
               message.status === "new"
                 ? theme === "dark"
-                  ? "bg-blue-500/30 text-blue-100 border-blue-400/30"
-                  : "bg-blue-400/20 text-blue-700 border-blue-300/50"
+                  ? "bg-oceanic-500/30 text-oceanic-100 border-oceanic-400/30"
+                  : "bg-oceanic-400/20 text-oceanic-700 border-oceanic-300/50"
                 : message.status === "read"
                   ? theme === "dark"
                     ? "bg-yellow-500/30 text-yellow-100 border-yellow-400/30"
@@ -132,7 +132,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                theme === "dark" ? "bg-oceanic-500/20" : "bg-blue-100"
+                theme === "dark" ? "bg-oceanic-500/20" : "bg-oceanic-100"
               }`}
             >
               <FaUser className={theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"} />
@@ -209,7 +209,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                   theme === "dark"
                     ? "bg-gradient-to-r from-oceanic-500 to-oceanic-900 hover:from-oceanic-400 hover:to-oceanic-400 text-white shadow-lg shadow-oceanic-500/25"
-                    : "bg-gradient-to-r from-blue-500 to-oceanic-500 hover:from-blue-600 hover:to-oceanic-600 text-white shadow-lg shadow-blue-500/25"
+                    : "bg-gradient-to-r from-oceanic-500 to-oceanic-500 hover:from-oceanic-600 hover:to-oceanic-600 text-white shadow-lg shadow-oceanic-500/25"
                 }`}
               >
                 <FaReply />

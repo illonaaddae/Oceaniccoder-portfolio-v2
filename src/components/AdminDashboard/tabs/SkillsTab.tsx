@@ -158,7 +158,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                     className={`text-xs font-bold px-2 py-1 rounded-lg ${
                       theme === "dark"
                         ? "bg-oceanic-500/30 text-oceanic-100"
-                        : "bg-blue-400/20 text-blue-700"
+                        : "bg-oceanic-400/20 text-oceanic-700"
                     }`}
                   >
                     {skill.percentage}%
@@ -185,7 +185,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition text-sm ${
                         theme === "dark"
                           ? "bg-oceanic-500/20 border-oceanic-500/30 text-oceanic-200 hover:bg-oceanic-500/30"
-                          : "bg-blue-400/20 border-blue-300/30 text-blue-700 hover:bg-blue-400/30"
+                          : "bg-oceanic-400/20 border-oceanic-300/30 text-oceanic-700 hover:bg-oceanic-400/30"
                       }`}
                     >
                       <FaEdit className="text-sm" />

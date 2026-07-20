@@ -53,7 +53,7 @@ export const FilterPills: React.FC<FilterPillsProps> = ({
                   ? "bg-white/20 text-white"
                   : theme === "dark"
                     ? "bg-oceanic-500/30 text-oceanic-100"
-                    : "bg-blue-400/20 text-blue-700"
+                    : "bg-oceanic-400/20 text-oceanic-700"
               }`}
             >
               {t.count}

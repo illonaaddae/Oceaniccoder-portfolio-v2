@@ -46,8 +46,8 @@ export const MessageRow: React.FC<MessageRowProps> = ({
         className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border transition-colors duration-300 ${
           !msg.status || msg.status === "new"
             ? theme === "dark"
-              ? "bg-blue-500/30 text-blue-100 border-blue-400/30"
-              : "bg-blue-400/20 text-blue-700 border-blue-300/50"
+              ? "bg-oceanic-500/30 text-oceanic-100 border-oceanic-400/30"
+              : "bg-oceanic-400/20 text-oceanic-700 border-oceanic-300/50"
             : msg.status === "read"
               ? theme === "dark"
                 ? "bg-yellow-500/30 text-yellow-100 border-yellow-400/30"
@@ -72,7 +72,7 @@ export const MessageRow: React.FC<MessageRowProps> = ({
             className={`p-2 rounded transition duration-300 ${
               theme === "dark"
                 ? "text-oceanic-500 hover:bg-oceanic-500/20"
-                : "text-blue-600 hover:bg-blue-400/20"
+                : "text-oceanic-600 hover:bg-oceanic-400/20"
             }`}
             title="View message"
           >
@@ -90,7 +90,7 @@ export const MessageRow: React.FC<MessageRowProps> = ({
               className={`p-2 rounded transition duration-300 ${
                 theme === "dark"
                   ? "text-oceanic-500 hover:bg-oceanic-500/20"
-                  : "text-blue-600 hover:bg-blue-400/20"
+                  : "text-oceanic-600 hover:bg-oceanic-400/20"
               }`}
               title="Toggle read status"
             >

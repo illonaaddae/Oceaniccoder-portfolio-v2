@@ -35,7 +35,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               isActive
                 ? theme === "dark"
                   ? "bg-oceanic-500/15 border border-oceanic-500/30 text-oceanic-500"
-                  : "bg-gradient-to-r from-blue-400/30 to-oceanic-400/20 border border-blue-300/50 text-blue-700 shadow-lg shadow-blue-200/20"
+                  : "bg-gradient-to-r from-oceanic-400/30 to-oceanic-400/20 border border-oceanic-300/50 text-oceanic-700 shadow-lg shadow-oceanic-200/20"
                 : theme === "dark"
                   ? "text-gray-400 hover:bg-gray-800/60 hover:text-gray-200 border border-transparent active:bg-gray-700/80"
                   : "text-slate-600 hover:bg-white/40 hover:text-slate-900 active:bg-white/60"

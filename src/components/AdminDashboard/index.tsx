@@ -35,7 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
         className={`flex h-screen overflow-hidden transition-colors duration-300 ${
           s.theme === "dark"
             ? "bg-[#0a0f1a]"
-            : "bg-gradient-to-br from-blue-50 via-white to-oceanic-50"
+            : "bg-gradient-to-br from-oceanic-50 via-white to-oceanic-50"
         }`}
       >
         <Sidebar

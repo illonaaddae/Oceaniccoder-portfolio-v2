@@ -22,7 +22,7 @@ export const CertificationRow: React.FC<CertificationRowProps> = ({
       className={`transition-all duration-300 border-b ${
         theme === "dark"
           ? "border-white/5 hover:bg-white/5"
-          : "border-blue-200/20 hover:bg-white/20"
+          : "border-oceanic-200/20 hover:bg-white/20"
       }`}
     >
       {/* Name + Icon */}

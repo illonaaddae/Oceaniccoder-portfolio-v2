@@ -136,7 +136,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   const triggerClass = `w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 ${
     dark
       ? "bg-gray-800/80 border-gray-700 text-white focus:border-oceanic-500/60"
-      : "bg-white/50 border-blue-200/50 text-slate-900"
+      : "bg-white/50 border-oceanic-200/50 text-slate-900"
   }`;
 
   const panelClass = `absolute z-50 mt-2 w-full rounded-xl border shadow-xl overflow-hidden ${

@@ -59,7 +59,7 @@ export const StorageUsage: React.FC<StorageUsageProps> = ({ theme, onNavigateToT
         className={`w-full px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition duration-300 border ${
           theme === "dark"
             ? "bg-white/10 border-white/20 text-white hover:bg-white/15 hover:border-white/30"
-            : "bg-white/30 border-blue-200/30 text-slate-900 hover:bg-white/40 hover:border-blue-200/40"
+            : "bg-white/30 border-oceanic-200/30 text-slate-900 hover:bg-white/40 hover:border-oceanic-200/40"
         }`}
       >
         Manage Storage

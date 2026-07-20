@@ -18,7 +18,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
   return (
     <div
       className={`flex-shrink-0 border-t p-4 pb-safe space-y-3 relative z-20 pointer-events-auto ${
-        theme === "dark" ? "bg-[#0d1321] border-gray-800" : "bg-white/30 border-blue-200/30"
+        theme === "dark" ? "bg-[#0d1321] border-gray-800" : "bg-white/30 border-oceanic-200/30"
       }`}
     >
       {/* Read-only badge for public viewers */}
@@ -28,8 +28,8 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
             isCollapsed ? "lg:px-0" : ""
           } ${
             theme === "dark"
-              ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-              : "bg-blue-100 text-blue-700 border border-blue-200"
+              ? "bg-oceanic-500/20 text-oceanic-300 border border-oceanic-500/30"
+              : "bg-oceanic-100 text-oceanic-700 border border-oceanic-200"
           }`}
         >
           <span>👁️</span>
@@ -49,7 +49,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
         } ${
           theme === "dark"
             ? "bg-gray-800/80 text-amber-400 hover:bg-gray-800 border border-gray-700 hover:border-amber-500/40 active:bg-gray-700"
-            : "bg-white/50 text-slate-700 hover:bg-white/70 border border-blue-200/30 hover:border-blue-300/50 active:bg-white/90"
+            : "bg-white/50 text-slate-700 hover:bg-white/70 border border-oceanic-200/30 hover:border-oceanic-300/50 active:bg-white/90"
         }`}
       >
         {theme === "dark" ? (

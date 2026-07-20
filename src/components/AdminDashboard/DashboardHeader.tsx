@@ -25,7 +25,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     className={`glass-card !rounded-none transition-all duration-300 border-b border-x-0 border-t-0 px-4 sm:px-8 py-4 flex items-center justify-between gap-4 sm:gap-6 relative z-10 ${
       theme === "dark"
         ? "bg-[#111827]/90 backdrop-blur-xl border-gray-800 shadow-lg shadow-black/20"
-        : "bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-xl border-blue-200/30 shadow-lg shadow-blue-100/20"
+        : "bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-xl border-oceanic-200/30 shadow-lg shadow-oceanic-100/20"
     }`}
   >
     {/* Spacer for mobile menu button */}
@@ -37,7 +37,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 rounded-xl transition-all duration-300 ${
           theme === "dark"
             ? "bg-gray-800/80 border border-gray-700 focus-within:border-oceanic-500/60 focus-within:bg-gray-800 focus-within:ring-1 focus-within:ring-oceanic-500/30"
-            : "bg-white/60 border border-blue-200/40 focus-within:border-blue-400/60 focus-within:bg-white/80 focus-within:ring-1 focus-within:ring-blue-400/30"
+            : "bg-white/60 border border-oceanic-200/40 focus-within:border-oceanic-400/60 focus-within:bg-white/80 focus-within:ring-1 focus-within:ring-oceanic-400/30"
         }`}
       >
         <FaSearch
