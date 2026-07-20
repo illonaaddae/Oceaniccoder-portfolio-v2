@@ -3,6 +3,7 @@ import { FaTimes, FaPlus, FaTrash, FaPaperPlane } from "react-icons/fa";
 import { createInvoice, updateInvoice } from "@/services/api/invoices";
 import { apiUrl } from "@/utils/apiUrl";
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import { DatePicker } from "@/components/ui/DatePicker";
 import type { ProjectInquiry, InvoiceItem, Invoice } from "@/types";
 
 const CURRENCIES = [
@@ -174,7 +175,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
   };
 
   const inputClass =
-    "px-3 py-2 rounded-lg text-[var(--text-primary)] outline-none text-sm transition-all focus:ring-1 focus:ring-oceanic-400/50";
+    "px-3.5 py-2.5 rounded-xl text-[var(--text-primary)] outline-none text-sm transition-all focus:ring-2 focus:ring-oceanic-500/50 focus:border-oceanic-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
   const inputStyle = {
     background: "var(--bg-primary)",
     border: "1px solid var(--border-subtle)",
@@ -363,12 +364,12 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
                 <p className="text-xs mb-1.5" style={{ color: "var(--text-secondary)" }}>
                   Deadline for the client to pay
                 </p>
-                <input
-                  type="date"
+                <DatePicker
                   value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className={`${inputClass} w-full`}
-                  style={inputStyle}
+                  onChange={setDueDate}
+                  theme={theme}
+                  ariaLabel="Payment due date"
+                  placeholder="mm / dd / yyyy"
                 />
               </div>
               <div>
@@ -378,12 +379,12 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
                 <p className="text-xs mb-1.5" style={{ color: "var(--text-secondary)" }}>
                   When project / first phase is done
                 </p>
-                <input
-                  type="date"
+                <DatePicker
                   value={estimatedDelivery}
-                  onChange={(e) => setEstimatedDelivery(e.target.value)}
-                  className={`${inputClass} w-full`}
-                  style={inputStyle}
+                  onChange={setEstimatedDelivery}
+                  theme={theme}
+                  ariaLabel="Estimated delivery date"
+                  placeholder="mm / dd / yyyy"
                 />
               </div>
             </div>

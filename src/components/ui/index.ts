@@ -11,3 +11,4 @@ export { FilterPills } from "./FilterPills";
 export type { FilterPillTab } from "./FilterPills";
 export { CustomSelect } from "./CustomSelect";
 export type { SelectOption, SelectGroup } from "./CustomSelect";
+export { DatePicker } from "./DatePicker";
