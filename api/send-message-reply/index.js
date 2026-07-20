@@ -78,7 +78,7 @@ module.exports = async function (context, req) {
 
         <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
+          <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
             <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" />
           </td>
         </tr>
@@ -95,7 +95,7 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
             <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#374151;">Illona @ OceanicCoder</p>
-            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">oceaniccoder.dev</a> &nbsp;·&nbsp; hello@oceaniccoder.dev</p>
+            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a> &nbsp;·&nbsp; hello@oceaniccoder.dev</p>
           </td>
         </tr>
 

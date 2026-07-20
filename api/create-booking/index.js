@@ -234,13 +234,13 @@ async function sendNotificationEmail(
 
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-      <div style="background:#0f766e;padding:24px 32px;border-radius:8px 8px 0 0">
+      <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
         <h1 style="margin:0;color:#fff;font-size:20px">📅 New Booking — ${label}</h1>
       </div>
       <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
         <table style="width:100%;border-collapse:collapse;font-size:14px">
           <tr><td style="padding:6px 0;color:#6b7280;width:140px">Name</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:#0f766e">${email}</a></td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:#0a6e7d">${email}</a></td></tr>
           ${phone ? `<tr><td style="padding:6px 0;color:#6b7280">Phone</td><td style="padding:6px 0">${phone}</td></tr>` : ""}
           <tr><td style="padding:6px 0;color:#6b7280">Meeting type</td><td style="padding:6px 0">${label} (${duration} min)</td></tr>
           <tr><td style="padding:6px 0;color:#6b7280">Date &amp; time</td><td style="padding:6px 0;font-weight:600">${preferredDate} at ${preferredTime}</td></tr>
@@ -248,8 +248,8 @@ async function sendNotificationEmail(
           <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">${platform}</td></tr>
           ${message ? `<tr><td style="padding:6px 0;color:#6b7280;vertical-align:top">Message</td><td style="padding:6px 0">${message.replace(/\n/g, "<br>")}</td></tr>` : ""}
         </table>
-        ${joinLink ? `<div style="margin-top:20px"><a href="${joinLink}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">Join ${platform} Meeting →</a></div>` : ""}
-        ${calendarEventLink ? `<p style="margin-top:12px;font-size:13px"><a href="${calendarEventLink}" style="color:#0f766e">View in Google Calendar</a></p>` : ""}
+        ${joinLink ? `<div style="margin-top:20px"><a href="${joinLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">Join ${platform} Meeting →</a></div>` : ""}
+        ${calendarEventLink ? `<p style="margin-top:12px;font-size:13px"><a href="${calendarEventLink}" style="color:#0a6e7d">View in Google Calendar</a></p>` : ""}
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
         <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
       </div>
@@ -290,7 +290,7 @@ async function sendBookerZoomEmail(
 
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-      <div style="background:#0f766e;padding:24px 32px;border-radius:8px 8px 0 0">
+      <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
         <h1 style="margin:0;color:#fff;font-size:20px">Your Zoom Meeting is Confirmed 🎉</h1>
       </div>
       <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
@@ -302,7 +302,7 @@ async function sendBookerZoomEmail(
           <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">Zoom</td></tr>
         </table>
         <div style="margin-top:24px">
-          <a href="${zoomLink}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Zoom Meeting →</a>
+          <a href="${zoomLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Zoom Meeting →</a>
         </div>
         <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link — you'll need it to join the call.</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
@@ -343,7 +343,7 @@ async function sendBookerMeetEmail(
 
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-      <div style="background:#0f766e;padding:24px 32px;border-radius:8px 8px 0 0">
+      <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
         <h1 style="margin:0;color:#fff;font-size:20px">Your Google Meet is Confirmed 🎉</h1>
       </div>
       <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
@@ -355,10 +355,10 @@ async function sendBookerMeetEmail(
           <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">Google Meet</td></tr>
         </table>
         <div style="margin-top:24px">
-          <a href="${meetLink}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Google Meet →</a>
+          <a href="${meetLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Google Meet →</a>
         </div>
         <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link — you'll need it to join the call.</p>
-        ${calendarEventLink ? `<p style="margin-top:8px;font-size:13px"><a href="${calendarEventLink}" style="color:#0f766e">Add to Google Calendar</a></p>` : ""}
+        ${calendarEventLink ? `<p style="margin-top:8px;font-size:13px"><a href="${calendarEventLink}" style="color:#0a6e7d">Add to Google Calendar</a></p>` : ""}
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
         <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
       </div>
