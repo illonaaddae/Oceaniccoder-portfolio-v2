@@ -3,6 +3,7 @@ import { PLATFORMS } from "./constants";
 import type { CertificationFormState } from "./types";
 import PlatformLogo from "@/components/PlatformLogo";
 import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 const MONTHS = [
   { value: "01", label: "January" },
@@ -167,34 +168,23 @@ export const PlatformDateFields: React.FC<PlatformDateFieldsProps> = ({
         <div>
           <label className={labelClass}>Date Obtained *</label>
           <div className="grid grid-cols-2 gap-3">
-            <select
+            <CustomSelect
               value={form.dateMonth}
-              onChange={(e) => updateForm({ dateMonth: e.target.value })}
-              className={inputClass}
-              required
-              aria-label="Certificate month"
-            >
-              <option value="">Month</option>
-              {MONTHS.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={(value) => updateForm({ dateMonth: value })}
+              options={MONTHS}
+              theme={theme}
+              placeholder="Month"
+              ariaLabel="Certificate month"
+            />
+            <CustomSelect
               value={form.dateYear}
-              onChange={(e) => updateForm({ dateYear: e.target.value })}
-              className={inputClass}
-              required
-              aria-label="Certificate year"
-            >
-              <option value="">Year</option>
-              {generateYears().map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => updateForm({ dateYear: value })}
+              options={generateYears().map((y) => ({ value: String(y), label: String(y) }))}
+              theme={theme}
+              placeholder="Year"
+              ariaLabel="Certificate year"
+              searchable
+            />
           </div>
         </div>
       </div>

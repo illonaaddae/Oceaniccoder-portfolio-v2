@@ -1,5 +1,6 @@
 import React from "react";
 import { months } from "./constants";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 interface DateSelectorProps {
   monthValue: string;
@@ -11,6 +12,7 @@ interface DateSelectorProps {
   required?: boolean;
   monthLabel: string;
   yearLabel: string;
+  theme: "light" | "dark";
 }
 
 export const DateSelector: React.FC<DateSelectorProps> = ({
@@ -19,39 +21,27 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
   onMonthChange,
   onYearChange,
   years,
-  inputClass,
-  required,
   monthLabel,
   yearLabel,
+  theme,
 }) => (
   <div className="grid grid-cols-2 gap-3">
-    <select
+    <CustomSelect
       value={monthValue}
-      onChange={(e) => onMonthChange(e.target.value)}
-      className={inputClass}
-      required={required}
-      aria-label={monthLabel}
-    >
-      <option value="">Month</option>
-      {months.map((month) => (
-        <option key={month.value} value={month.value}>
-          {month.label}
-        </option>
-      ))}
-    </select>
-    <select
+      onChange={(value) => onMonthChange(value)}
+      options={months}
+      theme={theme}
+      placeholder="Month"
+      ariaLabel={monthLabel}
+    />
+    <CustomSelect
       value={yearValue}
-      onChange={(e) => onYearChange(e.target.value)}
-      className={inputClass}
-      required={required}
-      aria-label={yearLabel}
-    >
-      <option value="">Year</option>
-      {years.map((year) => (
-        <option key={year} value={year}>
-          {year}
-        </option>
-      ))}
-    </select>
+      onChange={(value) => onYearChange(value)}
+      options={years.map((year) => ({ value: String(year), label: String(year) }))}
+      theme={theme}
+      placeholder="Year"
+      ariaLabel={yearLabel}
+      searchable
+    />
   </div>
 );

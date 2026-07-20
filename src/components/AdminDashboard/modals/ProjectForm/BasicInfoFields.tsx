@@ -1,10 +1,12 @@
 import React from "react";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { CATEGORY_OPTIONS } from "./constants";
 import type { FormFieldProps } from "./types";
 
 export const BasicInfoFields: React.FC<FormFieldProps> = ({
   form,
   setForm,
+  theme,
   inputClass,
   labelClass,
 }) => (
@@ -23,20 +25,14 @@ export const BasicInfoFields: React.FC<FormFieldProps> = ({
       </div>
       <div>
         <label className={labelClass}>Category *</label>
-        <select
-          required
+        <CustomSelect
           value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
-          className={inputClass}
-          title="Select project category"
-          aria-label="Select project category"
-        >
-          {CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => setForm({ ...form, category: value })}
+          options={CATEGORY_OPTIONS.filter((opt) => opt.value)}
+          theme={theme}
+          ariaLabel="Select project category"
+          placeholder="Select Category"
+        />
       </div>
     </div>
     <div>

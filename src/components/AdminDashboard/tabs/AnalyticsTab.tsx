@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { getInvoices } from "@/services/api/invoices";
 import { getExpenses, createExpense, deleteExpense } from "@/services/api/expenses";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { Invoice, Expense } from "@/types";
 
 interface AnalyticsTabProps {
@@ -201,7 +202,7 @@ const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
   );
 };
 
-export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
+export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -859,22 +860,16 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                 >
                   Currency
                 </label>
-                <select
+                <CustomSelect
                   value={form.currency}
-                  onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
-                  className="w-full rounded-lg px-3 py-2 text-sm"
-                  style={{
-                    background: "var(--bg-secondary)",
-                    border: "1px solid var(--border-subtle)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {["GHS", "USD", "EUR", "GBP", "NGN", "KES"].map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setForm((f) => ({ ...f, currency: value }))}
+                  options={["GHS", "USD", "EUR", "GBP", "NGN", "KES"].map((c) => ({
+                    value: c,
+                    label: c,
+                  }))}
+                  theme={theme}
+                  ariaLabel="Currency"
+                />
               </div>
               <div>
                 <label
@@ -883,24 +878,18 @@ export default function AnalyticsTab({ theme: _theme }: AnalyticsTabProps) {
                 >
                   Category
                 </label>
-                <select
+                <CustomSelect
                   value={form.category}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, category: e.target.value as Expense["category"] }))
+                  onChange={(value) =>
+                    setForm((f) => ({ ...f, category: value as Expense["category"] }))
                   }
-                  className="w-full rounded-lg px-3 py-2 text-sm"
-                  style={{
-                    background: "var(--bg-secondary)",
-                    border: "1px solid var(--border-subtle)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
-                    <option key={val} value={val}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                  options={Object.entries(CATEGORY_LABELS).map(([val, label]) => ({
+                    value: val,
+                    label,
+                  }))}
+                  theme={theme}
+                  ariaLabel="Category"
+                />
               </div>
               <div>
                 <label

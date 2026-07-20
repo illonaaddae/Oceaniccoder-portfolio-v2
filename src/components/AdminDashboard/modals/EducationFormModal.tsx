@@ -47,6 +47,7 @@ export const EducationFormModal: React.FC<EducationFormModalProps> = ({
           updateForm={updateForm}
           inputClass={inputClass}
           labelClass={labelClass}
+          theme={theme}
         />
         <PeriodSection
           form={form}

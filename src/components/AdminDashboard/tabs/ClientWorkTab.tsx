@@ -29,6 +29,7 @@ import { apiUrl } from "@/utils/apiUrl";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/hooks/usePagination";
 import { FilterPills } from "@/components/ui/FilterPills";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 const PAGE_SIZE = 10;
 
@@ -366,28 +367,19 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                             {sc.label}
                           </span>
                           {/* Status changer */}
-                          <select
+                          <CustomSelect
                             value={inq.status}
-                            onChange={(e) =>
-                              handleStatusChange(
-                                inq.$id,
-                                e.target.value as ProjectInquiry["status"],
-                              )
+                            onChange={(value) =>
+                              handleStatusChange(inq.$id, value as ProjectInquiry["status"])
                             }
-                            title="Change status"
-                            className="px-2 py-1 rounded-lg text-xs outline-none"
-                            style={{
-                              background: "var(--bg-primary)",
-                              border: "1px solid var(--border-subtle)",
-                              color: "var(--text-secondary)",
-                            }}
-                          >
-                            {STATUS_OPTIONS.map((s) => (
-                              <option key={s} value={s}>
-                                {s.charAt(0).toUpperCase() + s.slice(1)}
-                              </option>
-                            ))}
-                          </select>
+                            options={STATUS_OPTIONS.map((s) => ({
+                              value: s,
+                              label: s.charAt(0).toUpperCase() + s.slice(1),
+                            }))}
+                            theme={theme}
+                            ariaLabel="Change status"
+                            className="w-36"
+                          />
                         </div>
                       </div>
                       <div

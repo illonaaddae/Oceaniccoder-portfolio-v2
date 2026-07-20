@@ -1,3 +1,5 @@
+import { CustomSelect } from "@/components/ui/CustomSelect";
+
 interface ProjectSearchProps {
   theme: "light" | "dark";
 }
@@ -39,32 +41,32 @@ export const ProjectSearch: React.FC<ProjectSearchProps> = ({ theme }) => (
       />
     </div>
     <div className="flex gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-      <select
-        title="Filter by project status"
-        className={`flex-1 sm:flex-none px-4 py-3 rounded-xl transition-all duration-300 border focus:outline-none focus:ring-2 focus:ring-oceanic-500 focus:border-oceanic-500 text-sm font-medium ${
-          theme === "dark"
-            ? "bg-white/10 border-white/20 text-white hover:bg-white/15"
-            : "bg-white/40 border-blue-200/50 text-slate-900 hover:bg-white/50"
-        }`}
-      >
-        <option>All Status</option>
-        <option>Published</option>
-        <option>Draft</option>
-        <option>Archived</option>
-      </select>
-      <select
-        title="Filter by technology"
-        className={`flex-1 sm:flex-none px-4 py-3 rounded-xl transition-all duration-300 border focus:outline-none focus:ring-2 focus:ring-oceanic-500 focus:border-oceanic-500 text-sm font-medium ${
-          theme === "dark"
-            ? "bg-white/10 border-white/20 text-white hover:bg-white/15"
-            : "bg-white/40 border-blue-200/50 text-slate-900 hover:bg-white/50"
-        }`}
-      >
-        <option>All Tech</option>
-        <option>React</option>
-        <option>Vue</option>
-        <option>Node.js</option>
-      </select>
+      <CustomSelect
+        value="All Status"
+        onChange={() => {}}
+        options={[
+          { value: "All Status", label: "All Status" },
+          { value: "Published", label: "Published" },
+          { value: "Draft", label: "Draft" },
+          { value: "Archived", label: "Archived" },
+        ]}
+        theme={theme}
+        ariaLabel="Filter by project status"
+        className="flex-1 sm:flex-none sm:w-40"
+      />
+      <CustomSelect
+        value="All Tech"
+        onChange={() => {}}
+        options={[
+          { value: "All Tech", label: "All Tech" },
+          { value: "React", label: "React" },
+          { value: "Vue", label: "Vue" },
+          { value: "Node.js", label: "Node.js" },
+        ]}
+        theme={theme}
+        ariaLabel="Filter by technology"
+        className="flex-1 sm:flex-none sm:w-40"
+      />
     </div>
   </div>
 );
