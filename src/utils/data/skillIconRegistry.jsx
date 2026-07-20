@@ -1005,3 +1005,45 @@ export function renderIconByComponent(componentName, extraClass = "") {
   const color = ICON_COLORS[componentName] ?? DEFAULT_COLOR;
   return React.createElement(Comp, { className: `${color} ${extraClass}`.trim() });
 }
+
+// component name -> display label
+const ICON_LABELS = Object.fromEntries(ICON_OPTIONS.map((o) => [o.value, o.label]));
+
+/**
+ * Suggest a skill name from a selected icon's label.
+ * Cleans decorative label suffixes so the name reads naturally:
+ *   "Go / Golang" -> "Go", "Mobile (Generic)" -> "Mobile".
+ * Returns "" for empty/unknown icons so callers can leave the field blank.
+ */
+export function predictNameFromIcon(componentName) {
+  const label = ICON_LABELS[componentName];
+  if (!label) return "";
+  return label
+    .replace(/\s*\(.*?\)\s*/g, "") // drop "(Generic)" etc.
+    .split("/")[0] // "Go / Golang" -> "Go "
+    .trim();
+}
+
+// Maps a skill category (as shown in the form) to the icon groups most
+// relevant to it, so the icon dropdown narrows to sensible options once a
+// category is chosen. Categories not listed here (or an empty selection)
+// show every group.
+const CATEGORY_ICON_GROUPS = {
+  "Frontend Development": ["Frontend", "Languages & Formats"],
+  "Backend Development": ["Backend", "Database", "Web3 / Blockchain", "CMS & Commerce"],
+  "Mobile Development": ["Mobile"],
+  "Cloud & DevOps": ["DevOps & Cloud", "Tools"],
+  "AI & Data Science": ["AI / ML / Data"],
+  "Design & Tools": ["Design", "Tools"],
+  "Leadership & Soft Skills": ["Leadership & Soft Skills", "Collaboration"],
+};
+
+/**
+ * Icon groups to show for a given skill category. Falls back to every group
+ * for unmapped categories ("Currently Learning", "Other") or no selection.
+ */
+export function getIconGroupsForCategory(category) {
+  const allowed = CATEGORY_ICON_GROUPS[category];
+  if (!allowed) return ICON_GROUPS;
+  return ICON_GROUPS.filter((g) => allowed.includes(g.group));
+}
