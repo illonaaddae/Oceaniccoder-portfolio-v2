@@ -32,7 +32,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
           box-shadow:
             0 20px 60px rgba(0, 0, 0, 0.5),
             0 0 0 1px rgba(255, 255, 255, 0.15),
-            0 0 30px rgba(13, 148, 136, 0.3) !important;
+            0 0 30px rgba(12, 133, 153, 0.3) !important;
         }
         .card-shimmer {
           background: linear-gradient(
@@ -55,7 +55,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
           width: "100%",
           aspectRatio: "1.586",
           borderRadius: "16px",
-          background: "linear-gradient(135deg, #0f4c75 0%, #0d9488 50%, #065f57 100%)",
+          background: "linear-gradient(135deg, #0f4c75 0%, #0C8599 50%, #085866 100%)",
           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)",
           position: "relative",
           overflow: "hidden",

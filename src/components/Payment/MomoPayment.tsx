@@ -234,8 +234,8 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice, onSuccess }) => {
         style={{
           background:
             !selected || loading
-              ? "rgba(13,148,136,0.4)"
-              : "linear-gradient(135deg, #0d9488 0%, #065f57 100%)",
+              ? "rgba(12,133,153,0.4)"
+              : "linear-gradient(135deg, #0C8599 0%, #085866 100%)",
           cursor: !selected || loading ? "not-allowed" : "pointer",
           opacity: !selected || loading ? 0.7 : 1,
         }}
