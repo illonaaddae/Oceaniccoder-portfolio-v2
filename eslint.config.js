@@ -54,6 +54,7 @@ export default [
         TextDecoder: "readonly",
         // DOM types
         HTMLElement: "readonly",
+        HTMLButtonElement: "readonly",
         HTMLInputElement: "readonly",
         HTMLTextAreaElement: "readonly",
         HTMLImageElement: "readonly",

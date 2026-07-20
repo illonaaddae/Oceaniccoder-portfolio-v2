@@ -30,7 +30,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
         <thead>
           <tr
             className={`border-b transition-colors duration-300 ${
-              theme === "dark" ? "border-white/10" : "border-blue-200/30"
+              theme === "dark" ? "border-white/10" : "border-oceanic-200/30"
             }`}
           >
             {["Item Name", "Category", "Status", "Time"].map((header, i) => (

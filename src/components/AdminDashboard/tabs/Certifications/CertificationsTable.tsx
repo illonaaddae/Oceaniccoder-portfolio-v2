@@ -30,7 +30,7 @@ export const CertificationsTable: React.FC<CertificationsTableProps> = ({
           <thead>
             <tr
               className={`border-b transition-colors duration-200 ${
-                theme === "dark" ? "border-gray-700" : "border-blue-200/40"
+                theme === "dark" ? "border-gray-700" : "border-oceanic-200/40"
               }`}
             >
               {HEADERS.map((header, i) => (
@@ -47,7 +47,7 @@ export const CertificationsTable: React.FC<CertificationsTableProps> = ({
           </thead>
           <tbody
             className={`divide-y transition-colors duration-300 ${
-              theme === "dark" ? "divide-white/5" : "divide-blue-200/20"
+              theme === "dark" ? "divide-white/5" : "divide-oceanic-200/20"
             }`}
           >
             {pageItems.map((cert) => (

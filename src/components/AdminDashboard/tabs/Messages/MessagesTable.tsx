@@ -30,7 +30,9 @@ export const MessagesTable: React.FC<MessagesTableProps> = ({
         <table className="w-full">
           <thead
             className={`border-b transition-colors duration-200 ${
-              theme === "dark" ? "bg-gray-900/50 border-gray-700" : "bg-white/20 border-blue-200/30"
+              theme === "dark"
+                ? "bg-gray-900/50 border-gray-700"
+                : "bg-white/20 border-oceanic-200/30"
             }`}
           >
             <tr>
@@ -48,7 +50,7 @@ export const MessagesTable: React.FC<MessagesTableProps> = ({
           </thead>
           <tbody
             className={`divide-y transition-colors duration-300 ${
-              theme === "dark" ? "divide-white/5" : "divide-blue-200/20"
+              theme === "dark" ? "divide-white/5" : "divide-oceanic-200/20"
             }`}
           >
             {pageItems.map((msg) => (

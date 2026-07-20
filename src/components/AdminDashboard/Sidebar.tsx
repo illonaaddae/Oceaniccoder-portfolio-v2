@@ -46,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         className={`lg:hidden fixed top-3 left-3 z-[60] p-2.5 rounded-lg backdrop-blur-xl border transition-all duration-300 touch-manipulation ${
           theme === "dark"
             ? "bg-slate-900/90 border-white/20 text-white hover:bg-slate-800/90 active:bg-slate-700/90"
-            : "bg-white/90 border-blue-200/40 text-slate-900 hover:bg-white active:bg-gray-100"
+            : "bg-white/90 border-oceanic-200/40 text-slate-900 hover:bg-white active:bg-gray-100"
         } shadow-lg`}
         aria-label={isOpen ? "Close menu" : "Open menu"}
       >
@@ -69,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } ${
           theme === "dark"
             ? "bg-[#111827] border-r border-gray-800 shadow-xl shadow-black/30"
-            : "bg-gradient-to-b from-white/80 to-white/60 border-r border-blue-200/30 shadow-xl shadow-blue-100/10"
+            : "bg-gradient-to-b from-white/80 to-white/60 border-r border-oceanic-200/30 shadow-xl shadow-oceanic-100/10"
         } backdrop-blur-xl z-[50] ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
@@ -82,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`hidden lg:flex absolute -right-3 top-20 z-[55] w-6 h-6 items-center justify-center rounded-full border shadow-md transition-all duration-200 ${
               theme === "dark"
                 ? "bg-[#111827] border-gray-700 text-gray-300 hover:text-oceanic-400 hover:border-oceanic-500/50"
-                : "bg-white border-blue-200 text-slate-600 hover:text-oceanic-600 hover:border-oceanic-400/60"
+                : "bg-white border-oceanic-200 text-slate-600 hover:text-oceanic-600 hover:border-oceanic-400/60"
             }`}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}

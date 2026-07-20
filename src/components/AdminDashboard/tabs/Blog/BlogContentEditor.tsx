@@ -77,7 +77,7 @@ export const BlogContentEditor: React.FC<BlogContentEditorProps> = ({
       className={`w-full px-4 py-3 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-oceanic-500 font-mono text-sm ${
         theme === "dark"
           ? "bg-white/10 border-white/20 text-white placeholder-slate-400"
-          : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500"
+          : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500"
       }`}
       placeholder={`# Your content here...\n\nUse Markdown formatting:\n- **bold** and *italic*\n- ## Headings\n- \`\`\`javascript\ncode blocks\n\`\`\`\n- [links](url)\n- ![alt text](image-url) for images`}
     />

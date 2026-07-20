@@ -22,9 +22,9 @@ const TOAST_COLORS = {
     icon: "text-red-400",
   },
   info: {
-    dark: "bg-blue-500/20 border-oceanic-500/50 text-blue-300",
-    light: "bg-blue-50 border-blue-200 text-blue-700",
-    icon: "text-blue-400",
+    dark: "bg-oceanic-500/20 border-oceanic-500/50 text-oceanic-300",
+    light: "bg-oceanic-50 border-oceanic-200 text-oceanic-700",
+    icon: "text-oceanic-400",
   },
 } as const;
 

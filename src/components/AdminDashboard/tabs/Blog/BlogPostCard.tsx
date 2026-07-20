@@ -27,7 +27,7 @@ export const BlogPostCard: React.FC<BlogPostCardProps> = ({
       {post.image && (
         <div
           className={`w-16 h-16 md:w-28 md:h-28 lg:w-24 lg:h-24 flex-shrink-0 rounded-xl overflow-hidden border ${
-            theme === "dark" ? "border-gray-700" : "border-blue-200/30"
+            theme === "dark" ? "border-gray-700" : "border-oceanic-200/30"
           }`}
         >
           <img

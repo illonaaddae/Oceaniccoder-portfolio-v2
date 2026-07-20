@@ -8,8 +8,8 @@ export const ProjectSearch: React.FC<ProjectSearchProps> = ({ theme }) => (
   <div
     className={`glass-card backdrop-blur-xl border rounded-2xl p-5 transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${
       theme === "dark"
-        ? "bg-gradient-to-br from-blue-500/10 to-oceanic-500/5 border-blue-400/20"
-        : "bg-gradient-to-br from-blue-50/60 to-oceanic-50/40 border-blue-200/60"
+        ? "bg-gradient-to-br from-oceanic-500/10 to-oceanic-500/5 border-oceanic-400/20"
+        : "bg-gradient-to-br from-oceanic-50/60 to-oceanic-50/40 border-oceanic-200/60"
     }`}
   >
     <div className="flex-1 w-full sm:w-auto relative">
@@ -36,7 +36,7 @@ export const ProjectSearch: React.FC<ProjectSearchProps> = ({ theme }) => (
         className={`w-full pl-10 pr-4 py-3 rounded-xl transition-all duration-300 border focus:outline-none focus:ring-2 focus:ring-oceanic-500 focus:border-oceanic-500 ${
           theme === "dark"
             ? "bg-white/10 border-white/20 text-white placeholder-slate-400 hover:bg-white/15"
-            : "bg-white/40 border-blue-200/50 text-slate-900 placeholder-slate-600 hover:bg-white/50"
+            : "bg-white/40 border-oceanic-200/50 text-slate-900 placeholder-slate-600 hover:bg-white/50"
         }`}
       />
     </div>

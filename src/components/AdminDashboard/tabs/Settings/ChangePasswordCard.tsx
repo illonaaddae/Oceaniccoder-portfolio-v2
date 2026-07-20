@@ -29,7 +29,7 @@ export const ChangePasswordCard: React.FC<ChangePasswordCardProps> = ({ theme })
   const inputClasses = `w-full border rounded-lg pl-4 pr-12 py-3 transition-all duration-200 focus:outline-none focus:ring-2 ${
     theme === "dark"
       ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:ring-oceanic-500/50 focus:border-oceanic-500/60"
-      : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500 focus:ring-blue-400 focus:border-blue-400"
+      : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500 focus:ring-oceanic-400 focus:border-oceanic-400"
   }`;
 
   return (
@@ -40,7 +40,7 @@ export const ChangePasswordCard: React.FC<ChangePasswordCardProps> = ({ theme })
           className={`p-3 rounded-lg ${
             theme === "dark"
               ? "bg-gradient-to-r from-oceanic-500/30 to-oceanic-900/30"
-              : "bg-gradient-to-r from-blue-400/30 to-oceanic-400/30"
+              : "bg-gradient-to-r from-oceanic-400/30 to-oceanic-400/30"
           }`}
         >
           <FaLock className={theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"} />
@@ -131,7 +131,7 @@ export const ChangePasswordCard: React.FC<ChangePasswordCardProps> = ({ theme })
           className={`w-full sm:w-auto px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg ${
             theme === "dark"
               ? "bg-gradient-to-r from-oceanic-600 to-oceanic-900 border border-oceanic-500/50 hover:from-oceanic-500 hover:to-oceanic-900 text-white shadow-oceanic-500/20"
-              : "bg-gradient-to-r from-blue-500 to-oceanic-500 hover:from-blue-600 hover:to-oceanic-600 text-white shadow-oceanic-500/20"
+              : "bg-gradient-to-r from-oceanic-500 to-oceanic-500 hover:from-oceanic-600 hover:to-oceanic-600 text-white shadow-oceanic-500/20"
           }`}
         >
           {isChangingPassword ? (

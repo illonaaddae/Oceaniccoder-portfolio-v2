@@ -10,7 +10,9 @@ interface ProjectRowProps {
 export const ProjectRow: React.FC<ProjectRowProps> = ({ project, theme }) => (
   <tr
     className={`border-b transition-colors duration-300 ${
-      theme === "dark" ? "border-white/5 hover:bg-white/5" : "border-blue-200/20 hover:bg-white/20"
+      theme === "dark"
+        ? "border-white/5 hover:bg-white/5"
+        : "border-oceanic-200/20 hover:bg-white/20"
     }`}
   >
     <td className="px-3 sm:px-4 py-2 sm:py-3">

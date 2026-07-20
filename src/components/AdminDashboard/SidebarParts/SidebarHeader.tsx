@@ -10,7 +10,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme, isCollapsed
     <div
       className={`flex-shrink-0 p-4 sm:p-6 pt-14 lg:pt-6 border-b ${
         isCollapsed ? "lg:px-0" : ""
-      } ${theme === "dark" ? "border-gray-800" : "border-blue-200/30"}`}
+      } ${theme === "dark" ? "border-gray-800" : "border-oceanic-200/30"}`}
     >
       {/* Profile Image */}
       <div
@@ -22,7 +22,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme, isCollapsed
           className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex-shrink-0 ${
             theme === "dark"
               ? "border-oceanic-500/60 ring-2 ring-oceanic-500/20"
-              : "border-oceanic-500/50 ring-2 ring-blue-500/30"
+              : "border-oceanic-500/50 ring-2 ring-oceanic-500/30"
           }`}
         >
           <img
@@ -37,8 +37,8 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme, isCollapsed
           <div
             className={`w-full h-full items-center justify-center text-xl font-bold ${
               theme === "dark"
-                ? "bg-gradient-to-br from-oceanic-500/40 to-blue-500/40 text-white"
-                : "bg-gradient-to-br from-blue-400/40 to-oceanic-400/40 text-slate-800"
+                ? "bg-gradient-to-br from-oceanic-500/40 to-oceanic-500/40 text-white"
+                : "bg-gradient-to-br from-oceanic-400/40 to-oceanic-400/40 text-slate-800"
             }`}
             style={{ display: "none" }}
           >

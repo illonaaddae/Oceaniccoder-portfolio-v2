@@ -38,7 +38,7 @@ export const BlogTagsInput: React.FC<BlogTagsInputProps> = ({
         className={`flex-1 min-w-0 px-4 py-2.5 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-oceanic-500 ${
           theme === "dark"
             ? "bg-white/10 border-white/20 text-white placeholder-slate-400"
-            : "bg-white/50 border-blue-200/50 text-slate-900 placeholder-slate-500"
+            : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500"
         }`}
         placeholder="Add a tag and press Enter"
       />

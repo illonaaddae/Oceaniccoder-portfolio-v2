@@ -35,7 +35,7 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigat
       className={`border-b cursor-pointer transition-colors duration-300 ${
         theme === "dark"
           ? "border-white/5 hover:bg-white/5"
-          : "border-blue-200/20 hover:bg-white/20"
+          : "border-oceanic-200/20 hover:bg-white/20"
       }`}
     >
       <td className="px-3 sm:px-4 py-2 sm:py-3">

@@ -10,7 +10,7 @@ export const ProjectMobileCard: React.FC<Props> = ({ theme, project, isReadOnly,
   <div className="glass-card p-4">
     <div className="flex items-start justify-between mb-3">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-oceanic-500 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-oceanic-500 to-oceanic-500 flex items-center justify-center flex-shrink-0">
           <FaProjectDiagram className="text-white text-sm" />
         </div>
         <div className="min-w-0">
@@ -31,7 +31,7 @@ export const ProjectMobileCard: React.FC<Props> = ({ theme, project, isReadOnly,
     </div>
     <div className="flex gap-1.5 flex-wrap">
       {project.technologies?.slice(0, 3).map((tech) => (
-        <span key={tech} className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm border ${theme === "dark" ? "bg-white/10 border-white/20 text-white" : "bg-white/40 border-blue-200/40 text-slate-900"}`}>{tech}</span>
+        <span key={tech} className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm border ${theme === "dark" ? "bg-white/10 border-white/20 text-white" : "bg-white/40 border-oceanic-200/40 text-slate-900"}`}>{tech}</span>
       ))}
       {project.technologies && project.technologies.length > 3 && (
         <span className={`text-xs px-2 py-0.5 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>+{project.technologies.length - 3}</span>

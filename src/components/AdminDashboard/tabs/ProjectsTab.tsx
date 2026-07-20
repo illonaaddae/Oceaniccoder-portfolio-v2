@@ -60,10 +60,10 @@ export const ProjectsTab: React.FC<Props> = ({ theme, loading, filteredProjects,
           {pageItems.map((p)=>(<ProjectMobileCard key={p.$id} theme={theme} project={p} isReadOnly={isReadOnly} onEdit={onEdit} onDelete={handleDelete}/>))}
         </div>
         <div className={tableCard}><div className="overflow-x-auto"><table className="w-full">
-          <thead><tr className={`border-b transition-colors duration-300 ${theme==="dark"?"border-white/20":"border-blue-200/40"}`}>
+          <thead><tr className={`border-b transition-colors duration-300 ${theme==="dark"?"border-white/20":"border-oceanic-200/40"}`}>
             <th className={`${th} py-4`}>Project Name</th><th className={th}>Status</th><th className={th}>Technologies</th><th className={th}>Actions</th>
           </tr></thead>
-          <tbody className={`divide-y transition-colors duration-300 ${theme==="dark"?"divide-white/5":"divide-blue-200/20"}`}>
+          <tbody className={`divide-y transition-colors duration-300 ${theme==="dark"?"divide-white/5":"divide-oceanic-200/20"}`}>
             {pageItems.map((p)=>(<ProjectTableRow key={p.$id} theme={theme} project={p} isReadOnly={isReadOnly} onEdit={onEdit} onDelete={handleDelete}/>))}
           </tbody>
         </table></div></div>
