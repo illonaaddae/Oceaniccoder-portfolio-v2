@@ -83,12 +83,12 @@ module.exports = async function (context, req) {
 
         <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
+          <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" /></td>
                 <td style="text-align:right;vertical-align:middle;">
-                  <p style="margin:0;font-size:11px;color:#99f6e4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Payment Confirmed</p>
+                  <p style="margin:0;font-size:11px;color:#8dd7e7;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Payment Confirmed</p>
                   <p style="margin:4px 0 0;font-size:18px;color:#ffffff;font-weight:800;">${safeInvoiceNumber}</p>
                 </td>
               </tr>
@@ -115,7 +115,7 @@ module.exports = async function (context, req) {
               </tr>
               <tr>
                 <td style="padding:8px 0;color:#6b7280;font-size:14px;">Amount Paid</td>
-                <td style="padding:8px 0;color:#0d9488;font-size:16px;text-align:right;font-weight:800;">${sym}${Number(total).toFixed(2)} ${currency}</td>
+                <td style="padding:8px 0;color:#0C8599;font-size:16px;text-align:right;font-weight:800;">${sym}${Number(total).toFixed(2)} ${currency}</td>
               </tr>
               <tr>
                 <td style="padding:8px 0;color:#6b7280;font-size:14px;">Date</td>
@@ -133,7 +133,7 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#111827;padding:0 40px 28px;text-align:center;">
             <p style="margin:0;font-size:13px;color:#6b7280;">Keep this email as your receipt. If you have any questions, just reply or reach out directly.</p>
-            <p style="margin:8px 0 0;font-size:13px;color:#6b7280;"><a href="mailto:hello@oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">hello@oceaniccoder.dev</a></p>
+            <p style="margin:8px 0 0;font-size:13px;color:#6b7280;"><a href="mailto:hello@oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">hello@oceaniccoder.dev</a></p>
           </td>
         </tr>
 
@@ -141,7 +141,7 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
             <p style="margin:0;font-size:13px;font-weight:600;color:#374151;">OceanicCoder</p>
-            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">oceaniccoder.dev</a></p>
+            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a></p>
           </td>
         </tr>
 

@@ -122,8 +122,8 @@ module.exports = async function (context, req) {
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid #334155;">
         <tr>
-          <td style="background:linear-gradient(135deg,#0d9488 0%,#0d7a6e 100%);padding:28px 40px;">
-            <p style="margin:0;font-size:13px;color:#99f6e4;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">New Project Inquiry</p>
+          <td style="background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);padding:28px 40px;">
+            <p style="margin:0;font-size:13px;color:#8dd7e7;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">New Project Inquiry</p>
             <h1 style="margin:8px 0 0;font-size:22px;color:#ffffff;font-weight:700;">Someone wants to work with you</h1>
           </td>
         </tr>
@@ -143,7 +143,7 @@ module.exports = async function (context, req) {
                 <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${escHtml(projectType) || "N/A"}</span>
               </td></tr>
             </table>
-            <a href="https://oceaniccoder.dev/dashboard" style="display:inline-block;margin-top:24px;background:linear-gradient(135deg,#0d9488 0%,#0d7a6e 100%);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px;">View in Dashboard</a>
+            <a href="https://oceaniccoder.dev/dashboard" style="display:inline-block;margin-top:24px;background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px;">View in Dashboard</a>
           </td>
         </tr>
       </table>

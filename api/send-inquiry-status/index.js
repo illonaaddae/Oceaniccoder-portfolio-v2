@@ -43,12 +43,12 @@ const TEMPLATES = {
     subject: (pt) => `Your ${pt} Inquiry – I've Reviewed Your Project`,
     hero: {
       bg: "#0f2233",
-      badge: "#3b82f6",
+      badge: "#0C8599",
       badgeText: "UNDER REVIEW",
-      icon: "&#128269;",
+      icon: "&#0C8599;",
       iconBg: "rgba(59,130,246,0.15)",
       iconBorder: "rgba(59,130,246,0.5)",
-      iconColor: "#60a5fa",
+      iconColor: "#26a9c5",
     },
     heading: (name) => `Thanks, ${name}!`,
     body: (name, pt) =>
@@ -59,12 +59,12 @@ const TEMPLATES = {
     subject: (pt) => `Your ${pt} Project – Proposal Ready`,
     hero: {
       bg: "#0f2a1f",
-      badge: "#0d9488",
+      badge: "#0C8599",
       badgeText: "PROPOSAL READY",
-      icon: "&#128196;",
+      icon: "&#0C8599;",
       iconBg: "rgba(13,148,136,0.15)",
       iconBorder: "rgba(13,148,136,0.5)",
-      iconColor: "#2dd4bf",
+      iconColor: "#26a9c5",
     },
     heading: (name) => `Great news, ${name}!`,
     body: (name, pt) =>
@@ -77,7 +77,7 @@ const TEMPLATES = {
       bg: "#1f1010",
       badge: "#6b7280",
       badgeText: "UPDATE",
-      icon: "&#128075;",
+      icon: "&#0C8599;",
       iconBg: "rgba(107,114,128,0.15)",
       iconBorder: "rgba(107,114,128,0.4)",
       iconColor: "#9ca3af",
@@ -134,12 +134,12 @@ module.exports = async function (context, req) {
 
         <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
+          <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" /></td>
                 <td style="text-align:right;vertical-align:middle;">
-                  <span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:11px;color:#ffffff;font-weight:700;letter-spacing:0.1em;">${h.badge === "#3b82f6" ? "UNDER REVIEW" : h.badge === "#0d9488" ? "PROPOSAL READY" : "UPDATE"}</span>
+                  <span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:11px;color:#ffffff;font-weight:700;letter-spacing:0.1em;">${h.badge === "#0C8599" ? "UNDER REVIEW" : h.badge === "#0C8599" ? "PROPOSAL READY" : "UPDATE"}</span>
                 </td>
               </tr>
             </table>
@@ -158,7 +158,7 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#111827;padding:28px 40px;border-top:1px solid #1e293b;">
             <p style="margin:0 0 16px;font-size:15px;color:#94a3b8;line-height:1.8;">${tpl.body(safeName, pt)}</p>
-            <div style="background:#0f172a;border-left:3px solid #0d9488;border-radius:0 8px 8px 0;padding:14px 16px;">
+            <div style="background:#0f172a;border-left:3px solid #0C8599;border-radius:0 8px 8px 0;padding:14px 16px;">
               <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">${tpl.note}</p>
             </div>
           </td>
@@ -167,7 +167,7 @@ module.exports = async function (context, req) {
         <!-- CTA -->
         <tr>
           <td style="background:#111827;padding:0 40px 28px;text-align:center;">
-            <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;">Reply to Illona</a>
+            <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#085866 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;">Reply to Illona</a>
           </td>
         </tr>
 
@@ -175,7 +175,7 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
             <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#374151;">OceanicCoder</p>
-            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">oceaniccoder.dev</a> &nbsp;·&nbsp; hello@oceaniccoder.dev</p>
+            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a> &nbsp;·&nbsp; hello@oceaniccoder.dev</p>
           </td>
         </tr>
 

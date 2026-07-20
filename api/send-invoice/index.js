@@ -164,7 +164,7 @@ module.exports = async function (context, req) {
       <td style="padding:12px 8px 12px 0;border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">${escHtml(i.description)}</td>
       <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:center;">${i.quantity}</td>
       <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:right;">${sym}${Number(i.unitPrice).toFixed(2)}</td>
-      <td style="padding:12px 0 12px 8px;border-bottom:1px solid #1e293b;color:#0d9488;font-size:14px;text-align:right;font-weight:700;">${sym}${(i.quantity * i.unitPrice).toFixed(2)}</td>
+      <td style="padding:12px 0 12px 8px;border-bottom:1px solid #1e293b;color:#0C8599;font-size:14px;text-align:right;font-weight:700;">${sym}${(i.quantity * i.unitPrice).toFixed(2)}</td>
     </tr>`,
     )
     .join("");
@@ -191,16 +191,16 @@ module.exports = async function (context, req) {
 
         <!-- Header bar -->
         <tr>
-          <td style="background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
+          <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="vertical-align:middle;">
                   <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" />
                 </td>
                 <td style="text-align:right;vertical-align:middle;">
-                  <p style="margin:0;font-size:11px;color:#99f6e4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Invoice</p>
+                  <p style="margin:0;font-size:11px;color:#8dd7e7;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Invoice</p>
                   <p style="margin:4px 0 0;font-size:20px;color:#ffffff;font-weight:800;letter-spacing:0.01em;">${safeInvoiceNumber}</p>
-                  <p style="margin:4px 0 0;font-size:12px;color:#b2f5ea;">Issued ${issuedDate}</p>
+                  <p style="margin:4px 0 0;font-size:12px;color:#c1ecf4;">Issued ${issuedDate}</p>
                 </td>
               </tr>
             </table>
@@ -213,8 +213,8 @@ module.exports = async function (context, req) {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
-                  <p style="margin:0;font-size:12px;color:#5eead4;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Amount Due</p>
-                  <p style="margin:6px 0 0;font-size:36px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${sym}${Number(total).toFixed(2)} <span style="font-size:18px;font-weight:500;color:#5eead4;">${currency}</span></p>
+                  <p style="margin:0;font-size:12px;color:#52bfd7;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Amount Due</p>
+                  <p style="margin:6px 0 0;font-size:36px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${sym}${Number(total).toFixed(2)} <span style="font-size:18px;font-weight:500;color:#52bfd7;">${currency}</span></p>
                 </td>
                 ${
                   dueDateFormatted || estimatedDeliveryFormatted
@@ -230,8 +230,8 @@ module.exports = async function (context, req) {
                   ${
                     estimatedDeliveryFormatted
                       ? `<div style="display:inline-block;background:rgba(13,148,136,0.15);border:1px solid rgba(13,148,136,0.4);border-radius:8px;padding:8px 16px;">
-                    <p style="margin:0;font-size:11px;color:#2dd4bf;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Est. Delivery</p>
-                    <p style="margin:3px 0 0;font-size:14px;color:#99f6e4;font-weight:700;">${estimatedDeliveryFormatted}</p>
+                    <p style="margin:0;font-size:11px;color:#26a9c5;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Est. Delivery</p>
+                    <p style="margin:3px 0 0;font-size:14px;color:#8dd7e7;font-weight:700;">${estimatedDeliveryFormatted}</p>
                   </div>`
                       : ""
                   }
@@ -291,7 +291,7 @@ module.exports = async function (context, req) {
                     ${taxRow}
                     <tr style="border-top:1px solid #1e293b;">
                       <td style="padding:12px 16px;color:#f1f5f9;font-size:15px;font-weight:800;">Total</td>
-                      <td style="padding:12px 16px;color:#0d9488;font-size:15px;font-weight:800;text-align:right;">${sym}${Number(total).toFixed(2)}</td>
+                      <td style="padding:12px 16px;color:#0C8599;font-size:15px;font-weight:800;text-align:right;">${sym}${Number(total).toFixed(2)}</td>
                     </tr>
                   </table>
                 </td>
@@ -305,8 +305,8 @@ module.exports = async function (context, req) {
             ? `<!-- Notes -->
         <tr>
           <td style="background:#111827;padding:0 40px 24px;">
-            <div style="background:#0f172a;border-left:3px solid #0d9488;border-radius:0 8px 8px 0;padding:14px 16px;">
-              <p style="margin:0 0 4px;font-size:11px;color:#0d9488;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Notes</p>
+            <div style="background:#0f172a;border-left:3px solid #0C8599;border-radius:0 8px 8px 0;padding:14px 16px;">
+              <p style="margin:0 0 4px;font-size:11px;color:#0C8599;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Notes</p>
               <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">${notes}</p>
             </div>
           </td>
@@ -318,9 +318,9 @@ module.exports = async function (context, req) {
         <tr>
           <td style="background:#111827;padding:0 40px 28px;text-align:center;">
             <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">Have questions about this invoice? Get in touch.</p>
-            <a href="https://oceaniccoder.dev/pay/${invoiceNumber}" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);color:#ffffff;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.01em;margin-bottom:12px;">Pay Now →</a>
+            <a href="https://oceaniccoder.dev/pay/${invoiceNumber}" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#085866 100%);color:#ffffff;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.01em;margin-bottom:12px;">Pay Now →</a>
             <br>
-            <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#065f57 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.01em;">Reply to this Invoice</a>
+            <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#085866 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.01em;">Reply to this Invoice</a>
           </td>
         </tr>
 
@@ -329,7 +329,7 @@ module.exports = async function (context, req) {
           <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
             <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#374151;">OceanicCoder</p>
             <p style="margin:0;font-size:12px;color:#374151;line-height:1.6;">
-              <a href="https://oceaniccoder.dev" style="color:#0d9488;text-decoration:none;">oceaniccoder.dev</a>
+              <a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a>
               &nbsp;·&nbsp; hello@oceaniccoder.dev
             </p>
           </td>
