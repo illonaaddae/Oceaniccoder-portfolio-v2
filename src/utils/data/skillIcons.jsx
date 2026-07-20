@@ -52,6 +52,7 @@ import {
   SiAdobephotoshop,
   SiD3Dotjs,
 } from "react-icons/si";
+import { renderIconByComponent } from "./skillIconRegistry.jsx";
 
 // Maps exact skill name → icon element used on the public Skills page.
 // Add new entries here as you create new skills in the admin dashboard.
@@ -123,6 +124,18 @@ const SKILL_ICONS = {
 
 export const DEFAULT_SKILL_ICON = <FaCode className="text-oceanic-500" />;
 
-export function getSkillIcon(skillName) {
+/**
+ * Resolve the icon element for a skill.
+ *
+ * Priority:
+ *   1. The icon the admin explicitly selected (stored on the skill as a
+ *      react-icons component name, e.g. "FaGitAlt") — resolved via the
+ *      shared icon registry.
+ *   2. A name-based match in SKILL_ICONS (legacy skills with no stored icon).
+ *   3. A generic default.
+ */
+export function getSkillIcon(skillName, iconComponentName) {
+  const selected = renderIconByComponent(iconComponentName);
+  if (selected) return selected;
   return SKILL_ICONS[skillName] ?? DEFAULT_SKILL_ICON;
 }
