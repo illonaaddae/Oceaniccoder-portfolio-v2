@@ -29,7 +29,7 @@ export function transformAppwriteSkills(appwriteSkills) {
     grouped[cat].push({
       name: skill.name,
       level: skill.percentage ?? 0,
-      icon: getSkillIcon(skill.name),
+      icon: getSkillIcon(skill.name, skill.icon),
     });
   }
 

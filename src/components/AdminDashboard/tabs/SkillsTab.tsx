@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { FaCode, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import type { Skill } from "@/types";
 import { CATEGORY_ORDER } from "@/utils/data/skillsTransformer";
+import { renderIconByComponent } from "@/utils/data/skillIconRegistry.jsx";
 
 interface SkillsTabProps {
   theme: "light" | "dark";
@@ -158,10 +159,13 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p
-                      className={`text-sm font-bold transition-colors duration-300 ${
+                      className={`flex items-center gap-2 text-sm font-bold transition-colors duration-300 ${
                         theme === "dark" ? "text-white" : "text-slate-900"
                       }`}
                     >
+                      {renderIconByComponent(skill.icon) && (
+                        <span aria-hidden="true">{renderIconByComponent(skill.icon)}</span>
+                      )}
                       {skill.name}
                     </p>
                     <p

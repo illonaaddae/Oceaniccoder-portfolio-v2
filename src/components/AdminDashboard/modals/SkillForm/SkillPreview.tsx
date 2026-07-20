@@ -1,12 +1,15 @@
 import React from "react";
+import { renderIconByComponent } from "@/utils/data/skillIconRegistry.jsx";
 
 interface SkillPreviewProps {
   name: string;
   percentage: number;
   theme: "light" | "dark";
+  icon?: string;
 }
 
-export const SkillPreview: React.FC<SkillPreviewProps> = ({ name, percentage, theme }) => {
+export const SkillPreview: React.FC<SkillPreviewProps> = ({ name, percentage, theme, icon }) => {
+  const iconEl = renderIconByComponent(icon, "text-xl");
   return (
     <div
       className={`p-4 rounded-xl border ${
@@ -21,7 +24,12 @@ export const SkillPreview: React.FC<SkillPreviewProps> = ({ name, percentage, th
         Preview
       </p>
       <div className="flex items-center justify-between">
-        <span className={`font-medium ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+        <span
+          className={`flex items-center gap-2 font-medium ${
+            theme === "dark" ? "text-white" : "text-slate-900"
+          }`}
+        >
+          {iconEl && <span aria-hidden="true">{iconEl}</span>}
           {name || "Skill Name"}
         </span>
         <span className={`text-sm ${theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"}`}>

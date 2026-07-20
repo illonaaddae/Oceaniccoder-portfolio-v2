@@ -53,7 +53,12 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
           labelClass={labelClass}
           theme={theme}
         />
-        <SkillPreview name={form.name} percentage={form.percentage} theme={theme} />
+        <SkillPreview
+          name={form.name}
+          percentage={form.percentage}
+          theme={theme}
+          icon={form.icon}
+        />
         <FormActions onClose={onClose} loading={loading} isEditing={!!editingSkill} theme={theme} />
       </form>
     </Modal>

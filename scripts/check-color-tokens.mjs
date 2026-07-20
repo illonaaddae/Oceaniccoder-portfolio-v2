@@ -52,7 +52,11 @@ function walk(dir, out) {
 
 // Files intentionally exempt: tech-stack logo icons keep their real brand colors
 // (React cyan, Vue green, etc.) — recognizable by design, not decorative rainbow.
-const EXEMPT = ["/utils/data/skillIcons.jsx", "/utils/data/skills.jsx"];
+const EXEMPT = [
+  "/utils/data/skillIcons.jsx",
+  "/utils/data/skills.jsx",
+  "/utils/data/skillIconRegistry.jsx",
+];
 
 const files = [];
 walk(ROOT, files);
