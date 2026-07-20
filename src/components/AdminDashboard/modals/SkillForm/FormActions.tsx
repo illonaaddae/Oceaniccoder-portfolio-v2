@@ -6,9 +6,17 @@ interface FormActionsProps {
   loading: boolean;
   isEditing: boolean;
   theme: "light" | "dark";
+  disabled?: boolean;
 }
 
-export const FormActions: React.FC<FormActionsProps> = ({ onClose, loading, isEditing, theme }) => {
+export const FormActions: React.FC<FormActionsProps> = ({
+  onClose,
+  loading,
+  isEditing,
+  theme,
+  disabled = false,
+}) => {
+  const blocked = loading || disabled;
   return (
     <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
       <button
@@ -24,10 +32,10 @@ export const FormActions: React.FC<FormActionsProps> = ({ onClose, loading, isEd
       </button>
       <button
         type="submit"
-        disabled={loading}
+        disabled={blocked}
         className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-          loading
-            ? "opacity-50 cursor-not-allowed"
+          blocked
+            ? "opacity-50 cursor-not-allowed bg-gradient-to-r from-oceanic-500 to-oceanic-900 text-white"
             : "bg-gradient-to-r from-oceanic-500 to-oceanic-900 text-white hover:from-oceanic-400 hover:to-oceanic-800"
         }`}
       >

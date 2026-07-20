@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   ICON_GROUPS,
   ICON_OPTIONS,
   getIconGroupsForCategory,
   predictNameFromIcon,
+  renderIconByComponent,
 } from "@/utils/data/skillIconRegistry.jsx";
+import { CustomSelect, type SelectGroup } from "@/components/ui/CustomSelect";
 import type { SkillFormState } from "./types";
 
 interface IconSelectorProps {
@@ -15,7 +17,7 @@ interface IconSelectorProps {
   theme: "light" | "dark";
 }
 
-interface IconGroup {
+interface RegistryGroup {
   group: string;
   options: { value: string; label: string }[];
 }
@@ -32,9 +34,23 @@ export const IconSelector: React.FC<IconSelectorProps> = ({
   // Narrow the icon list to the chosen category. If the current icon isn't in
   // that subset (e.g. editing a skill whose icon lives elsewhere), show all
   // groups so the existing selection stays visible.
-  const scoped: IconGroup[] = getIconGroupsForCategory(form.category);
+  const scoped: RegistryGroup[] = getIconGroupsForCategory(form.category);
   const iconInScope = scoped.some((g) => g.options.some((o) => o.value === form.icon));
-  const groups: IconGroup[] = !form.icon || iconInScope ? scoped : ICON_GROUPS;
+  const source: RegistryGroup[] = !form.icon || iconInScope ? scoped : ICON_GROUPS;
+
+  // Attach a rendered icon preview to each option for the dropdown.
+  const selectGroups: SelectGroup[] = useMemo(
+    () =>
+      source.map((g) => ({
+        group: g.group,
+        options: g.options.map((o) => ({
+          value: o.value,
+          label: o.label,
+          icon: renderIconByComponent(o.value, "text-base"),
+        })),
+      })),
+    [source],
+  );
 
   const handleSelect = (value: string) => {
     setForm((prev) => ({
@@ -46,29 +62,20 @@ export const IconSelector: React.FC<IconSelectorProps> = ({
     }));
   };
 
+  const knownIcon = ICON_OPTIONS.some((o) => o.value === form.icon);
+
   return (
     <div>
       <label className={labelClass}>Icon</label>
-      <select
-        value={ICON_OPTIONS.some((opt) => opt.value === form.icon) ? form.icon : ""}
-        onChange={(e) => handleSelect(e.target.value)}
-        className={inputClass}
-        title="Select skill icon"
-        aria-label="Select skill icon"
-      >
-        <option value="">
-          {form.category ? `Select Icon (${form.category})` : "Select Icon (Optional)"}
-        </option>
-        {groups.map((g) => (
-          <optgroup key={g.group} label={g.group}>
-            {g.options.map((opt) => (
-              <option key={`${g.group}-${opt.value}-${opt.label}`} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
+      <CustomSelect
+        value={knownIcon ? form.icon : ""}
+        onChange={handleSelect}
+        groups={selectGroups}
+        theme={theme}
+        searchable
+        ariaLabel="Select skill icon"
+        placeholder={form.category ? `Select icon (${form.category})` : "Select an icon (optional)"}
+      />
 
       <p className={helperClass}>
         {form.category

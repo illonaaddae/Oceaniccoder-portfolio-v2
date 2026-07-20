@@ -42,6 +42,9 @@ export function useSkillForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Category is required; the custom dropdown isn't a native form control,
+    // so guard it here instead of relying on <select required>.
+    if (!form.name.trim() || !form.category.trim()) return;
     setLoading(true);
     try {
       await onSubmit(form);
@@ -53,6 +56,8 @@ export function useSkillForm({
     }
   };
 
+  const isValid = !!form.name.trim() && !!form.category.trim();
+
   const inputClass = `w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 ${
     theme === "dark"
       ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-oceanic-500/60"
@@ -63,5 +68,5 @@ export function useSkillForm({
     theme === "dark" ? "text-slate-200" : "text-slate-700"
   }`;
 
-  return { form, setForm, loading, handleSubmit, inputClass, labelClass };
+  return { form, setForm, loading, handleSubmit, inputClass, labelClass, isValid };
 }
