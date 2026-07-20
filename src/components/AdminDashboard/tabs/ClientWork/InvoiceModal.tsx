@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { FaTimes, FaPlus, FaTrash, FaPaperPlane } from "react-icons/fa";
 import { createInvoice, updateInvoice } from "@/services/api/invoices";
 import { apiUrl } from "@/utils/apiUrl";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { ProjectInquiry, InvoiceItem, Invoice } from "@/types";
 
 const CURRENCIES = [
@@ -258,18 +259,13 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
                 Currency
               </label>
-              <select
+              <CustomSelect
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className={`${inputClass} w-full`}
-                style={inputStyle}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setCurrency}
+                options={CURRENCIES.map((c) => ({ value: c.code, label: c.label }))}
+                theme={theme}
+                ariaLabel="Select invoice currency"
+              />
             </div>
 
             {/* Line Items */}
