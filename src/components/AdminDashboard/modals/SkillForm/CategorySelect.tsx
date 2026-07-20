@@ -1,5 +1,6 @@
 import React from "react";
 import { categories } from "./constants";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { SkillFormState } from "./types";
 
 interface CategorySelectProps {
@@ -7,30 +8,24 @@ interface CategorySelectProps {
   setForm: React.Dispatch<React.SetStateAction<SkillFormState>>;
   inputClass: string;
   labelClass: string;
+  theme: "light" | "dark";
 }
 
 export const CategorySelect: React.FC<CategorySelectProps> = ({
   form,
   setForm,
-  inputClass,
   labelClass,
+  theme,
 }) => (
   <div>
     <label className={labelClass}>Category *</label>
-    <select
-      required
+    <CustomSelect
       value={form.category}
-      onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-      className={inputClass}
-      title="Select skill category"
-      aria-label="Select skill category"
-    >
-      <option value="">Select Category</option>
-      {categories.map((cat) => (
-        <option key={cat} value={cat}>
-          {cat}
-        </option>
-      ))}
-    </select>
+      onChange={(value) => setForm((prev) => ({ ...prev, category: value }))}
+      options={categories.map((cat) => ({ value: cat, label: cat }))}
+      theme={theme}
+      ariaLabel="Select skill category"
+      placeholder="Select category"
+    />
   </div>
 );

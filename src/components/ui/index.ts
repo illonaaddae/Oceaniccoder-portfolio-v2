@@ -9,3 +9,5 @@ export { TabHeader } from "./TabHeader";
 export { LazyImage } from "./LazyImage";
 export { FilterPills } from "./FilterPills";
 export type { FilterPillTab } from "./FilterPills";
+export { CustomSelect } from "./CustomSelect";
+export type { SelectOption, SelectGroup } from "./CustomSelect";

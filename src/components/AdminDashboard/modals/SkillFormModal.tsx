@@ -16,7 +16,7 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
   theme,
   editingSkill,
 }) => {
-  const { form, setForm, loading, handleSubmit, inputClass, labelClass } = useSkillForm({
+  const { form, setForm, loading, handleSubmit, inputClass, labelClass, isValid } = useSkillForm({
     isOpen,
     editingSkill,
     onSubmit,
@@ -44,6 +44,7 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
           setForm={setForm}
           inputClass={inputClass}
           labelClass={labelClass}
+          theme={theme}
         />
         <ProficiencySlider form={form} setForm={setForm} theme={theme} labelClass={labelClass} />
         <IconSelector
@@ -59,7 +60,13 @@ export const SkillFormModal: React.FC<SkillFormModalProps> = ({
           theme={theme}
           icon={form.icon}
         />
-        <FormActions onClose={onClose} loading={loading} isEditing={!!editingSkill} theme={theme} />
+        <FormActions
+          onClose={onClose}
+          loading={loading}
+          isEditing={!!editingSkill}
+          theme={theme}
+          disabled={!isValid}
+        />
       </form>
     </Modal>
   );
