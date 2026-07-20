@@ -1,5 +1,6 @@
 import React from "react";
 import { BlogPost } from "@/types";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { CATEGORIES } from "./constants";
 import { inputClass, labelClass } from "./formStyles";
 
@@ -35,26 +36,14 @@ export const BlogFormFields: React.FC<BlogFormFieldsProps> = ({ formData, setFor
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <label className={labelClass(theme)}>Category</label>
-        <select
-          value={formData.category}
-          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-          title="Select category"
-          aria-label="Select category"
-          className={inputClass(theme)}
-        >
-          <option value="" className={theme === "dark" ? "bg-slate-800" : "bg-white"}>
-            Select category
-          </option>
-          {CATEGORIES.map((cat) => (
-            <option
-              key={cat}
-              value={cat}
-              className={theme === "dark" ? "bg-slate-800" : "bg-white"}
-            >
-              {cat}
-            </option>
-          ))}
-        </select>
+        <CustomSelect
+          value={formData.category ?? ""}
+          onChange={(value) => setFormData({ ...formData, category: value })}
+          options={CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
+          theme={theme}
+          placeholder="Select category"
+          ariaLabel="Select category"
+        />
       </div>
       <div>
         <label className={labelClass(theme)}>Read Time</label>

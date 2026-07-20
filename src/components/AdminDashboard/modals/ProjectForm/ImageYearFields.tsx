@@ -1,14 +1,9 @@
 import React from "react";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { ImageUpload } from "../../ImageUpload";
 import type { FormFieldProps } from "./types";
 
-export const ImageYearFields: React.FC<FormFieldProps> = ({
-  form,
-  setForm,
-  theme,
-  inputClass,
-  labelClass,
-}) => (
+export const ImageYearFields: React.FC<FormFieldProps> = ({ form, setForm, theme, labelClass }) => (
   <>
     <div>
       <ImageUpload
@@ -21,24 +16,20 @@ export const ImageYearFields: React.FC<FormFieldProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div>
         <label className={labelClass}>Year</label>
-        <select
+        <CustomSelect
           value={form.year}
-          onChange={(e) => setForm({ ...form, year: e.target.value })}
-          className={inputClass}
-          aria-label="Project year"
-        >
-          <option value="">Select Year</option>
-          {(() => {
+          onChange={(value) => setForm({ ...form, year: value })}
+          options={(() => {
             const current = new Date().getFullYear();
             const years: number[] = [];
             for (let y = current; y >= current - 20; y--) years.push(y);
-            return years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ));
+            return years.map((y) => ({ value: String(y), label: String(y) }));
           })()}
-        </select>
+          theme={theme}
+          ariaLabel="Project year"
+          placeholder="Select Year"
+          searchable
+        />
       </div>
     </div>
   </>

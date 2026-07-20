@@ -1,5 +1,6 @@
 import React from "react";
 import { FaBriefcase, FaCheckCircle } from "react-icons/fa";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { JourneyFormState } from "./types";
 
 const MONTHS = [
@@ -86,33 +87,23 @@ export const PeriodLocationFields: React.FC<PeriodLocationFieldsProps> = ({
       <div>
         <label className={labelClass}>Start Date *</label>
         <div className="grid grid-cols-2 gap-3">
-          <select
+          <CustomSelect
             value={form.startMonth}
-            onChange={(e) => update({ startMonth: e.target.value })}
-            className={inputClass}
-            aria-label="Start month"
-          >
-            <option value="">Month</option>
-            {MONTHS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <select
+            onChange={(value) => update({ startMonth: value })}
+            options={MONTHS}
+            theme={theme}
+            placeholder="Month"
+            ariaLabel="Start month"
+          />
+          <CustomSelect
             value={form.startYear}
-            onChange={(e) => update({ startYear: e.target.value })}
-            className={inputClass}
-            required
-            aria-label="Start year"
-          >
-            <option value="">Year</option>
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => update({ startYear: value })}
+            options={years.map((y) => ({ value: String(y), label: String(y) }))}
+            theme={theme}
+            placeholder="Year"
+            ariaLabel="Start year"
+            searchable
+          />
         </div>
       </div>
 
@@ -121,32 +112,23 @@ export const PeriodLocationFields: React.FC<PeriodLocationFieldsProps> = ({
         <div>
           <label className={labelClass}>End Date</label>
           <div className="grid grid-cols-2 gap-3">
-            <select
+            <CustomSelect
               value={form.endMonth}
-              onChange={(e) => update({ endMonth: e.target.value })}
-              className={inputClass}
-              aria-label="End month"
-            >
-              <option value="">Month</option>
-              {MONTHS.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={(value) => update({ endMonth: value })}
+              options={MONTHS}
+              theme={theme}
+              placeholder="Month"
+              ariaLabel="End month"
+            />
+            <CustomSelect
               value={form.endYear}
-              onChange={(e) => update({ endYear: e.target.value })}
-              className={inputClass}
-              aria-label="End year"
-            >
-              <option value="">Year</option>
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => update({ endYear: value })}
+              options={years.map((y) => ({ value: String(y), label: String(y) }))}
+              theme={theme}
+              placeholder="Year"
+              ariaLabel="End year"
+              searchable
+            />
           </div>
         </div>
       )}

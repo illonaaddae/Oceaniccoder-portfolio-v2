@@ -1,12 +1,14 @@
 import React from "react";
 import { classHonoursOptions } from "./constants";
 import type { EducationFormState, FormUpdater } from "./types";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 interface AcademicFieldsProps {
   form: EducationFormState;
   updateForm: FormUpdater;
   inputClass: string;
   labelClass: string;
+  theme: "light" | "dark";
 }
 
 export const AcademicFields: React.FC<AcademicFieldsProps> = ({
@@ -14,6 +16,7 @@ export const AcademicFields: React.FC<AcademicFieldsProps> = ({
   updateForm,
   inputClass,
   labelClass,
+  theme,
 }) => (
   <>
     {/* GPA */}
@@ -31,18 +34,15 @@ export const AcademicFields: React.FC<AcademicFieldsProps> = ({
     {/* Class Honours */}
     <div>
       <label className={labelClass}>Class Honours</label>
-      <select
+      <CustomSelect
         value={form.classHonours}
-        onChange={(e) => updateForm({ classHonours: e.target.value })}
-        className={inputClass}
-        aria-label="Class Honours"
-      >
-        {classHonoursOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        onChange={(value) => updateForm({ classHonours: value })}
+        options={classHonoursOptions.filter((option) => option.value !== "")}
+        theme={theme}
+        placeholder="Select Honours (Optional)"
+        ariaLabel="Class Honours"
+        searchable
+      />
     </div>
   </>
 );

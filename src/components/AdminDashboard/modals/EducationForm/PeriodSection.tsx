@@ -44,6 +44,7 @@ export const PeriodSection: React.FC<PeriodSectionProps> = ({
         required
         monthLabel="Start month"
         yearLabel="Start year"
+        theme={theme}
       />
     </div>
 
@@ -60,6 +61,7 @@ export const PeriodSection: React.FC<PeriodSectionProps> = ({
           inputClass={inputClass}
           monthLabel="End month"
           yearLabel="End year"
+          theme={theme}
         />
       </div>
     )}

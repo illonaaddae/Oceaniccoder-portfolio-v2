@@ -1,30 +1,19 @@
 import React from "react";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { STATUS_OPTIONS } from "./constants";
 import type { FormFieldProps } from "./types";
 
-export const StatusFields: React.FC<FormFieldProps> = ({
-  form,
-  setForm,
-  theme,
-  inputClass,
-  labelClass,
-}) => (
+export const StatusFields: React.FC<FormFieldProps> = ({ form, setForm, theme, labelClass }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
       <label className={labelClass}>Status</label>
-      <select
+      <CustomSelect
         value={form.status}
-        onChange={(e) => setForm({ ...form, status: e.target.value })}
-        className={inputClass}
-        title="Select project status"
-        aria-label="Select project status"
-      >
-        {STATUS_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+        onChange={(value) => setForm({ ...form, status: value })}
+        options={STATUS_OPTIONS}
+        theme={theme}
+        ariaLabel="Select project status"
+      />
     </div>
     <div className="flex items-center pt-8">
       <label className="flex items-center gap-3 cursor-pointer">
