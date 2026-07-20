@@ -16,6 +16,7 @@ import { ToastContainer, useToast } from "../Toast";
 import { useConfirm } from "../ConfirmContext";
 import { usePagination } from "@/hooks/usePagination";
 import { Pagination } from "@/components/common/Pagination";
+import { FilterPills } from "@/components/ui/FilterPills";
 
 const PAGE_SIZE = 10;
 
@@ -103,9 +104,6 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   ];
 
   const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
-  const pillBase = "px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap";
-  const pillInactive =
-    theme === "dark" ? "text-slate-300 hover:bg-white/5" : "text-slate-600 hover:bg-slate-100";
 
   const handleMove = async (index: number, direction: "up" | "down") => {
     if (!onReorder) return;
@@ -211,29 +209,12 @@ export const EducationTab: React.FC<EducationTabProps> = ({
           </div>
 
           {/* Status tabs */}
-          <div
-            className={`inline-flex flex-wrap gap-1 p-1 rounded-xl ${
-              theme === "dark" ? "bg-white/5" : "bg-slate-100"
-            }`}
-          >
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setActiveStatus(t.key)}
-                className={`${pillBase} ${
-                  activeStatus === t.key ? "bg-oceanic-600 text-white shadow" : pillInactive
-                }`}
-              >
-                {t.label}
-                <span
-                  className={`ml-2 text-xs ${activeStatus === t.key ? "text-white/80" : subText}`}
-                >
-                  {t.count}
-                </span>
-              </button>
-            ))}
-          </div>
+          <FilterPills
+            tabs={tabs}
+            active={activeStatus}
+            onChange={(k) => setActiveStatus(k as StatusFilter)}
+            theme={theme}
+          />
         </>
       )}
 
