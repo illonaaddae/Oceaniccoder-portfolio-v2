@@ -7,3 +7,5 @@ export { LoadingSpinner, FullPageLoading } from "./LoadingSpinner";
 export { EmptyState } from "./EmptyState";
 export { TabHeader } from "./TabHeader";
 export { LazyImage } from "./LazyImage";
+export { FilterPills } from "./FilterPills";
+export type { FilterPillTab } from "./FilterPills";
