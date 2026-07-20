@@ -2,7 +2,7 @@ import { SKILLS_DATA } from "./skills.jsx";
 import { getSkillIcon } from "./skillIcons.jsx";
 
 // Preferred display order for skill categories
-const CATEGORY_ORDER = [
+export const CATEGORY_ORDER = [
   "Frontend Development",
   "Backend Development",
   "Cloud & DevOps",
