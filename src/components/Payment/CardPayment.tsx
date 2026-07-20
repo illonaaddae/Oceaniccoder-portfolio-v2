@@ -130,8 +130,8 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
         className="w-full rounded-xl py-4 font-bold text-base text-white transition-opacity"
         style={{
           background: loading
-            ? "rgba(13,148,136,0.5)"
-            : "linear-gradient(135deg, #0d9488 0%, #065f57 100%)",
+            ? "rgba(12,133,153,0.5)"
+            : "linear-gradient(135deg, #0C8599 0%, #085866 100%)",
           cursor: loading ? "not-allowed" : "pointer",
           opacity: loading ? 0.7 : 1,
         }}

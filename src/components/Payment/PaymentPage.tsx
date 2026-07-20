@@ -123,7 +123,7 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
       <div
         className="px-6 py-4 flex items-center justify-between"
         style={{
-          background: "linear-gradient(135deg, #0d9488 0%, #065f57 100%)",
+          background: "linear-gradient(135deg, #0C8599 0%, #085866 100%)",
         }}
       >
         <img
@@ -192,17 +192,17 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
               <div
                 className="flex-1 rounded-lg px-3 py-2"
                 style={{
-                  background: "rgba(13,148,136,0.1)",
-                  border: "1px solid rgba(13,148,136,0.3)",
+                  background: "rgba(12,133,153,0.1)",
+                  border: "1px solid rgba(12,133,153,0.3)",
                 }}
               >
                 <p
                   className="text-xs font-bold uppercase tracking-wider"
-                  style={{ color: "#2dd4bf" }}
+                  style={{ color: "#26a9c5" }}
                 >
                   Est. Delivery
                 </p>
-                <p className="text-sm font-semibold mt-0.5" style={{ color: "#99f6e4" }}>
+                <p className="text-sm font-semibold mt-0.5" style={{ color: "#8dd7e7" }}>
                   {new Date(invoice.estimatedDelivery).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "short",
@@ -350,7 +350,7 @@ const PaymentPage: React.FC = () => {
                   onClick={() => void doFetch()}
                   className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
                   style={{
-                    background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                    background: "linear-gradient(135deg, var(--accent-teal) 0%, #0a6e7d 100%)",
                   }}
                 >
                   Try Again
