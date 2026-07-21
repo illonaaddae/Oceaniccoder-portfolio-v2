@@ -272,7 +272,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                       >
                         {edu.institution}
                       </p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p
                           className={`text-sm ${
                             theme === "dark" ? "text-slate-400" : "text-slate-500"
@@ -281,23 +281,23 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                           {edu.period}
                         </p>
                         {isInProgress(edu) ? (
-                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-warning-400/10 text-warning-400 border border-warning-400/30">
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-warning-400/10 text-warning-400 border border-warning-400/30">
                             <FaBook className="text-xs" />
                             In Progress
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-success-400/10 text-success-400 border border-success-400/30">
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-success-400/10 text-success-400 border border-success-400/30">
                             <FaCheckCircle className="text-xs" />
                             Completed
                           </span>
                         )}
                         {edu.isVisible === false ? (
-                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
                             <FaEyeSlash className="text-xs" />
                             Hidden
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
                             <FaEye className="text-xs" />
                             Visible
                           </span>
