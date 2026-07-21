@@ -138,8 +138,8 @@ module.exports = async function (context, req) {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" /></td>
-                <td style="text-align:right;vertical-align:middle;">
-                  <span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:11px;color:#ffffff;font-weight:700;letter-spacing:0.1em;">${h.badgeText}</span>
+                <td style="text-align:right;vertical-align:middle;white-space:nowrap;">
+                  <span style="display:inline-block;white-space:nowrap;background:#ffffff;border-radius:20px;padding:5px 14px;font-size:11px;color:${h.badge};font-weight:700;letter-spacing:0.08em;">${h.badgeText}</span>
                 </td>
               </tr>
             </table>
