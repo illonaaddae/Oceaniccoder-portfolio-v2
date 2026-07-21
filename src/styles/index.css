@@ -38,6 +38,9 @@
   --accent-teal-subtle: rgba(38, 169, 197, 0.1);
   --accent-teal-border: rgba(38, 169, 197, 0.25);
   --border-subtle: rgba(38, 169, 197, 0.18);
+  /* Amber accent (payment-due / warning) — light tints read well on dark bg */
+  --accent-amber-strong: #fbbf24;
+  --accent-amber: #fde68a;
 }
 
 [data-theme="light"] {
@@ -63,6 +66,8 @@
   --accent-teal-subtle: rgba(10, 110, 125, 0.08);
   --accent-teal-border: rgba(10, 110, 125, 0.2);
   --border-subtle: rgba(10, 110, 125, 0.15);
+  --accent-amber-strong: #b45309; /* amber-700 — AA on white */
+  --accent-amber: #a16207; /* yellow-700 — AA on white */
 }
 
 /* Wider light-theme selectors so theme works when set on html or body */
@@ -90,6 +95,8 @@ body[data-theme="light"],
   --accent-teal-subtle: rgba(10, 110, 125, 0.08);
   --accent-teal-border: rgba(10, 110, 125, 0.2);
   --border-subtle: rgba(10, 110, 125, 0.15);
+  --accent-amber-strong: #b45309; /* amber-700 — AA on white */
+  --accent-amber: #a16207; /* yellow-700 — AA on white */
 }
 
 /* Global light-mode overrides: force a white page background and dark text */

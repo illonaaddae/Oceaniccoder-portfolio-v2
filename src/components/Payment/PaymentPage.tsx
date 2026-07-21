@@ -175,11 +175,14 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
               >
                 <p
                   className="text-xs font-bold uppercase tracking-wider"
-                  style={{ color: "#fbbf24" }}
+                  style={{ color: "var(--accent-amber-strong)" }}
                 >
                   Payment Due
                 </p>
-                <p className="text-sm font-semibold mt-0.5" style={{ color: "#fde68a" }}>
+                <p
+                  className="text-sm font-semibold mt-0.5"
+                  style={{ color: "var(--accent-amber)" }}
+                >
                   {new Date(invoice.dueDate).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "short",
