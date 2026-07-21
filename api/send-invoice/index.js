@@ -194,10 +194,10 @@ module.exports = async function (context, req) {
           <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="vertical-align:middle;">
-                  <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" />
+                <td style="vertical-align:middle;padding-right:16px;">
+                  <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="120" style="display:block;" />
                 </td>
-                <td style="text-align:right;vertical-align:middle;">
+                <td style="text-align:right;vertical-align:middle;padding-left:16px;">
                   <p style="margin:0;font-size:11px;color:#8dd7e7;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Invoice</p>
                   <p style="margin:4px 0 0;font-size:20px;color:#ffffff;font-weight:800;letter-spacing:0.01em;">${safeInvoiceNumber}</p>
                   <p style="margin:4px 0 0;font-size:12px;color:#c1ecf4;">Issued ${issuedDate}</p>
