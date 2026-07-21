@@ -137,8 +137,8 @@ module.exports = async function (context, req) {
           <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" /></td>
-                <td style="text-align:right;vertical-align:middle;white-space:nowrap;">
+                <td style="padding-right:16px;"><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="120" style="display:block;" /></td>
+                <td style="text-align:right;vertical-align:middle;white-space:nowrap;padding-left:16px;">
                   <span style="display:inline-block;white-space:nowrap;background:#ffffff;border-radius:20px;padding:5px 14px;font-size:11px;color:${h.badge};font-weight:700;letter-spacing:0.08em;">${h.badgeText}</span>
                 </td>
               </tr>
