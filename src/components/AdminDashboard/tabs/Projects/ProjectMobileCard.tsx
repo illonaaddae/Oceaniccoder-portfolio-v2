@@ -8,8 +8,8 @@ type Props = { theme: "light"|"dark"; project: Project; isReadOnly: boolean; onE
 // prettier-ignore
 export const ProjectMobileCard: React.FC<Props> = ({ theme, project, isReadOnly, onEdit, onDelete }) => (
   <div className="glass-card p-4">
-    <div className="flex items-start justify-between mb-3">
-      <div className="flex items-center gap-3">
+    <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-oceanic-500 to-oceanic-500 flex items-center justify-center flex-shrink-0">
           <FaProjectDiagram className="text-white text-sm" />
         </div>
