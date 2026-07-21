@@ -201,11 +201,11 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
               >
                 <p
                   className="text-xs font-bold uppercase tracking-wider"
-                  style={{ color: "#26a9c5" }}
+                  style={{ color: "var(--accent-teal)" }}
                 >
                   Est. Delivery
                 </p>
-                <p className="text-sm font-semibold mt-0.5" style={{ color: "#8dd7e7" }}>
+                <p className="text-sm font-semibold mt-0.5" style={{ color: "var(--accent-teal)" }}>
                   {new Date(invoice.estimatedDelivery).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "short",
