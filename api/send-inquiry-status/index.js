@@ -45,9 +45,9 @@ const TEMPLATES = {
       bg: "#0f2233",
       badge: "#0C8599",
       badgeText: "UNDER REVIEW",
-      icon: "&#0C8599;",
-      iconBg: "rgba(59,130,246,0.15)",
-      iconBorder: "rgba(59,130,246,0.5)",
+      icon: "&#128269;",
+      iconBg: "rgba(12,133,153,0.15)",
+      iconBorder: "rgba(12,133,153,0.5)",
       iconColor: "#26a9c5",
     },
     heading: (name) => `Thanks, ${name}!`,
@@ -61,7 +61,7 @@ const TEMPLATES = {
       bg: "#0f2a1f",
       badge: "#0C8599",
       badgeText: "PROPOSAL READY",
-      icon: "&#0C8599;",
+      icon: "&#128196;",
       iconBg: "rgba(13,148,136,0.15)",
       iconBorder: "rgba(13,148,136,0.5)",
       iconColor: "#26a9c5",
@@ -77,7 +77,7 @@ const TEMPLATES = {
       bg: "#1f1010",
       badge: "#6b7280",
       badgeText: "UPDATE",
-      icon: "&#0C8599;",
+      icon: "&#128075;",
       iconBg: "rgba(107,114,128,0.15)",
       iconBorder: "rgba(107,114,128,0.4)",
       iconColor: "#9ca3af",
@@ -139,7 +139,7 @@ module.exports = async function (context, req) {
               <tr>
                 <td><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" /></td>
                 <td style="text-align:right;vertical-align:middle;">
-                  <span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:11px;color:#ffffff;font-weight:700;letter-spacing:0.1em;">${h.badge === "#0C8599" ? "UNDER REVIEW" : h.badge === "#0C8599" ? "PROPOSAL READY" : "UPDATE"}</span>
+                  <span style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:11px;color:#ffffff;font-weight:700;letter-spacing:0.1em;">${h.badgeText}</span>
                 </td>
               </tr>
             </table>
