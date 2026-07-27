@@ -704,6 +704,22 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                     </p>
                   </div>
                 )}
+                {selectedInquiry.preferredContact && (
+                  <div
+                    className="rounded-xl px-3 py-2.5"
+                    style={{ background: "var(--bg-primary)" }}
+                  >
+                    <p
+                      className="text-xs font-medium mb-0.5"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Preferred contact
+                    </p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      {selectedInquiry.preferredContact}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Description */}
