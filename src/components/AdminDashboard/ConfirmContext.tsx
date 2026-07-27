@@ -1,15 +1,29 @@
 import React, { createContext, useContext, useRef, useState } from "react";
 import { FaTrash, FaCheckCircle } from "react-icons/fa";
 
+export interface ConfirmChoice {
+  value: string;
+  label: string;
+}
+
 interface ConfirmOptions {
   message: string;
   description?: string;
   confirmLabel?: string;
   confirmClass?: string;
   variant?: "danger" | "success";
+  // Optional radio group shown above the buttons, for confirmations that need
+  // to capture a value rather than a plain yes/no. When present, confirming
+  // resolves the selected `value` instead of `true`.
+  choices?: ConfirmChoice[];
+  choiceLabel?: string;
+  defaultChoice?: string;
 }
 
-type ConfirmFn = (opts: ConfirmOptions | string) => Promise<boolean>;
+// Resolves false on cancel. On confirm, resolves the selected choice when
+// `choices` was supplied, otherwise true — so existing truthy-checking callers
+// are unaffected.
+type ConfirmFn = (opts: ConfirmOptions | string) => Promise<boolean | string>;
 
 const ConfirmContext = createContext<ConfirmFn>(async () => false);
 
@@ -20,25 +34,34 @@ interface State {
   description?: string;
   confirmLabel?: string;
   variant?: "danger" | "success";
+  choices?: ConfirmChoice[];
+  choiceLabel?: string;
+  defaultChoice?: string;
 }
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State | null>(null);
-  const resolveRef = useRef<((v: boolean) => void) | null>(null);
+  const [choice, setChoice] = useState<string>("");
+  const resolveRef = useRef<((v: boolean | string) => void) | null>(null);
 
   const confirm: ConfirmFn = (opts) => {
     const normalised: State = typeof opts === "string" ? { message: opts } : opts;
-    return new Promise<boolean>((resolve) => {
+    return new Promise<boolean | string>((resolve) => {
       resolveRef.current = resolve;
+      setChoice(normalised.defaultChoice ?? normalised.choices?.[0]?.value ?? "");
       setState(normalised);
     });
   };
 
-  const close = (value: boolean) => {
+  const close = (value: boolean | string) => {
     resolveRef.current?.(value);
     resolveRef.current = null;
     setState(null);
   };
+
+  // Confirming a dialog that offered choices resolves the selection, so the
+  // caller gets the picked value rather than a bare true.
+  const accept = () => close(state?.choices?.length ? choice : true);
 
   return (
     <ConfirmContext.Provider value={confirm}>
@@ -72,6 +95,36 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <p className="text-sm mb-6 pl-[52px]" style={{ color: "var(--text-secondary)" }}>
               {state.description ?? "This action cannot be undone."}
             </p>
+            {state.choices && state.choices.length > 0 && (
+              <fieldset className="mb-6 pl-[52px]">
+                {state.choiceLabel && (
+                  <legend
+                    className="text-xs font-semibold mb-2"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {state.choiceLabel}
+                  </legend>
+                )}
+                <div className="flex flex-col gap-2">
+                  {state.choices.map((option) => (
+                    <label
+                      key={option.value}
+                      className="flex items-center gap-2 text-sm cursor-pointer text-[var(--text-primary)]"
+                    >
+                      <input
+                        type="radio"
+                        name="confirm-choice"
+                        value={option.value}
+                        checked={choice === option.value}
+                        onChange={() => setChoice(option.value)}
+                        className="accent-green-600"
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
@@ -87,7 +140,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               </button>
               <button
                 type="button"
-                onClick={() => close(true)}
+                onClick={accept}
                 className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition ${
                   state.variant === "success"
                     ? "bg-green-600 hover:bg-green-700"

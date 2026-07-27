@@ -19,6 +19,17 @@ import { FilterPills } from "@/components/ui/FilterPills";
 
 const PAGE_SIZE = 10;
 
+// Methods an admin can record when marking an invoice paid by hand. Apple Pay
+// is deliberately absent — it can only arrive through Paystack, which records
+// it server-side from the charge channel.
+type ManualPaymentMethod = "bank" | "momo" | "card";
+
+const MANUAL_PAYMENT_METHODS: { value: ManualPaymentMethod; label: string }[] = [
+  { value: "bank", label: "Bank Transfer" },
+  { value: "momo", label: "Mobile Money" },
+  { value: "card", label: "Card" },
+];
+
 type StatusFilter = "all" | "sent" | "paid";
 
 interface InvoicesTabProps {
@@ -89,17 +100,26 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
       description: `This will update the invoice status and send a payment confirmation email to ${inv.clientEmail}.`,
       confirmLabel: "Mark as Paid",
       variant: "success",
+      choiceLabel: "How was this paid?",
+      choices: MANUAL_PAYMENT_METHODS,
+      defaultChoice: "bank",
     });
     if (!ok) return;
+
+    // The dialog resolves the selected method; fall back to "bank" only if some
+    // caller path ever confirms without a selection.
+    const method = typeof ok === "string" ? (ok as ManualPaymentMethod) : "bank";
 
     setConfirming((prev) => ({ ...prev, [inv.$id]: true }));
     setPaymentError(null);
     try {
       await updateInvoice(inv.$id, { status: "paid" });
 
-      // Audit log: create matching payment record for invoices marked paid manually
-      // (off-platform — bank transfer, cash, etc.). Paystack-initiated payments
-      // are recorded server-side by /api/paystack-webhook, so we skip method=card/momo here.
+      // Audit log: create matching payment record for invoices marked paid
+      // manually — i.e. paid off-platform, so the method is whatever the admin
+      // selected in the confirm dialog. Payments made through /pay/ are recorded
+      // server-side by /api/paystack-webhook, which derives the method from the
+      // Paystack channel instead.
       try {
         await createPayment({
           invoiceNumber: inv.invoiceNumber,
@@ -107,7 +127,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
           clientEmail: inv.clientEmail,
           amount: inv.total,
           currency: inv.currency,
-          method: "bank",
+          method,
           paidAt: new Date().toISOString(),
           status: "success",
         });

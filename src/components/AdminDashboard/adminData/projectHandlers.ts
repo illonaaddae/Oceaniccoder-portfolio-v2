@@ -4,7 +4,7 @@ import type { LoadDataFn } from "./types";
 
 export function createProjectHandlers(
   loadData: LoadDataFn,
-  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean>,
+  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean | string>,
 ) {
   const handleAddProject = async (projectForm: Omit<Project, "$id" | "$createdAt">) => {
     try {

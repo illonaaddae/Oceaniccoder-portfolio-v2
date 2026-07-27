@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { FaCreditCard, FaSync, FaCheckCircle, FaMoneyBillWave } from "react-icons/fa";
-import { getPayments, type Payment } from "@/services/api/payments";
+import { getPayments, subscribeToPayments, type Payment } from "@/services/api/payments";
 
 interface PaymentsTabProps {
   theme: "light" | "dark";
@@ -21,10 +21,26 @@ const METHOD_LABEL: Record<string, string> = {
   bank: "Bank Transfer",
 };
 
-const STATUS_PILL: Record<string, string> = {
-  success: "bg-green-500/15 text-green-400 border-green-500/30",
-  pending: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  failed: "bg-red-500/15 text-red-400 border-red-500/30",
+// Theme-adaptive so the pill text stays legible on white. The previous
+// green-400 / amber-400 / red-400 Tailwind classes were picked for the dark
+// theme and washed out badly in light mode; these tokens deepen to the -700
+// range on light, which passes AA. Same approach as --accent-amber (see #104).
+const STATUS_PILL: Record<string, React.CSSProperties> = {
+  success: {
+    background: "var(--status-success-bg)",
+    color: "var(--status-success-text)",
+    borderColor: "var(--status-success-border)",
+  },
+  pending: {
+    background: "var(--status-pending-bg)",
+    color: "var(--status-pending-text)",
+    borderColor: "var(--status-pending-border)",
+  },
+  failed: {
+    background: "var(--status-failed-bg)",
+    color: "var(--status-failed-text)",
+    borderColor: "var(--status-failed-border)",
+  },
 };
 
 function formatDateTime(dateStr?: string) {
@@ -41,19 +57,46 @@ function formatDateTime(dateStr?: string) {
 export default function PaymentsTab({ theme }: PaymentsTabProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // `quiet` skips the loading state. Realtime refetches must not blank the
+  // table and flash "Loading..." every time a payment lands.
+  const fetchPayments = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       setPayments(await getPayments());
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, []);
 
+  const load = useCallback(() => {
+    void fetchPayments(false);
+  }, [fetchPayments]);
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchPayments(false);
+  }, [fetchPayments]);
+
+  // Realtime: /api/paystack-webhook writes payment records server-side, so
+  // without this the browser has no way to learn about a payment until the
+  // admin hits Refresh. Falls back silently to manual refresh if the websocket
+  // cannot be established — the button is always there.
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    try {
+      unsubscribe = subscribeToPayments(() => {
+        void fetchPayments(true);
+      });
+      setLive(true);
+    } catch {
+      setLive(false);
+    }
+    return () => {
+      unsubscribe?.();
+      setLive(false);
+    };
+  }, [fetchPayments]);
 
   const totalReceived = payments
     .filter((p) => p.status === "success")
@@ -79,17 +122,32 @@ export default function PaymentsTab({ theme }: PaymentsTabProps) {
             Records of successful and pending payments
           </p>
         </div>
-        <button
-          type="button"
-          onClick={load}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            theme === "dark"
-              ? "bg-brand-link hover:bg-brand-accent-strong text-white"
-              : "bg-brand-link hover:bg-brand-accent-strong text-white"
-          }`}
-        >
-          <FaSync /> Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          {live && (
+            <span
+              className="flex items-center gap-1.5 text-xs font-medium"
+              style={{ color: "var(--status-success-text)" }}
+              title="New payments appear automatically"
+            >
+              <span
+                className="w-2 h-2 rounded-full animate-pulse"
+                style={{ background: "var(--status-success-text)" }}
+              />
+              Live
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={load}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+              theme === "dark"
+                ? "bg-brand-link hover:bg-brand-accent-strong text-white"
+                : "bg-brand-link hover:bg-brand-accent-strong text-white"
+            }`}
+          >
+            <FaSync /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -230,9 +288,8 @@ export default function PaymentsTab({ theme }: PaymentsTabProps) {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-xs border ${
-                          STATUS_PILL[p.status ?? "success"] ?? STATUS_PILL.success
-                        }`}
+                        className="inline-block px-2 py-0.5 rounded-full text-xs border font-medium"
+                        style={STATUS_PILL[p.status ?? "success"] ?? STATUS_PILL.success}
                       >
                         {p.status ?? "success"}
                       </span>
