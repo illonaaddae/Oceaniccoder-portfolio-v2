@@ -19,6 +19,7 @@ const METHOD_LABEL: Record<string, string> = {
   card: "Card",
   momo: "Mobile Money",
   bank: "Bank Transfer",
+  apple_pay: "Apple Pay",
 };
 
 const STATUS_PILL: Record<string, string> = {
