@@ -72,10 +72,39 @@ describe("ApplePayPayment", () => {
   beforeEach(() => {
     delete (window as unknown as Mutable).Paystack;
     delete (window as unknown as Mutable).PaystackPop;
+    // jsdom has no ApplePaySession; the component now gates on it, so tests
+    // that expect a mount attempt must opt in.
+    (window as unknown as Mutable).ApplePaySession = class {};
+  });
+
+  afterEach(() => {
+    delete (window as unknown as Mutable).ApplePaySession;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  // Guards the blast radius: ApplePayPayment is mounted-but-hidden on every
+  // payment page view, so without this gate every visitor on every browser
+  // would load Inline v2 and exercise the PaystackPop global swap that the card
+  // and momo flows must survive.
+  it("does not load Paystack v2 at all when the device has no Apple Pay API", async () => {
+    delete (window as unknown as Mutable).ApplePaySession;
+    const appendChild = stubScriptLoad({ elements: { applePay: true } });
+    const onAvailability = vi.fn();
+
+    render(
+      <ApplePayPayment invoice={invoice} onSuccess={() => {}} onAvailability={onAvailability} />,
+    );
+
+    await waitFor(() => expect(onAvailability).toHaveBeenCalledWith(false));
+
+    const scriptAppends = appendChild.mock.calls.filter(
+      ([node]) => (node as unknown as ScriptLike).nodeName === "SCRIPT",
+    );
+    expect(scriptAppends).toHaveLength(0);
+    expect((window as unknown as Mutable).Paystack).toBeUndefined();
   });
 
   it("reports available when Paystack mounts the Apple Pay button", async () => {
