@@ -178,6 +178,7 @@ export default function InquiryPage() {
     notes: serviceParam ? `Interested in the "${serviceParam}" package.` : "",
   });
   const [status, setStatus] = useState("idle");
+  const [submitError, setSubmitError] = useState(null);
   const [errors, setErrors] = useState({});
   const [step, setStep] = useState(1);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -343,7 +344,13 @@ export default function InquiryPage() {
         body: JSON.stringify({ name: form.name, email: form.email, projectType: resolvedType }),
       }).catch(() => {});
       setStatus("success");
-    } catch {
+    } catch (err) {
+      // Do not swallow this. A bare `catch {}` here hid a real outage: the form
+      // sent `preferredContact` with no matching Appwrite attribute, so every
+      // submission from 2026-05-20 onward was rejected and every lead was lost,
+      // with nothing but a generic message and no console trace to go on.
+      console.error("Inquiry submission failed:", err);
+      setSubmitError(err instanceof Error ? err.message : "Unknown error");
       setStatus("error");
     }
   };
@@ -767,7 +774,20 @@ export default function InquiryPage() {
             )}
 
             {status === "error" && (
-              <p className="text-sm text-red-400">Something went wrong. Please try again.</p>
+              <div className="text-sm space-y-1">
+                <p className="text-red-400">
+                  Something went wrong and your enquiry was not sent. Please try again, or email{" "}
+                  <a href="mailto:illona@oceaniccoder.dev" className="underline">
+                    illona@oceaniccoder.dev
+                  </a>{" "}
+                  directly so your details are not lost.
+                </p>
+                {submitError && (
+                  <p className="text-xs" style={{ color: "var(--text-accent)" }}>
+                    Details: {submitError}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Navigation buttons */}

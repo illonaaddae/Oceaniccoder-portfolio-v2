@@ -188,6 +188,11 @@ export interface ProjectInquiry {
   name: string;
   email: string;
   phone?: string;
+  // Email | Phone | WhatsApp. The form has collected this since 2026-05-20, but
+  // the Appwrite attribute was missing until 2026-07-27, which rejected every
+  // submission in between. Declared here so the mismatch is at least visible to
+  // TypeScript — note InquiryPage is .jsx, so it is not type-checked at source.
+  preferredContact?: string;
   projectType: string;
   description: string;
   features?: string[];
