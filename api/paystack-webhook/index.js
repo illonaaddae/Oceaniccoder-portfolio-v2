@@ -175,6 +175,21 @@ module.exports = async function (context, req) {
           context.log.info(`paystack-webhook: payment record created for ${invoiceNumber}`);
         } catch (pErr) {
           context.log.error("paystack-webhook: failed to create payment record:", pErr.message);
+          // A swallowed failure here leaves the invoice paid with no audit-log row, so the
+          // Payments tab under-reports revenue with no visible sign. Alert the admin.
+          if (resendKey && adminEmail) {
+            await sendEmail(
+              resendKey,
+              fromEmail,
+              adminEmail,
+              `Action needed: payment record failed for invoice ${invoiceNumber}`,
+              `<p>Paystack payment for invoice <strong>${invoiceNumber}</strong> succeeded and the invoice was marked paid, but the audit-log record failed to save.</p>` +
+                `<p>Error: <code>${pErr.message}</code></p>` +
+                `<p>Amount: <strong>${sym}${amountPaid.toFixed(2)} ${currency}</strong>. Reference: <code>${data.reference || "n/a"}</code>.</p>` +
+                `<p>This payment is missing from the Payments tab. Run <code>scripts/backfill-payments.mjs</code> to repair.</p>`,
+              context.log,
+            );
+          }
         }
 
         // Send confirmation to client

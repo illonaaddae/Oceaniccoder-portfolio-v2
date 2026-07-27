@@ -67,6 +67,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<Record<string, boolean>>({});
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
 
   const load = useCallback(async () => {
@@ -92,6 +93,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
     if (!ok) return;
 
     setConfirming((prev) => ({ ...prev, [inv.$id]: true }));
+    setPaymentError(null);
     try {
       await updateInvoice(inv.$id, { status: "paid" });
 
@@ -111,7 +113,14 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
         });
       } catch (payErr) {
         // Don't block flow if payment record fails — invoice update already succeeded.
+        // Surface it though: a swallowed failure here leaves the invoice paid with no
+        // audit-log row, and the Payments tab silently under-reports revenue.
         console.error("Failed to create payment record:", payErr);
+        setPaymentError(
+          `Invoice ${inv.invoiceNumber} was marked paid, but the payment record failed to save: ` +
+            `${payErr instanceof Error ? payErr.message : "unknown error"}. ` +
+            `It will be missing from the Payments tab — re-run scripts/backfill-payments.mjs to repair.`,
+        );
       }
 
       const items: { description: string; quantity: number; unitPrice: number }[] =
@@ -242,6 +251,25 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
           <button
             type="button"
             onClick={() => setEmailError(null)}
+            className="text-xs opacity-70 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {paymentError && (
+        <div
+          className="rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-between gap-3"
+          style={{
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.4)",
+            color: "#f87171",
+          }}
+        >
+          <span>{paymentError}</span>
+          <button
+            type="button"
+            onClick={() => setPaymentError(null)}
             className="text-xs opacity-70 hover:opacity-100"
           >
             ✕
