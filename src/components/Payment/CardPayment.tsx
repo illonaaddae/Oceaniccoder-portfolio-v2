@@ -25,7 +25,14 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 function loadPaystackScript(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if ((window as unknown as Record<string, unknown>).PaystackPop) {
+    // Check for v1's `.setup()` specifically, not just the global. Inline v2
+    // (loaded by ApplePayPayment) also defines `PaystackPop`, as a class with
+    // `newTransaction()` and no `.setup()` — a bare existence check would
+    // short-circuit here and then call undefined.
+    const existing = (window as unknown as Record<string, unknown>).PaystackPop as
+      | { setup?: unknown }
+      | undefined;
+    if (existing && typeof existing.setup === "function") {
       resolve();
       return;
     }

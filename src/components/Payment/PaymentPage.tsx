@@ -4,6 +4,7 @@ import { apiUrl } from "@/utils/apiUrl";
 import CardPayment from "./CardPayment";
 import MomoPayment from "./MomoPayment";
 import BankTransfer from "./BankTransfer";
+import ApplePayPayment from "./ApplePayPayment";
 
 // Safe public invoice fields returned by /api/get-invoice
 interface PublicInvoice {
@@ -17,7 +18,7 @@ interface PublicInvoice {
   estimatedDelivery: string | null;
 }
 
-type PaymentTab = "card" | "momo" | "bank";
+type PaymentTab = "card" | "momo" | "bank" | "applepay";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GHS: "₵",
@@ -254,6 +255,9 @@ const PaymentPage: React.FC = () => {
   const [slowWarning, setSlowWarning] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PaymentTab>("card");
+  // Stays false until Paystack confirms the Apple Pay button actually mounted,
+  // so the tab never appears on Chrome/Android or before the channel is live.
+  const [applePayAvailable, setApplePayAvailable] = useState(false);
   const [paid, setPaid] = useState(false);
 
   const isSuccess = isSuccessParam || paid;
@@ -264,6 +268,10 @@ const PaymentPage: React.FC = () => {
   // invoice.status="paid" and a payments collection row.
   const handlePaymentSuccess = useCallback(() => {
     setPaid(true);
+  }, []);
+
+  const handleApplePayAvailability = useCallback((available: boolean) => {
+    setApplePayAvailable(available);
   }, []);
 
   const doFetch = useCallback(async () => {
@@ -424,6 +432,14 @@ const PaymentPage: React.FC = () => {
                       <TabButton active={activeTab === "bank"} onClick={() => setActiveTab("bank")}>
                         Bank Transfer
                       </TabButton>
+                      {applePayAvailable && (
+                        <TabButton
+                          active={activeTab === "applepay"}
+                          onClick={() => setActiveTab("applepay")}
+                        >
+                          Apple Pay
+                        </TabButton>
+                      )}
                     </div>
 
                     {/* Tab content */}
@@ -452,6 +468,25 @@ const PaymentPage: React.FC = () => {
                       />
                     )}
                     {activeTab === "bank" && <BankTransfer invoiceNumber={invoice.invoiceNumber} />}
+
+                    {/* Always mounted, hidden until selected. Paystack's
+                        paymentRequest() has to run for us to learn whether Apple
+                        Pay is even available, and it injects its button into the
+                        container as a side effect — so this cannot be gated on
+                        the tab being active without a chicken-and-egg problem. */}
+                    <div className={activeTab === "applepay" ? "" : "hidden"} aria-live="polite">
+                      <ApplePayPayment
+                        invoice={{
+                          invoiceNumber: invoice.invoiceNumber,
+                          clientEmail: invoice.clientEmail,
+                          total: invoice.total,
+                          currency: invoice.currency,
+                          clientName: invoice.clientName,
+                        }}
+                        onSuccess={handlePaymentSuccess}
+                        onAvailability={handleApplePayAvailability}
+                      />
+                    </div>
                   </div>
                 )}
               </>

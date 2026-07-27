@@ -83,15 +83,20 @@ To run manually: `npx lint-staged`
 
 All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never reads them at runtime.
 
-| Variable                    | Purpose                             |
-| --------------------------- | ----------------------------------- |
-| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint               |
-| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project                    |
-| `VITE_APPWRITE_DATABASE_ID` | Appwrite database                   |
-| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket             |
-| `VITE_ADMIN_EMAIL`          | Admin account email (Appwrite Auth) |
+| Variable                    | Purpose                                    |
+| --------------------------- | ------------------------------------------ |
+| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint                      |
+| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project                           |
+| `VITE_APPWRITE_DATABASE_ID` | Appwrite database                          |
+| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket                    |
+| `VITE_ADMIN_EMAIL`          | Admin account email (Appwrite Auth)        |
+| `VITE_PAYSTACK_PUBLIC_KEY`  | Paystack Inline JS (card, momo, Apple Pay) |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
+
+> These tables are not exhaustive — the code reads more `VITE_*` and Azure vars
+> than are listed here. Grep `VITE_` in `src/` and `process.env.` in `api/`
+> before setting up a new environment.
 
 Azure Function runtime vars (set in **Azure Portal → Static Web App → Configuration → Application settings**):
 
@@ -102,6 +107,7 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `GOOGLE_REFRESH_TOKEN` | Long-lived refresh token         |
 | `GOOGLE_CALENDAR_ID`   | Calendar ID (usually your email) |
 | `OPENAI_API_KEY`       | Chatbot (GPT-4o-mini)            |
+| `PAYSTACK_SECRET_KEY`  | Webhook signature verification   |
 
 ---
 
