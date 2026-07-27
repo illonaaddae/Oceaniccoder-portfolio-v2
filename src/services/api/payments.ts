@@ -17,7 +17,7 @@ export interface PaymentRecord {
   clientEmail: string;
   amount: number;
   currency: string;
-  method: "card" | "momo" | "bank";
+  method: "card" | "momo" | "bank" | "apple_pay";
   paystackReference?: string;
   paidAt?: string;
   status?: "success" | "pending" | "failed";

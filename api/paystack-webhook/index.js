@@ -155,10 +155,14 @@ module.exports = async function (context, req) {
 
         // Create payment record (audit log)
         try {
-          // Paystack channel: "card", "mobile_money", "bank", "bank_transfer", etc.
+          // Paystack channel: "card", "mobile_money", "bank", "bank_transfer",
+          // "apple_pay", etc. Apple Pay is checked first — it is a card wallet,
+          // so if Paystack ever reports it as a card variant the substring match
+          // on "apple" still wins and we keep the distinction in reporting.
           const channel = (data.channel || "").toLowerCase();
           let method = "card";
-          if (channel.includes("mobile")) method = "momo";
+          if (channel.includes("apple")) method = "apple_pay";
+          else if (channel.includes("mobile")) method = "momo";
           else if (channel.includes("bank")) method = "bank";
 
           await db.createDocument(DATABASE_ID, PAYMENTS_COLLECTION_ID, sdk.ID.unique(), {
