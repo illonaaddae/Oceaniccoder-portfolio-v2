@@ -15,11 +15,21 @@ import {
   hasAppwriteSession,
   logoutAdmin,
 } from "./services/api";
+import { prefetchRoutes } from "./utils/prefetchRoutes";
+import { PREFETCHABLE_ROUTES } from "./routes/lazyComponents";
 
 function App() {
   const { theme, toggleTheme } = useTheme();
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
+  // Warm public route chunks once idle. A deploy deletes the content-hashed
+  // files an already-open tab points at, and Azure Static Web Apps has no asset
+  // retention to prevent that — so getting the modules into the registry early
+  // is what actually avoids the "Something went wrong" screen mid-session.
+  useEffect(() => {
+    prefetchRoutes(PREFETCHABLE_ROUTES);
+  }, []);
 
   // Auth gate: Appwrite server-side session is the single source of truth.
   // The legacy localStorage hash fallback was removed (it required exposing
