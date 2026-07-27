@@ -9,7 +9,7 @@
 //
 // Source of truth for revenue charts in AnalyticsTab is still the `invoices`
 // collection (status === "paid"). This `payments` collection is the audit log.
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { databases, DATABASE_ID, COLLECTIONS, ID, Query, client } from "./client";
 
 export interface PaymentRecord {
   invoiceNumber: string;
@@ -48,4 +48,19 @@ export async function getPayments(): Promise<Payment[]> {
     Query.orderDesc("$createdAt"),
   ]);
   return response.documents as unknown as Payment[];
+}
+
+export const PAYMENTS_CHANNEL = `databases.${DATABASE_ID}.collections.${COLLECTIONS.PAYMENTS}.documents`;
+
+/**
+ * Subscribes to any create/update/delete on the payments collection and invokes
+ * `onChange`. Returns the unsubscribe function.
+ *
+ * This is what makes a webhook-written payment appear without hitting Refresh:
+ * /api/paystack-webhook writes server-side, so the browser has no other way to
+ * learn about it. Realtime honours collection permissions, so this only
+ * delivers to an authenticated admin session.
+ */
+export function subscribeToPayments(onChange: () => void): () => void {
+  return client.subscribe(PAYMENTS_CHANNEL, () => onChange());
 }

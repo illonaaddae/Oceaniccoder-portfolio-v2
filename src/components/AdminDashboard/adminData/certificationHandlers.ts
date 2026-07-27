@@ -4,7 +4,7 @@ import type { LoadDataFn } from "./types";
 
 export function createCertificationHandlers(
   loadData: LoadDataFn,
-  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean>,
+  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean | string>,
 ) {
   const handleAddCertification = async (certForm: Omit<Certification, "$id" | "$createdAt">) => {
     try {

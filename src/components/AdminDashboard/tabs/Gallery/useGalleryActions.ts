@@ -7,7 +7,7 @@ interface UseGalleryActionsParams {
   onToggleVisibility?: (id: string, isPublic: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   toast: { success: (msg: string) => void; error: (msg: string) => void };
-  confirm?: (opts: { message: string; description?: string } | string) => Promise<boolean>;
+  confirm?: (opts: { message: string; description?: string } | string) => Promise<boolean | string>;
 }
 
 export function useGalleryActions({
