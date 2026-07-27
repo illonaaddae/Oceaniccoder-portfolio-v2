@@ -54,11 +54,13 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = (): void => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-    });
+    // Reload rather than just clearing state. The most common way to land here
+    // is a failed lazy-route chunk after a deploy, and clearing state re-renders
+    // the same component, retries the same dead URL, and throws again — so the
+    // button appeared to do nothing at all. A reload fetches the current
+    // index.html and its current chunk hashes, which actually recovers.
+    // Nothing of value is lost: this only runs from the error screen.
+    window.location.reload();
   };
 
   handleGoHome = (): void => {
