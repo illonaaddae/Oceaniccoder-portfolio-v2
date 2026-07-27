@@ -101,6 +101,17 @@ const ApplePayPayment: React.FC<ApplePayPaymentProps> = ({
 
     let cancelled = false;
 
+    // Apple Pay on the web is only possible where the ApplePaySession API
+    // exists — Safari and iOS. Bailing here means the majority of visitors
+    // never download Inline v2 at all, and never exercise the PaystackPop
+    // global swap that the card and momo flows have to be protected from.
+    // This is a capability check, not user-agent sniffing; Paystack's
+    // onElementsMount still has the final say for devices that pass it.
+    if (!("ApplePaySession" in window)) {
+      onAvailability(false);
+      return;
+    }
+
     const mount = async () => {
       try {
         const popup = await loadPaystackV2();
