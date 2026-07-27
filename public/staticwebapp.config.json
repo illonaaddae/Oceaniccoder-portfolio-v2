@@ -10,7 +10,8 @@
       "/*.png",
       "/*.webp",
       "/*.json",
-      "/*.txt"
+      "/*.txt",
+      "/.well-known/*"
     ]
   },
   "mimeTypes": {

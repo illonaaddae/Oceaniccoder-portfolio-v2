@@ -11,7 +11,8 @@
       "/*.webp",
       "/*.json",
       "/*.txt",
-      "/api/*"
+      "/api/*",
+      "/.well-known/*"
     ]
   },
   "routes": [
