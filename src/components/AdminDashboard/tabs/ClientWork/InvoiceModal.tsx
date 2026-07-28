@@ -140,7 +140,11 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
         });
       }
 
-      await fetch(apiUrl("/api/send-invoice"), {
+      // fetch only rejects on a network failure — an HTTP 502/503 resolves
+      // normally. Without checking res.ok, a Resend outage or a missing
+      // RESEND_API_KEY showed "Sent!" while no invoice email ever left, which is
+      // exactly how "the invoice doesn't go" looked with no error anywhere.
+      const emailRes = await fetch(apiUrl("/api/send-invoice"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,12 +166,24 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
         }),
       });
 
+      if (!emailRes.ok) {
+        const body = (await emailRes.json().catch(() => ({}))) as { error?: string };
+        // The invoice record itself saved, so say so — otherwise the admin
+        // re-sends and creates a duplicate.
+        setError(
+          `Invoice ${invoiceNumber} was saved, but the email failed to send ` +
+            `(${emailRes.status}: ${body.error ?? "unknown error"}). ` +
+            `The client has NOT been notified — check Resend, then resend from the invoice.`,
+        );
+        return;
+      }
+
       setSent(true);
-    } catch {
+    } catch (err) {
+      console.error("Invoice send failed:", err);
       setError(
-        isUpdate
-          ? "Failed to update invoice. Please try again."
-          : "Failed to send invoice. Please try again.",
+        (isUpdate ? "Failed to update invoice: " : "Failed to send invoice: ") +
+          (err instanceof Error ? err.message : "unknown error"),
       );
     } finally {
       setSending(false);

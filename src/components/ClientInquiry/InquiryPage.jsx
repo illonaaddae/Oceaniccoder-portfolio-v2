@@ -232,7 +232,7 @@ export default function InquiryPage() {
 
   const validateStep5 = () => {
     const e = {};
-    if (!termsAccepted) e.terms = "Please accept the terms before submitting";
+    if (!termsAccepted) e.terms = "Please tick the confirmation box to send your request";
     return e;
   };
 
@@ -244,12 +244,23 @@ export default function InquiryPage() {
     ...validateStep5(),
   });
 
+  const ERROR_ORDER = ["name", "email", "projectType", "description", "domainExtension", "terms"];
+
   const scrollToFirstError = (errs) => {
-    const order = ["name", "email", "projectType", "description", "domainExtension", "terms"];
-    const firstErrorKey = order.find((k) => errs[k]);
+    const firstErrorKey = ERROR_ORDER.find((k) => errs[k]);
     if (firstErrorKey && fieldRefs[firstErrorKey]?.current) {
       fieldRefs[firstErrorKey].current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  };
+
+  // Say what is actually wrong. "Please fix the errors" tells someone who simply
+  // did not tick the confirmation box nothing about what to do — and on the
+  // final step that box is usually the only thing missing.
+  const describeErrors = (errs) => {
+    const keys = ERROR_ORDER.filter((k) => errs[k]);
+    if (keys.length === 1) return errs[keys[0]];
+    if (keys.length > 1) return `${errs[keys[0]]} (and ${keys.length - 1} more to fix)`;
+    return "Please check the form and try again.";
   };
 
   const validateForStep = (s) => {
@@ -265,7 +276,7 @@ export default function InquiryPage() {
     if (Object.keys(errs).length) {
       setErrors(errs);
       scrollToFirstError(errs);
-      toast.error("Please fix the errors before continuing.");
+      toast.error(describeErrors(errs));
       return;
     }
     setErrors({});
@@ -308,7 +319,7 @@ export default function InquiryPage() {
       else if (errs.domainExtension) setStep(3);
       else if (errs.terms) setStep(5);
       setTimeout(() => scrollToFirstError(errs), 0);
-      toast.error("Please fix the errors before submitting.");
+      toast.error(describeErrors(errs));
       return;
     }
     setStatus("loading");
