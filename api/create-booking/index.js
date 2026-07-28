@@ -235,7 +235,7 @@ async function sendNotificationEmail(
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
       <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
-        <h1 style="margin:0;color:#fff;font-size:20px">📅 New Booking — ${label}</h1>
+        <h1 style="margin:0;color:#fff;font-size:20px">📅 New Booking: ${label}</h1>
       </div>
       <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
         <table style="width:100%;border-collapse:collapse;font-size:14px">
@@ -265,7 +265,7 @@ async function sendNotificationEmail(
     {
       from: `OceanicCoder Bookings <${fromEmail}>`,
       to: [toEmail],
-      subject: `New Booking: ${label} with ${name} — ${preferredDate} at ${preferredTime}`,
+      subject: `New Booking: ${label} with ${name} on ${preferredDate} at ${preferredTime}`,
       html,
     },
   );
@@ -304,7 +304,7 @@ async function sendBookerZoomEmail(
         <div style="margin-top:24px">
           <a href="${zoomLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Zoom Meeting →</a>
         </div>
-        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link — you'll need it to join the call.</p>
+        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link. You'll need it to join the call.</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
         <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
       </div>
@@ -318,7 +318,7 @@ async function sendBookerZoomEmail(
     {
       from: `Illona Addae (OceanicCoder) <${fromEmail}>`,
       to: [email],
-      subject: `Your Zoom Meeting is Confirmed — ${preferredDate} at ${preferredTime}`,
+      subject: `Your Zoom Meeting is Confirmed for ${preferredDate} at ${preferredTime}`,
       html,
     },
   );
@@ -357,7 +357,7 @@ async function sendBookerMeetEmail(
         <div style="margin-top:24px">
           <a href="${meetLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Google Meet →</a>
         </div>
-        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link — you'll need it to join the call.</p>
+        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link. You'll need it to join the call.</p>
         ${calendarEventLink ? `<p style="margin-top:8px;font-size:13px"><a href="${calendarEventLink}" style="color:#0a6e7d">Add to Google Calendar</a></p>` : ""}
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
         <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
@@ -372,7 +372,7 @@ async function sendBookerMeetEmail(
     {
       from: `Illona Addae (OceanicCoder) <${fromEmail}>`,
       to: [email],
-      subject: `Your Google Meet is Confirmed — ${preferredDate} at ${preferredTime}`,
+      subject: `Your Google Meet is Confirmed for ${preferredDate} at ${preferredTime}`,
       html,
     },
   );
