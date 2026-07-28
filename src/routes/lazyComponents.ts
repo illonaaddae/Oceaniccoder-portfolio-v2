@@ -37,6 +37,30 @@ const ClientInquiry = lazyWithReload(
 );
 const PaymentPage = lazyWithReload("PaymentPage", () => import("@/components/Payment/PaymentPage"));
 
+/**
+ * Route chunks worth warming on idle, so an open tab already holds them in the
+ * module registry before a deploy deletes the files they point at. See
+ * prefetchRoutes for the reasoning.
+ *
+ * Public routes only. The admin bundle is the largest chunk in the build and is
+ * useless to the visitors who make up nearly all traffic, so it is left out —
+ * lazyWithReload still covers it.
+ */
+export const PREFETCHABLE_ROUTES: (() => Promise<unknown>)[] = [
+  // Ordered by how costly the failure is: losing a payment or a lead matters
+  // more than a slow About page.
+  () => import("@/components/Payment/PaymentPage"),
+  () => import("@/components/ClientInquiry/InquiryPage"),
+  () => import("@/components/BookingSection"),
+  () => import("@/components/ContactSection"),
+  () => import("@/components/ServicesSection"),
+  () => import("@/components/AboutSection"),
+  () => import("@/components/BlogSection"),
+  () => import("@/components/BlogPost"),
+  () => import("@/components/ProjectCaseStudy"),
+  () => import("@/components/NotFound"),
+];
+
 export {
   Home,
   Skills,
