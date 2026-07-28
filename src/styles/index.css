@@ -186,6 +186,19 @@ body[data-theme="light"] .hero-section {
   box-sizing: border-box;
 }
 
+/* overflow-x must be clamped on BOTH html and body.
+ *
+ * On body alone, iOS Safari does not reliably clip: the layout viewport stays
+ * wider than the visual viewport whenever any child overflows horizontally. Taps
+ * are then hit-tested against the wider layout viewport, so they land offset from
+ * where elements appear — which reads as "you have to scroll before you can tap
+ * anything". Scrolling resyncs the two viewports, which is why it seems to fix
+ * itself. Constraining html as well keeps the two in step. */
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   font-family:
     "Ysabeau Office",
@@ -196,6 +209,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  max-width: 100%;
+  position: relative;
   background: linear-gradient(
     135deg,
     var(--bg-primary) 0%,
