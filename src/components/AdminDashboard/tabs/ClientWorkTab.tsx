@@ -100,6 +100,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
   } | null>(null);
   const [selectedInquiry, setSelectedInquiry] = useState<ProjectInquiry | null>(null);
   const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
+  const [statusEmailError, setStatusEmailError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -129,16 +130,44 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     if (status === "reviewed" || status === "quoted" || status === "declined") {
       const inq = inquiries.find((i) => i.$id === id);
       if (inq) {
-        void fetch(apiUrl("/api/send-inquiry-status"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status,
-            clientName: inq.name,
-            clientEmail: inq.email,
-            projectType: inq.projectType,
-          }),
-        });
+        // Was `void fetch(...)` — the response was discarded, so a failed status
+        // email left no trace anywhere. The status still flipped in the UI, so it
+        // looked like the client had been notified when they had not.
+        setStatusEmailError(null);
+        try {
+          const res = await fetch(apiUrl("/api/send-inquiry-status"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              status,
+              clientName: inq.name,
+              clientEmail: inq.email,
+              projectType: inq.projectType,
+            }),
+          });
+          if (!res.ok) {
+            const body = (await res.json().catch(() => ({}))) as { error?: string };
+            setStatusEmailError(
+              `Status saved as "${status}", but the notification email to ${inq.email} failed ` +
+                `(${res.status}: ${body.error ?? "unknown error"}). They have NOT been told.`,
+            );
+          } else {
+            const body = (await res.json().catch(() => ({}))) as { skipped?: boolean };
+            // The function returns { skipped: true } for a status with no
+            // template — a silent no-op that otherwise looks like success.
+            if (body.skipped) {
+              setStatusEmailError(
+                `No email template exists for status "${status}" — ${inq.email} was not notified.`,
+              );
+            }
+          }
+        } catch (err) {
+          console.error("Status email failed:", err);
+          setStatusEmailError(
+            `Status saved as "${status}", but the notification email to ${inq.email} could not be ` +
+              `sent: ${err instanceof Error ? err.message : "unknown error"}. They have NOT been told.`,
+          );
+        }
       }
     }
   };
@@ -211,6 +240,25 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
 
   return (
     <div className="space-y-6">
+      {statusEmailError && (
+        <div
+          className="rounded-xl px-4 py-3 text-sm font-medium flex items-start justify-between gap-3"
+          style={{
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.4)",
+            color: "#f87171",
+          }}
+        >
+          <span>{statusEmailError}</span>
+          <button
+            type="button"
+            onClick={() => setStatusEmailError(null)}
+            className="text-xs opacity-70 hover:opacity-100 flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
