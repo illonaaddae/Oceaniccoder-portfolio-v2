@@ -6,7 +6,7 @@ import NotFoundContent from "./NotFound/NotFoundContent";
 import NotFoundActions from "./NotFound/NotFoundActions";
 
 const NotFound: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center px-4 py-16 bg-[var(--bg-primary)]">
+  <div className="min-h-dvh flex items-center justify-center px-4 py-16 bg-[var(--bg-primary)]">
     <motion.div
       className="max-w-2xl w-full text-center"
       variants={containerVariants}

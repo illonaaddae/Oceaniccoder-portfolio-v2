@@ -54,7 +54,7 @@ const AdminPasswordReset: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen flex items-center justify-center p-4 ${
+      className={`min-h-dvh flex items-center justify-center p-4 ${
         dk
           ? "bg-gradient-to-br from-brand-dark-1 via-brand-dark-2 to-brand-dark-3"
           : "bg-gradient-to-br from-blue-50 via-white to-oceanic-50"

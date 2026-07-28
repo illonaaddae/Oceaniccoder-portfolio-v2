@@ -36,7 +36,7 @@ const BlogSection = () => {
   return (
     <section
       id="blog"
-      className="min-h-screen pt-28 pb-20 relative scroll-mt-24 sm:scroll-mt-28"
+      className="min-h-dvh pt-28 pb-20 relative scroll-mt-24 sm:scroll-mt-28"
       style={{ background: SECTION_BG }}
     >
       <Helmet>

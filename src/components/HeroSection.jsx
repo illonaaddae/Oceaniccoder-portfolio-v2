@@ -54,7 +54,7 @@ const HeroSection = () => {
   return (
     <section
       id="home"
-      className="min-h-screen relative overflow-hidden pt-28 hero-section"
+      className="min-h-dvh relative overflow-hidden pt-28 hero-section"
       style={{
         background:
           "linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--brand-ocean-1) 100%)",
@@ -74,7 +74,7 @@ const HeroSection = () => {
         <meta property="og:url" content="https://oceaniccoder.dev/" />
       </Helmet>
       <BackgroundElements />
-      <div className="container mx-auto px-6 relative z-10 flex flex-col min-h-screen justify-center">
+      <div className="container mx-auto px-6 relative z-10 flex flex-col min-h-dvh justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-7xl mx-auto w-full">
           <div className="text-center lg:text-left order-2 lg:order-1 space-y-6 lg:space-y-8">
             <HeroContent

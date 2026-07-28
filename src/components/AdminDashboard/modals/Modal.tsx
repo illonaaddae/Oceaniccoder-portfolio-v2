@@ -46,7 +46,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal Container - for proper centering */}
-      <div className="flex min-h-screen items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="flex min-h-dvh items-end sm:items-center justify-center p-0 sm:p-4">
         {/* Modal */}
         <div
           className={`relative w-full ${

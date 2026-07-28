@@ -84,10 +84,13 @@ describe("SupportButton", () => {
     expect(toggleButton).toBeInTheDocument();
   });
 
-  test("button is positioned at bottom-left", () => {
+  test("button is positioned at bottom-left, clear of the home-indicator inset", () => {
     const { container } = renderWithRouter(<SupportButton />);
 
     const wrapper = container.firstChild;
-    expect(wrapper).toHaveClass("fixed", "bottom-6", "left-6");
+    // bottom-safe, not bottom-6: a plain 24px offset put part of the tap target
+    // inside the iPhone home-indicator inset (34px), where the system takes the
+    // touch instead of the button.
+    expect(wrapper).toHaveClass("fixed", "bottom-safe", "left-6");
   });
 });
