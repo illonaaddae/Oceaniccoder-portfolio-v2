@@ -7,6 +7,12 @@ import { apiUrl } from "../../utils/apiUrl";
 import SelectDropdown from "./SelectDropdown";
 import { useToast } from "../AdminDashboard/useToastHook";
 import { ToastContainer } from "../AdminDashboard/Toast";
+import { saveDraft, loadDraft, clearDraft } from "../../utils/formDraft";
+
+// Bump DRAFT_VERSION whenever INITIAL_FORM changes shape, so an old draft is
+// discarded instead of restored into fields that no longer exist.
+const DRAFT_KEY = "inquiry-draft";
+const DRAFT_VERSION = 1;
 
 const PROJECT_TYPES = [
   "Portfolio Website",
@@ -173,15 +179,25 @@ export default function InquiryPage() {
   const serviceParam = searchParams.get("service");
   const toast = useToast();
 
+  // Read the saved draft once, before the initial render, so restoring does not
+  // flash empty fields first.
+  const restoredDraft = useRef(loadDraft(DRAFT_KEY, DRAFT_VERSION, Date.now())).current;
+
   const [form, setForm] = useState({
     ...INITIAL_FORM,
     notes: serviceParam ? `Interested in the "${serviceParam}" package.` : "",
+    // The draft wins over the URL-seeded note: it is what the visitor last had
+    // on screen, and it may already contain their own edits.
+    ...(restoredDraft?.form ?? {}),
   });
   const [status, setStatus] = useState("idle");
   const [submitError, setSubmitError] = useState(null);
   const [errors, setErrors] = useState({});
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(restoredDraft?.step ?? 1);
+  // Consent is deliberately NOT restored — the visitor should tick the
+  // confirmation box themselves rather than inherit it from a previous session.
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(Boolean(restoredDraft));
 
   const fieldRefs = {
     name: useRef(null),
@@ -198,6 +214,13 @@ export default function InquiryPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [status]);
+
+  // Persist the draft so a refresh — or the automatic reload that recovers from a
+  // stale chunk after a deploy — does not throw away everything typed so far.
+  useEffect(() => {
+    if (status === "success") return;
+    saveDraft(DRAFT_KEY, DRAFT_VERSION, { form, step }, Date.now());
+  }, [form, step, status]);
 
   // Validation per step
   const validateStep1 = () => {
@@ -354,6 +377,8 @@ export default function InquiryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name, email: form.email, projectType: resolvedType }),
       }).catch(() => {});
+      // Submitted successfully — drop the draft so a later visit starts clean.
+      clearDraft(DRAFT_KEY);
       setStatus("success");
     } catch (err) {
       // Do not swallow this. A bare `catch {}` here hid a real outage: the form
@@ -423,6 +448,38 @@ export default function InquiryPage() {
               Fill in the details below and I'll get back to you with a quote within 24 hours.
             </p>
           </div>
+
+          {/* Draft restored notice — say so rather than silently refilling the
+              form, and offer a way to start over. */}
+          {draftRestored && status !== "success" && (
+            <div
+              className="mb-6 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-3"
+              style={{
+                background: "var(--accent-teal-subtle)",
+                border: "1px solid var(--accent-teal-border)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <span>We brought back what you had already filled in.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  clearDraft(DRAFT_KEY);
+                  setForm({
+                    ...INITIAL_FORM,
+                    notes: serviceParam ? `Interested in the "${serviceParam}" package.` : "",
+                  });
+                  setStep(1);
+                  setErrors({});
+                  setTermsAccepted(false);
+                  setDraftRestored(false);
+                }}
+                className="underline flex-shrink-0 hover:opacity-80"
+              >
+                Start fresh
+              </button>
+            </div>
+          )}
 
           {/* Progress indicator */}
           <div className="mb-6" aria-label="Form progress">
