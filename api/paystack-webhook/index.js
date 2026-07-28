@@ -108,8 +108,22 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Azure Functions v3 provides rawBody as a string for signature verification
-  const rawBody = req.rawBody || JSON.stringify(req.body);
+  // Paystack signs with the secret of the mode the transaction was in, so a live
+  // key cannot verify a test-mode event and vice versa. Reporting only the
+  // prefix identifies a mode mix-up without exposing any secret material.
+  const keyMode = secretKey.startsWith("sk_live_")
+    ? "live"
+    : secretKey.startsWith("sk_test_")
+      ? "test"
+      : "unrecognised prefix";
+
+  // The signature must be computed over the exact bytes Paystack sent. Azure
+  // Functions v3 supplies rawBody for HTTP triggers; if it is ever absent,
+  // re-serialising req.body will almost never reproduce those bytes (key order
+  // and whitespace differ), so the HMAC silently will not match. Track which
+  // source was used so a mismatch says whether this was the reason.
+  const usedRawBody = typeof req.rawBody === "string" && req.rawBody.length > 0;
+  const rawBody = usedRawBody ? req.rawBody : JSON.stringify(req.body);
   const signature = req.headers && req.headers["x-paystack-signature"];
 
   if (!signature) {
@@ -125,11 +139,12 @@ module.exports = async function (context, req) {
   const sigMatch = sigBuf.length === expBuf.length && crypto.timingSafeEqual(expBuf, sigBuf);
 
   if (!sigMatch) {
-    // Either a spoofed request, or PAYSTACK_SECRET_KEY does not match the key
-    // that signed it (a live/test key mix-up does exactly this).
     await bail(
       "signature verification failed",
-      "either a spoofed request, or PAYSTACK_SECRET_KEY does not match the Paystack key that signed it",
+      `PAYSTACK_SECRET_KEY is a ${keyMode} key; ` +
+        `signature was computed over ${usedRawBody ? "the raw request body" : "a re-serialised body because req.rawBody was empty, which alone can cause this"}. ` +
+        `If the transaction was in the other mode, that is the cause — check the mode of this charge in Paystack. ` +
+        `Otherwise treat it as an unverified request and ignore it.`,
     );
     return;
   }
@@ -144,6 +159,18 @@ module.exports = async function (context, req) {
 
   const data = event.data || {};
   const metadata = data.metadata || {};
+
+  // Paystack reports which mode the charge was in. A test charge reaching a live
+  // key (or the reverse) usually fails the signature check above, but if it ever
+  // gets this far, recording a test payment as real revenue would be worse than
+  // skipping it.
+  if (data.domain && data.domain !== keyMode) {
+    await bail(
+      "charge mode does not match the configured key",
+      `charge was in ${data.domain} mode but PAYSTACK_SECRET_KEY is a ${keyMode} key — not recording it as revenue`,
+    );
+    return;
+  }
 
   // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp)
   let invoiceNumber =
