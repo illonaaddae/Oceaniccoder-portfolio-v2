@@ -68,7 +68,7 @@ const TEMPLATES = {
     },
     heading: (name) => `Great news, ${name}!`,
     body: (name, pt) =>
-      `I've carefully reviewed your <strong style="color:#f1f5f9;">${pt}</strong> project and prepared a detailed proposal and pricing just for you. Check your inbox for the invoice — it includes a full breakdown of deliverables, timeline, and payment options.`,
+      `I've carefully reviewed your <strong style="color:#f1f5f9;">${pt}</strong> project and prepared a detailed proposal and pricing just for you. Check your inbox for the invoice. It includes a full breakdown of deliverables, timeline, and payment options.`,
     note: "Questions about the proposal? Just reply to this email.",
   },
   declined: {
@@ -84,7 +84,7 @@ const TEMPLATES = {
     },
     heading: (name) => `Hi ${name},`,
     body: (name, pt) =>
-      `Thank you so much for considering me for your <strong style="color:#f1f5f9;">${pt}</strong> project — I really appreciate you taking the time to reach out. Unfortunately, I'm not able to take on new projects at this time due to existing commitments.`,
+      `Thank you so much for considering me for your <strong style="color:#f1f5f9;">${pt}</strong> project. I really appreciate you taking the time to reach out. Unfortunately, I'm not able to take on new projects at this time due to existing commitments.`,
     note: "I hope we get the chance to work together in the future. Feel free to reach out again!",
   },
 };

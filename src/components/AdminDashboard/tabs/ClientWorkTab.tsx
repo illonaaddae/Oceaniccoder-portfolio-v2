@@ -644,7 +644,11 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
 
       {selectedInquiry && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          // z-[100] matches the shared Modal component. At z-50 this sat BELOW
+          // the mobile sidebar toggle (z-[60]) and level with the Chatbot button
+          // (z-50, later in the tree), so on a phone the hamburger covered the
+          // modal header and the chat button covered its content.
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
           style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
           onClick={(e) => e.target === e.currentTarget && setSelectedInquiry(null)}
         >
@@ -653,12 +657,14 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
             style={{
               background: "var(--bg-secondary)",
               border: "1px solid var(--border-subtle)",
-              maxHeight: "90vh",
+              // dvh, not vh: on iOS Safari vh includes the URL bar, so 90vh can
+              // exceed the visible viewport and push the action buttons off screen.
+              maxHeight: "90dvh",
             }}
           >
             {/* Modal header */}
             <div
-              className="px-6 py-4 flex items-center justify-between"
+              className="px-4 sm:px-6 py-4 flex items-center justify-between"
               style={{
                 background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
               }}
@@ -686,7 +692,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               {/* Contact */}
               <div
                 className="flex flex-wrap gap-3 text-xs"

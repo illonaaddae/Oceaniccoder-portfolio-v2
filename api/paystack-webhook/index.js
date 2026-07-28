@@ -69,10 +69,42 @@ module.exports = async function (context, req) {
     context.res = { status: 200, headers: CORS, body: JSON.stringify({ received: true }) };
   };
 
+  // Read email config up front so a bail-out can still report itself. Previously
+  // these were read below the signature checks, so an early return told nobody.
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
+  const adminEmail = process.env.RESEND_TO_EMAIL;
+
+  /**
+   * Abandon processing, but tell someone first.
+   *
+   * Every failure path here answers Paystack with 200 (it requires that) and used
+   * to leave only a log line. The result was a real charge where the invoice
+   * stayed "sent", no payment record was written and no email went out, with
+   * nothing anywhere to say why. Money moves through this function; it must not
+   * fail quietly.
+   */
+  const bail = async (reason, detail) => {
+    context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}`);
+    if (resendKey && adminEmail) {
+      await sendEmail(
+        resendKey,
+        fromEmail,
+        adminEmail,
+        "Action needed: a Paystack webhook was not processed",
+        `<p>A Paystack webhook arrived but could not be processed, so an invoice may have been paid without being recorded.</p>` +
+          `<p>Reason: <strong>${reason}</strong></p>` +
+          (detail ? `<p>Detail: <code>${detail}</code></p>` : "") +
+          `<p>Check the Payments tab against the Paystack dashboard, and mark the invoice paid by hand if the money did arrive.</p>`,
+        context.log,
+      );
+    }
+    ok();
+  };
+
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
-    context.log.warn("paystack-webhook: PAYSTACK_SECRET_KEY not set");
-    ok();
+    await bail("PAYSTACK_SECRET_KEY is not set in Azure configuration");
     return;
   }
 
@@ -81,8 +113,7 @@ module.exports = async function (context, req) {
   const signature = req.headers && req.headers["x-paystack-signature"];
 
   if (!signature) {
-    context.log.warn("paystack-webhook: missing x-paystack-signature header");
-    ok();
+    await bail("request had no x-paystack-signature header");
     return;
   }
 
@@ -94,8 +125,12 @@ module.exports = async function (context, req) {
   const sigMatch = sigBuf.length === expBuf.length && crypto.timingSafeEqual(expBuf, sigBuf);
 
   if (!sigMatch) {
-    context.log.warn("paystack-webhook: signature mismatch — possible spoofed request");
-    ok();
+    // Either a spoofed request, or PAYSTACK_SECRET_KEY does not match the key
+    // that signed it (a live/test key mix-up does exactly this).
+    await bail(
+      "signature verification failed",
+      "either a spoofed request, or PAYSTACK_SECRET_KEY does not match the Paystack key that signed it",
+    );
     return;
   }
 
@@ -116,8 +151,10 @@ module.exports = async function (context, req) {
     (data.reference && data.reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
 
   if (!invoiceNumber) {
-    context.log.warn("paystack-webhook: could not determine invoiceNumber from event");
-    ok();
+    await bail(
+      "could not determine which invoice this payment belongs to",
+      `reference: ${data.reference || "none"}`,
+    );
     return;
   }
 
@@ -126,9 +163,6 @@ module.exports = async function (context, req) {
   const sym = currency === "GHS" ? "₵" : currency;
 
   const apiKey = process.env.APPWRITE_API_KEY;
-  const resendKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
-  const adminEmail = process.env.RESEND_TO_EMAIL;
 
   // Update invoice status in Appwrite
   if (apiKey) {
@@ -220,13 +254,22 @@ module.exports = async function (context, req) {
           );
         }
       } else {
-        context.log.warn(`paystack-webhook: invoice ${invoiceNumber} not found in Appwrite`);
+        await bail(
+          "no invoice matches this payment",
+          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference || "none"}`,
+        );
+        return;
       }
     } catch (err) {
-      context.log.error("paystack-webhook Appwrite error:", err.message);
+      await bail("Appwrite rejected the update", `${err.message} (invoice ${invoiceNumber})`);
+      return;
     }
   } else {
-    context.log.warn("paystack-webhook: APPWRITE_API_KEY not set — skipping DB update");
+    await bail(
+      "APPWRITE_API_KEY is not set in Azure configuration",
+      `invoice ${invoiceNumber} was paid (${sym}${amountPaid.toFixed(2)} ${currency}) but could not be marked paid or recorded`,
+    );
+    return;
   }
 
   ok();

@@ -199,11 +199,15 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      // z-[100] matches the shared Modal component. At z-50 this sat below the
+      // mobile sidebar toggle (z-[60]) and level with the Chatbot button.
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
       style={{ background: "rgba(0,0,0,0.6)" }}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        // dvh, not vh: iOS Safari counts the URL bar in vh, so 90vh can exceed
+        // the visible viewport and push the action buttons off screen.
+        className="w-full max-w-2xl rounded-2xl overflow-hidden max-h-[90dvh] flex flex-col"
         style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
       >
         {/* Header */}
