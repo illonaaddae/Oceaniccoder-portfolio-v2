@@ -109,6 +109,24 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `OPENAI_API_KEY`       | Chatbot (GPT-4o-mini)            |
 | `PAYSTACK_SECRET_KEY`  | Webhook signature verification   |
 
+**Required for payments to record correctly.** `/api/paystack-webhook` marks the
+invoice paid, writes the `payments` audit row and sends the confirmation emails.
+If any of these is missing, a real payment is charged by Paystack but nothing is
+recorded on our side:
+
+| Variable            | Purpose                                                 |
+| ------------------- | ------------------------------------------------------- |
+| `APPWRITE_API_KEY`  | Server-side writes — invoice status, `payments` records |
+| `RESEND_API_KEY`    | Confirmation and alert emails                           |
+| `RESEND_FROM_EMAIL` | Sender address (defaults if unset)                      |
+| `RESEND_TO_EMAIL`   | Admin address that receives failure alerts              |
+
+Other vars the functions read: `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`,
+`APPWRITE_DATABASE_ID`, `RESEND_AUDIENCE_ID`, `AT_API_KEY`, `AT_USERNAME`,
+`AT_SENDER_ID`, `ADMIN_PHONE`, `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`,
+`ZOOM_CLIENT_SECRET`. Grep `process.env.` in `api/` before setting up a new
+environment — these tables have drifted from the code before.
+
 ---
 
 ## Project Structure
