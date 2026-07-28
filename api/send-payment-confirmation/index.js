@@ -88,7 +88,7 @@ module.exports = async function (context, req) {
               <tr>
                 <td><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" /></td>
                 <td style="text-align:right;vertical-align:middle;">
-                  <p style="margin:0;font-size:11px;color:#8dd7e7;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Payment Confirmed</p>
+                  <p style="margin:0;font-size:11px;color:#ffffff;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Payment Confirmed</p>
                   <p style="margin:4px 0 0;font-size:18px;color:#ffffff;font-weight:800;">${safeInvoiceNumber}</p>
                 </td>
               </tr>
