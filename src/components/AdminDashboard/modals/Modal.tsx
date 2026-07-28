@@ -51,7 +51,7 @@ export const Modal: React.FC<ModalProps> = ({
         <div
           className={`relative w-full ${
             sizeClasses[size]
-          } rounded-t-2xl sm:rounded-2xl border shadow-2xl transition-all duration-300 max-h-[95vh] sm:max-h-[90vh] flex flex-col ${
+          } rounded-t-2xl sm:rounded-2xl border shadow-2xl transition-all duration-300 max-h-[95dvh] sm:max-h-[90dvh] flex flex-col ${
             theme === "dark"
               ? "bg-gradient-to-br from-slate-900 via-slate-900/98 to-slate-800 border-white/15 shadow-black/30"
               : "bg-gradient-to-br from-white to-slate-50 border-oceanic-200/60 shadow-oceanic-100/20"
