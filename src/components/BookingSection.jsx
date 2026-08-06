@@ -15,6 +15,7 @@ import {
   FaGlobe,
   FaExternalLinkAlt,
 } from "react-icons/fa";
+import { DatePicker } from "./ui";
 import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
 import { apiUrl } from "../utils/apiUrl";
 
@@ -513,38 +514,24 @@ export default function BookingSection() {
 
                         {/* Date */}
                         <div className="space-y-2">
-                          <label
-                            htmlFor="booking-date"
+                          <p
+                            id="booking-date-label"
                             className="block text-sm font-semibold"
                             style={{ color: "var(--text-secondary)" }}
                           >
                             Preferred Date <span className="text-error-400">*</span>
-                          </label>
-                          <div className="relative w-full">
-                            <span
-                              className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none"
-                              style={{ color: "var(--accent-teal)" }}
-                            >
-                              <FaCalendarAlt />
-                            </span>
-                            <input
-                              id="booking-date"
-                              type="date"
-                              min={getTodayMin()}
-                              value={form.preferredDate}
-                              onChange={(e) => handleChange("preferredDate", e.target.value)}
-                              className="w-full min-w-0 rounded-xl pl-10 pr-10 py-3 border outline-none focus:ring-2 transition"
-                              style={{
-                                background: "var(--glass-bg)",
-                                borderColor: "var(--border-subtle)",
-                                color: "var(--text-primary)",
-                                colorScheme: isDark ? "dark" : "light",
-                                fontSize: "16px",
-                                minHeight: "48px",
-                                boxSizing: "border-box",
-                              }}
-                            />
-                          </div>
+                          </p>
+                          {/* Design-system picker rather than `<input type="date">`: the
+                              native control renders as an empty box until touched on iOS
+                              Safari, and its calendar is an unstyled OS surface. */}
+                          <DatePicker
+                            value={form.preferredDate}
+                            onChange={(value) => handleChange("preferredDate", value)}
+                            theme={isDark ? "dark" : "light"}
+                            min={getTodayMin()}
+                            placeholder="Select a date"
+                            ariaLabel="Preferred date"
+                          />
                         </div>
 
                         {/* Time slots */}
