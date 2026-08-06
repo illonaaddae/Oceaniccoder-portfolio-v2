@@ -5,7 +5,7 @@ import { FaArrowLeft } from "react-icons/fa";
 /** Shown when a blog post cannot be found by slug. */
 const NotFoundState = React.memo(() => (
   <section
-    className="min-h-screen pt-28 pb-20 flex items-center justify-center"
+    className="min-h-dvh pt-28 pb-20 flex items-center justify-center"
     style={{
       background:
         "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)",

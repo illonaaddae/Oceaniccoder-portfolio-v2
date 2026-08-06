@@ -16,6 +16,14 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
+  /* Floating widgets sat at bottom-6 (24px), inside the iPhone home-indicator
+     inset (34px), so part of their tap target fell in the system gesture area. */
+  .bottom-safe {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-safe-lg {
+    bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Optimized CSS Variables */
@@ -220,7 +228,11 @@ body {
   color: var(--text-primary);
   /* Avoid large background repaints on theme/variable change which can flash on mobile */
   transition: color 0.2s ease;
-  min-height: 100vh;
+  /* dvh, not vh: on iOS Safari 100vh is TALLER than the visible viewport, so
+     the bottom of the page sits under the browser toolbar. It shows through
+     (the bar is translucent) but taps land on the browser, not the page —
+     which reads as "I have to scroll up before the button works". */
+  min-height: 100dvh;
 }
 
 /* Optimized Scrollbar */

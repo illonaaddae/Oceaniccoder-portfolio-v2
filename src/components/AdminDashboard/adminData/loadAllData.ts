@@ -23,6 +23,7 @@ import {
   getTestimonials,
   getSiteViews,
 } from "@/services/api";
+import { invalidatePublicData } from "@/lib/queryClient";
 import type { LoadDataFn, DataSetters } from "./types";
 
 async function safeFetch<T>(fn: () => Promise<T>, fallback: T, label: string): Promise<T> {
@@ -78,6 +79,13 @@ export function createLoadData(setters: DataSetters): LoadDataFn {
       setters.setTestimonials(testimonialsData);
       setters.setSiteViews(siteViewsData);
       setters.setError(null);
+
+      // Every admin write funnels through here to refresh the dashboard, so
+      // this is the one place that also has to tell the public-facing query
+      // cache its data is out of date. Without it, a visitor already on the
+      // site would keep seeing the pre-edit content until the stale window
+      // elapsed.
+      void invalidatePublicData();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to load data";
       setters.setError(errorMessage);

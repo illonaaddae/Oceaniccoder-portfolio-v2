@@ -87,12 +87,12 @@ function App() {
   return (
     <HelmetProvider>
       <PortfolioProvider>
-        <div className="min-h-screen bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
+        <div className="min-h-dvh bg-white dark:bg-brand-dark-1 text-brand-ocean-1 dark:text-white">
           <BrowserRouter>
             <RouteErrorBoundary>
               <MainLayout theme={theme} toggleTheme={toggleTheme}>
                 <TerminalLoader />
-                <React.Suspense fallback={<div className="min-h-screen bg-[#0d1117]" />}>
+                <React.Suspense fallback={<div className="min-h-dvh bg-[#0d1117]" />}>
                   <AnimatedRoutes
                     isAdminLoggedIn={isAdminLoggedIn}
                     onAdminLogin={handleAdminLogin}

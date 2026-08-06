@@ -27,7 +27,7 @@ const BlogPost = () => {
 
   return (
     <section
-      className="min-h-screen pt-28 pb-20 relative"
+      className="min-h-dvh pt-28 pb-20 relative"
       style={{
         background:
           "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)",

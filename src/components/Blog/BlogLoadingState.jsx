@@ -5,7 +5,7 @@ const SECTION_BG =
 
 const BlogLoadingState = React.memo(() => (
   <section
-    className="min-h-screen pt-28 pb-20 flex items-center justify-center"
+    className="min-h-dvh pt-28 pb-20 flex items-center justify-center"
     style={{ background: SECTION_BG }}
   >
     <div className="text-center">

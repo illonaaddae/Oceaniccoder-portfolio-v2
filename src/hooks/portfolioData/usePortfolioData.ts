@@ -1,9 +1,23 @@
 /**
- * Main portfolio data hook - fetches all data with cache
+ * Main portfolio data hook, backed by TanStack Query.
+ *
+ * The public shape is unchanged from the hand-rolled version it replaced, so
+ * call sites did not need touching. What changed underneath:
+ *
+ * - Multiple components calling this on the same page now share one request
+ *   per resource. Previously each caller ran its own nine-request fan-out on
+ *   mount, because the old module cache was only populated *after* a fetch
+ *   resolved and could not dedupe requests already in flight.
+ * - Cached data paints immediately and refreshes in the background once
+ *   stale, instead of blocking behind a spinner.
+ * - State lives in the query cache rather than in nine `useState` arrays per
+ *   caller, so the same list is no longer held several times over.
+ *
  * @module hooks/portfolioData/usePortfolioData
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import {
   getProjects,
   getFeaturedProjects,
@@ -25,7 +39,7 @@ import type {
   About,
   BlogPost,
 } from "@/types";
-import { dataCache, isCacheValid } from "./types";
+import { queryKeys } from "@/lib/queryKeys";
 import type { PortfolioData } from "./types";
 import {
   getStaticProjects,
@@ -35,127 +49,101 @@ import {
   getStaticGallery,
 } from "./fallbacks";
 
+/**
+ * Appwrite returning an empty list is treated the same as a failure: both
+ * mean "nothing to show", and the bundled static content is a better
+ * fallback than an empty page. Matches the previous behaviour.
+ */
+function withFallback<T>(data: T[] | undefined, isError: boolean, fallback: T[]): T[] {
+  if (isError || !data || data.length === 0) return fallback;
+  return data;
+}
+
 export function usePortfolioData(): PortfolioData {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
-  const [certifications, setCertifications] = useState<Certification[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [education, setEducation] = useState<Education[]>([]);
-  const [gallery, setGallery] = useState<GalleryImage[]>([]);
-  const [journey, setJourney] = useState<Journey[]>([]);
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-  const [about, setAbout] = useState<About | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchData = useCallback(async () => {
-    if (isCacheValid()) {
-      setProjects(dataCache.projects || []);
-      setFeaturedProjects(dataCache.featuredProjects || []);
-      setCertifications(dataCache.certifications || []);
-      setSkills(dataCache.skills || []);
-      setEducation(dataCache.education || []);
-      setGallery(dataCache.gallery || []);
-      setJourney(dataCache.journey || []);
-      setBlogPosts(dataCache.blogPosts || []);
-      setAbout(dataCache.about || null);
-      setLoading(false);
-      return;
-    }
+  const results = useQueries({
+    queries: [
+      { queryKey: queryKeys.projects, queryFn: getProjects },
+      { queryKey: queryKeys.featuredProjects, queryFn: getFeaturedProjects },
+      { queryKey: queryKeys.certifications, queryFn: getCertifications },
+      { queryKey: queryKeys.skills, queryFn: getSkills },
+      { queryKey: queryKeys.education, queryFn: getEducation },
+      { queryKey: queryKeys.gallery, queryFn: getGallery },
+      { queryKey: queryKeys.journey, queryFn: getJourney },
+      { queryKey: queryKeys.about, queryFn: getAbout },
+      { queryKey: queryKeys.blogPosts, queryFn: getBlogPosts },
+    ],
+  });
 
-    setLoading(true);
-    setError(null);
+  const [
+    projectsQuery,
+    featuredQuery,
+    certificationsQuery,
+    skillsQuery,
+    educationQuery,
+    galleryQuery,
+    journeyQuery,
+    aboutQuery,
+    blogQuery,
+  ] = results;
 
-    try {
-      const results = await Promise.allSettled([
-        getProjects(),
-        getFeaturedProjects(),
-        getCertifications(),
-        getSkills(),
-        getEducation(),
-        getGallery(),
-        getJourney(),
-        getAbout(),
-        getBlogPosts(),
-      ]);
+  const refetch = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.all });
+  }, [queryClient]);
 
-      const handle = <T>(
-        r: PromiseSettledResult<T[]>,
-        fb: T[],
-        setter: React.Dispatch<React.SetStateAction<T[]>>,
-      ): T[] => {
-        if (r.status === "fulfilled" && r.value.length > 0) {
-          setter(r.value);
-          return r.value;
-        }
-        setter(fb);
-        return fb;
-      };
+  return useMemo(() => {
+    const staticProjects = getStaticProjects();
 
-      const sp = getStaticProjects();
-      const cached = {
-        projects: handle(results[0], sp, setProjects),
-        featuredProjects: handle(
-          results[1],
-          sp.filter((p) => p.featured),
-          setFeaturedProjects,
-        ),
-        certifications: handle(results[2], getStaticCertifications(), setCertifications),
-        skills: handle(results[3], [], setSkills),
-        education: handle(results[4], getStaticEducation(), setEducation),
-        gallery: handle(results[5], getStaticGallery(), setGallery),
-        journey: handle(results[6], getStaticJourney(), setJourney),
-      };
+    // Only the first load blocks. Once anything is cached, `isPending` is
+    // false and the refresh happens behind the already-rendered content.
+    const loading = results.some((r) => r.isPending);
+    const failed = results.filter((r) => r.isError).length;
 
-      const blogResult = results[8];
-      if (blogResult.status === "fulfilled" && blogResult.value) {
-        setBlogPosts(blogResult.value as BlogPost[]);
-        dataCache.blogPosts = blogResult.value as BlogPost[];
-      } else {
-        setBlogPosts([]);
-        dataCache.blogPosts = [];
-      }
-
-      const aboutResult = results[7];
-      if (aboutResult.status === "fulfilled" && aboutResult.value) {
-        setAbout(aboutResult.value as About);
-        dataCache.about = aboutResult.value as About;
-      } else {
-        setAbout(null);
-        dataCache.about = null;
-      }
-
-      Object.assign(dataCache, cached, { timestamp: Date.now() });
-    } catch (err) {
-      console.error("Failed to fetch portfolio data:", err);
-      setError("Failed to load data. Using cached data.");
-      setProjects(getStaticProjects());
-      setFeaturedProjects(getStaticProjects().filter((p) => p.featured));
-      setJourney(getStaticJourney());
-      setGallery(getStaticGallery());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const publicGallery = gallery.filter((img) => img.isPublic !== false);
-
-  return {
-    projects,
-    featuredProjects,
-    certifications,
-    skills,
-    education,
-    gallery: publicGallery,
-    journey,
-    blogPosts,
-    about,
-    loading,
-    error,
-    refetch: fetchData,
-  };
+    return {
+      projects: withFallback(projectsQuery.data, projectsQuery.isError, staticProjects),
+      featuredProjects: withFallback(
+        featuredQuery.data,
+        featuredQuery.isError,
+        staticProjects.filter((p) => p.featured),
+      ),
+      certifications: withFallback(
+        certificationsQuery.data,
+        certificationsQuery.isError,
+        getStaticCertifications(),
+      ) as Certification[],
+      // Skills have no bundled fallback — an empty list is the honest answer.
+      skills: (skillsQuery.data ?? []) as Skill[],
+      education: withFallback(
+        educationQuery.data,
+        educationQuery.isError,
+        getStaticEducation(),
+      ) as Education[],
+      gallery: (
+        withFallback(galleryQuery.data, galleryQuery.isError, getStaticGallery()) as GalleryImage[]
+      ).filter((img) => img.isPublic !== false),
+      journey: withFallback(
+        journeyQuery.data,
+        journeyQuery.isError,
+        getStaticJourney(),
+      ) as Journey[],
+      blogPosts: (blogQuery.data ?? []) as BlogPost[],
+      about: (aboutQuery.data ?? null) as About | null,
+      loading,
+      error: failed > 0 ? "Failed to load data. Using cached data." : null,
+      refetch,
+    } satisfies PortfolioData & { projects: Project[] };
+  }, [
+    results,
+    projectsQuery,
+    featuredQuery,
+    certificationsQuery,
+    skillsQuery,
+    educationQuery,
+    galleryQuery,
+    journeyQuery,
+    aboutQuery,
+    blogQuery,
+    refetch,
+  ]);
 }
