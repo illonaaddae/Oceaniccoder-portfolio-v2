@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 
 export const CaseStudyLoading: React.FC = () => (
-  <section className="min-h-screen pt-28 pb-20 flex items-center justify-center">
+  <section className="min-h-dvh pt-28 pb-20 flex items-center justify-center">
     <div className="text-center">
       <div className="w-12 h-12 border-4 border-[var(--brand-ocean-2)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
       <p className="text-[var(--text-accent)]">Loading project...</p>
@@ -13,7 +13,7 @@ export const CaseStudyLoading: React.FC = () => (
 
 export const CaseStudyNotFound: React.FC = () => (
   <section
-    className="min-h-screen pt-28 pb-20"
+    className="min-h-dvh pt-28 pb-20"
     style={{
       background:
         "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%)",

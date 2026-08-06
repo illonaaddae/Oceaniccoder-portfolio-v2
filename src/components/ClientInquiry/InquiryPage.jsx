@@ -393,7 +393,7 @@ export default function InquiryPage() {
 
   if (status === "success") {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="min-h-dvh flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <FaCheckCircle className="text-6xl text-oceanic-400 dark:text-oceanic-400 mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-3">Got it, thanks!</h1>
@@ -416,7 +416,7 @@ export default function InquiryPage() {
     <>
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} theme="dark" />
       <div
-        className="min-h-screen pt-24 pb-16 px-4"
+        className="min-h-dvh pt-24 pb-16 px-4"
         style={{
           background:
             "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%)",

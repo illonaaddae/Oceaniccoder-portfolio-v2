@@ -317,7 +317,7 @@ const PaymentPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 pt-24 pb-12"
+      className="min-h-dvh flex flex-col items-center justify-start px-4 pt-24 pb-12"
       style={{ background: "var(--bg-primary)" }}
     >
       <div className="w-full max-w-lg">

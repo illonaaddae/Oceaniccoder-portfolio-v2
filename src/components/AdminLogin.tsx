@@ -29,7 +29,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
   return (
     <div
-      className={`min-h-screen flex items-center justify-center p-4 relative z-40 transition-colors duration-300 ${
+      className={`min-h-dvh flex items-center justify-center p-4 relative z-40 transition-colors duration-300 ${
         theme === "dark"
           ? "bg-gradient-to-br from-brand-dark-1 via-brand-dark-2 to-brand-dark-3"
           : "bg-gradient-to-br from-blue-50 via-white to-oceanic-50"
