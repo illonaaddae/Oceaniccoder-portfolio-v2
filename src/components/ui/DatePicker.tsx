@@ -10,6 +10,10 @@ interface DatePickerProps {
   placeholder?: string;
   ariaLabel?: string;
   className?: string;
+  /** Earliest selectable date, ISO "YYYY-MM-DD". Mirrors `<input type="date" min>`. */
+  min?: string;
+  /** Latest selectable date, ISO "YYYY-MM-DD". Mirrors `<input type="date" max>`. */
+  max?: string;
 }
 
 const MONTHS = [
@@ -58,6 +62,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   placeholder = "Select date",
   ariaLabel,
   className = "",
+  min,
+  max,
 }) => {
   const dark = theme === "dark";
   const [open, setOpen] = useState(false);
@@ -149,6 +155,25 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const isSelected = (d: number) =>
     !!parsed && parsed.y === view.y && parsed.m === view.m && parsed.d === d;
 
+  // Range checks compare ISO strings, which sort correctly by date and avoid
+  // the timezone drift that comes from round-tripping through Date objects.
+  const isOutOfRange = (d: number) => {
+    const iso = toISO(view.y, view.m, d);
+    if (min && iso < min) return true;
+    if (max && iso > max) return true;
+    return false;
+  };
+
+  /** Whole-month check so month navigation can be disabled at the boundary. */
+  const monthFullyBefore = (() => {
+    if (!min) return false;
+    return toISO(view.y, view.m, daysInMonth) < min;
+  })();
+  const monthFullyAfter = (() => {
+    if (!max) return false;
+    return toISO(view.y, view.m, 1) > max;
+  })();
+
   return (
     <div className={`relative ${className}`}>
       <button
@@ -184,13 +209,22 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 onClick={prevMonth}
                 className={navBtn}
                 aria-label="Previous month"
+                disabled={monthFullyBefore}
+                style={monthFullyBefore ? { opacity: 0.3, cursor: "not-allowed" } : undefined}
               >
                 <FaChevronLeft className="text-xs" />
               </button>
               <span className={`text-sm font-semibold ${dark ? "text-white" : "text-slate-900"}`}>
                 {MONTHS[view.m]} {view.y}
               </span>
-              <button type="button" onClick={nextMonth} className={navBtn} aria-label="Next month">
+              <button
+                type="button"
+                onClick={nextMonth}
+                className={navBtn}
+                aria-label="Next month"
+                disabled={monthFullyAfter}
+                style={monthFullyAfter ? { opacity: 0.3, cursor: "not-allowed" } : undefined}
+              >
                 <FaChevronRight className="text-xs" />
               </button>
             </div>
@@ -216,20 +250,27 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   <button
                     key={d}
                     type="button"
+                    disabled={isOutOfRange(d)}
+                    aria-disabled={isOutOfRange(d)}
                     onClick={() => {
+                      if (isOutOfRange(d)) return;
                       onChange(toISO(view.y, view.m, d));
                       setOpen(false);
                     }}
                     className={`h-9 rounded-lg text-sm transition ${
-                      isSelected(d)
-                        ? "bg-gradient-to-r from-oceanic-500 to-oceanic-900 text-white font-semibold"
-                        : isToday(d)
-                          ? dark
-                            ? "text-oceanic-300 ring-1 ring-oceanic-500/40"
-                            : "text-oceanic-700 ring-1 ring-oceanic-500/40"
-                          : dark
-                            ? "text-slate-200 hover:bg-white/10"
-                            : "text-slate-700 hover:bg-slate-100"
+                      isOutOfRange(d)
+                        ? dark
+                          ? "text-slate-600 cursor-not-allowed"
+                          : "text-slate-300 cursor-not-allowed"
+                        : isSelected(d)
+                          ? "bg-gradient-to-r from-oceanic-500 to-oceanic-900 text-white font-semibold"
+                          : isToday(d)
+                            ? dark
+                              ? "text-oceanic-300 ring-1 ring-oceanic-500/40"
+                              : "text-oceanic-700 ring-1 ring-oceanic-500/40"
+                            : dark
+                              ? "text-slate-200 hover:bg-white/10"
+                              : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     {d}

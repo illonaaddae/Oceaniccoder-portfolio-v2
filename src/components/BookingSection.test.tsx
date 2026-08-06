@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 
 vi.mock("framer-motion", () => ({
@@ -34,6 +34,10 @@ vi.mock("react-icons/fa", () => {
     FaPhone: icon("phn"),
     FaGlobe: icon("glb"),
     FaExternalLinkAlt: icon("ext"),
+    // Used by the design-system DatePicker the date field now renders.
+    FaRegCalendarAlt: icon("cal"),
+    FaChevronLeft: icon("prev"),
+    FaChevronRight: icon("next"),
   };
 });
 
@@ -83,13 +87,32 @@ const advanceToStep2 = async () => {
   await waitFor(() => screen.getByLabelText(/preferred date/i));
 };
 
+/**
+ * Opens the design-system date picker and takes the last selectable day of
+ * the month on view. Which day it lands on does not matter to any assertion —
+ * the flow just needs a date set so step 2 can be completed.
+ */
+/**
+ * Opens the design-system date picker and takes the last selectable day of
+ * the month on view. Which day it lands on does not matter to any assertion —
+ * the flow just needs a date set so step 2 can be completed.
+ *
+ * Deliberately not wrapped in `act`: the panel is queried between two events,
+ * and inside an `act` callback React has not yet flushed the open state to
+ * the DOM, so the dialog would not be found.
+ */
+const pickDate = async () => {
+  fireEvent.click(screen.getByLabelText(/preferred date/i));
+  const dialog = await screen.findByRole("dialog", { name: /preferred date/i });
+  const days = within(dialog)
+    .getAllByRole("button")
+    .filter((b) => /^\d+$/.test(b.textContent ?? "") && !b.hasAttribute("disabled"));
+  fireEvent.click(days[days.length - 1]);
+};
+
 const advanceToStep3 = async () => {
   fireEvent.click(screen.getAllByRole("button", { name: /discovery call/i })[0]);
-  await act(async () => {
-    fireEvent.change(screen.getByLabelText(/preferred date/i), {
-      target: { value: "2099-06-15" },
-    });
-  });
+  await pickDate();
   await waitFor(() => screen.getByRole("button", { name: /09:00 AM/i }));
   fireEvent.click(screen.getByRole("button", { name: /09:00 AM/i }));
   fireEvent.click(screen.getByRole("button", { name: /continue/i }));
