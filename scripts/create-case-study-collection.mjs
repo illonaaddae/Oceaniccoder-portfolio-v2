@@ -119,7 +119,9 @@ async function main() {
       console.log("  projectId_unique: already present");
     } else {
       console.error(`  projectId_unique: failed, ${message}`);
-      console.error("    Not fatal. The app works without it, but two rows for one project become possible.");
+      console.error(
+        "    Not fatal. The app works without it, but two rows for one project become possible.",
+      );
     }
   }
 
