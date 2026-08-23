@@ -62,15 +62,38 @@ export async function getProjectById(projectId: string): Promise<Project> {
   return joined[0];
 }
 
+/**
+ * Appwrite rejects a whole document when it carries an attribute the collection
+ * does not have, and the raw message says only which key was unknown. This
+ * turns that into something actionable, because the fix is a migration script
+ * rather than anything the person saving can do in the dashboard.
+ */
+function explainUnknownAttribute(error: unknown): never {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = /Unknown attribute: "?([\w]+)"?/i.exec(message);
+  if (match) {
+    throw new Error(
+      `The projects collection has no "${match[1]}" attribute yet, so this project cannot be saved. ` +
+        `Run: APPWRITE_API_KEY=... node scripts/add-case-study-attributes.mjs --apply`,
+    );
+  }
+  throw error instanceof Error ? error : new Error(message);
+}
+
 export async function createProject(
   project: Omit<Project, "$id" | "$createdAt">,
 ): Promise<Project> {
-  const result = (await databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.PROJECTS,
-    ID.unique(),
-    stripUnknownAttrs(project as Record<string, unknown>),
-  )) as unknown as Project;
+  let result: Project;
+  try {
+    result = (await databases.createDocument(
+      DATABASE_ID,
+      COLLECTIONS.PROJECTS,
+      ID.unique(),
+      stripUnknownAttrs(project as Record<string, unknown>),
+    )) as unknown as Project;
+  } catch (error) {
+    explainUnknownAttribute(error);
+  }
 
   // Write demoVideoUrl to side collection if provided.
   if (project.demoVideoUrl) {
@@ -88,12 +111,17 @@ export async function updateProject(
   projectId: string,
   project: Partial<Omit<Project, "$id" | "$createdAt">>,
 ): Promise<Project> {
-  const result = (await databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.PROJECTS,
-    projectId,
-    stripUnknownAttrs(project as Record<string, unknown>),
-  )) as unknown as Project;
+  let result: Project;
+  try {
+    result = (await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTIONS.PROJECTS,
+      projectId,
+      stripUnknownAttrs(project as Record<string, unknown>),
+    )) as unknown as Project;
+  } catch (error) {
+    explainUnknownAttribute(error);
+  }
 
   // demoVideoUrl is intentional control: undefined means "leave alone",
   // empty string means "delete existing video row", non-empty means "upsert".
