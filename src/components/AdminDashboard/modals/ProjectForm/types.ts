@@ -17,6 +17,9 @@ export interface ProjectFormData {
   timeline: string;
   role: string;
   teamSize: string;
+  challenge: string;
+  solution: string;
+  results: string;
   lessonsLearned: string;
   keyFeatures: string[];
   screenshots: string[];
@@ -55,6 +58,9 @@ export const DEFAULT_FORM_DATA: ProjectFormData = {
   timeline: "",
   role: "",
   teamSize: "",
+  challenge: "",
+  solution: "",
+  results: "",
   lessonsLearned: "",
   keyFeatures: [],
   screenshots: [],
