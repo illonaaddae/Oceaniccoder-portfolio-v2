@@ -46,24 +46,39 @@ const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(a
 const databases = new Databases(client);
 
 async function main() {
-  const collection = await databases.getCollection(databaseId, COLLECTION_ID);
-  const present = new Set(collection.attributes.map((attribute) => attribute.key));
-
-  const missing = KEYS.filter((key) => !present.has(key));
-  if (missing.length === 0) {
-    console.log("All three attributes already exist. Nothing to do.");
-    return;
+  // Reading the collection needs collections.read, which a write scoped key may
+  // not carry. It is only used to skip work that is already done, so a key
+  // without it still works: creating an existing attribute is caught below.
+  let missing = KEYS;
+  try {
+    const collection = await databases.getCollection(databaseId, COLLECTION_ID);
+    const present = new Set(collection.attributes.map((attribute) => attribute.key));
+    missing = KEYS.filter((key) => !present.has(key));
+    console.log(`Collection has ${present.size} attributes.`);
+    if (missing.length === 0) {
+      console.log("All three attributes already exist. Nothing to do.");
+      return;
+    }
+    console.log(`Missing: ${missing.join(", ")}`);
+  } catch (error) {
+    const message = error?.message ?? String(error);
+    if (/missing scope|collections\.read/i.test(message)) {
+      console.log("Cannot read the collection with this key, so attempting all three.");
+      console.log("Anything that already exists will be reported and left alone.\n");
+    } else {
+      throw error;
+    }
   }
-
-  console.log(`Collection has ${present.size} attributes.`);
-  console.log(`Missing: ${missing.join(", ")}`);
 
   if (!apply) {
     console.log("\nDry run. Re run with --apply to create them.");
     return;
   }
 
+  let permissionDenied = false;
+
   for (const key of missing) {
+    if (permissionDenied) break;
     let created = false;
     for (const size of SIZES) {
       try {
@@ -73,6 +88,19 @@ async function main() {
         break;
       } catch (error) {
         const message = error?.message ?? String(error);
+        if (/already exists/i.test(message)) {
+          console.log(`  ${key}: already present, leaving it alone`);
+          created = true;
+          break;
+        }
+        // A permission failure is not a sizing failure, and telling someone to
+        // restructure their database when the real problem is a key scope
+        // sends them a long way in the wrong direction.
+        if (/missing scope|unauthorized|not authorized/i.test(message)) {
+          console.error(`  ${key}: this key cannot create attributes. ${message}`);
+          permissionDenied = true;
+          break;
+        }
         const isSizeLimit = /size|row|limit|exceed|too large/i.test(message);
         if (isSizeLimit && size !== SIZES.at(-1)) {
           console.log(`  ${key}: ${size} did not fit, trying smaller`);
@@ -82,12 +110,21 @@ async function main() {
         break;
       }
     }
-    if (!created) {
+    if (!created && !permissionDenied) {
       console.error(
-        `  ${key}: could not be created. The collection is likely at its row size ` +
-          `limit, so these fields need their own collection, as demoVideoUrl does.`,
+        `  ${key}: could not be created at any size. The collection is at its row ` +
+          `size limit, so these fields need their own collection, as demoVideoUrl does.`,
       );
     }
+  }
+
+  if (permissionDenied) {
+    console.error(
+      "\nThis key lacks the scopes needed. Use a key with collections.read and " +
+        "collections.write, or add those scopes to this one in the Appwrite console.",
+    );
+    process.exitCode = 1;
+    return;
   }
 
   console.log("\nAppwrite builds attributes asynchronously. Wait a few seconds before saving a project.");
