@@ -73,6 +73,36 @@ export const CaseStudyInfoFields: React.FC<CaseStudyInfoFieldsProps> = ({
       </div>
     </div>
     <div className="mb-5">
+      <label className={labelClass}>The Challenge</label>
+      <textarea
+        rows={4}
+        value={form.challenge}
+        onChange={(e) => setForm({ ...form, challenge: e.target.value })}
+        className={inputClass}
+        placeholder="What problem did this solve, and why was it worth solving?"
+      />
+    </div>
+    <div className="mb-5">
+      <label className={labelClass}>The Solution</label>
+      <textarea
+        rows={4}
+        value={form.solution}
+        onChange={(e) => setForm({ ...form, solution: e.target.value })}
+        className={inputClass}
+        placeholder="How you approached it, and the decisions you made along the way..."
+      />
+    </div>
+    <div className="mb-5">
+      <label className={labelClass}>Results</label>
+      <textarea
+        rows={4}
+        value={form.results}
+        onChange={(e) => setForm({ ...form, results: e.target.value })}
+        className={inputClass}
+        placeholder="What it achieved. Numbers where you have them..."
+      />
+    </div>
+    <div className="mb-5">
       <label className={labelClass}>Lessons Learned</label>
       <textarea
         rows={3}
