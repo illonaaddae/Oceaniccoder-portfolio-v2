@@ -31,6 +31,14 @@ export default function useNavbar() {
 
       if (href && href.startsWith("/")) {
         navigate(href);
+        // Clicking Home while already on "/" is not a route change, so
+        // RouteChangeHandler never fires and the visitor stays wherever they
+        // had scrolled to. Nav clicks always return to the top of the target.
+        try {
+          window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        } catch (_) {
+          // non-browser environment
+        }
       }
     },
     [navigate, setActiveSection, setIsMenuOpen],
