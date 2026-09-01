@@ -11,7 +11,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onTabChange,
   theme,
-  onThemeToggle,
   onLogout,
   isReadOnly = false,
   pendingBookings = 0,
@@ -111,7 +110,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <SidebarFooter
           theme={theme}
           isReadOnly={isReadOnly}
-          onThemeToggle={onThemeToggle}
           onLogout={onLogout}
           isCollapsed={isCollapsed}
         />

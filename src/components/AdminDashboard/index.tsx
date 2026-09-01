@@ -47,7 +47,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
           activeTab={s.activeTab}
           onTabChange={s.setActiveTab}
           theme={s.theme}
-          onThemeToggle={s.toggleTheme}
           onLogout={onLogout}
           isReadOnly={isReadOnly}
           pendingBookings={s.pendingBookings}
@@ -66,6 +65,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
             notifications={s.notifications}
             notificationCount={s.notificationCount}
             onNavigate={(tab) => s.setActiveTab(tab)}
+            onThemeToggle={s.toggleTheme}
           />
           <TabContent {...buildTabContentProps(s, isReadOnly)} />
         </main>

@@ -1,6 +1,7 @@
 import React from "react";
 import { FaSearch } from "react-icons/fa";
 import { NotificationsMenu } from "./NotificationsMenu";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 import type { NotificationItem } from "./useNotifications";
 import type { TabType } from "./types";
 
@@ -11,6 +12,7 @@ interface DashboardHeaderProps {
   notifications: NotificationItem[];
   notificationCount: number;
   onNavigate: (tab: TabType) => void;
+  onThemeToggle: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -20,6 +22,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   notifications,
   notificationCount,
   onNavigate,
+  onThemeToggle,
 }) => (
   <header
     className={`glass-card !rounded-none transition-all duration-300 border-b border-x-0 border-t-0 px-4 sm:px-8 py-4 flex items-center justify-between gap-4 sm:gap-6 relative z-10 ${
@@ -59,11 +62,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       </div>
     </div>
 
-    <NotificationsMenu
-      theme={theme}
-      items={notifications}
-      count={notificationCount}
-      onNavigate={onNavigate}
-    />
+    <div className="flex items-center gap-2 sm:gap-3">
+      <ThemeToggleButton theme={theme} onToggle={onThemeToggle} />
+      <NotificationsMenu
+        theme={theme}
+        items={notifications}
+        count={notificationCount}
+        onNavigate={onNavigate}
+      />
+    </div>
   </header>
 );
