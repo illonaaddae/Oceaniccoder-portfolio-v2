@@ -1,7 +1,10 @@
-import React from "react";
-import { FaImage } from "react-icons/fa";
+import React, { useCallback, useState } from "react";
+import { FaImage, FaPen, FaEye } from "react-icons/fa";
 import { BlogPost } from "@/types";
 import { ImageUpload } from "../../ImageUpload";
+import { MarkdownRenderer } from "@/components/BlogPost/MarkdownRenderer";
+import { MarkdownToolbar } from "./MarkdownToolbar";
+import { applyMarkdown, ToolbarAction, TOOLBAR_SHORTCUTS } from "./markdownActions";
 
 interface BlogContentEditorProps {
   formData: Partial<BlogPost>;
@@ -21,65 +24,149 @@ export const BlogContentEditor: React.FC<BlogContentEditorProps> = ({
   setShowContentImageUpload,
   insertImageToContent,
   contentTextareaRef,
-}) => (
-  <div>
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-      <label
-        className={`block text-sm font-semibold ${theme === "dark" ? "text-slate-200" : "text-slate-700"}`}
-      >
-        Content *{" "}
-        <span className="text-brand-link dark:text-oceanic-400 font-normal">
-          (Markdown supported)
-        </span>
-      </label>
-      <button
-        type="button"
-        onClick={() => setShowContentImageUpload(!showContentImageUpload)}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-          showContentImageUpload
-            ? theme === "dark"
-              ? "bg-oceanic-500/20 text-oceanic-500 border border-oceanic-500/30"
-              : "bg-oceanic-100 text-oceanic-700 border border-oceanic-300"
-            : theme === "dark"
-              ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
-        }`}
-      >
-        <FaImage className="text-xs" /> Insert Image
-      </button>
-    </div>
+}) => {
+  const [mode, setMode] = useState<"write" | "preview">("write");
+  const isDark = theme === "dark";
+  const content = formData.content || "";
 
-    {showContentImageUpload && (
-      <div
-        className={`mb-3 p-4 rounded-xl border ${theme === "dark" ? "bg-gray-800/50 border-gray-700" : "bg-slate-50 border-slate-200"}`}
-      >
-        <p className={`text-xs mb-3 ${theme === "dark" ? "text-gray-400" : "text-slate-500"}`}>
-          Upload an image to insert into your content. The image markdown will be added at your
-          cursor position.
-        </p>
-        <ImageUpload
-          value=""
-          onChange={(url) => {
-            if (url) insertImageToContent(url);
-          }}
-          label=""
-          theme={theme}
-        />
+  const runAction = useCallback(
+    (action: ToolbarAction) => {
+      const textarea = contentTextareaRef.current;
+      if (!textarea) return;
+
+      const next = applyMarkdown(action, {
+        value: textarea.value,
+        selectionStart: textarea.selectionStart,
+        selectionEnd: textarea.selectionEnd,
+      });
+
+      setFormData({ ...formData, content: next.value });
+      // React re-renders from state, so the caret has to be restored after
+      // that paint or the browser drops it to the end of the field.
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(next.selectionStart, next.selectionEnd);
+      });
+    },
+    [contentTextareaRef, formData, setFormData],
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    const action = TOOLBAR_SHORTCUTS[e.key.toLowerCase()];
+    if (!action) return;
+    e.preventDefault();
+    runAction(action);
+  };
+
+  const tabClass = (active: boolean) =>
+    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+      active
+        ? isDark
+          ? "bg-oceanic-500/20 text-oceanic-400 border border-oceanic-500/30"
+          : "bg-oceanic-100 text-oceanic-700 border border-oceanic-300"
+        : isDark
+          ? "text-gray-400 hover:text-gray-200 border border-transparent"
+          : "text-slate-500 hover:text-slate-700 border border-transparent"
+    }`;
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+        <label
+          className={`block text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}
+        >
+          Content *{" "}
+          <span className="text-brand-link dark:text-oceanic-400 font-normal">(Markdown)</span>
+        </label>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setMode("write")}
+            className={tabClass(mode === "write")}
+          >
+            <FaPen className="text-xs" /> Write
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("preview")}
+            className={tabClass(mode === "preview")}
+          >
+            <FaEye className="text-xs" /> Preview
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowContentImageUpload(!showContentImageUpload)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ml-1 ${
+              showContentImageUpload
+                ? isDark
+                  ? "bg-oceanic-500/20 text-oceanic-500 border border-oceanic-500/30"
+                  : "bg-oceanic-100 text-oceanic-700 border border-oceanic-300"
+                : isDark
+                  ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+            }`}
+          >
+            <FaImage className="text-xs" /> Insert Image
+          </button>
+        </div>
       </div>
-    )}
 
-    <textarea
-      ref={contentTextareaRef}
-      required
-      value={formData.content}
-      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-      rows={10}
-      className={`w-full px-4 py-3 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-oceanic-500 font-mono text-sm ${
-        theme === "dark"
-          ? "bg-white/10 border-white/20 text-white placeholder-slate-400"
-          : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500"
-      }`}
-      placeholder={`# Your content here...\n\nUse Markdown formatting:\n- **bold** and *italic*\n- ## Headings\n- \`\`\`javascript\ncode blocks\n\`\`\`\n- [links](url)\n- ![alt text](image-url) for images`}
-    />
-  </div>
-);
+      {showContentImageUpload && (
+        <div
+          className={`mb-3 p-4 rounded-xl border ${isDark ? "bg-gray-800/50 border-gray-700" : "bg-slate-50 border-slate-200"}`}
+        >
+          <p className={`text-xs mb-3 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+            Upload an image to insert into your content. The image markdown will be added at your
+            cursor position.
+          </p>
+          <ImageUpload
+            value=""
+            onChange={(url) => {
+              if (url) insertImageToContent(url);
+            }}
+            label=""
+            theme={theme}
+          />
+        </div>
+      )}
+
+      {mode === "write" ? (
+        <>
+          <MarkdownToolbar onAction={runAction} theme={theme} />
+          <textarea
+            ref={contentTextareaRef}
+            required
+            value={content}
+            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            onKeyDown={handleKeyDown}
+            rows={16}
+            className={`w-full px-4 py-3 rounded-b-xl border transition-all focus:outline-none focus:ring-2 focus:ring-oceanic-500 font-mono text-sm ${
+              isDark
+                ? "bg-white/10 border-white/20 text-white placeholder-slate-400"
+                : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500"
+            }`}
+            placeholder={"Start writing. Select text and use the buttons above to format it."}
+          />
+        </>
+      ) : (
+        <div
+          className={`rounded-xl border overflow-auto max-h-[32rem] ${
+            isDark ? "bg-gray-900/40 border-white/20" : "bg-white border-oceanic-200/50"
+          }`}
+        >
+          {content.trim() ? (
+            // The public post page renders through this exact component, so
+            // what shows here is what readers get — not an approximation.
+            <MarkdownRenderer content={content} isDark={isDark} />
+          ) : (
+            <p className={`p-8 text-sm text-center ${isDark ? "text-gray-500" : "text-slate-400"}`}>
+              Nothing to preview yet.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
