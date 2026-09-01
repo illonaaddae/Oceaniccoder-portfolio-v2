@@ -31,12 +31,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
 
   return (
     <ConfirmProvider>
+      {/* --admin-sidebar-w lets the fixed-position modals below centre
+          themselves in the area beside the sidebar. Centred on the viewport
+          they sit with their left edge on the sidebar and all their slack on
+          the right. Mirrors the lg:ml-20 / lg:ml-64 offsets on <main>. */}
       <div
         className={`flex h-screen overflow-hidden transition-colors duration-300 ${
           s.theme === "dark"
             ? "bg-[#0a0f1a]"
             : "bg-gradient-to-br from-oceanic-50 via-white to-oceanic-50"
         }`}
+        style={{ "--admin-sidebar-w": isCollapsed ? "5rem" : "16rem" } as React.CSSProperties}
       >
         <Sidebar
           activeTab={s.activeTab}

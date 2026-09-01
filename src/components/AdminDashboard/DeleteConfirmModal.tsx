@@ -17,7 +17,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   if (!deleteConfirm.show) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:pl-[calc(var(--admin-sidebar-w,0px)+1rem)]">
       <div
         className={`${
           theme === "dark" ? "bg-gray-800" : "bg-white"
