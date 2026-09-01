@@ -51,7 +51,11 @@ const SupportButton: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="fixed bottom-safe left-6 z-50 flex flex-col items-start gap-3">
+    // The wrapper always lays out the link stack (collapsed links are only faded
+    // out, not unmounted), so its box covers the bottom-left corner of the
+    // viewport. It must pass taps through to the page; only the button and the
+    // expanded links opt back in.
+    <div className="fixed bottom-safe left-6 z-50 flex flex-col items-start gap-3 pointer-events-none">
       {/* Expanded support options */}
       <div
         className={`flex flex-col gap-2 transition-all duration-300 ${
@@ -114,7 +118,7 @@ const SupportButton: React.FC = () => {
       {/* Main toggle button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`group relative p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl ${
+        className={`group relative p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl pointer-events-auto ${
           isExpanded
             ? "bg-gray-700 hover:bg-gray-600"
             : "bg-gradient-to-r from-oceanic-500 to-oceanic-700 hover:from-oceanic-600 hover:to-oceanic-800"
