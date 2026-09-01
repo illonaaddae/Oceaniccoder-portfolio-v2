@@ -19,6 +19,7 @@ export function useBlogForm(
     toast,
     handleSubmit: submitAction,
     handleDelete,
+    sendTestNewsletter,
   } = useBlogActions({ blogPosts, onAdd, onEdit, onDelete });
 
   const filteredPosts = filterPosts(blogPosts, searchQuery);
@@ -50,6 +51,7 @@ export function useBlogForm(
     filteredPosts,
     handleSubmit,
     handleDelete,
+    sendTestNewsletter: () => sendTestNewsletter(modal.formData),
     insertImageToContent,
     ...tagHandlers,
   };
