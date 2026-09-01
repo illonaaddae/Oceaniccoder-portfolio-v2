@@ -45,8 +45,13 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal Container - for proper centering */}
-      <div className="flex min-h-dvh items-end sm:items-center justify-center p-0 sm:p-4">
+      {/* Modal Container — centres within the area beside the sidebar.
+          A plain viewport centre puts the modal's left edge right on the
+          sidebar (max-w-3xl leaves roughly the sidebar's own width of slack
+          per side), so it reads as pinned to it with all the gap on the right.
+          --admin-sidebar-w is set by AdminDashboard and is 0 below lg, where
+          the sidebar is off-canvas. */}
+      <div className="flex min-h-dvh items-end sm:items-center justify-center p-0 sm:p-4 lg:pl-[calc(var(--admin-sidebar-w,0px)+1rem)] transition-[padding] duration-300">
         {/* Modal */}
         <div
           className={`relative w-full ${

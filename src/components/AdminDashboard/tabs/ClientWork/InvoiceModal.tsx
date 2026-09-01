@@ -201,7 +201,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
     <div
       // z-[100] matches the shared Modal component. At z-50 this sat below the
       // mobile sidebar toggle (z-[60]) and level with the Chatbot button.
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 lg:pl-[calc(var(--admin-sidebar-w,0px)+1rem)]"
       style={{ background: "rgba(0,0,0,0.6)" }}
     >
       <div

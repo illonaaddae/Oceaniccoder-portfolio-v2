@@ -68,7 +68,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       {children}
       {state && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:pl-[calc(var(--admin-sidebar-w,0px)+1rem)]"
           style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
         >
           <div
