@@ -1,17 +1,22 @@
-import { FaMoon, FaSun, FaSignOutAlt } from "react-icons/fa";
+import { FaSignOutAlt } from "react-icons/fa";
 
 interface SidebarFooterProps {
   theme: string;
   isReadOnly: boolean;
-  onThemeToggle: () => void;
   onLogout?: () => void;
   isCollapsed?: boolean;
 }
 
+/**
+ * The theme control moved to the header, beside the notifications bell. The
+ * header sits in <main>, so it stays reachable when the sidebar is collapsed
+ * to its icon rail and when it is closed on mobile — which is what made the
+ * copy down here redundant rather than a fallback. Sign out now has the footer
+ * to itself.
+ */
 export const SidebarFooter: React.FC<SidebarFooterProps> = ({
   theme,
   isReadOnly,
-  onThemeToggle,
   onLogout,
   isCollapsed = false,
 }) => {
@@ -36,31 +41,6 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
           <span className={isCollapsed ? "lg:hidden" : ""}>View Only Mode</span>
         </div>
       )}
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onThemeToggle();
-        }}
-        type="button"
-        title={theme === "dark" ? "Light Mode" : "Dark Mode"}
-        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 touch-manipulation min-h-[44px] cursor-pointer select-none ${
-          isCollapsed ? "lg:justify-center lg:gap-0 lg:px-0" : ""
-        } ${
-          theme === "dark"
-            ? "bg-gray-800/80 text-amber-400 hover:bg-gray-800 border border-gray-700 hover:border-amber-500/40 active:bg-gray-700"
-            : "bg-white/50 text-slate-700 hover:bg-white/70 border border-oceanic-200/30 hover:border-oceanic-300/50 active:bg-white/90"
-        }`}
-      >
-        {theme === "dark" ? (
-          <FaSun className="text-amber-400" />
-        ) : (
-          <FaMoon className="text-slate-600" />
-        )}
-        <span className={`font-medium ${isCollapsed ? "lg:hidden" : ""}`}>
-          {theme === "dark" ? "Light Mode" : "Dark Mode"}
-        </span>
-      </button>
 
       {/* Only show logout for admin users */}
       {!isReadOnly && (

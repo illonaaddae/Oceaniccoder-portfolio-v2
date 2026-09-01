@@ -7,6 +7,7 @@
 const crypto = require("crypto");
 const https = require("https");
 const sdk = require("node-appwrite");
+const { evaluateSettlement } = require("./settlement");
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
@@ -198,6 +199,24 @@ module.exports = async function (context, req) {
 
       const db = new sdk.Databases(client);
 
+      // Paystack retries a webhook whenever it does not get a 2xx, and can
+      // deliver the same event more than once regardless. Without this, a
+      // retry wrote a second payments row and mailed the client a second
+      // "payment received" confirmation.
+      const reference = data.reference || "";
+      if (reference) {
+        const seen = await db.listDocuments(DATABASE_ID, PAYMENTS_COLLECTION_ID, [
+          sdk.Query.equal("paystackReference", [reference]),
+        ]);
+        if (seen.documents && seen.documents.length > 0) {
+          context.log.info(
+            `paystack-webhook: reference ${reference} already recorded — ignoring duplicate delivery`,
+          );
+          ok();
+          return;
+        }
+      }
+
       const result = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
         sdk.Query.equal("invoiceNumber", [invoiceNumber]),
       ]);
@@ -205,14 +224,55 @@ module.exports = async function (context, req) {
       if (result.documents && result.documents.length > 0) {
         const doc = result.documents[0];
 
-        await db.updateDocument(DATABASE_ID, COLLECTION_ID, doc.$id, {
-          status: "paid",
-        });
-
-        context.log.info(`paystack-webhook: invoice ${invoiceNumber} marked as paid`);
-
         const clientName = doc.clientName || "Client";
         const clientEmail = doc.clientEmail;
+
+        /*
+         * Verify what was actually paid before closing the invoice.
+         *
+         * The charge amount is set in the browser — the payment components
+         * hand Paystack Inline `invoice.total * 100` — so it is caller-
+         * controlled and cannot be trusted here. This function previously set
+         * status "paid" on any successful charge for a matching invoice
+         * number, which meant a ~1 unit payment closed an invoice of any size
+         * and sent the client a confirmation saying so.
+         *
+         * A shortfall is still recorded (the money did arrive) but leaves the
+         * invoice open and raises an alert instead.
+         */
+        const settlement = evaluateSettlement({ amountPaid, currency, invoice: doc });
+        const {
+          settles,
+          underpaid,
+          overpaid,
+          currencyMismatch,
+          shortfall,
+          surplus,
+          knownTotal,
+          expected,
+          invoiceCurrency,
+          paidCurrency,
+        } = settlement;
+
+        if (!knownTotal) {
+          context.log.warn(
+            `paystack-webhook: invoice ${invoiceNumber} has no usable total (${doc.total}) — recording the payment without verifying it`,
+          );
+        }
+
+        if (settles) {
+          await db.updateDocument(DATABASE_ID, COLLECTION_ID, doc.$id, {
+            status: "paid",
+          });
+          context.log.info(`paystack-webhook: invoice ${invoiceNumber} marked as paid`);
+        } else {
+          context.log.error(
+            `paystack-webhook: invoice ${invoiceNumber} NOT marked paid — ` +
+              (currencyMismatch
+                ? `paid in ${paidCurrency} but invoiced in ${invoiceCurrency}`
+                : `paid ${sym}${amountPaid.toFixed(2)} against a total of ${sym}${expected.toFixed(2)}`),
+          );
+        }
 
         // Create payment record (audit log)
         try {
@@ -233,7 +293,7 @@ module.exports = async function (context, req) {
             amount: amountPaid,
             currency,
             method,
-            paystackReference: data.reference || "",
+            paystackReference: reference,
             paidAt: new Date().toISOString(),
             status: "success",
           });
@@ -257,8 +317,8 @@ module.exports = async function (context, req) {
           }
         }
 
-        // Send confirmation to client
-        if (resendKey && clientEmail) {
+        // Only tell the client the invoice is settled when it actually is.
+        if (settles && resendKey && clientEmail) {
           await sendEmail(
             resendKey,
             fromEmail,
@@ -271,12 +331,23 @@ module.exports = async function (context, req) {
 
         // Send notification to admin
         if (resendKey && adminEmail) {
+          const problem = currencyMismatch
+            ? `<p style="color:#b91c1c;"><strong>Currency mismatch.</strong> Paid in ${paidCurrency}, invoiced in ${invoiceCurrency}. The invoice has been left open.</p>`
+            : underpaid
+              ? `<p style="color:#b91c1c;"><strong>Underpaid by ${sym}${shortfall.toFixed(2)}.</strong> Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.</p>`
+              : overpaid
+                ? `<p><strong>Overpaid by ${sym}${surplus.toFixed(2)}.</strong> The invoice has been marked paid.</p>`
+                : "";
           await sendEmail(
             resendKey,
             fromEmail,
             adminEmail,
-            `Payment received for invoice ${invoiceNumber}`,
-            `<p>Payment received for invoice <strong>${invoiceNumber}</strong> from <strong>${clientName}</strong>. Amount: <strong>${sym}${amountPaid.toFixed(2)} ${currency}</strong>.</p>`,
+            settles
+              ? `Payment received for invoice ${invoiceNumber}`
+              : `Action needed: underpayment on invoice ${invoiceNumber}`,
+            `<p>Payment received for invoice <strong>${invoiceNumber}</strong> from <strong>${clientName}</strong>. Amount: <strong>${sym}${amountPaid.toFixed(2)} ${currency}</strong>.</p>` +
+              problem +
+              `<p>Reference: <code>${reference || "n/a"}</code></p>`,
             context.log,
           );
         }
