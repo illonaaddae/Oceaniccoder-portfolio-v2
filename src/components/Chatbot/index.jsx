@@ -97,7 +97,9 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="fixed bottom-safe right-6 z-50 flex flex-col items-end gap-3">
+    // Pass-through wrapper: the fixed box is taller than the button while the
+    // panel animates in and out, and anything it covers must stay tappable.
+    <div className="fixed bottom-safe right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
       <AnimatePresence>
         {open && (
           <motion.div
@@ -105,7 +107,7 @@ export default function Chatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.25 }}
-            className="w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl overflow-hidden shadow-2xl border flex flex-col"
+            className="w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl overflow-hidden shadow-2xl border flex flex-col pointer-events-auto"
             style={{
               background: "var(--bg-primary)",
               borderColor: "var(--border-subtle)",
@@ -241,7 +243,7 @@ export default function Chatbot() {
         onClick={() => setOpen((v) => !v)}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
-        className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center relative"
+        className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center relative pointer-events-auto"
         style={{
           background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
         }}

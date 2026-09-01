@@ -94,3 +94,23 @@ describe("SupportButton", () => {
     expect(wrapper).toHaveClass("fixed", "bottom-safe", "left-6");
   });
 });
+
+describe("SupportButton hit area", () => {
+  // The wrapper is a bottom-anchored flex column that always lays out the
+  // (invisible) link stack, so its box is ~260x270px. Without pointer-events
+  // none on the wrapper, that transparent box sits at z-50 over the bottom-left
+  // of every page and swallows taps meant for the content underneath — on a
+  // phone you had to scroll a control out of that zone before it would respond.
+  test("collapsed wrapper does not intercept taps over page content", () => {
+    const { container } = renderWithRouter(<SupportButton />);
+
+    expect(container.firstChild).toHaveClass("pointer-events-none");
+  });
+
+  test("toggle button stays tappable inside the pass-through wrapper", () => {
+    renderWithRouter(<SupportButton />);
+
+    const toggleButton = screen.getByRole("button", { name: /support/i });
+    expect(toggleButton).toHaveClass("pointer-events-auto");
+  });
+});
