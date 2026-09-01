@@ -273,6 +273,50 @@ textarea:focus {
   outline-offset: 2px;
 }
 
+/* Optimized Hero Background */
+.hero-section {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    #0a1628 0%,
+    #0f2027 25%,
+    #1a365d 50%,
+    #2d3748 75%,
+    #0a1628 100%
+  );
+  background-size: 300% 300%;
+  animation: gradientShift 15s ease infinite;
+}
+
+/* Liquid morph blobs retired for the clean/clear-glass look — kept as no-op so
+   existing markup stays inert until the JSX is removed. */
+.liquid-morph {
+  display: none !important;
+}
+
+.liquid-morph:nth-child(2) {
+  animation: liquid2 30s ease-in-out infinite;
+  animation-delay: -8s;
+  border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
+}
+
+.liquid-morph:nth-child(3) {
+  animation: liquid3 35s ease-in-out infinite;
+  animation-delay: -15s;
+  border-radius: 70% 30% 60% 40% / 40% 70% 30% 60%;
+}
+
+/* Optimized Keyframes */
+@keyframes gradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 /* Hero image fade-in to prevent sudden repaint flash on mobile */
 .hero-img {
   opacity: 0;
@@ -292,11 +336,67 @@ textarea:focus {
     transform 300ms ease-out;
 }
 
+@keyframes liquid1 {
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  33% {
+    transform: translate(20px, -20px) scale(1.05) rotate(120deg);
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  66% {
+    transform: translate(-15px, 15px) scale(0.95) rotate(240deg);
+    border-radius: 70% 30% 40% 60% / 40% 50% 60% 50%;
+  }
+}
+
+@keyframes liquid2 {
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    border-radius: 40% 60% 30% 70% / 60% 30% 70% 40%;
+  }
+  50% {
+    transform: translate(-25px, 25px) scale(0.9) rotate(-180deg);
+    border-radius: 60% 30% 70% 40% / 50% 60% 30% 60%;
+  }
+}
+
+@keyframes liquid3 {
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+    border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
+  }
+  50% {
+    transform: translate(15px, 15px) scale(1.1);
+    border-radius: 30% 70% 60% 40% / 50% 60% 30% 70%;
+  }
+}
+
 /* Responsive Optimizations */
 @media (max-width: 768px) {
+  .liquid-morph {
+    transform: scale(0.7);
+    filter: blur(20px);
+  }
+
   /* Slightly larger mobile base font to improve legibility with Ysabeau Office */
   body {
     font-size: 15px;
+  }
+
+  .hero-section {
+    animation-duration: 20s;
+  }
+}
+
+@media (max-width: 480px) {
+  .liquid-morph {
+    transform: scale(0.5);
+    filter: blur(15px);
   }
 }
 
@@ -348,6 +448,14 @@ textarea:focus {
 
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
+  .liquid-morph {
+    animation: none;
+  }
+
+  .hero-section {
+    animation: none;
+  }
+
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -388,29 +496,4 @@ textarea:focus {
 /* Remove focus outline for mouse users */
 :focus:not(:focus-visible) {
   outline: none;
-}
-
-/* Event banner offset ────────────────────────────────────────────────
-   The banner is fixed at z-[100]; the navbar is fixed and would render
-   underneath it. BannerContainer stamps data-event-banner on <html>
-   while it is mounted, and these heights mirror the spacer's
-   h-12 / sm:h-14 / md:h-16 so the two never drift apart. */
-:root {
-  --event-banner-h: 0px;
-}
-
-:root[data-event-banner] {
-  --event-banner-h: 3rem;
-}
-
-@media (min-width: 640px) {
-  :root[data-event-banner] {
-    --event-banner-h: 3.5rem;
-  }
-}
-
-@media (min-width: 768px) {
-  :root[data-event-banner] {
-    --event-banner-h: 4rem;
-  }
 }

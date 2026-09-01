@@ -1047,6 +1047,11 @@ body[data-theme="light"] footer,
   .card-hover:hover {
     transform: none !important;
   }
+
+  /* Reduce blur sizes used by liquid morphs on small screens */
+  .liquid-morph {
+    filter: blur(12px) !important;
+  }
 }
 
 /* ===== Admin Dashboard Dark Mode Enhancements ===== */
