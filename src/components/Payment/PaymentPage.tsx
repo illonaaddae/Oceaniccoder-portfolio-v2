@@ -5,6 +5,7 @@ import CardPayment from "./CardPayment";
 import MomoPayment from "./MomoPayment";
 import BankTransfer from "./BankTransfer";
 import ApplePayPayment from "./ApplePayPayment";
+import { PAYMENT_CONFIG } from "@/config/payment";
 
 // Safe public invoice fields returned by /api/get-invoice
 interface PublicInvoice {
@@ -432,7 +433,7 @@ const PaymentPage: React.FC = () => {
                       <TabButton active={activeTab === "bank"} onClick={() => setActiveTab("bank")}>
                         Bank Transfer
                       </TabButton>
-                      {applePayAvailable && (
+                      {PAYMENT_CONFIG.applePayEnabled && applePayAvailable && (
                         <TabButton
                           active={activeTab === "applepay"}
                           onClick={() => setActiveTab("applepay")}
@@ -469,24 +470,30 @@ const PaymentPage: React.FC = () => {
                     )}
                     {activeTab === "bank" && <BankTransfer invoiceNumber={invoice.invoiceNumber} />}
 
-                    {/* Always mounted, hidden until selected. Paystack's
-                        paymentRequest() has to run for us to learn whether Apple
-                        Pay is even available, and it injects its button into the
-                        container as a side effect — so this cannot be gated on
-                        the tab being active without a chicken-and-egg problem. */}
-                    <div className={activeTab === "applepay" ? "" : "hidden"} aria-live="polite">
-                      <ApplePayPayment
-                        invoice={{
-                          invoiceNumber: invoice.invoiceNumber,
-                          clientEmail: invoice.clientEmail,
-                          total: invoice.total,
-                          currency: invoice.currency,
-                          clientName: invoice.clientName,
-                        }}
-                        onSuccess={handlePaymentSuccess}
-                        onAvailability={handleApplePayAvailability}
-                      />
-                    </div>
+                    {/* Not mounted at all while Apple Pay is disabled, so the
+                        Paystack script it pulls in is never fetched either.
+
+                        When enabled it is always mounted and merely hidden:
+                        Paystack's paymentRequest() has to run for us to learn
+                        whether Apple Pay is available, and it injects its button
+                        into the container as a side effect — so it cannot be
+                        gated on the tab being active without a chicken-and-egg
+                        problem. */}
+                    {PAYMENT_CONFIG.applePayEnabled && (
+                      <div className={activeTab === "applepay" ? "" : "hidden"} aria-live="polite">
+                        <ApplePayPayment
+                          invoice={{
+                            invoiceNumber: invoice.invoiceNumber,
+                            clientEmail: invoice.clientEmail,
+                            total: invoice.total,
+                            currency: invoice.currency,
+                            clientName: invoice.clientName,
+                          }}
+                          onSuccess={handlePaymentSuccess}
+                          onAvailability={handleApplePayAvailability}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </>
