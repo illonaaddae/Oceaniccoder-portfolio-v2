@@ -29,12 +29,9 @@ const Navbar = ({ theme, toggleTheme }) => {
   return (
     <>
       <nav
-        className={`fixed left-0 right-0 z-50 flex justify-center transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 flex justify-center transition-all duration-300 ${
           scrolled ? "pt-4" : "pt-6"
         }`}
-        /* Sits below the event banner when one is showing — see
-           EventBanner/BannerContainer.tsx. */
-        style={{ top: "var(--event-banner-h, 0px)" }}
       >
         <div
           className={`px-6 py-3 rounded-full backdrop-blur-xl border shadow-lg transition-all duration-300 max-w-fit ${

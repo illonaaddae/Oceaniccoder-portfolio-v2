@@ -285,7 +285,6 @@ textarea:focus {
     #0a1628 100%
   );
   background-size: 300% 300%;
-  animation: gradientShift 15s ease infinite;
 }
 
 /* Liquid morph blobs retired for the clean/clear-glass look — kept as no-op so
