@@ -165,7 +165,11 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  opacity: 0.16;
+
+  /* Dark carries this heavier than light does: the teal sits on a near-black
+     ground, so at the light theme's weight it competes with the CTAs it runs
+     behind. Light is unchanged below. */
+  opacity: 0.085;
 }
 
 [data-theme="light"] .hero-surface__wordmark,
