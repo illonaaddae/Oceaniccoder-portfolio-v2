@@ -52,6 +52,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
         onAddTag={blog.handleAddTag}
         onRemoveTag={blog.handleRemoveTag}
         insertImageToContent={blog.insertImageToContent}
+        onSendTest={blog.sendTestNewsletter}
       />
       <ToastContainer toasts={blog.toast.toasts} onRemove={blog.toast.removeToast} theme={theme} />
     </div>

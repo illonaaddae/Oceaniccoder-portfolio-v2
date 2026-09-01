@@ -5,6 +5,7 @@ import { useConfirm } from "../../ConfirmContext";
 import { generateSlug } from "./utils";
 import { shouldSendNewsletter } from "./newsletterTrigger";
 import { apiUrl } from "@/utils/apiUrl";
+import { account } from "@/lib/appwrite";
 
 interface UseBlogActionsProps {
   blogPosts: BlogPost[];
@@ -29,7 +30,31 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
     const slug = formData.slug || generateSlug(formData.title);
     // Decided before the write, while editingPost still holds the pre-save
     // published state.
-    const sendNewsletter = shouldSendNewsletter(editingPost, formData);
+    let sendNewsletter = shouldSendNewsletter(editingPost, formData);
+
+    // Going out to the list is irreversible, so it is never a side effect of
+    // ticking a checkbox. Publishing without emailing stays available, and
+    // cancelling abandons the save entirely rather than half-applying it.
+    if (sendNewsletter) {
+      const choice = await confirm({
+        message: "Email this post to your subscribers?",
+        description: `"${formData.title}" will be sent to everyone on your newsletter list. Emails cannot be recalled once sent.`,
+        variant: "success",
+        confirmLabel: "Continue",
+        choiceLabel: "What should happen when this post is saved?",
+        choices: [
+          { value: "send", label: "Publish and email subscribers" },
+          { value: "skip", label: "Publish without emailing" },
+        ],
+        defaultChoice: "send",
+      });
+      if (!choice) {
+        setSubmitting(false);
+        return;
+      }
+      sendNewsletter = choice === "send";
+    }
+
     try {
       if (editingPost) {
         await onEdit(editingPost.$id, { ...formData, slug });
@@ -60,30 +85,69 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
     }
   };
 
+  /**
+   * Calls the newsletter endpoint with a short-lived Appwrite JWT.
+   *
+   * The endpoint mails a real subscriber list from a verified domain, so it
+   * now requires a signed-in admin; the JWT is what proves that.
+   */
+  const postNewsletter = async (post: Partial<BlogPost> & { slug: string }, mode?: "test") => {
+    const { jwt } = await account.createJWT();
+    const res = await fetch(apiUrl("/api/send-newsletter"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({
+        title: post.title,
+        excerpt: post.excerpt,
+        slug: post.slug,
+        category: post.category,
+        image: post.image,
+        ...(mode ? { mode } : {}),
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.error || `Newsletter API returned ${res.status}`);
+    }
+    return res.json().catch(() => ({}));
+  };
+
   /** Fires the Resend broadcast and reports the outcome. */
   const broadcastNewPost = async (post: Partial<BlogPost> & { slug: string }) => {
     try {
-      const res = await fetch(apiUrl("/api/send-newsletter"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: post.title,
-          excerpt: post.excerpt,
-          slug: post.slug,
-          category: post.category,
-          image: post.image,
-        }),
-      });
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({}));
-        throw new Error(detail.error || `Newsletter API returned ${res.status}`);
-      }
+      await postNewsletter(post);
       toast.success("Newsletter sent to your subscribers.");
     } catch (err) {
       console.error("Newsletter send failed:", err);
       toast.error(
-        "Post saved, but the newsletter did not go out. Check RESEND_API_KEY and RESEND_AUDIENCE_ID.",
+        err instanceof Error && err.message
+          ? `Post saved, but the newsletter did not go out — ${err.message}`
+          : "Post saved, but the newsletter did not go out.",
       );
+    }
+  };
+
+  /**
+   * Sends the post as it currently stands to the admin address only, so the
+   * real email can be checked in an inbox before it reaches the list. The
+   * recipient is chosen server-side and is never taken from the browser.
+   */
+  const sendTestNewsletter = async (formData: Partial<BlogPost>) => {
+    if (!formData.title) {
+      toast.error("Give the post a title before sending a test.");
+      return;
+    }
+    try {
+      const result = await postNewsletter(
+        { ...formData, slug: formData.slug || generateSlug(formData.title) },
+        "test",
+      );
+      toast.success(
+        result?.sentTo ? `Test email sent to ${result.sentTo}.` : "Test email sent to you.",
+      );
+    } catch (err) {
+      console.error("Newsletter test failed:", err);
+      toast.error(err instanceof Error ? err.message : "Could not send the test email.");
     }
   };
 
@@ -103,5 +167,5 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
     }
   };
 
-  return { toast, handleSubmit, handleDelete };
+  return { toast, handleSubmit, handleDelete, sendTestNewsletter };
 }

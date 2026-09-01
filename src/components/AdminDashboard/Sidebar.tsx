@@ -20,17 +20,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const tabs = isReadOnly
-    ? allTabs.filter(
-        (tab) =>
-          tab.id !== "settings" &&
-          tab.id !== "bookings" &&
-          tab.id !== "client-work" &&
-          tab.id !== "invoices" &&
-          tab.id !== "payments" &&
-          tab.id !== "analytics",
-      )
-    : allTabs;
+  // The public /dashboard is a read-only showcase. These are either private
+  // (money, bookings, traffic, config) or operator-only maintenance tools —
+  // Storage is a cleanup utility that renders empty for a visitor, so it was
+  // advertising a tab with nothing behind it.
+  const PRIVATE_TABS: TabType[] = [
+    "settings",
+    "bookings",
+    "client-work",
+    "invoices",
+    "payments",
+    "analytics",
+    "storage",
+  ];
+
+  const tabs = isReadOnly ? allTabs.filter((tab) => !PRIVATE_TABS.includes(tab.id)) : allTabs;
 
   const handleTabChange = (tab: TabType) => {
     onTabChange(tab);

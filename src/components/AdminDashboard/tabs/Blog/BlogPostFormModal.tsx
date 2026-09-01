@@ -24,6 +24,7 @@ interface BlogPostFormModalProps {
   onAddTag: () => void;
   onRemoveTag: (tag: string) => void;
   insertImageToContent: (url: string) => void;
+  onSendTest: () => void;
 }
 
 export const BlogPostFormModal: React.FC<BlogPostFormModalProps> = ({
@@ -43,6 +44,7 @@ export const BlogPostFormModal: React.FC<BlogPostFormModalProps> = ({
   onAddTag,
   onRemoveTag,
   insertImageToContent,
+  onSendTest,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -76,6 +78,7 @@ export const BlogPostFormModal: React.FC<BlogPostFormModalProps> = ({
         submitting={submitting}
         isEditing={!!editingPost}
         onCancel={onClose}
+        onSendTest={onSendTest}
       />
     </form>
   </Modal>
