@@ -1,11 +1,29 @@
 import { BlogPost } from "@/types";
 
+/**
+ * Grouped loosely by what a post is doing, then alphabetical within reason.
+ * "Other" stays last so it reads as the fallback rather than a real choice.
+ */
 export const CATEGORIES = [
+  // Building
   "Development",
+  "Frontend",
+  "Backend",
+  "Mobile",
+  "Cloud & DevOps",
+  "AI & Data",
+  "Security",
+  "Design & UX",
+  "Performance",
+  "Open Source",
+  // Teaching
+  "Tutorial",
+  "Case Study",
+  "Tools & Workflow",
+  // Reflecting
+  "Career",
   "Leadership",
   "Community",
-  "Career",
-  "Tutorial",
   "Personal",
   "Tech News",
   "Other",
