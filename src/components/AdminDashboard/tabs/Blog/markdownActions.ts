@@ -21,7 +21,10 @@ export type ToolbarAction =
   | "ul"
   | "ol"
   | "link"
-  | "codeblock";
+  | "codeblock"
+  | "tasklist"
+  | "indent"
+  | "outdent";
 
 export interface EditorSelection {
   value: string;
@@ -56,6 +59,7 @@ const PLACEHOLDERS: Partial<Record<ToolbarAction, string>> = {
   quote: "Quote",
   ul: "List item",
   ol: "List item",
+  tasklist: "To do",
 };
 
 export const TOOLBAR_LABELS: Record<ToolbarAction, string> = {
@@ -70,6 +74,9 @@ export const TOOLBAR_LABELS: Record<ToolbarAction, string> = {
   ol: "Numbered list",
   link: "Link",
   codeblock: "Code block",
+  tasklist: "Checklist",
+  indent: "Indent",
+  outdent: "Outdent",
 };
 
 /** Keyboard shortcuts, matched against a Cmd/Ctrl-modified keypress. */
@@ -178,6 +185,70 @@ function applyOrderedList(sel: EditorSelection): EditorSelection {
   };
 }
 
+/** Matches a task item at the start of a line, checked or not. */
+const TASK_MARKER = /^(\s*)- \[[ xX]\] /;
+
+function applyTaskList(sel: EditorSelection): EditorSelection {
+  const { value, selectionStart: start, selectionEnd: end } = sel;
+  const { from, to } = lineBounds(value, start, end);
+  const block = value.slice(from, to) || PLACEHOLDERS.tasklist || "";
+  const lines = block.split("\n");
+
+  // Toggling off has to accept "- [x] " as well as "- [ ] ", or a list you had
+  // ticked through could never be turned back into plain text.
+  const allTasks = lines.every((line) => TASK_MARKER.test(line));
+  const next = lines
+    .map((line) => {
+      if (allTasks) return line.replace(TASK_MARKER, "$1");
+      // Already a task (in a mixed selection) — leave it be, or the bullet
+      // branch below would turn "- [ ] Done" into "- [ ] [ ] Done".
+      if (TASK_MARKER.test(line)) return line;
+      // Promote an existing bullet rather than stacking a second marker on it.
+      const bullet = line.match(/^(\s*)- /);
+      return bullet ? line.replace(/^(\s*)- /, "$1- [ ] ") : `- [ ] ${line}`;
+    })
+    .join("\n");
+
+  return {
+    value: value.slice(0, from) + next + value.slice(to),
+    selectionStart: from,
+    selectionEnd: from + next.length,
+  };
+}
+
+const INDENT = "  ";
+
+/** Shifts whole lines in or out by one level, for nesting list items. */
+function applyIndent(sel: EditorSelection, direction: 1 | -1): EditorSelection {
+  const { value, selectionStart: start, selectionEnd: end } = sel;
+  const { from, to } = lineBounds(value, start, end);
+  const lines = value.slice(from, to).split("\n");
+
+  const next = lines
+    .map((line) =>
+      direction === 1
+        ? INDENT + line
+        : line.startsWith(INDENT)
+          ? line.slice(INDENT.length)
+          : line.replace(/^\s+/, ""),
+    )
+    .join("\n");
+
+  return {
+    value: value.slice(0, from) + next + value.slice(to),
+    selectionStart: from,
+    selectionEnd: from + next.length,
+  };
+}
+
+/** True when the caret sits on a list line, where Tab should nest. */
+export function isOnListLine(value: string, caret: number): boolean {
+  const from = value.lastIndexOf("\n", caret - 1) + 1;
+  const nextBreak = value.indexOf("\n", caret);
+  const line = value.slice(from, nextBreak === -1 ? value.length : nextBreak);
+  return /^\s*(?:[-*+]|\d+\.)\s/.test(line);
+}
+
 function applyLink(sel: EditorSelection): EditorSelection {
   const { value, selectionStart: start, selectionEnd: end } = sel;
   const selected = value.slice(start, end);
@@ -219,6 +290,9 @@ export function applyMarkdown(action: ToolbarAction, sel: EditorSelection): Edit
   if (prefix) return applyLinePrefix(sel, prefix, action);
 
   if (action === "ol") return applyOrderedList(sel);
+  if (action === "tasklist") return applyTaskList(sel);
+  if (action === "indent") return applyIndent(sel, 1);
+  if (action === "outdent") return applyIndent(sel, -1);
   if (action === "link") return applyLink(sel);
   if (action === "codeblock") return applyCodeBlock(sel);
 

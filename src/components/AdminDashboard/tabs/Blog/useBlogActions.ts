@@ -92,10 +92,24 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
    * now requires a signed-in admin; the JWT is what proves that.
    */
   const postNewsletter = async (post: Partial<BlogPost> & { slug: string }, mode?: "test") => {
-    const { jwt } = await account.createJWT();
+    let jwt: string;
+    try {
+      ({ jwt } = await account.createJWT());
+    } catch {
+      // Distinct from the server refusing the token: here the session itself
+      // is gone, so "sign in again" is the actual instruction.
+      throw new Error("Your admin session has expired — sign in again and retry.");
+    }
+
     const res = await fetch(apiUrl("/api/send-newsletter"), {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+        // Sent alongside Authorization because some hosting layers consume
+        // that header before it reaches the function.
+        "x-appwrite-jwt": jwt,
+      },
       body: JSON.stringify({
         title: post.title,
         excerpt: post.excerpt,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMarkdown, EditorSelection } from "./markdownActions";
+import { applyMarkdown, EditorSelection, isOnListLine } from "./markdownActions";
 
 /** Builds a selection from a string with the selected span marked by |…|. */
 function sel(marked: string): EditorSelection {
@@ -97,5 +97,74 @@ describe("applyMarkdown — code block", () => {
     expect(applyMarkdown("codeblock", sel("text |x| more")).value).toBe(
       "text \n```\nx\n```\n more",
     );
+  });
+});
+
+describe("applyMarkdown — checklist", () => {
+  it("turns lines into unchecked task items", () => {
+    expect(applyMarkdown("tasklist", sel("|Buy milk\nCall bank|")).value).toBe(
+      "- [ ] Buy milk\n- [ ] Call bank",
+    );
+  });
+
+  it("promotes an existing bullet instead of stacking a second marker", () => {
+    expect(applyMarkdown("tasklist", sel("|- Buy milk|")).value).toBe("- [ ] Buy milk");
+  });
+
+  it("toggles off items that were already ticked", () => {
+    // "- [x] " must count as a task marker too, or a list you had ticked
+    // through could never be turned back into plain text.
+    expect(applyMarkdown("tasklist", sel("|- [x] Done\n- [ ] Todo|")).value).toBe("Done\nTodo");
+  });
+
+  it("adds rather than removes when only some lines are tasks", () => {
+    expect(applyMarkdown("tasklist", sel("|- [ ] Done\nPlain|")).value).toBe(
+      "- [ ] Done\n- [ ] Plain",
+    );
+  });
+
+  it("keeps indentation but drops the marker entirely when toggling off", () => {
+    // Same contract as the bullet toggle: off means plain text, not a bullet.
+    expect(applyMarkdown("tasklist", sel("|  - [ ] Nested|")).value).toBe("  Nested");
+  });
+});
+
+describe("applyMarkdown — indent and outdent", () => {
+  it("indents every selected line by one level", () => {
+    expect(applyMarkdown("indent", sel("|- one\n- two|")).value).toBe("  - one\n  - two");
+  });
+
+  it("outdents by one level", () => {
+    expect(applyMarkdown("outdent", sel("|  - one\n  - two|")).value).toBe("- one\n- two");
+  });
+
+  it("clears a partial indent back to the margin", () => {
+    // One stray space is less than a level, so it is removed outright rather
+    // than left behind as a half-indent.
+    expect(applyMarkdown("outdent", sel("| - one|")).value).toBe("- one");
+  });
+
+  it("is a no-op at the left margin", () => {
+    expect(applyMarkdown("outdent", sel("|- one|")).value).toBe("- one");
+  });
+});
+
+describe("isOnListLine", () => {
+  it("recognises the list forms Tab should nest", () => {
+    for (const line of ["- item", "* item", "+ item", "1. item", "  - nested", "- [ ] task"]) {
+      expect(isOnListLine(line, line.length)).toBe(true);
+    }
+  });
+
+  it("leaves Tab alone everywhere else, so focus can still move", () => {
+    for (const line of ["plain text", "## Heading", "", "-nodash", "1.no space"]) {
+      expect(isOnListLine(line, line.length)).toBe(false);
+    }
+  });
+
+  it("looks at the caret's own line in a multi-line document", () => {
+    const doc = "intro\n- item\noutro";
+    expect(isOnListLine(doc, 8)).toBe(true); // inside "- item"
+    expect(isOnListLine(doc, 2)).toBe(false); // inside "intro"
   });
 });

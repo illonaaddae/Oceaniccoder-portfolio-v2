@@ -4,7 +4,7 @@ import { BlogPost } from "@/types";
 import { ImageUpload } from "../../ImageUpload";
 import { MarkdownRenderer } from "@/components/BlogPost/MarkdownRenderer";
 import { MarkdownToolbar } from "./MarkdownToolbar";
-import { applyMarkdown, ToolbarAction, TOOLBAR_SHORTCUTS } from "./markdownActions";
+import { applyMarkdown, isOnListLine, ToolbarAction, TOOLBAR_SHORTCUTS } from "./markdownActions";
 
 interface BlogContentEditorProps {
   formData: Partial<BlogPost>;
@@ -52,6 +52,16 @@ export const BlogContentEditor: React.FC<BlogContentEditorProps> = ({
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Tab nests list items — but only on a list line. Anywhere else it keeps
+    // its normal job of moving focus, so the editor is never a keyboard trap.
+    if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const el = e.currentTarget;
+      if (!isOnListLine(el.value, el.selectionStart)) return;
+      e.preventDefault();
+      runAction(e.shiftKey ? "outdent" : "indent");
+      return;
+    }
+
     if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
     const action = TOOLBAR_SHORTCUTS[e.key.toLowerCase()];
     if (!action) return;
