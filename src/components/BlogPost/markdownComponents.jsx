@@ -1,5 +1,6 @@
 import React from "react";
 import { createCodeHandler } from "./CodeHandler";
+import { isExternalHref, prettyUrlLabel, resolveHref } from "../../utils/linkHref";
 
 /**
  * Build the component overrides object consumed by ReactMarkdown.
@@ -11,6 +12,46 @@ const TASK_ITEM = "flex items-start gap-2.5";
 
 /** remark-gfm marks task lists with `contains-task-list` / `task-list-item`. */
 const isTaskList = (className) => Boolean(className && className.includes("task-list"));
+
+/** Flatten a ReactMarkdown child tree to the plain text a reader would see. */
+const childrenToText = (children) =>
+  React.Children.toArray(children)
+    .map((child) => {
+      if (typeof child === "string" || typeof child === "number") return String(child);
+      return child?.props?.children ? childrenToText(child.props.children) : "";
+    })
+    .join("");
+
+/** True when the label carries no markup, so it is safe to rewrite as a string. */
+const isPlainText = (children) =>
+  React.Children.toArray(children).every(
+    (child) => typeof child === "string" || typeof child === "number",
+  );
+
+/**
+ * The arrow that tells a reader the link leaves the site.
+ *
+ * `whitespace-nowrap` on the wrapper keeps the arrow on the same line as the
+ * last word instead of stranding it at the start of the next one.
+ */
+const ExternalLinkIcon = () => (
+  <span className="whitespace-nowrap">
+    &#8203;
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="inline-block w-[0.7em] h-[0.7em] ms-1 mb-[0.15em] opacity-70"
+    >
+      <path d="M7 17 17 7" />
+      <path d="M8 7h9v9" />
+    </svg>
+  </span>
+);
 
 export const getMarkdownComponents = (isDark) => {
   const listText = isDark ? "text-gray-200" : "text-gray-700";
@@ -132,19 +173,48 @@ export const getMarkdownComponents = (isDark) => {
     ),
     code: createCodeHandler(isDark),
     pre: ({ children }) => <>{children}</>,
-    a: ({ href, children }) => (
-      <a
-        href={href}
-        className={`underline ${
-          isDark
-            ? "text-oceanic-500 hover:text-oceanic-400"
-            : "text-oceanic-600 hover:text-oceanic-700"
-        }`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {children}
-      </a>
-    ),
+    /*
+     * Links.
+     *
+     * Two things go wrong on the way from the editor to here, and both end the
+     * same way — the browser reads the href as a same-site path, the SPA router
+     * picks it up and the reader gets "Page not found" instead of the article
+     * that was linked:
+     *
+     *   1. `[https://example.com](url)` — the URL was pasted over the *text*
+     *      and the toolbar's `url` placeholder stayed in the href.
+     *   2. `[Example](example.com)` — a bare domain has no scheme, so it is a
+     *      relative path too.
+     *
+     * `resolveHref` repairs both, which matters for posts that are already
+     * published: they render correctly without being re-edited. When nothing
+     * usable is left the text renders unlinked rather than as a dead link.
+     */
+    a: ({ href, children }) => {
+      const text = childrenToText(children);
+      const resolved = resolveHref(href, text);
+
+      if (!resolved) return <>{children}</>;
+
+      const external = isExternalHref(resolved);
+      // A pasted URL as its own label is common; the scheme and `www.` are
+      // noise, and an unshortened one runs off the edge of a phone.
+      const label = isPlainText(children) ? prettyUrlLabel(text) : children;
+
+      return (
+        <a
+          href={resolved}
+          className={`font-medium break-words underline decoration-2 underline-offset-[3px] transition-colors ${
+            isDark
+              ? "text-oceanic-400 decoration-oceanic-400/40 hover:text-oceanic-300 hover:decoration-oceanic-300"
+              : "text-oceanic-600 decoration-oceanic-500/40 hover:text-oceanic-700 hover:decoration-oceanic-600"
+          }`}
+          {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        >
+          {label}
+          {external && <ExternalLinkIcon />}
+        </a>
+      );
+    },
   };
 };

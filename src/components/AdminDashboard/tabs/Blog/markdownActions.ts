@@ -1,3 +1,5 @@
+import { looksLikeUrl, normalizeUrl } from "../../../../utils/linkHref";
+
 /**
  * Markdown editing primitives for the blog content toolbar.
  *
@@ -275,6 +277,24 @@ export function isOnListLine(value: string, caret: number): boolean {
 function applyLink(sel: EditorSelection): EditorSelection {
   const { value, selectionStart: start, selectionEnd: end } = sel;
   const selected = value.slice(start, end);
+
+  /*
+   * A selected URL belongs in the href, not the label. Getting this backwards
+   * is what shipped `[https://example.com](url)` into published posts: `url`
+   * is a relative path, so the link pointed back at our own site and the
+   * router answered "Page not found".
+   */
+  if (looksLikeUrl(selected)) {
+    const href = normalizeUrl(selected) ?? selected.trim();
+    const label = "link text";
+    const inserted = `[${label}](${href})`;
+    return {
+      value: value.slice(0, start) + inserted + value.slice(end),
+      selectionStart: start + 1,
+      selectionEnd: start + 1 + label.length,
+    };
+  }
+
   const text = selected || "link text";
   const inserted = `[${text}](url)`;
   // Leave "url" selected — that is the part you always have to replace.
