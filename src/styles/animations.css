@@ -134,62 +134,90 @@
     radial-gradient(ellipse 56% 48% at 8% 92%, var(--accent-teal-subtle), transparent 72%);
 }
 
-/* Wordmark, set as a watermark behind the content.
-   Centred rather than anchored to the section's bottom edge: the hero is
-   min-h-dvh *plus* pt-28, so its bottom sits below the fold and a
-   bottom-anchored wordmark showed only as a sliver of cropped letter-tops.
-   The letterforms are painted through a gradient and clipped to the glyphs so
-   the word sinks into the ground instead of ending on a hard edge. */
-.hero-surface__wordmark {
+/* Tech constellation, the hero's ambient ground.
+   This replaced an oversized "oceaniccoder" wordmark that sat directly behind
+   the headline and the CTAs and competed with them for the eye. A sparse
+   scatter of tech glyphs at very low opacity, each on its own long loop, reads
+   as depth rather than as a second block of type.
+
+   Budget: no canvas, no rAF, no JS. Every glyph animates opacity and transform
+   only, so the field is composited on the GPU and the main thread stays free.
+   The glyphs are monochrome on purpose — brand colours at this opacity turn to
+   muddy noise, and would put colour back exactly where we just took it out. */
+.hero-tech {
   position: absolute;
-  left: 50%;
-  /* Just below centre, so the cap line clears the tagline above it. */
-  top: 56%;
-  transform: translate(-50%, -50%);
-  margin: 0;
-  width: max-content;
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(4rem, 15vw, 14rem);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1;
-  white-space: nowrap;
-  user-select: none;
-  background-image: linear-gradient(
-    to bottom,
-    var(--brand-ocean-3) 0%,
-    var(--brand-ocean-2) 52%,
-    color-mix(in srgb, var(--brand-ocean-2) 24%, transparent) 84%,
-    transparent 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-
-  /* Dark carries this heavier than light does: the teal sits on a near-black
-     ground, so at the light theme's weight it competes with the CTAs it runs
-     behind. Light is unchanged below. */
-  opacity: 0.085;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--brand-ocean-2);
 }
 
-[data-theme="light"] .hero-surface__wordmark,
-html[data-theme="light"] .hero-surface__wordmark,
-body[data-theme="light"] .hero-surface__wordmark {
-  opacity: 0.11;
+.hero-tech__item {
+  position: absolute;
+  display: block;
+  width: var(--tech-size);
+  height: var(--tech-size);
+  /* top/left place the glyph's centre, not its corner, so a size change never
+     shifts it off its spot in the composition. */
+  margin: calc(var(--tech-size) / -2) 0 0 calc(var(--tech-size) / -2);
+  opacity: 0;
+  animation-name: hero-tech-float;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-iteration-count: infinite;
+  will-change: opacity, transform;
 }
 
-/* Older engines without color-mix still get a readable fade. */
-@supports not (color: color-mix(in srgb, red 50%, transparent)) {
-  .hero-surface__wordmark {
-    background-image: linear-gradient(to bottom, var(--brand-ocean-2) 0%, transparent 96%);
+.hero-tech__item svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Long hold at peak, quick fade at either end: the field should look mostly
+   settled, with the odd glyph arriving or leaving, never strobing. */
+@keyframes hero-tech-float {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, var(--tech-drift), 0) scale(0.94);
+  }
+
+  14%,
+  72% {
+    opacity: var(--tech-peak);
+    transform: translate3d(0, calc(var(--tech-drift) * -1), 0) scale(1);
+  }
+}
+
+/* Dark carries this lighter than light does: teal on a near-black ground is
+   already high-contrast, so at the light theme's weight it would compete with
+   the CTAs it runs behind. Same relationship the wordmark needed. */
+.hero-tech {
+  --tech-peak: 0.13;
+}
+
+[data-theme="light"] .hero-tech,
+html[data-theme="light"] .hero-tech,
+body[data-theme="light"] .hero-tech {
+  --tech-peak: 0.17;
+}
+
+/* No drift, no pulsing: hold the field at a slightly dimmer static opacity so
+   the composition survives without any motion at all. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-tech__item {
+    animation: none;
+    opacity: calc(var(--tech-peak) * 0.75);
+    transform: none;
+    will-change: auto;
   }
 }
 
 /* Hidden below md. At that width the hero copy runs the full column and the
-   wordmark lands directly behind the tagline, where it costs legibility and
-   buys nothing. */
+   glyphs land directly behind the tagline, where they cost legibility and buy
+   nothing — the same reason the wordmark was hidden here. */
 @media (max-width: 767px) {
-  .hero-surface__wordmark {
+  .hero-tech {
     display: none;
   }
 }

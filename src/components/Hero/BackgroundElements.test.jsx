@@ -4,9 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import BackgroundElements from "./BackgroundElements";
 
 /**
- * The hero surface is two static layers. Its whole reason for existing in this
- * form is that it costs one paint, so these guard the budget as much as the
- * markup.
+ * The hero surface is a static wash plus a CSS-only tech constellation. Its
+ * whole reason for existing in this form is that it costs one paint and then
+ * only GPU compositing, so these guard the budget as much as the markup.
  */
 
 afterEach(() => {
@@ -15,11 +15,21 @@ afterEach(() => {
 });
 
 describe("hero BackgroundElements", () => {
-  it("renders the wash and the wordmark", () => {
+  it("renders the wash and the tech constellation", () => {
     const { container } = render(<BackgroundElements />);
 
     expect(container.querySelector(".hero-surface__wash")).toBeInTheDocument();
-    expect(container.querySelector(".hero-surface__wordmark")).toHaveTextContent("oceaniccoder");
+    expect(container.querySelector(".hero-tech")).toBeInTheDocument();
+    expect(container.querySelectorAll(".hero-tech__item").length).toBeGreaterThan(0);
+  });
+
+  it("no longer paints the wordmark watermark behind the copy", () => {
+    const { container } = render(<BackgroundElements />);
+
+    // The oversized "oceaniccoder" wordmark sat directly behind the headline
+    // and CTAs and competed with them. It was removed, not just faded.
+    expect(container.querySelector(".hero-surface__wordmark")).toBeNull();
+    expect(container.textContent).not.toContain("oceaniccoder");
   });
 
   it("is decorative and cannot swallow taps", () => {
