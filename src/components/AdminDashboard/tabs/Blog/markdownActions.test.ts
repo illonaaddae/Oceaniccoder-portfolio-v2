@@ -85,6 +85,23 @@ describe("applyMarkdown — link", () => {
   it("falls back to placeholder text with an empty selection", () => {
     expect(applyMarkdown("link", sel("||")).value).toBe("[link text](url)");
   });
+
+  it("puts a selected URL in the href slot, not the label", () => {
+    /*
+     * The published-post bug started here. Pasting a URL and hitting the link
+     * button put it in the label and left `url` as the href, which the browser
+     * reads as a same-site path — the reader landed on our own 404 page.
+     */
+    expect(show(applyMarkdown("link", sel("see |https://example.com/a| here")))).toBe(
+      "see [|link text|](https://example.com/a) here",
+    );
+  });
+
+  it("gives a selected bare domain its scheme", () => {
+    expect(applyMarkdown("link", sel("|example.com/blog|")).value).toBe(
+      "[link text](https://example.com/blog)",
+    );
+  });
 });
 
 describe("applyMarkdown — code block", () => {

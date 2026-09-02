@@ -70,6 +70,42 @@ describe("list rendering", () => {
     expect(unchecked.className).toContain("bg-transparent");
   });
 
+  it("keeps the box on the same line as its text on a loose checklist", () => {
+    /*
+     * The reported bug. A blank line between items makes remark wrap the item
+     * in a <p> — and it puts the checkbox *inside* that paragraph. The box was
+     * styled `flex`, which is block-level, so it claimed a whole line and every
+     * item rendered as an empty box above its own text.
+     *
+     * An inline box stays in the text flow. The hanging indent on the item then
+     * lines wrapped text up under the first line rather than under the box.
+     */
+    const { container } = renderMd("- [ ] First item.\n\n- [ ] Second item.");
+
+    const box = container.querySelector("span[aria-hidden]")!;
+    expect(box.className).toContain("inline-flex");
+    // Bare `flex` would be display:block and break the line again.
+    expect(box.className).not.toMatch(/(^|\s)flex(\s|$)/);
+    expect(container.querySelector("li")!.className).toContain("indent-");
+  });
+
+  it("lays a tight checklist out the same way as a loose one", () => {
+    const { container } = renderMd("- [ ] First item.\n- [ ] Second item.");
+
+    const items = [...container.querySelectorAll("li")];
+    expect(items).toHaveLength(2);
+    // One layout for both kinds — no flex row that only tight items get.
+    items.forEach((li) => expect(li.className).toContain("indent-"));
+  });
+
+  it("cancels the item's hanging indent inside the box", () => {
+    // text-indent inherits, so without this the tick was dragged out of the
+    // box and drawn in the margin beside it.
+    const { container } = renderMd("- [x] Done");
+
+    expect(container.querySelector("span[aria-hidden]")!.className).toContain("indent-0");
+  });
+
   it("sizes the checkbox in rem, not em", () => {
     // `text-` and `w-`/`h-` on the same element compound: an em-based box
     // shrank to about two-thirds of its intended size.
