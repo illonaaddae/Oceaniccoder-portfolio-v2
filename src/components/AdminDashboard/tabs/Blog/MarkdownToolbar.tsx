@@ -10,6 +10,9 @@ import {
   FaListOl,
   FaLink,
   FaFileCode,
+  FaCheckSquare,
+  FaIndent,
+  FaOutdent,
 } from "react-icons/fa";
 import { ToolbarAction, TOOLBAR_LABELS } from "./markdownActions";
 
@@ -33,7 +36,12 @@ const GROUPS: { action: ToolbarAction; icon: React.ReactNode; hint?: string }[][
   [
     { action: "ul", icon: <FaListUl /> },
     { action: "ol", icon: <FaListOl /> },
+    { action: "tasklist", icon: <FaCheckSquare /> },
     { action: "quote", icon: <FaQuoteLeft /> },
+  ],
+  [
+    { action: "outdent", icon: <FaOutdent />, hint: "⇧Tab" },
+    { action: "indent", icon: <FaIndent />, hint: "Tab" },
   ],
   [
     { action: "link", icon: <FaLink />, hint: "⌘K" },
