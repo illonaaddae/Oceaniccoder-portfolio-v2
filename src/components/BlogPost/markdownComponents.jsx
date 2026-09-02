@@ -6,9 +6,23 @@ import { isExternalHref, prettyUrlLabel, resolveHref } from "../../utils/linkHre
  * Build the component overrides object consumed by ReactMarkdown.
  * The heavy code-block handler lives in CodeHandler.jsx.
  */
-/** A checklist has no bullet — the checkbox is the marker. */
-const TASK_LIST = "list-none ps-0 mb-4 space-y-2 [&_li>p]:mb-0 [&_li>p]:leading-relaxed";
-const TASK_ITEM = "flex items-start gap-2.5";
+/*
+ * Checklists.
+ *
+ * The item is laid out with a hanging indent rather than as a flex row, and
+ * that is deliberate. On a "loose" checklist — blank lines between items —
+ * remark wraps the item's content in a <p> and puts the checkbox *inside* it,
+ * so a flex row on the <li> never sees the box as a child to lay out. The
+ * indent works from inside the paragraph as well as without it, so loose and
+ * tight checklists render identically.
+ *
+ * `-indent` pulls the first line back by the width of the box plus its gap, and
+ * the matching padding puts it back, so wrapped lines sit under the text
+ * instead of under the box.
+ */
+const TASK_GUTTER = "ps-[1.75rem] -indent-[1.75rem]";
+const TASK_LIST = `list-none ps-0 mb-4 space-y-2 [&_li>p]:mb-0 [&_li>p]:leading-relaxed`;
+const TASK_ITEM = TASK_GUTTER;
 
 /** remark-gfm marks task lists with `contains-task-list` / `task-list-item`. */
 const isTaskList = (className) => Boolean(className && className.includes("task-list"));
@@ -143,7 +157,10 @@ export const getMarkdownComponents = (isDark) => {
           // Sized in rem, not em: `text-` on this same element would change the
           // em basis that `w-`/`h-` resolve against, and the box came out at
           // roughly two-thirds the intended size.
-          className={`mt-[0.2rem] w-[1.15rem] h-[1.15rem] shrink-0 rounded-[0.35rem] border flex items-center justify-center text-[0.7rem] leading-none font-bold ${
+          // `inline-flex`, never `flex`: a block-level box inside the item's
+          // paragraph took a line of its own and left every checkbox stranded
+          // above its text. `align-[-0.2em]` seats it on the text baseline.
+          className={`w-[1.15rem] h-[1.15rem] me-[0.6rem] shrink-0 rounded-[0.35rem] border inline-flex items-center justify-center align-[-0.2em] indent-0 text-[0.7rem] leading-none font-bold ${
             checked
               ? "bg-oceanic-500 border-oceanic-500 text-white"
               : isDark
