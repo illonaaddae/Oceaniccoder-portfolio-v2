@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { usePortfolioData } from "../hooks/usePortfolioData";
-import { roles } from "./Hero/heroData";
+import { useHeroRoles } from "./Hero/useHeroRoles";
 import { useTypewriter } from "./Hero/useTypewriter";
 import BackgroundElements from "./Hero/BackgroundElements";
 import ProfileImage from "./Hero/ProfileImage";
@@ -14,6 +14,7 @@ const HeroSection = () => {
   const navigate = useNavigate();
   const scrollTimeoutRef = useRef(null);
   const { about } = usePortfolioData();
+  const roles = useHeroRoles();
   const displayText = useTypewriter(roles);
 
   useEffect(() => {

@@ -35,6 +35,8 @@ export interface Certification {
   title: string;
   issuer: string;
   date: string;
+  /** What kind of certificate this is, e.g. "Professional Certificate". */
+  certificationType?: string;
   credential?: string;
   skills?: string[];
   platform: string;

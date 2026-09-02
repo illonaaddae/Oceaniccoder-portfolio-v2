@@ -13,7 +13,7 @@ interface CertificationsTableProps {
   onDelete: (id: string) => void;
 }
 
-const HEADERS = ["Certification Name", "Issuer", "Date Earned", "Status", "Actions"];
+const HEADERS = ["Certification Name", "Issuer", "Type", "Date Earned", "Platform", "Actions"];
 
 export const CertificationsTable: React.FC<CertificationsTableProps> = ({
   certifications,

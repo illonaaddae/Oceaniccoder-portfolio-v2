@@ -1,6 +1,7 @@
 import React from "react";
-import { FaDownload, FaCertificate } from "react-icons/fa";
+import { FaDownload, FaCertificate, FaAward } from "react-icons/fa";
 import PlatformLogo from "../PlatformLogo";
+import CredentialBadge from "./CredentialBadge";
 
 import type { Certification } from "../../types";
 
@@ -36,13 +37,17 @@ const CertificationCard = React.memo(({ cert }: CertificationCardProps) => (
           <span className="text-xs text-gray-200 bg-gray-700/20 px-2 py-1 rounded cert-date">
             {cert.date}
           </span>
+          {cert.credential && <CredentialBadge credential={cert.credential} />}
         </div>
       </div>
-      <div className="text-right ml-0 sm:ml-4 flex-shrink-0">
-        <span className="inline-block text-xs bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 text-oceanic-400 px-2.5 py-1 rounded border border-oceanic-500/30 sm:whitespace-nowrap font-medium shadow-sm cert-credential">
-          {cert.credential}
-        </span>
-      </div>
+      {cert.certificationType && (
+        <div className="text-right ml-0 sm:ml-4 flex-shrink-0">
+          <span className="inline-flex items-center gap-1.5 text-xs bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 text-oceanic-400 px-2.5 py-1 rounded border border-oceanic-500/30 sm:whitespace-nowrap font-medium shadow-sm cert-type">
+            <FaAward className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+            {cert.certificationType}
+          </span>
+        </div>
+      )}
     </div>
 
     {/* Skills */}

@@ -14,3 +14,23 @@ export const PLATFORMS: { value: string; color: string }[] = [
   { value: "DataCamp", color: "#03EF62" },
   { value: "Other", color: "#6B7280" },
 ];
+
+/**
+ * The kinds of certificate an issuer hands out. Kept as a fixed list so the
+ * badge on the public card stays consistent — free text fragments into
+ * near-duplicates ("Professional Cert", "Professional certificate"). Anything
+ * genuinely outside the list goes through the custom option.
+ */
+export const CERTIFICATION_TYPES: string[] = [
+  "Professional Certificate",
+  "Course Completion",
+  "Specialization",
+  "Career Path",
+  "Cloud Certification",
+  "Nanodegree",
+  "Bootcamp",
+  "License",
+  "Badge",
+  "Workshop",
+  "Degree / Diploma",
+];

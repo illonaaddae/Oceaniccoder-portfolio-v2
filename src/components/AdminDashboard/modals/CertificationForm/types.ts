@@ -6,6 +6,7 @@ export interface CertificationFormState {
   date: string;
   dateMonth: string;
   dateYear: string;
+  certificationType: string;
   credential: string;
   skills: string[];
   platform: string;

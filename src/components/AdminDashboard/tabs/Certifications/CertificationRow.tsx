@@ -48,6 +48,19 @@ export const CertificationRow: React.FC<CertificationRowProps> = ({
         {cert.issuer}
       </td>
 
+      {/* Certification Type */}
+      <td className="px-4 py-4">
+        {cert.certificationType ? (
+          <span className="px-3 py-1 rounded-full text-xs font-bold border bg-oceanic-500/10 text-oceanic-400 border-oceanic-500/30 whitespace-nowrap">
+            {cert.certificationType}
+          </span>
+        ) : (
+          <span className={`text-xs ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+            —
+          </span>
+        )}
+      </td>
+
       {/* Date Earned */}
       <td
         className={`px-4 py-4 text-sm font-medium transition-colors duration-300 ${
@@ -57,7 +70,7 @@ export const CertificationRow: React.FC<CertificationRowProps> = ({
         {formatCertDate(cert.date)}
       </td>
 
-      {/* Status Badge */}
+      {/* Platform Badge */}
       <td className="px-4 py-4">
         <span className="px-3 py-1 rounded-full text-xs font-bold border bg-info-400/10 text-info-400 border-info-400/30">
           {cert.platform || "certified"}

@@ -23,8 +23,8 @@ export const CredentialField: React.FC<CredentialFieldProps> = ({
       type="text"
       value={form.credential}
       onChange={(e) => updateForm({ credential: e.target.value })}
-      className={inputClass}
-      placeholder="e.g., ABC123XYZ"
+      className={`${inputClass} font-mono text-sm`}
+      placeholder="e.g., 2234490f-2d2d-4fea-90a9-575e6990781f"
     />
   </div>
 );

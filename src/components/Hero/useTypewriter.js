@@ -8,7 +8,15 @@ export function useTypewriter(strings) {
   const pauseTimeoutRef = useRef(null);
 
   useEffect(() => {
-    const currentString = strings[currentIndex];
+    // The list can swap under us (dashboard-managed roles arriving after the
+    // bundled defaults), so wrap the index instead of indexing past the end.
+    if (!strings || strings.length === 0) return undefined;
+    const safeIndex = currentIndex % strings.length;
+    if (safeIndex !== currentIndex) {
+      setCurrentIndex(safeIndex);
+      return undefined;
+    }
+    const currentString = strings[safeIndex];
     const typingSpeed = isDeleting ? 50 : 100;
     const pauseTime = isDeleting ? 500 : 2000;
 

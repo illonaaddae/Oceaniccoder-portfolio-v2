@@ -4,6 +4,7 @@ import type { About } from "@/types";
 import { useAboutForm } from "./useAboutForm";
 import { ProfileSection } from "./ProfileSection";
 import { HeroImagesSection } from "./HeroImagesSection";
+import { HeroRolesSection } from "./HeroRolesSection";
 import { ResumeSection } from "./ResumeSection";
 import { StatsSection } from "./StatsSection";
 import { StorySection } from "./StorySection";
@@ -74,6 +75,12 @@ export const AboutTab: React.FC<AboutTabProps> = ({
         <div className="space-y-6">
           <ProfileSection {...shared} />
           <HeroImagesSection
+            theme={theme}
+            isReadOnly={isReadOnly}
+            onSuccess={onSuccess}
+            onError={onError}
+          />
+          <HeroRolesSection
             theme={theme}
             isReadOnly={isReadOnly}
             onSuccess={onSuccess}

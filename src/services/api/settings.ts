@@ -67,3 +67,27 @@ export async function setHeroImage(mode: "light" | "dark", url: string): Promise
   current[mode] = url;
   await setSetting(HERO_IMAGES_KEY, JSON.stringify(current));
 }
+
+// ── Hero typewriter roles — the rotating titles under the hero name ────────────
+const HERO_ROLES_KEY = "hero_roles";
+
+/**
+ * The roles the hero cycles through. Returns an empty array when unset so the
+ * caller can fall back to the bundled defaults rather than showing nothing.
+ */
+export async function getHeroRoles(): Promise<string[]> {
+  try {
+    const setting = await getSetting(HERO_ROLES_KEY);
+    if (!setting?.value) return [];
+    const parsed = JSON.parse(setting.value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((r): r is string => typeof r === "string" && r.trim() !== "");
+  } catch {
+    return [];
+  }
+}
+
+export async function setHeroRoles(roles: string[]): Promise<void> {
+  const cleaned = roles.map((r) => r.trim()).filter(Boolean);
+  await setSetting(HERO_ROLES_KEY, JSON.stringify(cleaned));
+}
