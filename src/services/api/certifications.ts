@@ -37,6 +37,24 @@ export async function getCertifications(): Promise<Certification[]> {
   });
 }
 
+/**
+ * Appwrite rejects writes for attributes the collection doesn't have yet, and
+ * the raw message is opaque in the dashboard. Name the missing attribute so
+ * the fix (add it in the Appwrite Console) is obvious.
+ */
+function handleAttributeError(error: unknown): never {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (msg.includes("Unknown attribute") || msg.includes("attribute")) {
+    const match = msg.match(/"([^"]+)"/);
+    const attr = match ? match[1] : "unknown";
+    throw new Error(
+      `The attribute "${attr}" doesn't exist in your Appwrite database. ` +
+        `Please add it to the "certifications" collection in Appwrite Console.`,
+    );
+  }
+  throw error;
+}
+
 export async function createCertification(
   cert: Omit<Certification, "$id" | "$createdAt">,
 ): Promise<Certification> {
@@ -46,6 +64,7 @@ export async function createCertification(
     date: cert.date,
     platform: cert.platform,
   };
+  if (cert.certificationType) cleanedData.certificationType = cert.certificationType;
   if (cert.credential) cleanedData.credential = cert.credential;
   if (cert.skills && cert.skills.length > 0) cleanedData.skills = cert.skills;
   if (cert.downloadLink) cleanedData.downloadLink = cert.downloadLink;
@@ -54,12 +73,16 @@ export async function createCertification(
   if (cert.platformIconUrl) cleanedData.platformIconUrl = cert.platformIconUrl;
   if (cert.image) cleanedData.image = cert.image;
 
-  return databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.CERTIFICATIONS,
-    ID.unique(),
-    cleanedData,
-  ) as unknown as Certification;
+  try {
+    return (await databases.createDocument(
+      DATABASE_ID,
+      COLLECTIONS.CERTIFICATIONS,
+      ID.unique(),
+      cleanedData,
+    )) as unknown as Certification;
+  } catch (error: unknown) {
+    handleAttributeError(error);
+  }
 }
 
 export async function updateCertification(
@@ -71,6 +94,8 @@ export async function updateCertification(
   if (cert.issuer !== undefined) cleanedData.issuer = cert.issuer;
   if (cert.date !== undefined) cleanedData.date = cert.date;
   if (cert.platform !== undefined) cleanedData.platform = cert.platform;
+  if (cert.certificationType !== undefined)
+    cleanedData.certificationType = cert.certificationType || null;
   if (cert.credential !== undefined) cleanedData.credential = cert.credential || null;
   if (cert.skills !== undefined) cleanedData.skills = cert.skills;
   if (cert.platformColor !== undefined) cleanedData.platformColor = cert.platformColor || null;
@@ -80,12 +105,16 @@ export async function updateCertification(
   if (cert.verifyLink !== undefined) cleanedData.verifyLink = cert.verifyLink || null;
   if (cert.image !== undefined) cleanedData.image = cert.image || null;
 
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.CERTIFICATIONS,
-    certId,
-    cleanedData,
-  ) as unknown as Certification;
+  try {
+    return (await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTIONS.CERTIFICATIONS,
+      certId,
+      cleanedData,
+    )) as unknown as Certification;
+  } catch (error: unknown) {
+    handleAttributeError(error);
+  }
 }
 
 export async function deleteCertification(certId: string): Promise<void> {

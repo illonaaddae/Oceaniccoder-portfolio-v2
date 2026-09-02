@@ -4,7 +4,7 @@ const certifications = [
     title: "Full-Stack Engineer Career Path",
     issuer: "Codecademy",
     date: "2025",
-    credential: "Professional Certificate",
+    certificationType: "Professional Certificate",
     skills: [
       "HTML",
       "CSS",
@@ -28,7 +28,7 @@ const certifications = [
     title: "Front-End Developer Career Path",
     issuer: "Scrimba",
     date: "2025",
-    credential: "Professional Certificate",
+    certificationType: "Professional Certificate",
     skills: ["HTML", "CSS", "JavaScript", "Responsive Design", "API", "React"],
     platform: "Scrimba",
     downloadLink: "/files/certificates/google-marketing-certificate.pdf",
@@ -39,7 +39,7 @@ const certifications = [
     title: "AWS Cloud Practitioner",
     issuer: "Amazon Web Services",
     date: "2022",
-    credential: "Cloud Certification",
+    certificationType: "Cloud Certification",
     skills: ["Cloud Computing", "AWS Services", "Security", "Architecture"],
     platform: "AWS Training",
     downloadLink:
@@ -51,7 +51,7 @@ const certifications = [
     title: "The Hard Parts of Asynchronous JavaScript",
     issuer: "Frontend Masters",
     date: "2025",
-    credential: "Professional Certificate",
+    certificationType: "Professional Certificate",
     skills: [
       "Callbacks",
       "Higher-Order Functions",
@@ -70,7 +70,7 @@ const certifications = [
     title: "Complete Intro to Web Development, v3",
     issuer: "Frontend Masters",
     date: "2024",
-    credential: "Professional Certificate",
+    certificationType: "Professional Certificate",
     skills: ["HTML5", "CSS3", "JavaScript"],
     platform: "Frontend Masters",
     downloadLink:

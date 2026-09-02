@@ -4,6 +4,7 @@ import type { CertificationFormModalProps } from "./CertificationForm/types";
 import { useCertificationForm } from "./CertificationForm/useCertificationForm";
 import { BasicInfoFields } from "./CertificationForm/BasicInfoFields";
 import { PlatformDateFields } from "./CertificationForm/PlatformDateFields";
+import { CertificationTypeField } from "./CertificationForm/CertificationTypeField";
 import { CredentialField } from "./CertificationForm/CredentialField";
 import { SkillsField } from "./CertificationForm/SkillsField";
 import { LinksFields } from "./CertificationForm/LinksFields";
@@ -52,12 +53,21 @@ export const CertificationFormModal: React.FC<CertificationFormModalProps> = ({
           labelClass={labelClass}
           theme={theme}
         />
-        <CredentialField
-          form={form}
-          updateForm={updateForm}
-          inputClass={inputClass}
-          labelClass={labelClass}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <CertificationTypeField
+            form={form}
+            updateForm={updateForm}
+            inputClass={inputClass}
+            labelClass={labelClass}
+            theme={theme}
+          />
+          <CredentialField
+            form={form}
+            updateForm={updateForm}
+            inputClass={inputClass}
+            labelClass={labelClass}
+          />
+        </div>
         <SkillsField
           form={form}
           newSkill={newSkill}

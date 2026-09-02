@@ -43,6 +43,7 @@ const DEFAULT_FORM: CertificationFormState = {
   date: "",
   dateMonth: "",
   dateYear: "",
+  certificationType: "",
   credential: "",
   skills: [],
   platform: "",
@@ -73,6 +74,7 @@ export function useCertificationForm(
         date: editingCertification.date || "",
         dateMonth: month,
         dateYear: year,
+        certificationType: editingCertification.certificationType || "",
         credential: editingCertification.credential || "",
         skills: editingCertification.skills || [],
         platform: editingCertification.platform || "",
@@ -106,9 +108,11 @@ export function useCertificationForm(
     e.preventDefault();
     setLoading(true);
     try {
-      const { dateMonth, dateYear, ...rest } = form;
+      const { dateMonth, dateYear, certificationType, ...rest } = form;
       await onSubmit({
         ...rest,
+        // The dropdown's "custom" sentinel is never a real type.
+        certificationType: certificationType === "__custom__" ? "" : certificationType,
         date: formatCertDate(dateMonth, dateYear) || form.date,
       });
       onClose();
