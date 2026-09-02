@@ -134,6 +134,9 @@ function applyWrap(sel: EditorSelection, marker: string, action: ToolbarAction):
   };
 }
 
+/** A line with nothing but whitespace separates items; it is never one. */
+const isBlank = (line: string) => line.trim() === "";
+
 /** Expands a selection outwards to cover whole lines. */
 function lineBounds(value: string, start: number, end: number) {
   const from = value.lastIndexOf("\n", start - 1) + 1;
@@ -152,11 +155,19 @@ function applyLinePrefix(
   const block = value.slice(from, to) || PLACEHOLDERS[action] || "";
   const lines = block.split("\n");
 
-  // Toggle off only when every line already carries the prefix, so a partial
-  // selection adds rather than silently removing.
-  const allPrefixed = lines.every((line) => line.startsWith(prefix));
+  // Blank lines are separators, not items. Prefixing them produced an empty
+  // "- " between every paragraph, which renders as a bullet with nothing after
+  // it — the lone dot that made bulleting a set of paragraphs look broken.
+  const content = lines.filter((line) => !isBlank(line));
+
+  // Toggle off only when every line that could carry the prefix already does,
+  // so a partial selection adds rather than silently removing.
+  const allPrefixed = content.length > 0 && content.every((line) => line.startsWith(prefix));
   const next = lines
-    .map((line) => (allPrefixed ? line.slice(prefix.length) : prefix + line))
+    .map((line) => {
+      if (isBlank(line)) return line;
+      return allPrefixed ? line.slice(prefix.length) : prefix + line;
+    })
     .join("\n");
 
   return {
@@ -173,9 +184,19 @@ function applyOrderedList(sel: EditorSelection): EditorSelection {
   const lines = block.split("\n");
 
   const numbered = /^\d+\.\s/;
-  const allNumbered = lines.every((line) => numbered.test(line));
+  const content = lines.filter((line) => !isBlank(line));
+  const allNumbered = content.length > 0 && content.every((line) => numbered.test(line));
+
+  // Blank separators keep their place and do not consume a number, so the
+  // sequence runs 1, 2, 3 across the items rather than skipping.
+  let n = 0;
   const next = lines
-    .map((line, i) => (allNumbered ? line.replace(numbered, "") : `${i + 1}. ${line}`))
+    .map((line) => {
+      if (isBlank(line)) return line;
+      if (allNumbered) return line.replace(numbered, "");
+      n += 1;
+      return `${n}. ${line}`;
+    })
     .join("\n");
 
   return {
@@ -196,9 +217,11 @@ function applyTaskList(sel: EditorSelection): EditorSelection {
 
   // Toggling off has to accept "- [x] " as well as "- [ ] ", or a list you had
   // ticked through could never be turned back into plain text.
-  const allTasks = lines.every((line) => TASK_MARKER.test(line));
+  const content = lines.filter((line) => !isBlank(line));
+  const allTasks = content.length > 0 && content.every((line) => TASK_MARKER.test(line));
   const next = lines
     .map((line) => {
+      if (isBlank(line)) return line;
       if (allTasks) return line.replace(TASK_MARKER, "$1");
       // Already a task (in a mixed selection) — leave it be, or the bullet
       // branch below would turn "- [ ] Done" into "- [ ] [ ] Done".
