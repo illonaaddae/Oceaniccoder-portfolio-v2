@@ -168,3 +168,49 @@ describe("isOnListLine", () => {
     expect(isOnListLine(doc, 2)).toBe(false); // inside "intro"
   });
 });
+
+describe("applyMarkdown — blank lines are separators, not items", () => {
+  /*
+   * The reported bug. Bulleting several paragraphs prefixed the blank lines
+   * between them too, producing an empty "- " that renders as a bullet with
+   * nothing after it — a lone dot sitting above each paragraph.
+   */
+  const PARAS = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph.";
+  const all = (v: string) => sel(`|${v}|`);
+
+  it("does not bullet the blank lines between paragraphs", () => {
+    const out = applyMarkdown("ul", all(PARAS)).value;
+
+    expect(out).toBe("- First paragraph.\n\n- Second paragraph.\n\n- Third paragraph.");
+    expect(out).not.toMatch(/^- $/m);
+  });
+
+  it("numbers only the paragraphs, so the sequence does not skip", () => {
+    const out = applyMarkdown("ol", all(PARAS)).value;
+
+    expect(out).toBe("1. First paragraph.\n\n2. Second paragraph.\n\n3. Third paragraph.");
+  });
+
+  it("does the same for checklists", () => {
+    const out = applyMarkdown("tasklist", all(PARAS)).value;
+
+    expect(out).toBe("- [ ] First paragraph.\n\n- [ ] Second paragraph.\n\n- [ ] Third paragraph.");
+  });
+
+  it("leaves whitespace-only lines exactly as they were", () => {
+    const out = applyMarkdown("ul", all("One\n   \nTwo")).value;
+
+    expect(out).toBe("- One\n   \n- Two");
+  });
+
+  it("still toggles off across blank lines", () => {
+    const bulleted = "- One\n\n- Two";
+
+    expect(applyMarkdown("ul", all(bulleted)).value).toBe("One\n\nTwo");
+  });
+
+  it("toggles quotes and headings the same way", () => {
+    expect(applyMarkdown("quote", all("One\n\nTwo")).value).toBe("> One\n\n> Two");
+    expect(applyMarkdown("h2", all("One\n\nTwo")).value).toBe("## One\n\n## Two");
+  });
+});
