@@ -6,6 +6,13 @@ const { Client, Account } = require("node-appwrite");
 // allow any origin with no caller identity at all.
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev";
 
+// Same constants the other functions use. This one originally read them from
+// the environment with no fallback, and APPWRITE_PROJECT_ID is not set in
+// Azure — nothing else needs it — so setProject(undefined) made every JWT
+// check throw and every caller was told they were not signed in.
+const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
+
 const CORS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -63,20 +70,35 @@ function httpsRequest(hostname, path, method, headers, body) {
  * Resolves the caller from an Appwrite JWT.
  * Returns the user on success, or null when the token is missing or invalid.
  */
+function readJwt(req) {
+  const headers = req.headers || {};
+  const auth = headers.authorization || headers.Authorization || "";
+  if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
+  // Fallback header: some hosting layers consume Authorization before it
+  // reaches the function, which would look identical to being signed out.
+  return (headers["x-appwrite-jwt"] || headers["X-Appwrite-JWT"] || "").trim();
+}
+
+/**
+ * Resolves the caller from an Appwrite JWT.
+ *
+ * Returns { user } on success, or { error } describing why not — the two
+ * failures have to be told apart, because reporting a misconfigured function
+ * as "you are not signed in" sends you looking in the wrong place.
+ */
 async function resolveCaller(context, req) {
-  const header = req.headers?.authorization || req.headers?.Authorization || "";
-  const jwt = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  if (!jwt) return null;
+  const jwt = readJwt(req);
+  if (!jwt) return { error: "no-token" };
 
   try {
     const client = new Client()
-      .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1")
-      .setProject(process.env.APPWRITE_PROJECT_ID)
+      .setEndpoint(APPWRITE_ENDPOINT)
+      .setProject(APPWRITE_PROJECT_ID)
       .setJWT(jwt);
-    return await new Account(client).get();
+    return { user: await new Account(client).get() };
   } catch (err) {
     context.log.warn("Newsletter auth rejected:", err.message);
-    return null;
+    return { error: "invalid-token", detail: err.message };
   }
 }
 
@@ -89,12 +111,17 @@ module.exports = async function (context, req) {
   // Gate first: this used to be anonymous, so anyone who knew the URL could
   // mail the entire subscriber list arbitrary content from the verified
   // sending domain.
-  const caller = await resolveCaller(context, req);
+  const { user: caller, error: authError, detail } = await resolveCaller(context, req);
   if (!caller) {
     context.res = {
       status: 401,
       headers: CORS,
-      body: JSON.stringify({ error: "Sign in as the site admin to send the newsletter." }),
+      body: JSON.stringify({
+        error:
+          authError === "no-token"
+            ? "The request carried no session token — reload the dashboard and try again."
+            : `Your session was not accepted (${detail || "unknown reason"}). Sign out and back in, then retry.`,
+      }),
     };
     return;
   }
