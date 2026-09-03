@@ -64,7 +64,7 @@ const STATUS_CONFIG: Record<string, { label: string; pill: string; dot: string }
 };
 
 function formatDate(dateStr?: string) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "N/A";
   return new Date(dateStr).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -139,7 +139,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
         setPaymentError(
           `Invoice ${inv.invoiceNumber} was marked paid, but the payment record failed to save: ` +
             `${payErr instanceof Error ? payErr.message : "unknown error"}. ` +
-            `It will be missing from the Payments tab — re-run scripts/backfill-payments.mjs to repair.`,
+            `It will be missing from the Payments tab. Re-run scripts/backfill-payments.mjs to repair.`,
         );
       }
 

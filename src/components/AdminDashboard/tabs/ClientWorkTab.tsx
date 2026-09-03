@@ -157,7 +157,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
             // template — a silent no-op that otherwise looks like success.
             if (body.skipped) {
               setStatusEmailError(
-                `No email template exists for status "${status}" — ${inq.email} was not notified.`,
+                `No email template exists for status "${status}". ${inq.email} was not notified.`,
               );
             }
           }

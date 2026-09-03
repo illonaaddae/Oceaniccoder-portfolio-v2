@@ -77,7 +77,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       } ${className}`}
     >
       <p className={`text-xs sm:text-sm ${sub}`}>
-        Showing <span className="font-semibold">{start}</span>–
+        Showing <span className="font-semibold">{start}</span>-
         <span className="font-semibold">{end}</span> of{" "}
         <span className="font-semibold">{totalItems}</span>
       </p>

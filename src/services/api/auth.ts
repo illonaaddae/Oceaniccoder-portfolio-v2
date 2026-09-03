@@ -19,7 +19,7 @@ export async function hasAppwriteSession(): Promise<boolean> {
 export async function verifyAdminPassword(password: string): Promise<boolean> {
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
   if (!adminEmail) {
-    console.error("verifyAdminPassword: VITE_ADMIN_EMAIL is not set — admin auth is disabled.");
+    console.error("verifyAdminPassword: VITE_ADMIN_EMAIL is not set. Admin auth is disabled.");
     return false;
   }
 
@@ -56,7 +56,7 @@ export async function logoutAdmin(): Promise<void> {
 export async function requestPasswordRecovery(): Promise<string> {
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
   if (!adminEmail) {
-    throw new Error("VITE_ADMIN_EMAIL is not set — cannot send recovery email");
+    throw new Error("VITE_ADMIN_EMAIL is not set, cannot send recovery email");
   }
   const redirectUrl = `${window.location.origin}/admin/reset-password`;
   await account.createRecovery(adminEmail, redirectUrl);

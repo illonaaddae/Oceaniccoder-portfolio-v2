@@ -74,7 +74,7 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigat
           theme === "dark" ? "text-slate-400" : "text-slate-600"
         }`}
       >
-        {item.timestamp ? formatRelativeTime(item.timestamp) : "—"}
+        {item.timestamp ? formatRelativeTime(item.timestamp) : "N/A"}
       </td>
     </tr>
   );

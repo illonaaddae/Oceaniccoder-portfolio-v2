@@ -531,7 +531,7 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
                   >
                     <span>
                       {monday.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                      {" – "}
+                      {" - "}
                       {sunday.toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",

@@ -23,7 +23,7 @@ export const formatPeriod = (startDate: string, endDate: string, isOngoing: bool
   const formatDate = (year: number, month: number) => `${SHORT_MONTHS[month]} ${year}`;
 
   if (isOngoing) {
-    return `${formatDate(startYear, startMonth)} – Present`;
+    return `${formatDate(startYear, startMonth)} - Present`;
   }
 
   if (!endDate) return formatDate(startYear, startMonth);
@@ -38,10 +38,10 @@ export const formatPeriod = (startDate: string, endDate: string, isOngoing: bool
 
   // Same year, different month → "May – Aug 2025"
   if (startYear === endYear) {
-    return `${SHORT_MONTHS[startMonth]} – ${SHORT_MONTHS[endMonth]} ${endYear}`;
+    return `${SHORT_MONTHS[startMonth]} - ${SHORT_MONTHS[endMonth]} ${endYear}`;
   }
 
-  return `${formatDate(startYear, startMonth)} – ${formatDate(endYear, endMonth)}`;
+  return `${formatDate(startYear, startMonth)} - ${formatDate(endYear, endMonth)}`;
 };
 
 /** Parse a date string into month/year components */

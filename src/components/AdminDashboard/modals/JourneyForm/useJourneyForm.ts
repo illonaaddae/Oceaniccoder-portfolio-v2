@@ -29,16 +29,16 @@ const formatJourneyPeriod = (
     ? `${SHORT_MONTHS[parseInt(startMonth, 10) - 1]} ${startYear}`
     : startYear;
 
-  if (isOngoing) return `${startLabel} – Present`;
+  if (isOngoing) return `${startLabel} - Present`;
   if (!endYear) return startLabel;
 
   const endLabel = endMonth ? `${SHORT_MONTHS[parseInt(endMonth, 10) - 1]} ${endYear}` : endYear;
 
   if (startYear === endYear && startMonth === endMonth) return startLabel;
   if (startYear === endYear && startMonth && endMonth) {
-    return `${SHORT_MONTHS[parseInt(startMonth, 10) - 1]} – ${SHORT_MONTHS[parseInt(endMonth, 10) - 1]} ${endYear}`;
+    return `${SHORT_MONTHS[parseInt(startMonth, 10) - 1]} - ${SHORT_MONTHS[parseInt(endMonth, 10) - 1]} ${endYear}`;
   }
-  return `${startLabel} – ${endLabel}`;
+  return `${startLabel} - ${endLabel}`;
 };
 
 const parseJourneyPeriod = (period: string) => {

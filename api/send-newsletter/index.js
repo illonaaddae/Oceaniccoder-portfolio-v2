@@ -159,7 +159,7 @@ const handler = async function (context, req) {
       body: JSON.stringify({
         error:
           authError === "no-token"
-            ? "The request carried no session token — reload the dashboard and try again."
+            ? "The request carried no session token. Reload the dashboard and try again."
             : `Your session was not accepted (${detail || "unknown reason"}). Sign out and back in, then retry.`,
         // Lengths only, never token material. Which transport survived the
         // hosting layer is the one thing that cannot be worked out from
@@ -231,7 +231,7 @@ const handler = async function (context, req) {
     ? `<tr><td style="padding:0;"><img src="${imageUrl}" alt="${safeTitle}" width="600" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;" /></td></tr>`
     : "";
   const testNotice = isTest
-    ? `<tr><td style="padding:14px 40px;background:#334155;"><p style="margin:0;font-size:13px;color:#e2e8f0;font-weight:600;">Test send — this went only to you. Subscribers have not received it.</p></td></tr>`
+    ? `<tr><td style="padding:14px 40px;background:#334155;"><p style="margin:0;font-size:13px;color:#e2e8f0;font-weight:600;">Test send: this went only to you. Subscribers have not received it.</p></td></tr>`
     : "";
 
   const html = `<!DOCTYPE html>

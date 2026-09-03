@@ -24,20 +24,20 @@ describe("formatDate", () => {
     expect(formatDate(d)).toMatch(/Jun(e)? 0?1, 2024/);
   });
 
-  it("returns em-dash for undefined", () => {
-    expect(formatDate(undefined)).toBe("—");
+  it("returns N/A for undefined", () => {
+    expect(formatDate(undefined)).toBe("N/A");
   });
 
-  it("returns em-dash for null", () => {
-    expect(formatDate(null)).toBe("—");
+  it("returns N/A for null", () => {
+    expect(formatDate(null)).toBe("N/A");
   });
 
-  it("returns em-dash for empty string", () => {
-    expect(formatDate("")).toBe("—");
+  it("returns N/A for empty string", () => {
+    expect(formatDate("")).toBe("N/A");
   });
 
-  it("returns em-dash for invalid date string", () => {
-    expect(formatDate("not-a-date")).toBe("—");
+  it("returns N/A for invalid date string", () => {
+    expect(formatDate("not-a-date")).toBe("N/A");
   });
 
   it("respects custom options", () => {
@@ -55,9 +55,9 @@ describe("formatFullDate", () => {
     expect(formatFullDate("2024-01-15T00:00:00Z")).toMatch(/January 1[45], 2024/);
   });
 
-  it("returns em-dash for nullish", () => {
-    expect(formatFullDate(null)).toBe("—");
-    expect(formatFullDate(undefined)).toBe("—");
+  it("returns N/A for nullish", () => {
+    expect(formatFullDate(null)).toBe("N/A");
+    expect(formatFullDate(undefined)).toBe("N/A");
   });
 });
 
@@ -111,14 +111,14 @@ describe("formatRelativeTime", () => {
     expect(formatRelativeTime(t)).toMatch(/May 0?1, 2024/);
   });
 
-  it("returns em-dash for null/undefined/empty", () => {
-    expect(formatRelativeTime(null)).toBe("—");
-    expect(formatRelativeTime(undefined)).toBe("—");
-    expect(formatRelativeTime("")).toBe("—");
+  it("returns N/A for null/undefined/empty", () => {
+    expect(formatRelativeTime(null)).toBe("N/A");
+    expect(formatRelativeTime(undefined)).toBe("N/A");
+    expect(formatRelativeTime("")).toBe("N/A");
   });
 
-  it("returns em-dash for invalid date", () => {
-    expect(formatRelativeTime("garbage")).toBe("—");
+  it("returns N/A for invalid date", () => {
+    expect(formatRelativeTime("garbage")).toBe("N/A");
   });
 });
 

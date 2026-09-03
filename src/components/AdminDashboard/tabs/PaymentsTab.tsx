@@ -45,7 +45,7 @@ const STATUS_PILL: Record<string, React.CSSProperties> = {
 };
 
 function formatDateTime(dateStr?: string) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "N/A";
   return new Date(dateStr).toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
@@ -300,7 +300,7 @@ export default function PaymentsTab({ theme }: PaymentsTabProps) {
                         theme === "dark" ? "text-gray-200" : "text-slate-500"
                       }`}
                     >
-                      {p.paystackReference ?? "—"}
+                      {p.paystackReference ?? "N/A"}
                     </td>
                   </tr>
                 );

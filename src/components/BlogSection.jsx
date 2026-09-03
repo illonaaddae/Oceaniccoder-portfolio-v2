@@ -42,12 +42,12 @@ const BlogSection = () => {
       style={{ background: SECTION_BG }}
     >
       <Helmet>
-        <title>Blog | Web Development Insights – OceanicCoder</title>
+        <title>Blog | Web Development Insights | OceanicCoder</title>
         <meta
           name="description"
           content="Articles on React, TypeScript, cloud development, and building modern web applications by Illona Addae."
         />
-        <meta property="og:title" content="Blog | Web Development Insights – OceanicCoder" />
+        <meta property="og:title" content="Blog | Web Development Insights | OceanicCoder" />
         <meta
           property="og:description"
           content="Articles on React, TypeScript, cloud development, and building modern web applications by Illona Addae."

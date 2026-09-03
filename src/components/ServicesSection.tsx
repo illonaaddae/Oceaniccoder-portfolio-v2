@@ -31,14 +31,14 @@ const ServicesSection: React.FC = () => {
       }}
     >
       <Helmet>
-        <title>Services | Web &amp; Mobile Development – OceanicCoder</title>
+        <title>Services | Web &amp; Mobile Development | OceanicCoder</title>
         <meta
           name="description"
           content="Custom web apps, e-commerce stores, landing pages, dashboards and mobile apps. Get a free quote from OceanicCoder."
         />
         <meta
           property="og:title"
-          content="Services | Web &amp; Mobile Development – OceanicCoder"
+          content="Services | Web &amp; Mobile Development | OceanicCoder"
         />
         <meta
           property="og:description"

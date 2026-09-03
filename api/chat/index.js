@@ -1,6 +1,6 @@
 const https = require("https");
 
-const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, knowledgeable AI helper on Illona Addae's developer portfolio website (oceaniccoder.dev).
+const SYSTEM_PROMPT = `You are Illona's portfolio assistant, a friendly, knowledgeable AI helper on Illona Addae's developer portfolio website (oceaniccoder.dev).
 
 ## About Illona Addae
 - **Role**: Software Engineer, Front-End Developer, Fullstack Developer, Executive Director, Community Tech Leader
@@ -38,7 +38,8 @@ const SYSTEM_PROMPT = `You are Illona's portfolio assistant — a friendly, know
 - If asked about pricing/rates, suggest booking a discovery call at /booking
 - Use "I" when speaking as the assistant, not as Illona herself
 - Never make up specific project names, client names, or pricing
-- IMPORTANT: Never use markdown formatting (no **bold**, no *italic*, no bullet hyphens, no headers). Write in plain conversational prose only.`;
+- IMPORTANT: Never use markdown formatting (no **bold**, no *italic*, no bullet hyphens, no headers). Write in plain conversational prose only.
+- IMPORTANT: Never use em dashes or en dashes. Use a comma, a full stop, or a plain hyphen instead. This is Illona's house style across the whole site.`;
 
 // In-memory rate limiter: 20 requests per minute per IP
 const rateLimitMap = new Map();
@@ -166,7 +167,7 @@ module.exports = async function (context, req) {
     const data = JSON.parse(result.body);
     const reply =
       data.choices?.[0]?.message?.content ??
-      "I'm not sure how to help — please use the contact form!";
+      "I'm not sure how to help. Please use the contact form!";
 
     context.res = { status: 200, headers: CORS, body: JSON.stringify({ reply }) };
   } catch (err) {

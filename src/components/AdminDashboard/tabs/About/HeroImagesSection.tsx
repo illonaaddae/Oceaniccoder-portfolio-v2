@@ -76,7 +76,7 @@ export const HeroImagesSection: React.FC<Props> = ({ theme, isReadOnly, onSucces
 
       {isReadOnly && (
         <p className={`mt-3 text-xs ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
-          View-only mode — uploads are disabled.
+          View-only mode. Uploads are disabled.
         </p>
       )}
     </div>
