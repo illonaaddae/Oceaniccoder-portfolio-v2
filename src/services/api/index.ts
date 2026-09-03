@@ -5,6 +5,7 @@ export * from "./education";
 export * from "./gallery";
 export * from "./blog";
 export * from "./reactions";
+export * from "./blogViews";
 export * from "./comments";
 export * from "./journey";
 export * from "./messages";

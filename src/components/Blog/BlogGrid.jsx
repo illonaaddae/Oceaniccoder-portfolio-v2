@@ -2,7 +2,7 @@ import React from "react";
 import { FaBookOpen } from "react-icons/fa";
 import BlogCard from "./BlogCard";
 
-const BlogGrid = React.memo(({ paginatedPosts, onPostClick, onClearFilters }) => {
+const BlogGrid = React.memo(({ paginatedPosts, onPostClick, onClearFilters, viewStats = {} }) => {
   if (paginatedPosts.length === 0) {
     return (
       <div className="text-center py-16">
@@ -24,7 +24,7 @@ const BlogGrid = React.memo(({ paginatedPosts, onPostClick, onClearFilters }) =>
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
       {paginatedPosts.map((post) => (
-        <BlogCard key={post.$id} post={post} onClick={onPostClick} />
+        <BlogCard key={post.$id} post={post} onClick={onPostClick} views={viewStats[post.$id]} />
       ))}
     </div>
   );

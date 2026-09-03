@@ -26,6 +26,7 @@ import {
 import { getInvoices } from "@/services/api/invoices";
 import { getExpenses, createExpense, deleteExpense } from "@/services/api/expenses";
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import { BlogReadershipSection } from "./Analytics/BlogReadershipSection";
 import type { Invoice, Expense } from "@/types";
 
 interface AnalyticsTabProps {
@@ -972,6 +973,8 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
           </div>
         )}
       </div>
+
+      <BlogReadershipSection theme={theme} />
     </div>
   );
 }

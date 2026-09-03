@@ -1,14 +1,16 @@
 import React from "react";
 import { FaCalendarAlt, FaClock, FaTag } from "react-icons/fa";
-import { BlogPost } from "@/types";
+import { BlogPost, BlogViewStats } from "@/types";
 import { formatDate } from "./utils";
+import { ReadCount } from "@/components/ui/ReadCount";
 
 interface BlogPostMetaProps {
   post: BlogPost;
   theme: "light" | "dark";
+  views?: BlogViewStats;
 }
 
-export const BlogPostMeta: React.FC<BlogPostMetaProps> = ({ post, theme }) => (
+export const BlogPostMeta: React.FC<BlogPostMetaProps> = ({ post, theme, views }) => (
   <>
     <div
       className={`flex flex-wrap items-center gap-1.5 md:gap-2 text-[10px] md:text-xs transition-colors duration-300 ${
@@ -35,6 +37,20 @@ export const BlogPostMeta: React.FC<BlogPostMetaProps> = ({ post, theme }) => (
           <FaClock />
           {post.readTime}
         </span>
+      )}
+      <span
+        className={`flex items-center gap-1 ${
+          views?.readers ? (theme === "dark" ? "text-oceanic-400" : "text-oceanic-600") : ""
+        }`}
+      >
+        <ReadCount
+          readers={views?.readers ?? 0}
+          reads={views?.reads ?? 0}
+          iconClassName={theme === "dark" ? "text-oceanic-500" : "text-oceanic-600"}
+        />
+      </span>
+      {(views?.reads ?? 0) > (views?.readers ?? 0) && (
+        <span className="hidden md:inline">· {views?.reads} reads</span>
       )}
       {!post.published && (
         <span

@@ -6,6 +6,7 @@ import { BlogHeader } from "./Blog/BlogHeader";
 import { BlogSearch } from "./Blog/BlogSearch";
 import { BlogPostList } from "./Blog/BlogPostList";
 import { BlogPostFormModal } from "./Blog/BlogPostFormModal";
+import { useBlogViewStats } from "./Blog/useBlogViewStats";
 
 const BlogTab: React.FC<BlogTabProps> = ({
   blogPosts,
@@ -17,6 +18,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
   isReadOnly = false,
 }) => {
   const blog = useBlogForm(blogPosts, onAdd, onEdit, onDelete);
+  const viewStats = useBlogViewStats();
 
   return (
     <div className="space-y-6">
@@ -34,6 +36,7 @@ const BlogTab: React.FC<BlogTabProps> = ({
         onNewPost={blog.openNewPostModal}
         onEdit={blog.openEditModal}
         onDelete={blog.handleDelete}
+        viewStats={viewStats}
       />
       <BlogPostFormModal
         isOpen={blog.showModal}

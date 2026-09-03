@@ -2,8 +2,9 @@ import React from "react";
 import { FaCalendarAlt, FaClock, FaTag, FaArrowRight } from "react-icons/fa";
 import { LazyImage } from "../ui/LazyImage";
 import { formatDate } from "./blogConstants";
+import { ReadCount } from "../ui/ReadCount";
 
-const BlogCard = React.memo(({ post, onClick }) => (
+const BlogCard = React.memo(({ post, onClick, views }) => (
   <article
     onClick={() => onClick(post)}
     className="glass-card group cursor-pointer overflow-hidden rounded-xl transition-shadow duration-300 hover:shadow-lg hover:shadow-oceanic-500/20 flex flex-col"
@@ -34,6 +35,9 @@ const BlogCard = React.memo(({ post, onClick }) => (
             <FaClock className="text-brand-link dark:text-oceanic-400" />
             {post.readTime}
           </span>
+        )}
+        {views && views.readers > 0 && (
+          <ReadCount readers={views.readers} reads={views.reads} compact />
         )}
       </div>
       <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2 group-hover:text-brand-link dark:group-hover:text-oceanic-400 transition-colors line-clamp-2">

@@ -1,6 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { useBlogData } from "./Blog/useBlogData";
+import { useBlogViewStats } from "./Blog/useBlogViewStats";
 import BlogLoadingState from "./Blog/BlogLoadingState";
 import BlogHeader from "./Blog/BlogHeader";
 import FeaturedPosts from "./Blog/FeaturedPosts";
@@ -30,6 +31,7 @@ const BlogSection = () => {
     totalPages,
     handlePostClick,
   } = useBlogData();
+  const viewStats = useBlogViewStats();
 
   if (loading) return <BlogLoadingState />;
 
@@ -57,7 +59,11 @@ const BlogSection = () => {
         <BlogHeader />
 
         {featuredPosts.length > 0 && currentPage === 1 && !searchQuery && (
-          <FeaturedPosts featuredPosts={featuredPosts} onPostClick={handlePostClick} />
+          <FeaturedPosts
+            featuredPosts={featuredPosts}
+            onPostClick={handlePostClick}
+            viewStats={viewStats}
+          />
         )}
 
         <CategoryFilter
@@ -82,6 +88,7 @@ const BlogSection = () => {
         <BlogGrid
           paginatedPosts={paginatedPosts}
           onPostClick={handlePostClick}
+          viewStats={viewStats}
           onClearFilters={() => {
             setSearchQuery("");
             setSelectedCategory("All");

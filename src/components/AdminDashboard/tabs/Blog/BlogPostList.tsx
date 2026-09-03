@@ -1,6 +1,6 @@
 import React from "react";
 import { FaEdit, FaPlus } from "react-icons/fa";
-import { BlogPost } from "@/types";
+import { BlogPost, BlogViewStats } from "@/types";
 import { BlogPostCard } from "./BlogPostCard";
 
 interface BlogPostListProps {
@@ -11,6 +11,7 @@ interface BlogPostListProps {
   onNewPost: () => void;
   onEdit: (post: BlogPost) => void;
   onDelete: (id: string) => void;
+  viewStats?: Record<string, BlogViewStats>;
 }
 
 export const BlogPostList: React.FC<BlogPostListProps> = ({
@@ -21,6 +22,7 @@ export const BlogPostList: React.FC<BlogPostListProps> = ({
   onNewPost,
   onEdit,
   onDelete,
+  viewStats = {},
 }) => {
   if (loading) {
     return (
@@ -81,6 +83,7 @@ export const BlogPostList: React.FC<BlogPostListProps> = ({
           isReadOnly={isReadOnly}
           onEdit={onEdit}
           onDelete={onDelete}
+          views={viewStats[post.$id]}
         />
       ))}
     </div>

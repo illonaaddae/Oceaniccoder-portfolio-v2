@@ -2,12 +2,13 @@ import React from "react";
 import { FaCalendarAlt, FaClock, FaTag } from "react-icons/fa";
 import { ShareMenu } from "./ShareMenu";
 import { formatDate } from "./utils";
+import { ReadCount } from "../ui/ReadCount";
 
 /**
  * Blog post header: category badge, title, meta row (date, read-time, share),
  * and tag pills.
  */
-const BlogPostHeader = React.memo(({ post }) => (
+const BlogPostHeader = React.memo(({ post, views }) => (
   <header className="mb-8">
     {/* Category */}
     {post.category && (
@@ -33,6 +34,7 @@ const BlogPostHeader = React.memo(({ post }) => (
           {post.readTime}
         </span>
       )}
+      {views?.readers > 0 && <ReadCount readers={views.readers} reads={views.reads} />}
       <ShareMenu title={post.title} />
     </div>
 

@@ -120,6 +120,22 @@ export interface BlogReaction {
   $createdAt?: string;
 }
 
+// Blog View Types
+export interface BlogView {
+  $id: string;
+  postId: string;
+  visitorId: string;
+  /** How many times this visitor has opened the post (always at least 1). */
+  reads?: number;
+  lastReadAt?: string;
+}
+
+/** Unique readers vs total reads for one post. */
+export interface BlogViewStats {
+  readers: number;
+  reads: number;
+}
+
 // Comment Types
 export interface Comment {
   $id: string;

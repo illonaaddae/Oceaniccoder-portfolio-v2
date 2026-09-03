@@ -26,6 +26,7 @@ export const COLLECTIONS = {
   GALLERY: "gallery",
   BLOG_POSTS: "blog_posts",
   BLOG_REACTIONS: "blog_reactions",
+  BLOG_VIEWS: "blog_views",
   COMMENTS: "comments",
   JOURNEY: "journey",
   MESSAGES: "messages",

@@ -4,6 +4,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import { useThemeDetector } from "./BlogPost/useThemeDetector";
 import { useBlogPost } from "./BlogPost/useBlogPost";
 import { useReactions } from "./BlogPost/useReactions";
+import { useBlogViews } from "./BlogPost/useBlogViews";
 import { LoadingState } from "./BlogPost/LoadingState";
 import { NotFoundState } from "./BlogPost/NotFoundState";
 import { BlogPostHeader } from "./BlogPost/BlogPostHeader";
@@ -21,6 +22,7 @@ const BlogPost = () => {
 
   const { post, loading, isSearching, relatedPosts, prevPost, nextPost } = useBlogPost(slug);
   const { reactions, userReaction, reactionLoading, handleReaction } = useReactions(post?.$id);
+  const views = useBlogViews(post?.$id);
 
   if (loading || isSearching) return <LoadingState />;
   if (!post) return <NotFoundState />;
@@ -42,7 +44,7 @@ const BlogPost = () => {
           <FaArrowLeft /> Back to Blog
         </button>
 
-        <BlogPostHeader post={post} />
+        <BlogPostHeader post={post} views={views} />
         <FeaturedImage image={post.image} title={post.title} />
         <MarkdownRenderer content={post.content} isDark={isDark} />
 
