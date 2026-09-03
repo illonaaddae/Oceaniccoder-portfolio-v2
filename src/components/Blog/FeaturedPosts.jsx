@@ -2,8 +2,9 @@ import React from "react";
 import { FaBookOpen, FaCalendarAlt, FaClock, FaArrowRight } from "react-icons/fa";
 import { LazyImage } from "../ui/LazyImage";
 import { formatDate } from "./blogConstants";
+import { ReadCount } from "../ui/ReadCount";
 
-const FeaturedPosts = React.memo(({ featuredPosts, onPostClick }) => {
+const FeaturedPosts = React.memo(({ featuredPosts, onPostClick, viewStats = {} }) => {
   if (featuredPosts.length === 0) return null;
 
   return (
@@ -44,6 +45,12 @@ const FeaturedPosts = React.memo(({ featuredPosts, onPostClick }) => {
                   <FaClock className="text-brand-link dark:text-oceanic-400" />
                   {post.readTime}
                 </span>
+                {viewStats[post.$id]?.readers > 0 && (
+                  <ReadCount
+                    readers={viewStats[post.$id].readers}
+                    reads={viewStats[post.$id].reads}
+                  />
+                )}
               </div>
               <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 group-hover:text-brand-link dark:group-hover:text-oceanic-400 transition-colors">
                 {post.title}

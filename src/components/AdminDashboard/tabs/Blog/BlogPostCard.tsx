@@ -1,6 +1,6 @@
 import React from "react";
 import { FaStar } from "react-icons/fa";
-import { BlogPost } from "@/types";
+import { BlogPost, BlogViewStats } from "@/types";
 import { BlogPostActions } from "./BlogPostActions";
 import { BlogPostMeta } from "./BlogPostMeta";
 
@@ -10,6 +10,7 @@ interface BlogPostCardProps {
   isReadOnly: boolean;
   onEdit: (post: BlogPost) => void;
   onDelete: (id: string) => void;
+  views?: BlogViewStats;
 }
 
 const FALLBACK_IMAGE =
@@ -21,6 +22,7 @@ export const BlogPostCard: React.FC<BlogPostCardProps> = ({
   isReadOnly,
   onEdit,
   onDelete,
+  views,
 }) => (
   <div className="glass-card card-hover p-4 sm:p-5">
     <div className="flex flex-row gap-3 md:gap-4">
@@ -69,7 +71,7 @@ export const BlogPostCard: React.FC<BlogPostCardProps> = ({
         >
           {post.excerpt}
         </p>
-        <BlogPostMeta post={post} theme={theme} />
+        <BlogPostMeta views={views} post={post} theme={theme} />
       </div>
     </div>
   </div>

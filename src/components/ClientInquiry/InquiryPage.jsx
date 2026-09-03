@@ -27,20 +27,20 @@ const PROJECT_TYPES = [
 
 const TIMELINES = [
   "Less than 2 weeks",
-  "2–4 weeks",
-  "1–2 months",
-  "2–3 months",
+  "2-4 weeks",
+  "1-2 months",
+  "2-3 months",
   "3+ months",
   "Flexible",
 ];
 
 const BUDGET_RANGES = [
   "Under GHS 1,500 (~$100)",
-  "GHS 1,500 – 4,500 (~$100 – $300)",
-  "GHS 4,500 – 9,000 (~$300 – $600)",
-  "GHS 9,000 – 22,000 (~$600 – $1,500)",
-  "GHS 22,000 – 45,000 (~$1,500 – $3,000)",
-  "GHS 45,000 – 100,000 (~$3,000 – $7,000)",
+  "GHS 1,500 - 4,500 (~$100 - $300)",
+  "GHS 4,500 - 9,000 (~$300 - $600)",
+  "GHS 9,000 - 22,000 (~$600 - $1,500)",
+  "GHS 22,000 - 45,000 (~$1,500 - $3,000)",
+  "GHS 45,000 - 100,000 (~$3,000 - $7,000)",
   "GHS 100,000+ (~$7,000+)",
   "Not sure yet",
 ];
@@ -907,8 +907,8 @@ function ReviewSummary({ form, termsAccepted, setTermsAccepted, error, termsRef 
       ? form.otherProjectType.trim()
       : form.projectType;
 
-  const yesNo = (v) => (v === true ? "Yes" : v === false ? "No" : "—");
-  const orDash = (v) => (v && String(v).trim() ? v : "—");
+  const yesNo = (v) => (v === true ? "Yes" : v === false ? "No" : "N/A");
+  const orDash = (v) => (v && String(v).trim() ? v : "N/A");
 
   const Row = ({ label, value }) => (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-3 py-2 border-b border-white/5 last:border-b-0">
@@ -947,7 +947,7 @@ function ReviewSummary({ form, termsAccepted, setTermsAccepted, error, termsRef 
         <div className="rounded-xl bg-white/5 px-4 py-1">
           <Row label="Type" value={orDash(resolvedType)} />
           <Row label="Description" value={orDash(form.description)} />
-          <Row label="Features" value={form.features.length ? form.features.join(", ") : "—"} />
+          <Row label="Features" value={form.features.length ? form.features.join(", ") : "N/A"} />
         </div>
       </section>
 

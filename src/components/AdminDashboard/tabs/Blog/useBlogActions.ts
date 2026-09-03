@@ -98,7 +98,7 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
     } catch {
       // Distinct from the server refusing the token: here the session itself
       // is gone, so "sign in again" is the actual instruction.
-      throw new Error("Your admin session has expired — sign in again and retry.");
+      throw new Error("Your admin session has expired. Sign in again and retry.");
     }
 
     const res = await fetch(apiUrl("/api/send-newsletter"), {
@@ -143,7 +143,7 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
       console.error("Newsletter send failed:", err);
       toast.error(
         err instanceof Error && err.message
-          ? `Post saved, but the newsletter did not go out — ${err.message}`
+          ? `Post saved, but the newsletter did not go out: ${err.message}`
           : "Post saved, but the newsletter did not go out.",
       );
     }

@@ -490,18 +490,29 @@ body[data-theme="light"] svg.text-white,
 }
 
 /* Light mode improvements for badges and tags */
-[data-theme="light"] .edu-badge,
-[data-theme="light"] .cert-credential {
+[data-theme="light"] .edu-badge {
   background: linear-gradient(135deg, rgba(5, 150, 105, 0.15), rgba(16, 185, 129, 0.15)) !important;
   border-color: rgba(5, 150, 105, 0.35) !important;
   color: #047857 !important;
   box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15) !important;
 }
 
+/* Credential ID and certification type read as one oceanic family, matching
+   their dark-mode treatment rather than borrowing the green achievement badge. */
+[data-theme="light"] .cert-credential,
+[data-theme="light"] .cert-type {
+  background: linear-gradient(135deg, rgba(12, 133, 153, 0.12), rgba(8, 88, 102, 0.12)) !important;
+  border-color: rgba(12, 133, 153, 0.35) !important;
+  color: #085866 !important;
+  box-shadow: 0 2px 8px rgba(12, 133, 153, 0.12) !important;
+}
+
+/* Neutral chip so the platform logo keeps its own brand colour — the same
+   role the university-logo chip plays on the education card. */
 [data-theme="light"] .platform-tag {
-  background: rgba(147, 51, 234, 0.12) !important;
-  border-color: rgba(147, 51, 234, 0.3) !important;
-  color: #6b21a8 !important;
+  background: rgba(148, 163, 184, 0.2) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: var(--text-secondary) !important;
 }
 
 /* Platform Logo Styling — preserve original brand colors for all logos */
@@ -519,11 +530,6 @@ body[data-theme="light"] svg.text-white,
   background: rgba(148, 163, 184, 0.2) !important;
   border-color: rgba(148, 163, 184, 0.35) !important;
   color: var(--text-secondary) !important;
-}
-
-[data-theme="light"] .cert-date {
-  background: rgba(148, 163, 184, 0.15) !important;
-  color: var(--text-accent) !important;
 }
 
 /* Light mode improvements for section headings */

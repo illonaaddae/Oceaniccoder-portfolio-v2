@@ -57,7 +57,7 @@ export const PROJECTS_DATA = [
     description:
       "A responsive password generator that creates secure, customizable passwords with a sleek dark/light theme toggle and one-click copy-to-clipboard.",
     longDescription:
-      "A lightweight, responsive web app built with vanilla HTML, CSS, and JavaScript that lets users generate secure passwords with exact control over letters, numbers, and symbols. Features include dual password generation, Fisher–Yates shuffling for strong randomness, a dark/light theme with localStorage persistence, and click-to-copy functionality with visual feedback. Designed with accessibility and mobile-first responsiveness in mind. Ready for static deployment as a portfolio demo.",
+      "A lightweight, responsive web app built with vanilla HTML, CSS, and JavaScript that lets users generate secure passwords with exact control over letters, numbers, and symbols. Features include dual password generation, Fisher-Yates shuffling for strong randomness, a dark/light theme with localStorage persistence, and click-to-copy functionality with visual feedback. Designed with accessibility and mobile-first responsiveness in mind. Ready for static deployment as a portfolio demo.",
     category: "Web Apps",
     technologies: ["HTML", "CSS", "JavaScript"],
     image:

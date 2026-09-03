@@ -12,7 +12,7 @@ const TerminalHeader: React.FC = () => (
       className="flex-1 text-center text-xs opacity-60 font-semibold"
       style={{ color: colors.foreground }}
     >
-      illona — -zsh — 80x24
+      illona: -zsh (80x24)
     </div>
     <div className="w-12"></div>
   </div>

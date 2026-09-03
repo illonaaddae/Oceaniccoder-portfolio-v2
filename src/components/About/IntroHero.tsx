@@ -1,24 +1,42 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import type { About } from "../../types";
 
-const IntroHero = React.memo(() => {
+/** Shown until the dashboard's About fields are filled in. */
+const DEFAULT_NAME = "Illona";
+const DEFAULT_TAGLINE =
+  "I'm a full-stack developer, community leader and mentor. Below is a deeper look at my story, work, and the impact I aim to create.";
+const DEFAULT_HEADSHOT =
+  "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce3002c5e175da5/view?project=6943431e00253c8f9883";
+
+interface IntroHeroProps {
+  about?: About | null;
+}
+
+const IntroHero = React.memo(({ about }: IntroHeroProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // About Me -> Title/Name, Subtitle/Tagline and Profile Image URL drive this
+  // block. They were previously saved to Appwrite and read by nothing.
+  const name = about?.title?.trim() || DEFAULT_NAME;
+  const tagline = about?.subtitle?.trim() || DEFAULT_TAGLINE;
+  const headshot = about?.profileImage?.trim() || DEFAULT_HEADSHOT;
 
   return (
     <div className="mb-8 sm:mb-12 flex flex-col items-center text-center">
       <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-4">
         <img
-          src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce3002c5e175da5/view?project=6943431e00253c8f9883"
-          alt="Illona Addae Headshot"
+          src={headshot}
+          alt={`${name} headshot`}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = DEFAULT_HEADSHOT;
+          }}
         />
       </div>
-      <h3 className="text-2xl font-bold text-white mb-2">Hello, I'm Illona</h3>
-      <p className="text-gray-200 max-w-2xl">
-        I'm a full-stack developer, community leader and mentor. Below is a deeper look at my story,
-        work, and the impact I aim to create.
-      </p>
+      <h3 className="text-2xl font-bold text-white mb-2">Hello, I'm {name}</h3>
+      <p className="text-gray-200 max-w-2xl">{tagline}</p>
       <div className="mt-4 flex gap-3">
         <button
           onClick={() => {

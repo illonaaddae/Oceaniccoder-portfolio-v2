@@ -56,7 +56,7 @@ export const CertificationRow: React.FC<CertificationRowProps> = ({
           </span>
         ) : (
           <span className={`text-xs ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
-            —
+            N/A
           </span>
         )}
       </td>

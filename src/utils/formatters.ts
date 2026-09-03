@@ -13,10 +13,10 @@ export const formatDate = (
   dateStr?: string | Date | null,
   options?: Intl.DateTimeFormatOptions,
 ): string => {
-  if (!dateStr) return "—";
+  if (!dateStr) return "N/A";
   try {
     const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
-    if (isNaN(date.getTime())) return "—";
+    if (isNaN(date.getTime())) return "N/A";
     return date.toLocaleDateString(
       "en-US",
       options ?? {
@@ -26,7 +26,7 @@ export const formatDate = (
       },
     );
   } catch {
-    return "—";
+    return "N/A";
   }
 };
 
@@ -47,11 +47,11 @@ export const formatFullDate = (dateStr?: string | Date | null): string => {
  * @returns Relative time string
  */
 export const formatRelativeTime = (dateString?: string | null): string => {
-  if (!dateString) return "—";
+  if (!dateString) return "N/A";
 
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "—";
+    if (isNaN(date.getTime())) return "N/A";
 
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -72,7 +72,7 @@ export const formatRelativeTime = (dateString?: string | null): string => {
 
     return formatDate(dateString);
   } catch {
-    return "—";
+    return "N/A";
   }
 };
 

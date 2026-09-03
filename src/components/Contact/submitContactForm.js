@@ -7,7 +7,7 @@ function prepareFormData(fd) {
   if (!fd.has("access_key")) fd.append("access_key", ACCESS_KEY);
   const name = (fd.get("name") || "Someone").toString().trim();
   const subj = (fd.get("subject") || "").toString().trim();
-  fd.set("subject", subj ? `${name} — ${subj}` : `${name} sent a message from website`);
+  fd.set("subject", subj ? `${name}: ${subj}` : `${name} sent a message from website`);
   fd.set("from_name", name);
   const email = (fd.get("email") || "").toString().trim();
   if (email) fd.set("reply_to", email);
