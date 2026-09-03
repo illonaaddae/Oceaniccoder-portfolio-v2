@@ -1,6 +1,8 @@
 import { FaAward, FaPlus } from "react-icons/fa";
 import type { Certification } from "@/types";
 import { CertificationsTable } from "./Certifications/CertificationsTable";
+import { CertificationFilters } from "./Certifications/CertificationFilters";
+import { useCertificationFilters } from "./Certifications/useCertificationFilters";
 
 interface CertificationsTabProps {
   theme: "light" | "dark";
@@ -21,6 +23,9 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
   onShowForm,
   isReadOnly = false,
 }) => {
+  const { filters, setFilter, clearFilters, isFiltered, filtered, platforms, types, years } =
+    useCertificationFilters(filteredCertifications);
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -81,13 +86,40 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
           </p>
         </div>
       ) : (
-        <CertificationsTable
-          certifications={filteredCertifications}
-          theme={theme}
-          isReadOnly={isReadOnly}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+        <>
+          <CertificationFilters
+            theme={theme}
+            filters={filters}
+            setFilter={setFilter}
+            clearFilters={clearFilters}
+            isFiltered={isFiltered}
+            platforms={platforms}
+            types={types}
+            years={years}
+            shown={filtered.length}
+            total={filteredCertifications.length}
+          />
+          {filtered.length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <FaAward
+                className={`text-4xl mx-auto mb-4 ${
+                  theme === "dark" ? "text-gray-600" : "text-slate-400/60"
+                }`}
+              />
+              <p className={theme === "dark" ? "text-gray-400" : "text-slate-600"}>
+                No certifications match these filters.
+              </p>
+            </div>
+          ) : (
+            <CertificationsTable
+              certifications={filtered}
+              theme={theme}
+              isReadOnly={isReadOnly}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          )}
+        </>
       )}
     </div>
   );
