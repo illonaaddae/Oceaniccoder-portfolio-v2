@@ -86,7 +86,7 @@ const AboutSection = () => {
       </Helmet>
       <AboutBackground />
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
-        <IntroHero />
+        <IntroHero about={about} />
         <SectionHeader isVisible={isVisible} stats={stats} />
         <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="max-w-6xl mx-auto">
