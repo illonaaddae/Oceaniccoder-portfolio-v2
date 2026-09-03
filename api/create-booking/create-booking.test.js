@@ -219,4 +219,42 @@ describe("create-booking Azure Function", () => {
     const body = JSON.parse(ctx.res.body);
     expect(body.meetLink).toBe("https://meet.google.com/legacy-link");
   });
+
+  // Regression: a dead GOOGLE_REFRESH_TOKEN silently disabled every calendar
+  // invite from at least June to 2026-09-03. The booker was told a link was
+  // coming within 24 hours and nothing anywhere said why one never existed.
+  it("names the dead credential in the host notification when Google returns invalid_grant", async () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "stale-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+    process.env.RESEND_API_KEY = "resend-key";
+    process.env.RESEND_TO_EMAIL = "host@example.com";
+
+    stubHttps(400, JSON.stringify({ error: "invalid_grant" })); // OAuth refusal
+    stubHttps(200, { id: "email-1" }); // Resend host notification
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(200);
+    const body = JSON.parse(ctx.res.body);
+    expect(body.success).toBe(true);
+    expect(body.meetLink).toBeNull();
+    expect(body._phase).toMatch(/invalid_grant/);
+
+    // The notification must carry the reason, not just an absent link.
+    const emailCall = mockRequest.mock.calls.find(([opts]) => opts.hostname === "api.resend.com");
+    expect(emailCall).toBeTruthy();
+    const written = mockRequest.mock.results
+      .flatMap((r) => r.value?.write?.mock?.calls ?? [])
+      .map(([chunk]) => String(chunk))
+      .join("");
+    expect(written).toMatch(/invalid_grant/);
+    expect(written).toMatch(/GOOGLE_REFRESH_TOKEN/);
+    expect(written).toMatch(/Action needed/);
+
+    delete process.env.RESEND_API_KEY;
+    delete process.env.RESEND_TO_EMAIL;
+  });
 });
