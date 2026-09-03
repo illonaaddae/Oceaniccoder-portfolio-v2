@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { FaKeyboard, FaPlus, FaTimes, FaArrowUp, FaArrowDown, FaSave } from "react-icons/fa";
+import {
+  FaKeyboard,
+  FaPlus,
+  FaTimes,
+  FaArrowUp,
+  FaArrowDown,
+  FaSave,
+  FaGripVertical,
+} from "react-icons/fa";
 import { getHeroRoles, setHeroRoles } from "@/services/api/settings";
 import { roles as DEFAULT_ROLES } from "@/components/Hero/heroData";
+import { moveItem } from "@/utils/reorder";
 import { getCardClass, getHeadingClass, getInputClass, getLabelClass } from "./styles";
 
 interface Props {
@@ -12,9 +21,10 @@ interface Props {
 }
 
 /**
- * The rotating titles typed out under the hero name. Order is meaningful — the
- * animation cycles top to bottom — so the list is reorderable rather than a
- * plain comma-separated string.
+ * The rotating titles typed out under the hero name. Order is meaningful (the
+ * animation cycles top to bottom), so the list is reorderable: drag a row by
+ * its grip, or use the arrow buttons. The arrows stay because HTML5 drag
+ * events don't fire on touch devices and can't be driven from the keyboard.
  */
 export const HeroRolesSection: React.FC<Props> = ({ theme, isReadOnly, onSuccess, onError }) => {
   const [roles, setRoles] = useState<string[]>([]);
@@ -22,6 +32,8 @@ export const HeroRolesSection: React.FC<Props> = ({ theme, isReadOnly, onSuccess
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     getHeroRoles()
@@ -45,16 +57,21 @@ export const HeroRolesSection: React.FC<Props> = ({ theme, isReadOnly, onSuccess
   const handleRemove = (role: string) => update(roles.filter((r) => r !== role));
 
   const handleMove = (index: number, delta: number) => {
-    const target = index + delta;
-    if (target < 0 || target >= roles.length) return;
-    const next = [...roles];
-    [next[index], next[target]] = [next[target], next[index]];
-    update(next);
+    const next = moveItem(roles, index, index + delta);
+    if (next !== roles) update(next);
+  };
+
+  const handleDrop = (targetIndex: number) => {
+    if (dragIndex === null) return;
+    const next = moveItem(roles, dragIndex, targetIndex);
+    if (next !== roles) update(next);
+    setDragIndex(null);
+    setOverIndex(null);
   };
 
   const handleSave = async () => {
     if (roles.length === 0) {
-      onError?.("Add at least one role — the hero animation needs something to type.");
+      onError?.("Add at least one role. The hero animation needs something to type.");
       return;
     }
     setSaving(true);
@@ -77,6 +94,7 @@ export const HeroRolesSection: React.FC<Props> = ({ theme, isReadOnly, onSuccess
     theme === "dark"
       ? "text-slate-400 hover:text-white hover:bg-white/10"
       : "text-slate-500 hover:text-slate-900 hover:bg-slate-900/10";
+  const mutedClass = theme === "dark" ? "text-slate-400" : "text-slate-500";
 
   return (
     <div className={getCardClass(theme)}>
@@ -86,9 +104,9 @@ export const HeroRolesSection: React.FC<Props> = ({ theme, isReadOnly, onSuccess
             <FaKeyboard className="text-brand-link dark:text-oceanic-400" />
             Hero Roles
           </h3>
-          <p className={`mt-1 text-sm ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-            The titles typed out and cycled under your name on the home hero, in this order. Changes
-            apply immediately, no redeploy needed.
+          <p className={`mt-1 text-sm ${mutedClass}`}>
+            The titles typed out and cycled under your name on the home hero, in this order. Drag a
+            row to rearrange it. Changes apply immediately, no redeploy needed.
           </p>
         </div>
         {!isReadOnly && (
@@ -139,65 +157,97 @@ export const HeroRolesSection: React.FC<Props> = ({ theme, isReadOnly, onSuccess
           )}
 
           {roles.length === 0 ? (
-            <p className={`text-sm ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-              No roles yet — add one above.
-            </p>
+            <p className={`text-sm ${mutedClass}`}>No roles yet. Add one above.</p>
           ) : (
             <ul className="space-y-2">
-              {roles.map((role, index) => (
-                <li
-                  key={role}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${rowClass}`}
-                >
-                  <span
-                    className={`text-xs font-mono w-6 shrink-0 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}
+              {roles.map((role, index) => {
+                const isDragging = dragIndex === index;
+                const isDropTarget = overIndex === index && dragIndex !== null && !isDragging;
+
+                return (
+                  <li
+                    key={role}
+                    draggable={!isReadOnly}
+                    onDragStart={(e) => {
+                      setDragIndex(index);
+                      e.dataTransfer.effectAllowed = "move";
+                      // Firefox refuses to start a drag without transfer data.
+                      e.dataTransfer.setData("text/plain", role);
+                    }}
+                    onDragOver={(e) => {
+                      if (dragIndex === null) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      setOverIndex(index);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handleDrop(index);
+                    }}
+                    onDragEnd={() => {
+                      setDragIndex(null);
+                      setOverIndex(null);
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${rowClass} ${
+                      isDragging ? "opacity-40" : ""
+                    } ${isDropTarget ? "border-oceanic-500 ring-2 ring-oceanic-500/40" : ""} ${
+                      isReadOnly ? "" : "cursor-grab active:cursor-grabbing"
+                    }`}
                   >
-                    {index + 1}
-                  </span>
-                  <span className="flex-1 text-sm truncate">{role}</span>
-                  {!isReadOnly && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleMove(index, -1)}
-                        disabled={index === 0}
-                        className={`p-1.5 rounded-lg transition disabled:opacity-30 ${iconBtnClass}`}
-                        aria-label={`Move ${role} up`}
-                      >
-                        <FaArrowUp className="text-xs" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMove(index, 1)}
-                        disabled={index === roles.length - 1}
-                        className={`p-1.5 rounded-lg transition disabled:opacity-30 ${iconBtnClass}`}
-                        aria-label={`Move ${role} down`}
-                      >
-                        <FaArrowDown className="text-xs" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(role)}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition"
-                        aria-label={`Remove ${role}`}
-                      >
-                        <FaTimes className="text-xs" />
-                      </button>
-                    </div>
-                  )}
-                </li>
-              ))}
+                    {!isReadOnly && (
+                      <FaGripVertical
+                        className={`text-xs shrink-0 ${mutedClass}`}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className={`text-xs font-mono w-6 shrink-0 ${mutedClass}`}>
+                      {index + 1}
+                    </span>
+                    <span className="flex-1 text-sm truncate">{role}</span>
+                    {!isReadOnly && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleMove(index, -1)}
+                          disabled={index === 0}
+                          className={`p-1.5 rounded-lg transition disabled:opacity-30 ${iconBtnClass}`}
+                          aria-label={`Move ${role} up`}
+                        >
+                          <FaArrowUp className="text-xs" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMove(index, 1)}
+                          disabled={index === roles.length - 1}
+                          className={`p-1.5 rounded-lg transition disabled:opacity-30 ${iconBtnClass}`}
+                          aria-label={`Move ${role} down`}
+                        >
+                          <FaArrowDown className="text-xs" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemove(role)}
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition"
+                          aria-label={`Remove ${role}`}
+                        >
+                          <FaTimes className="text-xs" />
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
           {dirty && !isReadOnly && (
             <p className={`mt-3 text-xs ${theme === "dark" ? "text-amber-400" : "text-amber-600"}`}>
-              Unsaved changes — hit Save Roles to publish them.
+              Unsaved changes. Hit Save Roles to publish them.
             </p>
           )}
           {isReadOnly && (
             <p className={`mt-3 text-xs ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
-              View-only mode — editing is disabled.
+              View-only mode. Editing is disabled.
             </p>
           )}
         </>
