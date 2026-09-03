@@ -26,3 +26,6 @@ deno.lock
 # macOS Finder duplicates (e.g. "Component 2.tsx", "image 2.png")
 *[[:space:]]2.*
 
+
+# Local design reference library (its own git repo, not part of the app)
+awesome-design-md/

@@ -41,7 +41,7 @@ const CredentialBadge = React.memo(({ credential }: CredentialBadgeProps) => {
 
   if (!opaque) {
     return (
-      <span className="inline-block text-xs bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 text-oceanic-400 px-2.5 py-1 rounded border border-oceanic-500/30 sm:whitespace-nowrap font-medium shadow-sm cert-credential">
+      <span className="inline-block text-xs bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 text-oceanic-400 px-3 py-1.5 rounded-full border border-oceanic-500/30 sm:whitespace-nowrap font-medium shadow-sm cert-credential">
         {value}
       </span>
     );
@@ -49,7 +49,7 @@ const CredentialBadge = React.memo(({ credential }: CredentialBadgeProps) => {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-xs bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 px-2 py-1 rounded border border-oceanic-500/30 whitespace-nowrap shadow-sm cert-credential"
+      className="inline-flex items-center gap-2 text-xs bg-gradient-to-r from-oceanic-500/20 to-oceanic-700/20 px-3 py-1.5 rounded-full border border-oceanic-500/30 whitespace-nowrap font-medium shadow-sm cert-credential"
       title={value}
     >
       <span className="text-[10px] uppercase tracking-wider text-oceanic-300/80 font-semibold">
