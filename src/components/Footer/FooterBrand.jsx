@@ -20,8 +20,8 @@ const FooterBrand = React.memo(({ theme }) => (
     </div>
 
     <p className="text-gray-200 leading-relaxed mb-6 max-w-md">
-      Passionate full-stack developer and community leader dedicated to creating inclusive tech
-      spaces and building innovative solutions that make a difference.
+      Software and AI engineer, community leader, dedicated to creating inclusive tech spaces and
+      building innovative solutions that make a difference.
     </p>
   </div>
 ));

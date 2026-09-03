@@ -5,7 +5,7 @@ import type { About } from "../../types";
 /** Shown until the dashboard's About fields are filled in. */
 const DEFAULT_NAME = "Illona";
 const DEFAULT_TAGLINE =
-  "I'm a full-stack developer, community leader and mentor. Below is a deeper look at my story, work, and the impact I aim to create.";
+  "Software and AI engineer, founder of SLINT Tech, and mentor to the next generation of African innovators. Below is my story, my work, and where I'm headed.";
 const DEFAULT_HEADSHOT =
   "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce3002c5e175da5/view?project=6943431e00253c8f9883";
 
