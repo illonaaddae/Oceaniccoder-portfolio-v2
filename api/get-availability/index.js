@@ -110,11 +110,17 @@ module.exports = async function (context, req) {
     return;
   }
 
+  // Falling back to "everything free" keeps bookings possible, but it means the
+  // page advertises availability nobody checked. Flag it so callers and logs
+  // can tell a real answer from a guess.
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CALENDAR_ID) {
+    context.log.warn(
+      "get-availability: Google not configured (GOOGLE_CLIENT_ID or GOOGLE_CALENDAR_ID missing) — returning every slot as free without checking the calendar",
+    );
     context.res = {
       status: 200,
       headers: CORS,
-      body: JSON.stringify({ available: allAvailable() }),
+      body: JSON.stringify({ available: allAvailable(), unverified: true }),
     };
     return;
   }
@@ -157,11 +163,20 @@ module.exports = async function (context, req) {
 
     context.res = { status: 200, headers: CORS, body: JSON.stringify({ available }) };
   } catch (err) {
-    context.log.error("get-availability error:", err);
+    const msg = String(err?.message ?? err);
+    // invalid_grant here is the same dead refresh token that stops booking
+    // invites being created, and it used to fail completely silently.
+    if (msg.includes("invalid_grant")) {
+      context.log.error(
+        "get-availability: Google rejected the saved credentials (invalid_grant). GOOGLE_REFRESH_TOKEN needs reissuing — run scripts/get-google-refresh-token.mjs. Calendar conflicts are NOT being checked until then.",
+      );
+    } else {
+      context.log.error("get-availability error:", err);
+    }
     context.res = {
       status: 200,
       headers: CORS,
-      body: JSON.stringify({ available: allAvailable() }),
+      body: JSON.stringify({ available: allAvailable(), unverified: true }),
     };
   }
 };

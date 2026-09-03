@@ -213,6 +213,7 @@ async function sendNotificationEmail(
     meetLink,
     zoomLink,
     calendarEventLink,
+    failureReason,
   },
 ) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -232,12 +233,24 @@ async function sendNotificationEmail(
   const joinLink = meetLink || zoomLink || null;
   const platform = zoomLink ? "Zoom" : "Google Meet";
 
+  // A booking with no meeting link is not obviously broken from the outside:
+  // the visitor is told a link is coming within 24 hours, and nothing says why
+  // one was never made. Say it here, where it will actually be read.
+  const failureBanner = failureReason
+    ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:14px 16px;margin-bottom:18px">
+         <p style="margin:0 0 6px;font-weight:700;color:#991b1b;font-size:14px">No meeting link was created</p>
+         <p style="margin:0;font-size:13px;color:#7f1d1d">${failureReason}</p>
+         <p style="margin:8px 0 0;font-size:13px;color:#7f1d1d">Send this booker a link by hand, then check the Google credentials in Azure configuration.</p>
+       </div>`
+    : "";
+
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
       <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
         <h1 style="margin:0;color:#fff;font-size:20px">📅 New Booking: ${label}</h1>
       </div>
       <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
+        ${failureBanner}
         <table style="width:100%;border-collapse:collapse;font-size:14px">
           <tr><td style="padding:6px 0;color:#6b7280;width:140px">Name</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
           <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:#0a6e7d">${email}</a></td></tr>
@@ -265,7 +278,9 @@ async function sendNotificationEmail(
     {
       from: `OceanicCoder Bookings <${fromEmail}>`,
       to: [toEmail],
-      subject: `New Booking: ${label} with ${name} on ${preferredDate} at ${preferredTime}`,
+      subject: failureReason
+        ? `Action needed: booking with ${name} on ${preferredDate} has no meeting link`
+        : `New Booking: ${label} with ${name} on ${preferredDate} at ${preferredTime}`,
       html,
     },
   );
@@ -450,6 +465,8 @@ module.exports = async function (context, req) {
         meetLink: null,
         zoomLink: null,
         calendarEventLink: null,
+        failureReason:
+          "Zoom is not configured: ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID or ZOOM_CLIENT_SECRET is missing in Azure configuration.",
       }).catch((e) => context.log.error("Notification error:", e.message));
       ok(context, {
         success: true,
@@ -545,6 +562,8 @@ module.exports = async function (context, req) {
       meetLink: null,
       zoomLink: null,
       calendarEventLink: null,
+      failureReason:
+        "Google Calendar is not configured: GOOGLE_CLIENT_ID or GOOGLE_CALENDAR_ID is missing in Azure configuration.",
     }).catch((e) => context.log.error("Notification error:", e.message));
     ok(context, {
       success: true,
@@ -626,6 +645,7 @@ module.exports = async function (context, req) {
         meetLink: null,
         zoomLink: null,
         calendarEventLink: null,
+        failureReason: `The Google Calendar API rejected the event (HTTP ${calRes.status}).`,
       }).catch((e) => context.log.error("Notification error:", e.message));
       ok(context, {
         success: true,
@@ -679,6 +699,11 @@ module.exports = async function (context, req) {
   } catch (err) {
     const msg = String(err);
     context.log.error("create-booking error:", msg);
+    // invalid_grant means the refresh token in Azure has stopped working, which
+    // silently disabled calendar invites for months the last time it happened.
+    const failureReason = msg.includes("invalid_grant")
+      ? "Google rejected the saved credentials (invalid_grant). GOOGLE_REFRESH_TOKEN in Azure configuration needs to be reissued; run scripts/get-google-refresh-token.mjs. Booking invites stay broken until it is replaced."
+      : `The calendar step failed: ${msg}`;
     sendNotificationEmail(context, {
       name,
       email,
@@ -691,6 +716,7 @@ module.exports = async function (context, req) {
       meetLink: null,
       zoomLink: null,
       calendarEventLink: null,
+      failureReason,
     }).catch((e) => context.log.error("Notification error:", e.message));
     ok(context, {
       success: true,

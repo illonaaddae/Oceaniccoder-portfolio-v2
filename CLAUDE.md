@@ -109,6 +109,14 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `OPENAI_API_KEY`       | Chatbot (GPT-4o-mini)            |
 | `PAYSTACK_SECRET_KEY`  | Webhook signature verification   |
 
+> `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
+> sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent
+> screen → Publishing status must read "In production"). When it dies, bookings
+> still succeed but silently get no calendar event and no Meet link, and
+> `/api/get-availability` reports every slot free without checking the calendar.
+> Symptom: `/api/create-booking` answers `_phase: "Error: oauth:invalid_grant"`.
+> Reissue with `node scripts/get-google-refresh-token.mjs`.
+
 **Required for payments to record correctly.** `/api/paystack-webhook` marks the
 invoice paid, writes the `payments` audit row and sends the confirmation emails.
 If any of these is missing, a real payment is charged by Paystack but nothing is
