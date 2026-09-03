@@ -5,7 +5,7 @@ export const PROJECTS_DATA = [
     description:
       "A modern, responsive portfolio website built with React and Tailwind CSS featuring glass morphism design, liquid animations, and dark/light theme support.",
     longDescription:
-      "This portfolio showcases my journey as a full-stack developer and community leader. Built with cutting-edge technologies including React 18, Tailwind CSS, and custom liquid morphing animations. Features include responsive design, accessibility compliance, and performance optimization.",
+      "This portfolio showcases my journey as a software and AI engineer and community leader. Built with cutting-edge technologies including React 18, Tailwind CSS, and custom liquid morphing animations. Features include responsive design, accessibility compliance, and performance optimization.",
     category: "Web Apps",
     technologies: ["React", "Tailwind CSS", "JavaScript", "CSS3", "HTML5"],
     image:

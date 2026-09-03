@@ -113,7 +113,7 @@ export const ProfileSection: React.FC<Props> = ({
             value={form.subtitle}
             onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
             className={inputClass}
-            placeholder="e.g., Full Stack Developer"
+            placeholder="e.g., Software and AI Engineer"
             readOnly={isReadOnly}
           />
         </div>

@@ -62,15 +62,15 @@ const HeroSection = () => {
       }}
     >
       <Helmet>
-        <title>Illona Addae | Full-Stack Developer &amp; Tech Leader</title>
+        <title>Illona Addae | Software &amp; AI Engineer</title>
         <meta
           name="description"
-          content="Full-stack developer specialising in React, TypeScript, and cloud systems. Available for freelance web and mobile app projects."
+          content="Software and AI engineer specialising in React, TypeScript, and cloud systems. Available for freelance web and mobile app projects."
         />
-        <meta property="og:title" content="Illona Addae | Full-Stack Developer &amp; Tech Leader" />
+        <meta property="og:title" content="Illona Addae | Software &amp; AI Engineer" />
         <meta
           property="og:description"
-          content="Full-stack developer specialising in React, TypeScript, and cloud systems. Available for freelance web and mobile app projects."
+          content="Software and AI engineer specialising in React, TypeScript, and cloud systems. Available for freelance web and mobile app projects."
         />
         <meta property="og:url" content="https://oceaniccoder.dev/" />
       </Helmet>
