@@ -1,26 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PROFILE_IMAGE_DARK_URL, PROFILE_IMAGE_LIGHT_URL } from "./heroData";
-import { getHeroImages } from "@/services/api/settings";
+import { useHeroImages } from "./useHeroImages";
 
 const ProfileImage = React.memo(function ProfileImage() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [imageReady, setImageReady] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
-  // Dashboard-managed overrides (fall back to the bundled defaults).
-  const [overrides, setOverrides] = useState({ light: "", dark: "" });
+  // Dashboard-managed overrides; empty strings fall back to the bundled defaults.
+  // Until `ready`, no src is set, so the old default never paints first.
+  const { images: overrides, ready: overridesReady } = useHeroImages();
   const imgRef = useRef(null);
-
-  useEffect(() => {
-    let active = true;
-    getHeroImages()
-      .then((imgs) => {
-        if (active) setOverrides({ light: imgs.light ?? "", dark: imgs.dark ?? "" });
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
 
   // Track theme changes by observing the html element's class list
   useEffect(() => {
@@ -34,13 +23,16 @@ const ProfileImage = React.memo(function ProfileImage() {
     return () => observer.disconnect();
   }, []);
 
-  const imageUrl = isDark
-    ? overrides.dark || PROFILE_IMAGE_DARK_URL
-    : overrides.light || PROFILE_IMAGE_LIGHT_URL;
+  const imageUrl = !overridesReady
+    ? null
+    : isDark
+      ? overrides.dark || PROFILE_IMAGE_DARK_URL
+      : overrides.light || PROFILE_IMAGE_LIGHT_URL;
 
   useEffect(() => {
     setProfileLoaded(false);
     setImageReady(false);
+    if (!imageUrl) return undefined;
 
     const img = new Image();
     img.src = imageUrl;
@@ -105,7 +97,7 @@ const ProfileImage = React.memo(function ProfileImage() {
           <div className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[26rem] lg:h-[26rem] xl:w-[28rem] xl:h-[28rem] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 group-hover:scale-105 transition-transform duration-300">
             <img
               ref={imgRef}
-              src={imageUrl}
+              src={imageUrl ?? undefined}
               alt="Illona Addae - Professional Developer Portrait"
               className={`w-full h-full object-cover object-center group-hover:scale-110 transition-all duration-300 hero-img ${imageReady ? "loaded" : ""}`}
               onLoad={handleLoad}
