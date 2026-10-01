@@ -59,7 +59,7 @@ const ProjectCaseStudy: React.FC = () => {
         )}
 
         {/* Demo video (YouTube / Loom / direct MP4) */}
-        <DemoVideo url={project.demoVideoUrl} title={project.title} />
+        <DemoVideo url={project.demoVideoUrl} title={project.title} poster={project.image} />
 
         <TechStack technologies={project.technologies} />
         <CaseStudyContent project={project} />

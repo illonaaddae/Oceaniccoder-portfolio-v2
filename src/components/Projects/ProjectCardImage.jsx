@@ -1,46 +1,30 @@
 import React, { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaGithub, FaExternalLinkAlt, FaPlay } from "react-icons/fa";
 import { LazyImage } from "../ui/LazyImage";
-import { getStatusColor } from "./projectsUtils";
-
-const isYouTubeOrLoom = (url) => /youtube\.com|youtu\.be|loom\.com/.test(url);
-const isDirectVideo = (url) => /\.(mp4|webm|ogg)(\?|$)/i.test(url);
-
-// Extract YouTube video id from any supported URL form:
-//   youtu.be/<id>?si=...
-//   youtube.com/watch?v=<id>&...
-//   youtube.com/shorts/<id>
-//   youtube.com/embed/<id>
-const getYouTubeId = (url) => {
-  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
-  return m ? m[1] : null;
-};
-
-const getDemoEmbedUrl = (url) => {
-  const ytId = getYouTubeId(url);
-  if (ytId) {
-    // Use youtube-nocookie.com domain to avoid the "Sign in to confirm you're
-    // not a bot" gate that fires on hover-preview iframes. Also drop the ?si
-    // tracking param the SDK doesn't need.
-    return `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&modestbranding=1&rel=0&playsinline=1`;
-  }
-  const loomMatch = url.match(/loom\.com\/share\/([\w-]+)/);
-  if (loomMatch) return `https://www.loom.com/embed/${loomMatch[1]}?autoplay=1&hide_controls=1`;
-  return null;
-};
+import { getProjectSlug, getStatusColor } from "./projectsUtils";
+import { getVideoEmbedUrl, isDirectVideoUrl, isEmbedVideoUrl } from "@/utils/videoUrl";
 
 const ProjectCardImage = React.memo(({ project }) => {
   const [hovered, setHovered] = useState(false);
   const videoRef = useRef(null);
+  const navigate = useNavigate();
   const { demoVideoUrl } = project;
 
-  const hasDirectVideo = demoVideoUrl && isDirectVideo(demoVideoUrl);
-  const hasEmbedDemo = demoVideoUrl && isYouTubeOrLoom(demoVideoUrl);
-  const embedUrl = hasEmbedDemo ? getDemoEmbedUrl(demoVideoUrl) : null;
+  const hasDirectVideo = demoVideoUrl && isDirectVideoUrl(demoVideoUrl);
+  const hasEmbedDemo = demoVideoUrl && isEmbedVideoUrl(demoVideoUrl);
+  const embedUrl = hasEmbedDemo ? getVideoEmbedUrl(demoVideoUrl, { preview: true }) : null;
+
+  // Touch screens never hover, so the badge is the way to the full player.
+  const openDemo = (e) => {
+    e.stopPropagation();
+    navigate(`/projects/${getProjectSlug(project)}#demo`);
+  };
 
   const handleMouseEnter = () => {
     setHovered(true);
-    if (hasDirectVideo && videoRef.current) videoRef.current.play();
+    // play() rejects if the user leaves before enough has buffered; that is fine.
+    if (hasDirectVideo && videoRef.current) videoRef.current.play().catch(() => {});
   };
 
   const handleMouseLeave = () => {
@@ -74,6 +58,7 @@ const ProjectCardImage = React.memo(({ project }) => {
           muted
           loop
           playsInline
+          preload="none"
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${hovered ? "opacity-100" : "opacity-0"}`}
         />
       )}
@@ -120,12 +105,16 @@ const ProjectCardImage = React.memo(({ project }) => {
 
       {/* Demo badge */}
       {demoVideoUrl && (
-        <div className="absolute bottom-4 right-4 z-10">
-          <span className="flex items-center gap-1 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium border border-white/20">
-            <FaPlay className="w-2.5 h-2.5" />
-            Demo
-          </span>
-        </div>
+        <button
+          type="button"
+          onClick={openDemo}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 bg-gradient-to-r from-oceanic-500 to-oceanic-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg shadow-oceanic-900/30 hover:from-oceanic-400 hover:to-oceanic-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 transition-colors duration-300"
+          aria-label={`Watch the ${project.title} demo video`}
+        >
+          <FaPlay className="w-2.5 h-2.5" aria-hidden="true" />
+          Demo
+        </button>
       )}
 
       {project.featured && (
