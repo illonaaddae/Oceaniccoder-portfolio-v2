@@ -1,5 +1,14 @@
+import { Permission, Role } from "appwrite";
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Settings } from "../../types";
+
+/**
+ * Settings the public site reads. The collection itself is admin-read only
+ * (it also holds private rows), with document security on, so each public row
+ * carries its own read("any"). Without it, visitors silently get the bundled
+ * defaults and only a signed-in admin sees the dashboard values.
+ */
+const PUBLIC_SETTING_KEYS = new Set(["platform_logos", "hero_roles", "hero_images"]);
 
 export async function getSetting(key: string): Promise<Settings | null> {
   const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.SETTINGS, [
@@ -20,10 +29,13 @@ export async function setSetting(key: string, value: string): Promise<Settings> 
     }) as unknown as Settings;
   }
 
-  return databases.createDocument(DATABASE_ID, COLLECTIONS.SETTINGS, ID.unique(), {
-    key,
-    value,
-  }) as unknown as Settings;
+  return databases.createDocument(
+    DATABASE_ID,
+    COLLECTIONS.SETTINGS,
+    ID.unique(),
+    { key, value },
+    PUBLIC_SETTING_KEYS.has(key) ? [Permission.read(Role.any())] : undefined,
+  ) as unknown as Settings;
 }
 
 const PLATFORM_LOGOS_KEY = "platform_logos";
