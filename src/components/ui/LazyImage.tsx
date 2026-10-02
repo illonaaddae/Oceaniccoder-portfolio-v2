@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { getOptimizedImageUrl, isAppwriteUrl, generateSrcSet } from "../../utils/imageOptimizer";
+import {
+  getOptimizedImageUrl,
+  isOptimizableImageUrl,
+  generateSrcSet,
+} from "../../utils/imageOptimizer";
 
 interface LazyImageProps {
   src: string;
@@ -45,7 +49,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   className = "",
   width,
   height,
-  fallbackSrc = "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
+  fallbackSrc = "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
   placeholderColor = "from-gray-800 to-gray-900",
   objectFit = "cover",
   onClick,
@@ -60,7 +64,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
   // Calculate optimized image URL based on display size
   const optimizedSrc = useMemo(() => {
-    if (!src || disableOptimization || !isAppwriteUrl(src)) return src;
+    if (!src || disableOptimization || !isOptimizableImageUrl(src)) return src;
 
     const preset = SIZE_PRESETS[displaySize];
     return getOptimizedImageUrl(src, preset.width, preset.height, 80);
@@ -71,7 +75,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
   // Generate srcSet for responsive images
   const srcSet = useMemo(() => {
-    if (!src || disableOptimization || !isAppwriteUrl(src)) return "";
+    if (!src || disableOptimization || !isOptimizableImageUrl(src)) return "";
     return generateSrcSet(src, [320, 480, 640, 768, 1024, 1280]);
   }, [src, disableOptimization]);
 

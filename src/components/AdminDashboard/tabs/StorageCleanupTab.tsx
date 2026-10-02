@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
 import { Pagination } from "@/components/common/Pagination";
 import { Query } from "appwrite";
-import { storage, STORAGE_BUCKET_ID, databases, DATABASE_ID } from "@/lib/appwrite";
-import { deleteImage } from "@/services/api/storage";
+import { databases, DATABASE_ID } from "@/lib/appwrite";
+import { deleteImage, listMediaFiles } from "@/services/api/storage";
+import { MEDIA_BASE_URL, getOptimizedImageUrl } from "@/utils/imageOptimizer";
 import { getPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
 import { applyPlatformLogoOverrides } from "@/utils/platformLogos";
 import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
@@ -36,8 +37,6 @@ const DB_COLLECTIONS = [
   { id: "skills", fields: ["icon"] },
 ];
 
-const BUCKET_BASE = `https://fra.cloud.appwrite.io/v1/storage/buckets/${STORAGE_BUCKET_ID}/files`;
-
 const ALL_PLATFORMS = [
   "Coursera",
   "Codecademy",
@@ -52,12 +51,13 @@ const ALL_PLATFORMS = [
   "FreeCodeCamp",
 ];
 
+// Same files as the defaults in utils/platformLogos.js.
 const HARDCODED_URLS: Record<string, string> = {
-  Codecademy: `${BUCKET_BASE}/69444cf9000034490b06/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
-  Scrimba: `${BUCKET_BASE}/69444cfa002656e07bf5/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
-  AWS: `${BUCKET_BASE}/6a08dac800096013ea70/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
-  "Frontend Masters": `${BUCKET_BASE}/69444cf90028bcba5187/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
-  Coursera: `${BUCKET_BASE}/69444cf7002630d6e37f/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`,
+  Codecademy: `${MEDIA_BASE_URL}/69444cf9000034490b06/code-cademy.svg`,
+  Scrimba: `${MEDIA_BASE_URL}/69444cfa002656e07bf5/scrimba.png`,
+  AWS: `${MEDIA_BASE_URL}/6a08dac800096013ea70/pinclipart-com-welders-clipart-1637044.webp`,
+  "Frontend Masters": `${MEDIA_BASE_URL}/69444cf90028bcba5187/frontendmasters.png`,
+  Coursera: `${MEDIA_BASE_URL}/69444cf7002630d6e37f/coursera.png`,
 };
 
 const PAGE_SIZE = 10;
@@ -151,23 +151,21 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     setLoading(true);
     setError(null);
     try {
-      const [filesRes, referencedUrls] = await Promise.all([
-        storage.listFiles(STORAGE_BUCKET_ID, [Query.limit(500)]),
-        collectAllUrls(),
-      ]);
+      const [mediaFiles, referencedUrls] = await Promise.all([listMediaFiles(), collectAllUrls()]);
 
       // Precompute collection ids + platform-logo URL list once — O(N+M) vs O(N*M) per-file scan.
       const collectionIds = DB_COLLECTIONS.map((c) => c.id);
       const platformLogoUrls = platforms.map((p) => p.currentUrl).filter((u): u is string => !!u);
 
-      const mapped: StorageFile[] = filesRes.files.map((f) => {
-        const url = `${BUCKET_BASE}/${f.$id}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT_ID}`;
+      // Matching is by file id, which migrated files kept, so rows that still
+      // hold an Appwrite URL count as using the Blob copy.
+      const mapped: StorageFile[] = mediaFiles.map((f) => {
         const usedInSet = new Set<string>();
         let isOrphan = true;
-        const hasPlatformLogo = platformLogoUrls.some((u) => u.includes(f.$id));
+        const hasPlatformLogo = platformLogoUrls.some((u) => u.includes(f.fileId));
 
         for (const refUrl of referencedUrls) {
-          if (refUrl.includes(f.$id)) {
+          if (refUrl.includes(f.fileId)) {
             isOrphan = false;
             for (const id of collectionIds) {
               if (refUrl.includes(id)) {
@@ -181,12 +179,13 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         const usedIn: string[] = Array.from(usedInSet);
 
         return {
-          $id: f.$id,
+          $id: f.fileId,
           name: f.name,
-          sizeOriginal: f.sizeOriginal,
-          mimeType: f.mimeType,
-          $createdAt: f.$createdAt,
-          url,
+          // Resized copies are deleted with the original, so count them as reclaimable too.
+          sizeOriginal: f.size + f.variantBytes,
+          mimeType: f.contentType || "application/octet-stream",
+          $createdAt: f.createdAt || "",
+          url: f.url,
           isOrphan,
           usedIn,
         };
@@ -266,8 +265,9 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     <div key={f.$id} className={`flex items-center gap-3 p-3 rounded-xl ${tile}`}>
       {f.mimeType.startsWith("image/") ? (
         <img
-          src={f.url}
+          src={getOptimizedImageUrl(f.url, 480)}
           alt={f.name}
+          loading="lazy"
           className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = "none";

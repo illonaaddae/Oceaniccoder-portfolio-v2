@@ -7,7 +7,7 @@ const DEFAULT_NAME = "Illona";
 const DEFAULT_TAGLINE =
   "Software and AI engineer, founder of SLINT Tech, and mentor to the next generation of African innovators. Below is my story, my work, and where I'm headed.";
 const DEFAULT_HEADSHOT =
-  "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce3002c5e175da5/view?project=6943431e00253c8f9883";
+  "https://oceaniccodermedia.blob.core.windows.net/media/69444ce3002c5e175da5/headshot.webp";
 
 interface IntroHeroProps {
   about?: About | null;

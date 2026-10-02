@@ -33,7 +33,7 @@ const ImageGallery = React.memo(({ galleryImages }: ImageGalleryProps) => {
               alt={galleryImages[currentImageIndex]?.alt || "Gallery image"}
               className="w-full h-full rounded-b-2xl"
               placeholderColor="from-oceanic-900/30 to-slate-900"
-              fallbackSrc="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
+              fallbackSrc="https://oceaniccodermedia.blob.core.windows.net/media/69444ceb001c1eda1331/profile.webp"
               displaySize="hero"
               objectFit="contain"
             />

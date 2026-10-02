@@ -14,7 +14,7 @@ interface BlogPostCardProps {
 }
 
 const FALLBACK_IMAGE =
-  "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883";
+  "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg";
 
 export const BlogPostCard: React.FC<BlogPostCardProps> = ({
   post,

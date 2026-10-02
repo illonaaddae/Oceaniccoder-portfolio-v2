@@ -8,7 +8,7 @@ const education = [
     description:
       " Specializing in Software Engineering, Cloud Computing, Artificial Intelligence and Machine Learning ",
     universityLogo:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cdb00195a0cc8ab/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cdb00195a0cc8ab/atu-logo.png",
     gpa: null,
     location: "Accra, Ghana",
   },
@@ -20,7 +20,7 @@ const education = [
     description:
       "Specialized in Software Engineering, Data Structures & Algorithms, and Network Systems.",
     universityLogo:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cdb00195a0cc8ab/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cdb00195a0cc8ab/atu-logo.png",
     gpa: "N.A/5.0",
     location: "Accra, Ghana",
   },

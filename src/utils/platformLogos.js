@@ -7,35 +7,34 @@
 export const platformLogos = {
   Codecademy: {
     local:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf9000034490b06/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf9000034490b06/code-cademy.svg",
     cdn: "https://cdn.simpleicons.org/codecademy/1F4056",
     fallback: "CC",
     color: "#1F4056",
   },
   Scrimba: {
-    local:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cfa002656e07bf5/view?project=6943431e00253c8f9883",
+    local: "https://oceaniccodermedia.blob.core.windows.net/media/69444cfa002656e07bf5/scrimba.png",
     cdn: "https://cdn.simpleicons.org/scrimba/2B283A",
     fallback: "SB",
     color: "#2B283A",
   },
   AWS: {
     local:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/6a08dac800096013ea70/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/6a08dac800096013ea70/pinclipart-com-welders-clipart-1637044.webp",
     cdn: "https://cdn.simpleicons.org/amazonwebservices/FF9900",
     fallback: "AWS",
     color: "#FF9900",
   },
   "Frontend Masters": {
     local:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf90028bcba5187/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf90028bcba5187/frontendmasters.png",
     cdn: "https://cdn.simpleicons.org/frontendmentor/3F54A3",
     fallback: "FM",
     color: "#3F54A3",
   },
   Coursera: {
     local:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf7002630d6e37f/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf7002630d6e37f/coursera.png",
     cdn: "https://cdn.simpleicons.org/coursera/0056D2",
     fallback: "CR",
     color: "#0056D2",

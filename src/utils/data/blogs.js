@@ -24,7 +24,7 @@ export const BLOGS_DATA = [
     publishedAt: "2024-01-15",
     readTime: "5 min read",
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
     featured: true,
   },
   {
@@ -53,7 +53,7 @@ export const BLOGS_DATA = [
     publishedAt: "2024-01-10",
     readTime: "8 min read",
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf000057a457f95/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf000057a457f95/blog-placeholder-2.svg",
     featured: false,
   },
   {
@@ -86,7 +86,7 @@ export const BLOGS_DATA = [
     publishedAt: "2024-01-05",
     readTime: "6 min read",
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cf00032bc7780ff/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf00032bc7780ff/blog-placeholder-3.svg",
     featured: true,
   },
 ];

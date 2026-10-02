@@ -11,7 +11,11 @@ import {
   getResponsiveImageUrls,
   generateSrcSet,
   getImageForContext,
+  getMediaVariantUrl,
+  isMediaImageUrl,
+  isOptimizableImageUrl,
   IMAGE_SIZES,
+  MEDIA_BASE_URL,
 } from "./imageOptimizer";
 
 const APPWRITE_VIEW_URL =
@@ -177,5 +181,62 @@ describe("getImageForContext", () => {
   it("uses hero size when requested", () => {
     const result = getImageForContext(APPWRITE_VIEW_URL, "hero");
     expect(result).toContain(`width=${IMAGE_SIZES.hero.width}`);
+  });
+});
+
+describe("Azure Blob media URLs", () => {
+  const PNG = `${MEDIA_BASE_URL}/69444cfb0020fb902f77/portfolio-v2-jpg.png`;
+  const SVG = `${MEDIA_BASE_URL}/69444cef000da2150f34/blog-placeholder-1.svg`;
+  const MP4 = `${MEDIA_BASE_URL}/6abebedf0001d5085076/walkthrough.mp4`;
+  const VARIANT = `${MEDIA_BASE_URL}/69444cfb0020fb902f77/w480.webp`;
+
+  it("recognises raster originals only", () => {
+    expect(isMediaImageUrl(PNG)).toBe(true);
+    expect(isMediaImageUrl(SVG)).toBe(false);
+    expect(isMediaImageUrl(MP4)).toBe(false);
+    expect(isMediaImageUrl(VARIANT)).toBe(false);
+    expect(isMediaImageUrl(EXTERNAL_URL)).toBe(false);
+  });
+
+  it("picks the smallest stored copy at least as wide as requested", () => {
+    const base = `${MEDIA_BASE_URL}/69444cfb0020fb902f77`;
+    expect(getMediaVariantUrl(PNG, 150)).toBe(`${base}/w480.webp`);
+    expect(getMediaVariantUrl(PNG, 480)).toBe(`${base}/w480.webp`);
+    expect(getMediaVariantUrl(PNG, 800)).toBe(`${base}/w960.webp`);
+    expect(getMediaVariantUrl(PNG, 1200)).toBe(`${base}/w1600.webp`);
+  });
+
+  it("falls back to the largest copy past the biggest width", () => {
+    expect(getMediaVariantUrl(PNG, 1920)).toBe(`${MEDIA_BASE_URL}/69444cfb0020fb902f77/w1600.webp`);
+  });
+
+  it("leaves SVG, video and foreign URLs untouched", () => {
+    expect(getOptimizedImageUrl(SVG, 400)).toBe(SVG);
+    expect(getOptimizedImageUrl(MP4, 400)).toBe(MP4);
+    expect(getOptimizedImageUrl(EXTERNAL_URL, 400)).toBe(EXTERNAL_URL);
+  });
+
+  it("serves context sizes from the stored copies", () => {
+    expect(getImageForContext(PNG, "card")).toMatch(/\/w480\.webp$/);
+    expect(getImageForContext(PNG, "hero")).toMatch(/\/w1600\.webp$/);
+  });
+
+  it("builds a srcSet from the stored widths", () => {
+    expect(generateSrcSet(PNG)).toBe(
+      [480, 960, 1600]
+        .map((w) => `${MEDIA_BASE_URL}/69444cfb0020fb902f77/w${w}.webp ${w}w`)
+        .join(", "),
+    );
+  });
+
+  it("extracts the file id, which migrated files share with Appwrite", () => {
+    expect(getFileIdFromUrl(PNG)).toBe("69444cfb0020fb902f77");
+    expect(getFileIdFromUrl(MP4)).toBe("6abebedf0001d5085076");
+  });
+
+  it("treats both Appwrite and Blob images as optimizable", () => {
+    expect(isOptimizableImageUrl(APPWRITE_VIEW_URL)).toBe(true);
+    expect(isOptimizableImageUrl(PNG)).toBe(true);
+    expect(isOptimizableImageUrl(SVG)).toBe(false);
   });
 });
