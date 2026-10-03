@@ -83,14 +83,15 @@ To run manually: `npx lint-staged`
 
 All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never reads them at runtime.
 
-| Variable                    | Purpose                                    |
-| --------------------------- | ------------------------------------------ |
-| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint                      |
-| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project                           |
-| `VITE_APPWRITE_DATABASE_ID` | Appwrite database                          |
-| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket                    |
-| `VITE_ADMIN_EMAIL`          | Admin account email (Appwrite Auth)        |
-| `VITE_PAYSTACK_PUBLIC_KEY`  | Paystack Inline JS (card, momo, Apple Pay) |
+| Variable                    | Purpose                                                       |
+| --------------------------- | ------------------------------------------------------------- |
+| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint                                         |
+| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project                                              |
+| `VITE_APPWRITE_DATABASE_ID` | Appwrite database                                             |
+| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket                                       |
+| `VITE_ADMIN_EMAIL`          | Admin account email (Appwrite Auth)                           |
+| `VITE_PAYSTACK_PUBLIC_KEY`  | Paystack Inline JS (card, momo, Apple Pay)                    |
+| `VITE_AZURE_MEDIA_BASE_URL` | Blob `media` container URL (optional; defaults to production) |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
 
@@ -100,14 +101,16 @@ Set all in: **GitHub → Settings → Secrets and variables → Actions**
 
 Azure Function runtime vars (set in **Azure Portal → Static Web App → Configuration → Application settings**):
 
-| Variable               | Purpose                          |
-| ---------------------- | -------------------------------- |
-| `GOOGLE_CLIENT_ID`     | OAuth client for Calendar API    |
-| `GOOGLE_CLIENT_SECRET` | OAuth secret                     |
-| `GOOGLE_REFRESH_TOKEN` | Long-lived refresh token         |
-| `GOOGLE_CALENDAR_ID`   | Calendar ID (usually your email) |
-| `OPENAI_API_KEY`       | Chatbot (GPT-4o-mini)            |
-| `PAYSTACK_SECRET_KEY`  | Webhook signature verification   |
+| Variable                | Purpose                                     |
+| ----------------------- | ------------------------------------------- |
+| `GOOGLE_CLIENT_ID`      | OAuth client for Calendar API               |
+| `GOOGLE_CLIENT_SECRET`  | OAuth secret                                |
+| `GOOGLE_REFRESH_TOKEN`  | Long-lived refresh token                    |
+| `GOOGLE_CALENDAR_ID`    | Calendar ID (usually your email)            |
+| `OPENAI_API_KEY`        | Chatbot (GPT-4o-mini)                       |
+| `PAYSTACK_SECRET_KEY`   | Webhook signature verification              |
+| `AZURE_STORAGE_ACCOUNT` | Media storage account (`oceaniccodermedia`) |
+| `AZURE_STORAGE_KEY`     | Signs upload URLs, writes resized copies    |
 
 > `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
 > sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent

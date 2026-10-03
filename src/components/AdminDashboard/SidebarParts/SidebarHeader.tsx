@@ -26,7 +26,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme, isCollapsed
           }`}
         >
           <img
-            src="https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ceb001c1eda1331/view?project=6943431e00253c8f9883"
+            src="https://oceaniccodermedia.blob.core.windows.net/media/69444ceb001c1eda1331/profile.webp"
             alt="Admin Profile"
             className="w-full h-full object-cover"
             onError={(e) => {

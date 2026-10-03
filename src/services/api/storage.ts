@@ -1,4 +1,17 @@
-import { storage, STORAGE_BUCKET_ID, ID } from "./client";
+// Media storage on Azure Blob, through the admin-only /api/media function
+// (api/media/index.js).
+//
+// An upload is three steps, so large files never pass through a function:
+//   1. /api/media/upload-url hands back a write-only SAS URL for one new blob;
+//   2. the browser PUTs the file straight to Blob with it;
+//   3. /api/media/complete checks type and size and, for images, writes the
+//      resized WebP copies the site actually serves (see utils/imageOptimizer).
+//
+// Every call carries a short-lived Appwrite JWT, which the function checks
+// against the admin account.
+import { account } from "./client";
+import { apiUrl } from "@/utils/apiUrl";
+import { getFileIdFromUrl as getMediaFileId } from "@/utils/imageOptimizer";
 
 export interface StorageStats {
   totalFiles: number;
@@ -8,57 +21,114 @@ export interface StorageStats {
   maxStorageMB: number;
 }
 
+/** One original in the media container, as /api/media lists it. */
+export interface MediaFile {
+  fileId: string;
+  name: string;
+  url: string;
+  size: number;
+  /** Bytes taken by the resized copies, on top of `size`. */
+  variantBytes: number;
+  contentType?: string;
+  createdAt?: string;
+}
+
+// The Storage Usage ring was sized for the Appwrite free bucket. Blob has no
+// such cap; 2 GB is kept as a budget so the ring still means something.
+const MAX_STORAGE_MB = 2048;
+
 const DEFAULT_STATS: StorageStats = {
   totalFiles: 0,
   totalSizeBytes: 0,
   totalSizeMB: 0,
   usedPercentage: 0,
-  maxStorageMB: 2048,
+  maxStorageMB: MAX_STORAGE_MB,
 };
+
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // matches api/shared/media.js
+
+async function authHeaders(): Promise<Record<string, string>> {
+  let jwt: string;
+  try {
+    ({ jwt } = await account.createJWT());
+  } catch {
+    throw new Error("Your admin session has expired. Sign in again and retry.");
+  }
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${jwt}`,
+    // Sent alongside Authorization because Static Web Apps can replace that header.
+    "x-appwrite-jwt": jwt,
+  };
+}
+
+async function mediaRequest<T>(
+  path: string,
+  init: { method?: string; body?: string; headers?: Record<string, string> } = {},
+): Promise<T> {
+  const res = await fetch(apiUrl(`/api/media${path}`), {
+    ...init,
+    headers: { ...(await authHeaders()), ...(init.headers || {}) },
+  });
+  const body = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(body.error || `Media request failed (${res.status})`);
+  return body;
+}
+
+async function uploadFile(file: File): Promise<string> {
+  const { blobName, uploadUrl } = await mediaRequest<{ blobName: string; uploadUrl: string }>(
+    "/upload-url",
+    { method: "POST", body: JSON.stringify({ fileName: file.name, contentType: file.type }) },
+  );
+
+  const put = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "x-ms-blob-type": "BlockBlob", "Content-Type": file.type },
+    body: file,
+  });
+  if (!put.ok) throw new Error(`Upload to storage failed (${put.status})`);
+
+  const done = await mediaRequest<{ url: string }>("/complete", {
+    method: "POST",
+    body: JSON.stringify({ blobName }),
+  });
+  return done.url;
+}
+
+export async function listMediaFiles(): Promise<MediaFile[]> {
+  const { files } = await mediaRequest<{ files: MediaFile[] }>("");
+  return files;
+}
 
 export async function getStorageStats(): Promise<StorageStats> {
   try {
-    const response = await storage.listFiles(STORAGE_BUCKET_ID);
-    let totalSizeBytes = 0;
-    for (const file of response.files) {
-      totalSizeBytes += file.sizeOriginal || 0;
-    }
-    const totalSizeMB = totalSizeBytes / (1024 * 1024);
-    const maxStorageMB = 2048;
-    const usedPercentage = Math.min((totalSizeMB / maxStorageMB) * 100, 100);
+    const { totalFiles, totalBytes } = await mediaRequest<{
+      totalFiles: number;
+      totalBytes: number;
+    }>("");
+    const totalSizeMB = totalBytes / (1024 * 1024);
     return {
-      totalFiles: response.total,
-      totalSizeBytes,
+      totalFiles,
+      totalSizeBytes: totalBytes,
       totalSizeMB: Math.round(totalSizeMB * 100) / 100,
-      usedPercentage: Math.round(usedPercentage * 10) / 10,
-      maxStorageMB,
+      usedPercentage: Math.round(Math.min((totalSizeMB / MAX_STORAGE_MB) * 100, 100) * 10) / 10,
+      maxStorageMB: MAX_STORAGE_MB,
     };
   } catch {
+    // The public read-only /dashboard has no admin session; show an empty ring there.
     return DEFAULT_STATS;
   }
 }
 
 export async function uploadImage(file: File): Promise<string> {
-  try {
-    const response = await storage.createFile(STORAGE_BUCKET_ID, ID.unique(), file);
-    return storage.getFileView(STORAGE_BUCKET_ID, response.$id).toString();
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 401) {
-      throw new Error("Storage permission denied. Check bucket permissions.");
-    }
-    if (err.code === 404) {
-      throw new Error("Storage bucket not found. Verify STORAGE_BUCKET_ID.");
-    }
-    throw error;
+  if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+    throw new Error("Unsupported file type. Use an image or a PDF.");
   }
+  return uploadFile(file);
 }
 
-// Upload a video file (MP4/WebM/Ogg) to the same storage bucket as images.
-// Used for project demo videos so we can serve direct video instead of relying
-// on YouTube embeds (which sometimes show a bot-check screen).
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB hard cap
-
+// Project demo videos are served as files instead of YouTube embeds, which
+// sometimes show a bot-check screen.
 export async function uploadVideo(file: File): Promise<string> {
   if (!/^video\/(mp4|webm|ogg)/i.test(file.type)) {
     throw new Error("Unsupported video format. Use MP4, WebM, or Ogg.");
@@ -66,30 +136,14 @@ export async function uploadVideo(file: File): Promise<string> {
   if (file.size > MAX_VIDEO_BYTES) {
     throw new Error(`Video too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 50 MB.`);
   }
-  try {
-    const response = await storage.createFile(STORAGE_BUCKET_ID, ID.unique(), file);
-    return storage.getFileView(STORAGE_BUCKET_ID, response.$id).toString();
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 401) throw new Error("Storage permission denied.");
-    if (err.code === 404) throw new Error("Storage bucket not found.");
-    throw error;
-  }
+  return uploadFile(file);
 }
 
+/** Deletes a file and its resized copies. */
 export async function deleteImage(fileId: string): Promise<void> {
-  await storage.deleteFile(STORAGE_BUCKET_ID, fileId);
+  await mediaRequest(`?fileId=${encodeURIComponent(fileId)}`, { method: "DELETE" });
 }
 
 export function getFileIdFromUrl(url: string): string | null {
-  try {
-    const match = url.match(/\/files\/([^/]+)\/view/);
-    return match ? match[1] : null;
-  } catch {
-    return null;
-  }
-}
-
-export function getImagePreviewUrl(fileId: string, width?: number, height?: number): string {
-  return storage.getFilePreview(STORAGE_BUCKET_ID, fileId, width, height).toString();
+  return getMediaFileId(url);
 }

@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "node-appwrite": "^21.1.0"
+    "@azure/storage-blob": "12.27.0",
+    "node-appwrite": "^21.1.0",
+    "sharp": "0.34.5"
   }
 }

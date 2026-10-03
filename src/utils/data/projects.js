@@ -9,7 +9,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["React", "Tailwind CSS", "JavaScript", "CSS3", "HTML5"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cfb0020fb902f77/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cfb0020fb902f77/portfolio-v2-jpg.png",
     liveUrl: "https://oceaniccoder.dev",
     githubUrl: "https://github.com/illonaaddae/Oceaniccoder-portfolio-v2",
     featured: true,
@@ -26,7 +26,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["React", "Vite", "JavaScript", "CSS", "HTML5"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ced001d6821a234/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444ced001d6821a234/sakama-petroleum.png",
     liveUrl: "https://sakama-petroleum.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/SAKAMA-Petroleum",
     featured: true,
@@ -43,7 +43,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["HTML", "CSS", "JavaScript", "The Color API"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cfe00302110bb02/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cfe00302110bb02/the-color-scheme-generator-readme.png",
     liveUrl: "https://the-color-scheme-generator.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/color-scheme-generator",
     featured: true,
@@ -61,7 +61,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["HTML", "CSS", "JavaScript"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cec0011ec4fc0d8/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cec0011ec4fc0d8/ps-g-darkmode-ipad-pro.png",
     liveUrl: "https://password-generator-o.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/Password-Generator-App",
     featured: true,
@@ -78,7 +78,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["HTML", "CSS"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444ce60028e9b96e28/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444ce60028e9b96e28/omninifood.png",
     liveUrl: "https://illona-omnifood.netlify.app/",
     githubUrl: "https://github.com/illonaaddae/Omni-food",
     featured: true,
@@ -95,7 +95,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["React", "Node.js", "PostgreSQL", "Stripe", "GraphQL"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
     liveUrl: "https://shop.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/ecommerce-platform",
     featured: true,
@@ -113,7 +113,7 @@ export const PROJECTS_DATA = [
     category: "AI/ML",
     technologies: ["Python", "OpenCV", "TensorFlow", "FastAPI", "Machine Learning"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
     liveUrl: "https://vision.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/image-recognition",
     featured: false,
@@ -130,7 +130,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["React", "JavaScript", "REST API", "CSS3", "Weather API"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
     liveUrl: "https://weather.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/weather-app",
     featured: false,
@@ -148,7 +148,7 @@ export const PROJECTS_DATA = [
     category: "Web Apps",
     technologies: ["React", "Node.js", "MongoDB", "Express", "JWT"],
     image:
-      "https://fra.cloud.appwrite.io/v1/storage/buckets/69444749001b5f3a325b/files/69444cef000da2150f34/view?project=6943431e00253c8f9883",
+      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
     liveUrl: "https://blog.oceaniccoder.dev",
     githubUrl: "https://github.com/illona-addae/blog-platform",
     featured: true,
