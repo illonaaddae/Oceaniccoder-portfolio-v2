@@ -44,7 +44,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const options = parseListQuery(req.query);
+    const options = parseListQuery(req.query, collection);
     const { resources } = await container.items.query(buildQuery(collection, options)).fetchAll();
     const sorted = sortRows(resources, options.orderBy, options.dir);
     const documents = (options.limit ? sorted.slice(0, options.limit) : sorted).map(toPublic);

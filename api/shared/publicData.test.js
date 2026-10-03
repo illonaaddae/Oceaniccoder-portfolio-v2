@@ -24,6 +24,17 @@ describe("parseListQuery", () => {
     expect(options).toMatchObject({ orderBy: "createdAt", dir: "desc", limit: 10 });
   });
 
+  it("refuses to filter or sort on a hidden field", () => {
+    const byEmail = { where: JSON.stringify({ authorEmail: "ada@example.com" }) };
+    expect(() => parseListQuery(byEmail, "comments")).toThrow(BadRequest);
+    expect(() => parseListQuery({ orderBy: "authorEmail" }, "comments")).toThrow(BadRequest);
+  });
+
+  it("allows a field that is only hidden in another collection", () => {
+    const options = parseListQuery({ orderBy: "authorEmail" }, "projects");
+    expect(options.orderBy).toBe("authorEmail");
+  });
+
   it("caps the limit", () => {
     expect(parseListQuery({ limit: "100000" }).limit).toBe(500);
   });

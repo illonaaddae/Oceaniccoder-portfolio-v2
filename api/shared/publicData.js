@@ -39,13 +39,18 @@ const PUBLIC_COLLECTIONS = {
 
 class BadRequest extends Error {}
 
-function cosmosField(name) {
+// A hidden field can't be filtered or sorted on either: `where` or `orderBy`
+// on it would tell a visitor what it holds (e.g. whether an email commented).
+function cosmosField(name, collection) {
   if (!FIELD_NAME.test(name)) throw new BadRequest(`Invalid field name: ${name}`);
+  if (PUBLIC_COLLECTIONS[collection]?.omit?.includes(name)) {
+    throw new BadRequest(`Field not available: ${name}`);
+  }
   return SYSTEM_FIELDS[name] || name;
 }
 
 /** Validates the query string. Throws BadRequest on anything unexpected. */
-function parseListQuery(query = {}) {
+function parseListQuery(query = {}, collection) {
   const where = [];
   if (query.where) {
     let parsed;
@@ -61,11 +66,11 @@ function parseListQuery(query = {}) {
       if (value === null || typeof value === "object") {
         throw new BadRequest(`where.${name} must be a string, number or boolean`);
       }
-      where.push({ field: cosmosField(name), value });
+      where.push({ field: cosmosField(name, collection), value });
     }
   }
 
-  const orderBy = query.orderBy ? cosmosField(query.orderBy) : null;
+  const orderBy = query.orderBy ? cosmosField(query.orderBy, collection) : null;
   const dir = query.dir === "desc" ? "desc" : "asc";
 
   let limit = null;
