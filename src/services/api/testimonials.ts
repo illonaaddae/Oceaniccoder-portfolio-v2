@@ -1,18 +1,23 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Testimonial } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 export async function getTestimonials(): Promise<Testimonial[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.TESTIMONIALS, [
-    Query.orderAsc("order"),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.TESTIMONIALS, { orderBy: "order" })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.TESTIMONIALS, [
+        Query.orderAsc("order"),
+      ]);
   return response.documents as unknown as Testimonial[];
 }
 
 export async function getFeaturedTestimonials(): Promise<Testimonial[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.TESTIMONIALS, [
-    Query.equal("featured", true),
-    Query.orderAsc("order"),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.TESTIMONIALS, { where: { featured: true }, orderBy: "order" })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.TESTIMONIALS, [
+        Query.equal("featured", true),
+        Query.orderAsc("order"),
+      ]);
   return response.documents as unknown as Testimonial[];
 }
 

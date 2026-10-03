@@ -1,7 +1,16 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Comment } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
+  if (usesCosmos) {
+    const response = await listRows<Comment>(COLLECTIONS.COMMENTS, {
+      where: { postId, isApproved: true },
+      orderBy: "$createdAt",
+      dir: "desc",
+    });
+    return response.documents;
+  }
   const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.COMMENTS, [
     Query.equal("postId", postId),
     Query.equal("isApproved", true),

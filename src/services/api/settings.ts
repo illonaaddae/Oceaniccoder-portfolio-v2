@@ -1,6 +1,7 @@
 import { Permission, Role } from "appwrite";
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Settings } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 /**
  * Settings the public site reads. The collection itself is admin-read only
@@ -11,9 +12,9 @@ import type { Settings } from "../../types";
 const PUBLIC_SETTING_KEYS = new Set(["platform_logos", "hero_roles", "hero_images"]);
 
 export async function getSetting(key: string): Promise<Settings | null> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.SETTINGS, [
-    Query.equal("key", key),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.SETTINGS, { where: { key } })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.SETTINGS, [Query.equal("key", key)]);
   if (response.documents.length > 0) {
     return response.documents[0] as unknown as Settings;
   }
