@@ -1,5 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
 import type { Certification } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 const MONTH_INDEX: Record<string, number> = {
   january: 1,
@@ -27,7 +28,9 @@ function certDateRank(date?: string): number {
 }
 
 export async function getCertifications(): Promise<Certification[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.CERTIFICATIONS);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.CERTIFICATIONS)
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.CERTIFICATIONS);
   const certs = response.documents as unknown as Certification[];
   // Newest first: by date obtained, falling back to creation time for ties.
   return certs.sort((a, b) => {

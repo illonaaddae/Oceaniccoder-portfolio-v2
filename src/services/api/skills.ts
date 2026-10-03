@@ -1,10 +1,11 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Skill } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 export async function getSkills(): Promise<Skill[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.SKILLS, [
-    Query.limit(200),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.SKILLS, { limit: 200 })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.SKILLS, [Query.limit(200)]);
   return response.documents as unknown as Skill[];
 }
 

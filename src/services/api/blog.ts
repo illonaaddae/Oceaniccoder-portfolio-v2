@@ -1,17 +1,22 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { BlogPost } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 export async function getBlogPosts(): Promise<BlogPost[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_POSTS, [
-    Query.orderDesc("publishedAt"),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.BLOG_POSTS, { orderBy: "publishedAt", dir: "desc" })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_POSTS, [
+        Query.orderDesc("publishedAt"),
+      ]);
   return response.documents as unknown as BlogPost[];
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_POSTS, [
-    Query.equal("slug", slug),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.BLOG_POSTS, { where: { slug } })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_POSTS, [
+        Query.equal("slug", slug),
+      ]);
   if (response.documents.length === 0) throw new Error("Blog post not found");
   return response.documents[0] as unknown as BlogPost;
 }

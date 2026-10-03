@@ -1,11 +1,14 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { GalleryImage } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 export async function getGallery(): Promise<GalleryImage[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.GALLERY, [
-    Query.orderAsc("order"),
-    Query.limit(100),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.GALLERY, { orderBy: "order", limit: 100 })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.GALLERY, [
+        Query.orderAsc("order"),
+        Query.limit(100),
+      ]);
   return response.documents as unknown as GalleryImage[];
 }
 

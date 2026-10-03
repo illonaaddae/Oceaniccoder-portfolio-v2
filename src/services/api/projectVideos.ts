@@ -9,6 +9,7 @@
 // - projectId is required (FK to projects.$id) — unique index ensures one video per project
 // - demoVideoUrl is required URL (Appwrite url-type validation)
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { listRows, usesCosmos } from "./dataApi";
 
 export interface ProjectVideo {
   $id: string;
@@ -17,9 +18,9 @@ export interface ProjectVideo {
 }
 
 export async function getProjectVideos(): Promise<ProjectVideo[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, [
-    Query.limit(100),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.PROJECT_VIDEOS, { limit: 100 })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, [Query.limit(100)]);
   return response.documents as unknown as ProjectVideo[];
 }
 
@@ -32,10 +33,12 @@ export async function getProjectVideoMap(): Promise<Record<string, string>> {
 }
 
 export async function getProjectVideo(projectId: string): Promise<ProjectVideo | null> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, [
-    Query.equal("projectId", projectId),
-    Query.limit(1),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.PROJECT_VIDEOS, { where: { projectId }, limit: 1 })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, [
+        Query.equal("projectId", projectId),
+        Query.limit(1),
+      ]);
   return (response.documents[0] as unknown as ProjectVideo) ?? null;
 }
 

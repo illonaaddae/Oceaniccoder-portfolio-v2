@@ -92,6 +92,7 @@ All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never 
 | `VITE_ADMIN_EMAIL`          | Admin account email (Appwrite Auth)                           |
 | `VITE_PAYSTACK_PUBLIC_KEY`  | Paystack Inline JS (card, momo, Apple Pay)                    |
 | `VITE_AZURE_MEDIA_BASE_URL` | Blob `media` container URL (optional; defaults to production) |
+| `VITE_DATA_BACKEND`         | `cosmos` reads through `/api/data`; unset keeps Appwrite      |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
 
@@ -111,6 +112,8 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `PAYSTACK_SECRET_KEY`   | Webhook signature verification              |
 | `AZURE_STORAGE_ACCOUNT` | Media storage account (`oceaniccodermedia`) |
 | `AZURE_STORAGE_KEY`     | Signs upload URLs, writes resized copies    |
+| `COSMOS_ENDPOINT`       | Cosmos DB account (`oceaniccoder-db`)       |
+| `COSMOS_KEY`            | Cosmos DB key, used by `/api/data`          |
 
 > `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
 > sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent
@@ -179,6 +182,7 @@ npm install
 npm run dev           # Vite dev server on :5173
 
 # For full local testing with Azure Functions:
-npx func start        # Azure Functions Core Tools (install: npm i -g azure-functions-core-tools@4)
-# Run both in separate terminals; Vite proxies /api/* to :7071 via vite.config.ts
+cd api && npx func start --cors http://localhost:5173   # Azure Functions Core Tools (npm i -g azure-functions-core-tools@4)
+# vite.config.ts has no /api proxy. Point the app at the local host instead:
+VITE_FUNCTIONS_BASE_URL=http://localhost:7071 npm run dev
 ```

@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   readonly REACT_APP_APPWRITE_DATABASE_ID: string;
   /** Azure Blob `media` container; defaults to the production one. */
   readonly VITE_AZURE_MEDIA_BASE_URL?: string;
+  /** "cosmos" reads through /api/data; anything else keeps Appwrite. */
+  readonly VITE_DATA_BACKEND?: string;
 }
 
 interface ImportMeta {
