@@ -29,3 +29,7 @@ deno.lock
 
 # Local design reference library (its own git repo, not part of the app)
 awesome-design-md/
+
+# Appwrite backups (scripts/backup-appwrite.mjs) — personal data from bookings,
+# invoices, payments and messages. Never commit.
+backup/

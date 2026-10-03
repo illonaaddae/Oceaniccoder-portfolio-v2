@@ -38,13 +38,17 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigat
           : "border-oceanic-200/20 hover:bg-white/20"
       }`}
     >
-      <td className="px-3 sm:px-4 py-2 sm:py-3">
-        <div className="flex items-center gap-2">
+      {/* max-w-0 + w-full: the name column takes the leftover width instead of
+          growing to fit the title, so a long project name ellipsizes rather
+          than pushing Status and Time off the card. */}
+      <td className="px-3 sm:px-4 py-2 sm:py-3 w-full max-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-oceanic-500/30 flex items-center justify-center flex-shrink-0">
             <Icon className="text-oceanic-400 text-[10px] sm:text-xs" />
           </div>
           <span
-            className={`font-medium transition-colors duration-300 text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none ${
+            title={item.name}
+            className={`font-medium transition-colors duration-300 text-xs sm:text-sm truncate ${
               theme === "dark" ? "text-white/95" : "text-slate-900"
             }`}
           >
@@ -53,13 +57,13 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigat
         </div>
       </td>
       <td
-        className={`px-3 sm:px-4 py-2 sm:py-3 transition-colors duration-300 hidden sm:table-cell ${
+        className={`px-3 sm:px-4 py-2 sm:py-3 whitespace-nowrap transition-colors duration-300 hidden sm:table-cell ${
           theme === "dark" ? "text-slate-200/90" : "text-slate-700"
         }`}
       >
         {item.category}
       </td>
-      <td className="px-3 sm:px-4 py-2 sm:py-3">
+      <td className="px-3 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
         {item.status && (
           <span
             title={item.status}
@@ -70,7 +74,7 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({ item, theme, onNavigat
         )}
       </td>
       <td
-        className={`px-3 sm:px-4 py-2 sm:py-3 transition-colors duration-300 hidden md:table-cell ${
+        className={`px-3 sm:px-4 py-2 sm:py-3 whitespace-nowrap transition-colors duration-300 hidden md:table-cell ${
           theme === "dark" ? "text-slate-400" : "text-slate-600"
         }`}
       >
