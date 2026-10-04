@@ -1,5 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Project } from "../../types";
+import { getRow, listRows, usesCosmos } from "./dataApi";
 import { getProjectVideoMap, setProjectVideo, deleteProjectVideo } from "./projectVideos";
 import {
   getProjectCaseStudyMap,
@@ -61,27 +62,33 @@ async function joinSideCollections(projects: Project[]): Promise<Project[]> {
 }
 
 export async function getProjects(): Promise<Project[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECTS, [
-    Query.orderDesc("$createdAt"),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.PROJECTS, { orderBy: "$createdAt", dir: "desc" })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECTS, [
+        Query.orderDesc("$createdAt"),
+      ]);
   const projects = response.documents as unknown as Project[];
   return joinSideCollections(projects);
 }
 
 export async function getFeaturedProjects(): Promise<Project[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECTS, [
-    Query.equal("featured", true),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.PROJECTS, { where: { featured: true } })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECTS, [
+        Query.equal("featured", true),
+      ]);
   const projects = response.documents as unknown as Project[];
   return joinSideCollections(projects);
 }
 
 export async function getProjectById(projectId: string): Promise<Project> {
-  const doc = (await databases.getDocument(
-    DATABASE_ID,
-    COLLECTIONS.PROJECTS,
-    projectId,
-  )) as unknown as Project;
+  const doc = (usesCosmos
+    ? await getRow(COLLECTIONS.PROJECTS, projectId)
+    : await databases.getDocument(
+        DATABASE_ID,
+        COLLECTIONS.PROJECTS,
+        projectId,
+      )) as unknown as Project;
   const joined = await joinSideCollections([doc]);
   return joined[0];
 }

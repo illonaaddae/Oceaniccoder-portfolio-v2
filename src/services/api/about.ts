@@ -1,9 +1,12 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
 import type { About } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 export async function getAbout(): Promise<About | null> {
   try {
-    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.ABOUT);
+    const response = usesCosmos
+      ? await listRows(COLLECTIONS.ABOUT)
+      : await databases.listDocuments(DATABASE_ID, COLLECTIONS.ABOUT);
     return response.documents.length > 0 ? (response.documents[0] as unknown as About) : null;
   } catch {
     return null;

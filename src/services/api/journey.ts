@@ -1,10 +1,11 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Journey } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 export async function getJourney(): Promise<Journey[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.JOURNEY, [
-    Query.orderAsc("order"),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.JOURNEY, { orderBy: "order" })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.JOURNEY, [Query.orderAsc("order")]);
   return response.documents as unknown as Journey[];
 }
 

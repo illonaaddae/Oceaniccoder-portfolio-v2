@@ -1,13 +1,16 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Education } from "../../types";
+import { listRows, usesCosmos } from "./dataApi";
 
 // Education list — sorted by displayOrder DESC so the highest value shows first
 // on the main site. Admin reorders via up/down buttons in EducationTab which
 // swap displayOrder between adjacent rows (handleReorderEducation).
 export async function getEducation(): Promise<Education[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.EDUCATION, [
-    Query.orderDesc("displayOrder"),
-  ]);
+  const response = usesCosmos
+    ? await listRows(COLLECTIONS.EDUCATION, { orderBy: "displayOrder", dir: "desc" })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.EDUCATION, [
+        Query.orderDesc("displayOrder"),
+      ]);
   return response.documents as unknown as Education[];
 }
 
