@@ -82,6 +82,23 @@ describe("validateSubmission", () => {
     );
   });
 
+  it.each(["constructor", "__proto__", "toString", "hasOwnProperty"])(
+    "treats inherited key %s as unknown, not as a schema",
+    (key) => {
+      expect(() => validateSubmission(key, {})).toThrow("Unknown form");
+      expect(() => validateSubmission("messages", JSON.parse(`{"${key}": 1}`))).toThrow(Invalid);
+    },
+  );
+
+  it("only accepts testimonial photos from our own media storage", () => {
+    const base = { name: "A", role: "B", content: "C" };
+    const own = "https://oceaniccodermedia.blob.core.windows.net/media/abc/photo.webp";
+    expect(validateSubmission("testimonials", { ...base, image: own }).image).toBe(own);
+    expect(() =>
+      validateSubmission("testimonials", { ...base, image: "https://tracker.example/p.gif" }),
+    ).toThrow("image isn't allowed");
+  });
+
   it("rejects unknown collections", () => {
     expect(() => validateSubmission("invoices", {})).toThrow("Unknown form");
   });

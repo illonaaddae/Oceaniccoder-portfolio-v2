@@ -14,9 +14,14 @@ const text = (max, extra = {}) => ({ type: "string", max, ...extra });
 const required = (spec) => ({ ...spec, required: true });
 const flag = { type: "boolean" };
 
-/** https links on these hosts only (booking meeting links). */
+/** An https link on one of `hosts`. */
 const link = (hosts) => ({ type: "string", max: 500, hosts });
 const MEETING_HOSTS = ["meet.google.com", "zoom.us", "calendar.google.com", "www.google.com"];
+// Testimonial photos: only our own media storage, so an approved testimonial
+// can't embed a third-party image (tracking pixel, swapped content).
+const MEDIA_HOSTS = [
+  `${process.env.AZURE_STORAGE_ACCOUNT || "oceaniccodermedia"}.blob.core.windows.net`,
+];
 
 const SCHEMAS = {
   comments: {
@@ -83,7 +88,7 @@ const SCHEMAS = {
       company: text(100),
       content: required(text(2000)),
       rating: { type: "integer", min: 1, max: 5 },
-      image: link(null),
+      image: link(MEDIA_HOSTS),
     },
     // Hidden from the site until the admin approves it.
     server: { approved: false, featured: false, order: 999 },
@@ -108,8 +113,7 @@ function checkString(name, value, spec) {
       throw new Invalid(`${name} must be a link`);
     }
     if (url.protocol !== "https:") throw new Invalid(`${name} must be an https link`);
-    if (spec.hosts && !spec.hosts.includes(url.hostname))
-      throw new Invalid(`${name} isn't allowed`);
+    if (!spec.hosts.includes(url.hostname)) throw new Invalid(`${name} isn't allowed`);
   }
   return trimmed;
 }
@@ -140,7 +144,9 @@ function checkField(name, value, spec) {
  * the visitor. Empty optional strings are dropped rather than stored.
  */
 function validateSubmission(collection, body) {
-  const schema = SCHEMAS[collection];
+  // Own properties only: "constructor" or "__proto__" must not resolve to
+  // Object.prototype members.
+  const schema = Object.hasOwn(SCHEMAS, collection) ? SCHEMAS[collection] : null;
   if (!schema) throw new Invalid("Unknown form");
   if (!body || typeof body !== "object" || Array.isArray(body))
     throw new Invalid("Invalid request");
@@ -148,7 +154,7 @@ function validateSubmission(collection, body) {
   const doc = {};
   for (const [name, value] of Object.entries(body)) {
     if (SERVER_OWNED.has(name) || value === undefined || value === null) continue;
-    const spec = schema.fields[name];
+    const spec = Object.hasOwn(schema.fields, name) ? schema.fields[name] : null;
     if (!spec) throw new Invalid(`Unexpected field: ${name}`);
     const clean = checkField(name, value, spec);
     if (clean !== "") doc[name] = clean;
