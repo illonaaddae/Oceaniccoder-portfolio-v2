@@ -1,4 +1,14 @@
 import { account } from "../../lib/appwrite";
+import { usesCosmos } from "./dataApi";
+import { hasSwaAdminSession, logoutUrl } from "./session";
+
+/**
+ * True when the admin is signed in: a Static Web Apps session with the admin
+ * role once VITE_DATA_BACKEND=cosmos, otherwise an Appwrite session.
+ */
+export async function hasAdminSession(): Promise<boolean> {
+  return usesCosmos ? hasSwaAdminSession() : hasAppwriteSession();
+}
 
 // True if an active Appwrite session exists for this browser
 export async function hasAppwriteSession(): Promise<boolean> {
@@ -44,6 +54,10 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 }
 
 export async function logoutAdmin(): Promise<void> {
+  if (usesCosmos) {
+    window.location.assign(logoutUrl());
+    return;
+  }
   try {
     await account.deleteSession("current");
   } catch {

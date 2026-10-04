@@ -31,6 +31,8 @@ const CONTAINERS = {
   certifications: { partitionKey: "/id" },
   comments: { partitionKey: "/id" },
   education: { partitionKey: "/id" },
+  // Never existed in Appwrite (the Analytics tab showed "unavailable").
+  expenses: { partitionKey: "/id" },
   gallery: { partitionKey: "/id" },
   invoices: { partitionKey: "/id" },
   journey: { partitionKey: "/id" },

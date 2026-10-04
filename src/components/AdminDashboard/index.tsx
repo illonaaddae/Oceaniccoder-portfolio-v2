@@ -10,10 +10,16 @@ import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { ToastContainer } from "./Toast";
 import type { AdminDashboardProps } from "./types";
 import { ConfirmProvider } from "./ConfirmContext";
+import { setAdminReads } from "@/services/api/dataApi";
 
 const SIDEBAR_COLLAPSED_KEY = "oc-admin-sidebar-collapsed";
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isReadOnly = false }) => {
+  // The signed-in dashboard reads every row (drafts, hidden, pending) through
+  // /api/manage. Set during render so it's on before any data effect runs;
+  // dataApi also checks the /admin path, so public pages stay on /api/data.
+  setAdminReads(!isReadOnly);
+
   const s = useDashboardState(isReadOnly);
 
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {

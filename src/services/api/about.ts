@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
 import type { About } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageUpdate, usesCosmos } from "./dataApi";
 
 export async function getAbout(): Promise<About | null> {
   try {
@@ -14,12 +14,14 @@ export async function getAbout(): Promise<About | null> {
 }
 
 export async function createAbout(about: Omit<About, "$id">): Promise<About> {
-  return databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.ABOUT,
-    ID.unique(),
-    about as Record<string, unknown>,
-  ) as unknown as About;
+  return (usesCosmos
+    ? manageCreate(COLLECTIONS.ABOUT, about as Record<string, unknown>)
+    : databases.createDocument(
+        DATABASE_ID,
+        COLLECTIONS.ABOUT,
+        ID.unique(),
+        about as Record<string, unknown>,
+      )) as unknown as About;
 }
 
 function handleAttributeError(error: unknown): never {
@@ -40,12 +42,14 @@ export async function updateAbout(
   about: Partial<Omit<About, "$id">>,
 ): Promise<About> {
   try {
-    return (await databases.updateDocument(
-      DATABASE_ID,
-      COLLECTIONS.ABOUT,
-      aboutId,
-      about as Record<string, unknown>,
-    )) as unknown as About;
+    return (await (usesCosmos
+      ? manageUpdate(COLLECTIONS.ABOUT, aboutId, about as Record<string, unknown>)
+      : databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.ABOUT,
+          aboutId,
+          about as Record<string, unknown>,
+        ))) as unknown as About;
   } catch (error: unknown) {
     handleAttributeError(error);
   }

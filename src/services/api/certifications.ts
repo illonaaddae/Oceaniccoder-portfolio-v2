@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
 import type { Certification } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
 
 const MONTH_INDEX: Record<string, number> = {
   january: 1,
@@ -77,12 +77,14 @@ export async function createCertification(
   if (cert.image) cleanedData.image = cert.image;
 
   try {
-    return (await databases.createDocument(
-      DATABASE_ID,
-      COLLECTIONS.CERTIFICATIONS,
-      ID.unique(),
-      cleanedData,
-    )) as unknown as Certification;
+    return (await (usesCosmos
+      ? manageCreate(COLLECTIONS.CERTIFICATIONS, cleanedData)
+      : databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.CERTIFICATIONS,
+          ID.unique(),
+          cleanedData,
+        ))) as unknown as Certification;
   } catch (error: unknown) {
     handleAttributeError(error);
   }
@@ -109,17 +111,21 @@ export async function updateCertification(
   if (cert.image !== undefined) cleanedData.image = cert.image || null;
 
   try {
-    return (await databases.updateDocument(
-      DATABASE_ID,
-      COLLECTIONS.CERTIFICATIONS,
-      certId,
-      cleanedData,
-    )) as unknown as Certification;
+    return (await (usesCosmos
+      ? manageUpdate(COLLECTIONS.CERTIFICATIONS, certId, cleanedData)
+      : databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.CERTIFICATIONS,
+          certId,
+          cleanedData,
+        ))) as unknown as Certification;
   } catch (error: unknown) {
     handleAttributeError(error);
   }
 }
 
 export async function deleteCertification(certId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.CERTIFICATIONS, certId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.CERTIFICATIONS, certId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.CERTIFICATIONS, certId));
 }

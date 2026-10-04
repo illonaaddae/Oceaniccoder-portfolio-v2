@@ -1,6 +1,13 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Testimonial } from "../../types";
-import { listRows, submitRow, usesCosmos } from "./dataApi";
+import {
+  listRows,
+  manageCreate,
+  manageDelete,
+  manageUpdate,
+  submitRow,
+  usesCosmos,
+} from "./dataApi";
 
 export async function getTestimonials(): Promise<Testimonial[]> {
   const response = usesCosmos
@@ -40,18 +47,33 @@ export async function createTestimonial(
   ) as unknown as Testimonial;
 }
 
+/**
+ * Adds a testimonial from the admin dashboard. Unlike createTestimonial (the
+ * public form), it needs no spam check and isn't held for approval.
+ */
+export async function addTestimonial(
+  testimonial: Omit<Testimonial, "$id" | "$createdAt">,
+): Promise<Testimonial> {
+  if (usesCosmos) return manageCreate<Testimonial>(COLLECTIONS.TESTIMONIALS, testimonial);
+  return createTestimonial(testimonial);
+}
+
 export async function updateTestimonial(
   testimonialId: string,
   testimonial: Partial<Omit<Testimonial, "$id" | "$createdAt">>,
 ): Promise<Testimonial> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.TESTIMONIALS,
-    testimonialId,
-    testimonial as Record<string, unknown>,
-  ) as unknown as Testimonial;
+  return (usesCosmos
+    ? manageUpdate(COLLECTIONS.TESTIMONIALS, testimonialId, testimonial as Record<string, unknown>)
+    : databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.TESTIMONIALS,
+        testimonialId,
+        testimonial as Record<string, unknown>,
+      )) as unknown as Testimonial;
 }
 
 export async function deleteTestimonial(testimonialId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.TESTIMONIALS, testimonialId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.TESTIMONIALS, testimonialId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.TESTIMONIALS, testimonialId));
 }

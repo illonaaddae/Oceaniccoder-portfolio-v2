@@ -81,6 +81,14 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
           theme={theme}
           loading={loading}
           testimonials={props.testimonials}
+          onApprove={async (id) => {
+            try {
+              await props.handleUpdateTestimonial(id, { approved: true });
+              props.showSuccess("Testimonial approved");
+            } catch {
+              props.showError("Failed to approve testimonial");
+            }
+          }}
           onDelete={async (id) => {
             try {
               await props.handleDeleteTestimonial(id);

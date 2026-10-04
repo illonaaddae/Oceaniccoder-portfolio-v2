@@ -1,5 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { getJson, submitRow, usesCosmos } from "./dataApi";
+import { getJson, manageDelete, manageList, manageUpdate, submitRow, usesCosmos } from "./dataApi";
 
 export interface Booking {
   $id?: string;
@@ -33,10 +33,12 @@ export async function createBooking(
 }
 
 export async function getBookings(): Promise<Booking[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
-    Query.limit(200),
-    Query.orderDesc("$createdAt"),
-  ]);
+  const response = usesCosmos
+    ? await manageList(COLLECTIONS.BOOKINGS, { orderBy: "$createdAt", dir: "desc", limit: 200 })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
+        Query.limit(200),
+        Query.orderDesc("$createdAt"),
+      ]);
   return response.documents as unknown as Booking[];
 }
 
@@ -70,9 +72,13 @@ export async function updateBookingStatus(
   id: string,
   status: "confirmed" | "cancelled" | "pending",
 ): Promise<void> {
-  await databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status });
+  await (usesCosmos
+    ? manageUpdate(COLLECTIONS.BOOKINGS, id, { status })
+    : databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status }));
 }
 
 export async function deleteBooking(id: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.BOOKINGS, id)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id));
 }

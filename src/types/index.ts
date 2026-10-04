@@ -289,5 +289,7 @@ export interface Testimonial {
   rating?: number;
   featured?: boolean;
   order?: number;
+  /** false for a visitor submission awaiting approval; missing = approved. */
+  approved?: boolean;
   $createdAt?: string;
 }

@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Project } from "../../types";
-import { getRow, listRows, usesCosmos } from "./dataApi";
+import { getRow, listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
 import { getProjectVideoMap, setProjectVideo, deleteProjectVideo } from "./projectVideos";
 import {
   getProjectCaseStudyMap,
@@ -116,12 +116,14 @@ export async function createProject(
 ): Promise<Project> {
   let result: Project;
   try {
-    result = (await databases.createDocument(
-      DATABASE_ID,
-      COLLECTIONS.PROJECTS,
-      ID.unique(),
-      stripUnknownAttrs(project as Record<string, unknown>),
-    )) as unknown as Project;
+    result = (await (usesCosmos
+      ? manageCreate(COLLECTIONS.PROJECTS, stripUnknownAttrs(project as Record<string, unknown>))
+      : databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.PROJECTS,
+          ID.unique(),
+          stripUnknownAttrs(project as Record<string, unknown>),
+        ))) as unknown as Project;
   } catch (error) {
     explainUnknownAttribute(error);
   }
@@ -155,12 +157,18 @@ export async function updateProject(
 ): Promise<Project> {
   let result: Project;
   try {
-    result = (await databases.updateDocument(
-      DATABASE_ID,
-      COLLECTIONS.PROJECTS,
-      projectId,
-      stripUnknownAttrs(project as Record<string, unknown>),
-    )) as unknown as Project;
+    result = (await (usesCosmos
+      ? manageUpdate(
+          COLLECTIONS.PROJECTS,
+          projectId,
+          stripUnknownAttrs(project as Record<string, unknown>),
+        )
+      : databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.PROJECTS,
+          projectId,
+          stripUnknownAttrs(project as Record<string, unknown>),
+        ))) as unknown as Project;
   } catch (error) {
     explainUnknownAttribute(error);
   }
@@ -206,5 +214,7 @@ export async function deleteProject(projectId: string): Promise<void> {
   } catch (err) {
     console.error("Failed to cascade delete project case study:", err);
   }
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECTS, projectId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.PROJECTS, projectId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECTS, projectId));
 }

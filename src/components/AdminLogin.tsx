@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { useAdminLogin } from "./AdminLogin/useAdminLogin";
 import LoginHeader from "./AdminLogin/LoginHeader";
 import LoginForm from "./AdminLogin/LoginForm";
 import LoginFooter from "./AdminLogin/LoginFooter";
+import ProviderLogin from "./AdminLogin/ProviderLogin";
+import { usesCosmos } from "@/services/api/dataApi";
+import { getSwaUser } from "@/services/api/session";
 
 interface AdminLoginProps {
   onLogin: (password: string) => void;
@@ -27,6 +30,13 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     handleForgotPassword,
   } = useAdminLogin(onLogin);
 
+  // Signed in through Static Web Apps but without the admin role.
+  const [notAdmin, setNotAdmin] = useState(false);
+  useEffect(() => {
+    if (!usesCosmos) return;
+    getSwaUser().then((user) => setNotAdmin(Boolean(user && !user.userRoles.includes("admin"))));
+  }, []);
+
   return (
     <div
       className={`min-h-dvh flex items-center justify-center p-4 relative z-40 transition-colors duration-300 ${
@@ -49,21 +59,25 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
       <div className="w-full max-w-md">
         <LoginHeader theme={theme} />
-        <LoginForm
-          theme={theme}
-          password={password}
-          setPassword={setPassword}
-          error={error}
-          setError={setError}
-          info={info}
-          isLoading={isLoading}
-          recovering={recovering}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-          adminEmail={adminEmail}
-          handleSubmit={handleSubmit}
-          handleForgotPassword={handleForgotPassword}
-        />
+        {usesCosmos ? (
+          <ProviderLogin theme={theme} notAdmin={notAdmin} />
+        ) : (
+          <LoginForm
+            theme={theme}
+            password={password}
+            setPassword={setPassword}
+            error={error}
+            setError={setError}
+            info={info}
+            isLoading={isLoading}
+            recovering={recovering}
+            showPassword={showPassword}
+            setShowPassword={setShowPassword}
+            adminEmail={adminEmail}
+            handleSubmit={handleSubmit}
+            handleForgotPassword={handleForgotPassword}
+          />
+        )}
         <LoginFooter theme={theme} />
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Education } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
 
 // Education list — sorted by displayOrder DESC so the highest value shows first
 // on the main site. Admin reorders via up/down buttons in EducationTab which
@@ -35,12 +35,9 @@ export async function createEducation(edu: Omit<Education, "$id">): Promise<Educ
   if (edu.isVisible !== undefined) cleanedData.isVisible = edu.isVisible;
   if (edu.displayOrder !== undefined) cleanedData.displayOrder = edu.displayOrder;
 
-  const result = await databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.EDUCATION,
-    ID.unique(),
-    cleanedData,
-  );
+  const result = await (usesCosmos
+    ? manageCreate(COLLECTIONS.EDUCATION, cleanedData)
+    : databases.createDocument(DATABASE_ID, COLLECTIONS.EDUCATION, ID.unique(), cleanedData));
   return result as unknown as Education;
 }
 
@@ -68,15 +65,14 @@ export async function updateEducation(
   if (edu.isVisible !== undefined) cleanedData.isVisible = edu.isVisible;
   if (edu.displayOrder !== undefined) cleanedData.displayOrder = edu.displayOrder;
 
-  const result = await databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.EDUCATION,
-    eduId,
-    cleanedData,
-  );
+  const result = await (usesCosmos
+    ? manageUpdate(COLLECTIONS.EDUCATION, eduId, cleanedData)
+    : databases.updateDocument(DATABASE_ID, COLLECTIONS.EDUCATION, eduId, cleanedData));
   return result as unknown as Education;
 }
 
 export async function deleteEducation(eduId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.EDUCATION, eduId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.EDUCATION, eduId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.EDUCATION, eduId));
 }

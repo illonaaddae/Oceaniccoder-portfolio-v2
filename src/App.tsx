@@ -12,7 +12,7 @@ import useTheme from "./hooks/useTheme";
 import {
   verifyAdminPassword,
   incrementSiteViews,
-  hasAppwriteSession,
+  hasAdminSession,
   logoutAdmin,
 } from "./services/api";
 import { prefetchRoutes } from "./utils/prefetchRoutes";
@@ -31,11 +31,12 @@ function App() {
     prefetchRoutes(PREFETCHABLE_ROUTES);
   }, []);
 
-  // Auth gate: Appwrite server-side session is the single source of truth.
-  // The legacy localStorage hash fallback was removed (it required exposing
-  // VITE_ADMIN_PASSWORD_HASH in the client bundle).
+  // Auth gate: the server-side session is the single source of truth (Static
+  // Web Apps with the admin role, or Appwrite until the cutover). The legacy
+  // localStorage hash fallback was removed (it exposed VITE_ADMIN_PASSWORD_HASH
+  // in the client bundle).
   useEffect(() => {
-    hasAppwriteSession().then((hasSession) => {
+    hasAdminSession().then((hasSession) => {
       setIsAdminLoggedIn(hasSession);
       if (!hasSession) {
         localStorage.removeItem("adminAuth");

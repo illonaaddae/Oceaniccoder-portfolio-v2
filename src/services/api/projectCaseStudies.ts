@@ -10,7 +10,7 @@
 // - projectId is required (FK to projects.$id) — one case study per project
 // - the three narrative fields are optional, since most projects have none
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
 
 export interface ProjectCaseStudy {
   $id: string;
@@ -80,7 +80,9 @@ export async function setProjectCaseStudy(
 
   if (!hasAnyCaseStudyContent(fields)) {
     if (existing) {
-      await databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id);
+      await (usesCosmos
+        ? manageDelete(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id)
+        : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id));
     }
     return;
   }
@@ -92,23 +94,32 @@ export async function setProjectCaseStudy(
   };
 
   if (existing) {
-    await databases.updateDocument(
-      DATABASE_ID,
-      COLLECTIONS.PROJECT_CASE_STUDIES,
-      existing.$id,
-      payload,
-    );
+    await (usesCosmos
+      ? manageUpdate(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id, payload)
+      : databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.PROJECT_CASE_STUDIES,
+          existing.$id,
+          payload,
+        ));
   } else {
-    await databases.createDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, ID.unique(), {
-      projectId,
-      ...payload,
-    });
+    await (usesCosmos
+      ? manageCreate(COLLECTIONS.PROJECT_CASE_STUDIES, {
+          projectId,
+          ...payload,
+        })
+      : databases.createDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, ID.unique(), {
+          projectId,
+          ...payload,
+        }));
   }
 }
 
 export async function deleteProjectCaseStudy(projectId: string): Promise<void> {
   const existing = await getProjectCaseStudy(projectId);
   if (existing) {
-    await databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id);
+    await (usesCosmos
+      ? manageDelete(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id)
+      : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id));
   }
 }

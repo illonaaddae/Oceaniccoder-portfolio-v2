@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Comment } from "../../types";
-import { listRows, submitRow, usesCosmos } from "./dataApi";
+import { listRows, manageDelete, manageList, manageUpdate, submitRow, usesCosmos } from "./dataApi";
 
 export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
   if (usesCosmos) {
@@ -20,24 +20,30 @@ export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
 }
 
 export async function getAllComments(): Promise<Comment[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.COMMENTS, [
-    Query.orderDesc("$createdAt"),
-    Query.limit(100),
-  ]);
+  const response = usesCosmos
+    ? await manageList(COLLECTIONS.COMMENTS, { orderBy: "$createdAt", dir: "desc", limit: 100 })
+    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.COMMENTS, [
+        Query.orderDesc("$createdAt"),
+        Query.limit(100),
+      ]);
   return response.documents as unknown as Comment[];
 }
 
 export async function updateComment(commentId: string, data: Partial<Comment>): Promise<Comment> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.COMMENTS,
-    commentId,
-    data as Record<string, unknown>,
-  ) as unknown as Comment;
+  return (usesCosmos
+    ? manageUpdate(COLLECTIONS.COMMENTS, commentId, data as Record<string, unknown>)
+    : databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.COMMENTS,
+        commentId,
+        data as Record<string, unknown>,
+      )) as unknown as Comment;
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.COMMENTS, commentId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.COMMENTS, commentId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.COMMENTS, commentId));
 }
 
 export async function createComment(

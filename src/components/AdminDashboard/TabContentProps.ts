@@ -64,7 +64,7 @@ export interface TabContentProps {
   handleDeleteBlogPost: (id: string) => Promise<void>;
   testimonials: Testimonial[];
   handleDeleteTestimonial: (id: string) => Promise<void>;
-  handleUpdateTestimonial: (id: string, data: Omit<Testimonial, "$id">) => Promise<void>;
+  handleUpdateTestimonial: (id: string, data: Partial<Omit<Testimonial, "$id">>) => Promise<void>;
   handleAddTestimonial: (data: Omit<Testimonial, "$id">) => Promise<void>;
   setEditingTestimonial: (t: Testimonial | null) => void;
   setShowTestimonialModal: (show: boolean) => void;

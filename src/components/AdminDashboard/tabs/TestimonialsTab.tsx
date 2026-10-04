@@ -14,6 +14,7 @@ interface TestimonialsTabProps {
   testimonials: Testimonial[];
   onDelete: (testimonialId: string) => void;
   onEdit?: (testimonial: Testimonial) => void;
+  onApprove?: (testimonialId: string) => void;
   onShowForm?: () => void;
   isReadOnly?: boolean;
 }
@@ -24,6 +25,7 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
   testimonials,
   onDelete,
   onEdit,
+  onApprove,
   onShowForm,
   isReadOnly = false,
 }) => {
@@ -104,6 +106,7 @@ export const TestimonialsTab: React.FC<TestimonialsTabProps> = ({
                 isReadOnly={isReadOnly}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onApprove={onApprove}
               />
             ))}
           </div>
