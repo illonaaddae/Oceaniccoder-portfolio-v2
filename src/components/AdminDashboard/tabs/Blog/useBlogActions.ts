@@ -5,7 +5,7 @@ import { useConfirm } from "../../ConfirmContext";
 import { generateSlug } from "./utils";
 import { shouldSendNewsletter } from "./newsletterTrigger";
 import { apiUrl } from "@/utils/apiUrl";
-import { account } from "@/lib/appwrite";
+import { adminHeaders } from "@/services/api/adminHeaders";
 
 interface UseBlogActionsProps {
   blogPosts: BlogPost[];
@@ -92,24 +92,13 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
    * now requires a signed-in admin; the JWT is what proves that.
    */
   const postNewsletter = async (post: Partial<BlogPost> & { slug: string }, mode?: "test") => {
-    let jwt: string;
-    try {
-      ({ jwt } = await account.createJWT());
-    } catch {
-      // Distinct from the server refusing the token: here the session itself
-      // is gone, so "sign in again" is the actual instruction.
-      throw new Error("Your admin session has expired. Sign in again and retry.");
-    }
+    // Throws "session expired" itself when the Appwrite session is gone.
+    const headers = await adminHeaders();
+    const jwt = headers["x-appwrite-jwt"]; // Appwrite sign-in only
 
     const res = await fetch(apiUrl("/api/send-newsletter"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${jwt}`,
-        // Sent alongside Authorization because some hosting layers consume
-        // that header before it reaches the function.
-        "x-appwrite-jwt": jwt,
-      },
+      headers,
       body: JSON.stringify({
         title: post.title,
         excerpt: post.excerpt,
@@ -118,7 +107,7 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
         image: post.image,
         // Also in the body: headers can be rewritten or dropped by the hosting
         // layer, the body cannot. The server tries every transport it finds.
-        jwt,
+        ...(jwt ? { jwt } : {}),
         ...(mode ? { mode } : {}),
       }),
     });

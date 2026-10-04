@@ -15,6 +15,7 @@
 //
 // --backup <dir> picks a backup folder (default: the newest backup/<date>).
 
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -54,7 +55,9 @@ for (const [id, { imported }] of Object.entries(CONTAINERS)) {
   // Cosmos-only containers (analytics) have no backup file, and --prune must
   // never empty them.
   if (imported === false) continue;
-  const rows = JSON.parse(await readFile(path.join(backupDir, "db", `${id}.json`), "utf8"));
+  // A container with no Appwrite table (expenses) has no backup file.
+  const file = path.join(backupDir, "db", `${id}.json`);
+  const rows = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : [];
   const kept = id === "settings" ? rows.filter((r) => MIGRATED_SETTINGS_KEYS.has(r.key)) : rows;
   for (const row of kept) {
     if (APPWRITE_FILE_URL.test(JSON.stringify(row))) stale.push(`${id}/${row.$id}`);

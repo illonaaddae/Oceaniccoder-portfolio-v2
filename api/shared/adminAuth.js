@@ -8,9 +8,11 @@
 // currently has VITE_ADMIN_EMAIL (left over from the build) but not
 // ADMIN_EMAIL, so both are accepted.
 //
-// Phase 3 of the Azure migration replaces this with Static Web Apps auth.
+// Also accepts a Static Web Apps session with the admin role (see
+// api/shared/principal.js); the Appwrite path goes away at cutover.
 
 const { Client, Account } = require("node-appwrite");
+const { readPrincipal, isAdmin } = require("./principal");
 
 const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
 const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
@@ -33,6 +35,14 @@ function readJwtCandidates(req) {
  * Returns { user } for the admin, or { status, error } to send back.
  */
 async function requireAdmin(context, req) {
+  // Static Web Apps sign-in (GitHub or Entra email): the admin role was
+  // assigned by /api/get-roles and SWA vouches for it in this header.
+  const principal = readPrincipal(req);
+  if (isAdmin(principal)) {
+    return { user: { email: principal.userDetails, provider: principal.identityProvider } };
+  }
+
+  // Appwrite sign-in, until the cutover removes it.
   const adminEmail = (process.env.ADMIN_EMAIL || process.env.VITE_ADMIN_EMAIL || "").toLowerCase();
   if (!adminEmail) {
     context.log.error("Admin check: neither ADMIN_EMAIL nor VITE_ADMIN_EMAIL is set");
