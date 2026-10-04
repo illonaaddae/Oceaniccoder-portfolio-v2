@@ -88,6 +88,8 @@ const TestimonialsSection: React.FC = () => {
             fileInputRef={form.fileInputRef}
             titleId={titleId}
             imageInputId={imageInputId}
+            turnstile={form.turnstile}
+            submitError={form.submitError}
           />
         )}
       </div>

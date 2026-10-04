@@ -1,4 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { getJson, postJson, usesCosmos } from "./dataApi";
 import type { BlogView, BlogViewStats } from "../../types";
 
 /** Appwrite's per-request document ceiling. */
@@ -45,6 +46,11 @@ async function listAll(queries: string[]): Promise<BlogView[]> {
 /** Readership for one post. Returns zeroes rather than throwing into the UI. */
 export async function getPostViewStats(postId: string): Promise<BlogViewStats> {
   try {
+    if (usesCosmos) {
+      return await getJson<BlogViewStats>(
+        `/api/counters/blog-views?postId=${encodeURIComponent(postId)}`,
+      );
+    }
     const views = await listAll([Query.equal("postId", postId)]);
     return aggregate(views)[postId] ?? { ...EMPTY };
   } catch {
@@ -55,6 +61,7 @@ export async function getPostViewStats(postId: string): Promise<BlogViewStats> {
 /** Readership for every post, keyed by post id — one round trip for a list. */
 export async function getAllBlogViewStats(): Promise<Record<string, BlogViewStats>> {
   try {
+    if (usesCosmos) return await getJson<Record<string, BlogViewStats>>("/api/counters/blog-views");
     return aggregate(await listAll([]));
   } catch {
     return {};
@@ -71,6 +78,9 @@ export async function recordBlogView(
   visitorId: string,
 ): Promise<BlogViewStats | null> {
   try {
+    if (usesCosmos) {
+      return await postJson<BlogViewStats>("/api/counters/blog-view", { postId, visitorId });
+    }
     const existing = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_VIEWS, [
       Query.equal("postId", postId),
       Query.equal("visitorId", visitorId),

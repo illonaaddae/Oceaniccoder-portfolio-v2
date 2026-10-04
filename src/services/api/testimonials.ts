@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Testimonial } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, submitRow, usesCosmos } from "./dataApi";
 
 export async function getTestimonials(): Promise<Testimonial[]> {
   const response = usesCosmos
@@ -23,7 +23,15 @@ export async function getFeaturedTestimonials(): Promise<Testimonial[]> {
 
 export async function createTestimonial(
   testimonial: Omit<Testimonial, "$id" | "$createdAt">,
+  turnstileToken?: string | null,
+  /** A visitor's photo as a data URL; stored and resized by /api/submit. */
+  imageData?: string,
 ): Promise<Testimonial> {
+  if (usesCosmos) {
+    return submitRow<Testimonial>(COLLECTIONS.TESTIMONIALS, testimonial, turnstileToken, {
+      ...(imageData && { imageData }),
+    });
+  }
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.TESTIMONIALS,

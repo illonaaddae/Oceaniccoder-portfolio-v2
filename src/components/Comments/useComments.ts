@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { getCommentsByPostId, createComment } from "../../services/api";
 import type { Comment } from "../../types";
 import type { CommentFormState, ToastState } from "./types";
+import { useTurnstile } from "@/hooks/useTurnstile";
 
 export const useComments = (postId: string) => {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -10,6 +11,8 @@ export const useComments = (postId: string) => {
   const [submitting, setSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  // One widget for the comment form and every reply form on the page.
+  const turnstile = useTurnstile();
   const [form, setForm] = useState<CommentFormState>({
     authorName: "",
     authorEmail: "",
@@ -48,14 +51,17 @@ export const useComments = (postId: string) => {
     if (!form.authorName.trim() || !form.content.trim()) return;
     setSubmitting(true);
     try {
-      const newComment = await createComment({
-        postId,
-        authorName: form.authorName.trim(),
-        authorEmail: form.authorEmail.trim() || undefined,
-        content: form.content.trim(),
-        parentId: parentId || undefined,
-        isApproved: true,
-      });
+      const newComment = await createComment(
+        {
+          postId,
+          authorName: form.authorName.trim(),
+          authorEmail: form.authorEmail.trim() || undefined,
+          content: form.content.trim(),
+          parentId: parentId || undefined,
+          isApproved: true,
+        },
+        turnstile.token,
+      );
       setComments((prev) => [...prev, newComment]);
       setForm({ authorName: "", authorEmail: "", content: "" });
       setReplyingTo(null);
@@ -66,6 +72,7 @@ export const useComments = (postId: string) => {
       showToast("error", "Failed to post comment. Please try again.");
     } finally {
       setSubmitting(false);
+      turnstile.reset(); // tokens are single-use
     }
   };
 
@@ -81,5 +88,6 @@ export const useComments = (postId: string) => {
     topLevelComments,
     getReplies,
     handleSubmit,
+    turnstile,
   };
 };

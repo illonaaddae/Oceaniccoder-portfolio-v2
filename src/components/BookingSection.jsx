@@ -18,6 +18,8 @@ import {
 import { DatePicker } from "./ui";
 import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
 import { apiUrl } from "../utils/apiUrl";
+import { useTurnstile } from "@/hooks/useTurnstile";
+import TurnstileSlot from "./TurnstileSlot";
 
 const MEETING_TYPES = [
   {
@@ -100,6 +102,7 @@ export default function BookingSection() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const turnstile = useTurnstile();
   const sectionTopRef = useRef(null);
   const [bookingRef, setBookingRef] = useState("");
   const [meetLink, setMeetLink] = useState("");
@@ -189,13 +192,16 @@ export default function BookingSection() {
       }
 
       // Save booking to Appwrite (include meet/zoom link so admin can resend it on confirm)
-      const result = await createBooking({
-        ...form,
-        status: "pending",
-        meetingLink: calMeetLink ?? undefined,
-        zoomLink: calZoomLink ?? undefined,
-        calendarEventLink: calEventLink ?? undefined,
-      });
+      const result = await createBooking(
+        {
+          ...form,
+          status: "pending",
+          meetingLink: calMeetLink ?? undefined,
+          zoomLink: calZoomLink ?? undefined,
+          calendarEventLink: calEventLink ?? undefined,
+        },
+        turnstile.token,
+      );
       const ref = result.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
       setBookingRef(ref);
 
@@ -210,6 +216,7 @@ export default function BookingSection() {
       setError("Booking failed. Please try again or contact me directly.");
     } finally {
       setSubmitting(false);
+      turnstile.reset(); // tokens are single-use
     }
   };
 
@@ -784,6 +791,7 @@ export default function BookingSection() {
                           </div>
                         )}
 
+                        <TurnstileSlot turnstile={turnstile} />
                         <button
                           onTouchStart={blurActive}
                           onClick={handleSubmit}

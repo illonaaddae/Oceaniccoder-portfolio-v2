@@ -1,4 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { getJson, submitRow, usesCosmos } from "./dataApi";
 
 export interface Booking {
   $id?: string;
@@ -20,7 +21,9 @@ export interface Booking {
 
 export async function createBooking(
   booking: Omit<Booking, "$id" | "$createdAt">,
+  turnstileToken?: string | null,
 ): Promise<Booking> {
+  if (usesCosmos) return submitRow<Booking>(COLLECTIONS.BOOKINGS, booking, turnstileToken);
   // No document-level permissions — collection-level permissions govern
   // (visitors create, only admin reads/updates/deletes — set in Appwrite Console)
   const result = await databases.createDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, ID.unique(), {
@@ -47,6 +50,12 @@ export async function isSlotBooked(preferredDate: string, preferredTime: string)
 }
 
 export async function getBookedTimesForDate(preferredDate: string): Promise<Set<string>> {
+  if (usesCosmos) {
+    const { times } = await getJson<{ times: string[] }>(
+      `/api/booked-times?date=${encodeURIComponent(preferredDate)}`,
+    );
+    return new Set(times);
+  }
   const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
     Query.limit(500),
   ]);

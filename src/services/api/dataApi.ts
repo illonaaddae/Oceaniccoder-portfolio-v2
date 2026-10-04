@@ -21,7 +21,7 @@ export interface DocumentList<T> {
   documents: T[];
 }
 
-async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(apiUrl(path));
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -42,6 +42,35 @@ export function listRows<T = Record<string, unknown>>(
   if (limit) params.set("limit", String(limit));
   const query = params.toString();
   return getJson(`/api/data/${collection}${query ? `?${query}` : ""}`);
+}
+
+/** POSTs JSON; rejects with the server's error message on failure. */
+export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(apiUrl(path), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error || `POST ${path} failed (${res.status})`);
+  return data;
+}
+
+/**
+ * Saves a visitor submission (comment, message, booking, inquiry,
+ * testimonial). `turnstileToken` comes from useTurnstile(); the server sets
+ * status and approval fields itself.
+ */
+export function submitRow<T>(
+  collection: string,
+  fields: object,
+  turnstileToken: string | null | undefined,
+  extra: Record<string, unknown> = {},
+): Promise<T> {
+  if (!turnstileToken) {
+    return Promise.reject(new Error("Please wait for the spam check to finish, then try again."));
+  }
+  return postJson(`/api/submit/${collection}`, { ...fields, ...extra, turnstileToken });
 }
 
 /** One row by id. Rejects if it doesn't exist or isn't public. */

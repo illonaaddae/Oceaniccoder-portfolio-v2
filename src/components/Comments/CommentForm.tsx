@@ -1,6 +1,8 @@
 import React from "react";
 import { FaPaperPlane } from "react-icons/fa";
 import type { CommentFormState, StyleVars } from "./types";
+import type { Turnstile } from "@/hooks/useTurnstile";
+import TurnstileSlot from "../TurnstileSlot";
 
 interface CommentFormProps {
   form: CommentFormState;
@@ -8,10 +10,11 @@ interface CommentFormProps {
   submitting: boolean;
   onSubmit: (e: React.FormEvent) => void;
   styles: StyleVars;
+  turnstile: Turnstile;
 }
 
 const CommentForm: React.FC<CommentFormProps> = React.memo(
-  ({ form, setForm, submitting, onSubmit, styles }) => {
+  ({ form, setForm, submitting, onSubmit, styles, turnstile }) => {
     const { cardStyles, textPrimary, textSecondary, textAccent, inputStyles } = styles;
 
     return (
@@ -57,6 +60,7 @@ const CommentForm: React.FC<CommentFormProps> = React.memo(
             className={`w-full px-4 py-3 rounded-xl border transition-colors resize-none ${inputStyles} focus:outline-none focus:ring-2 focus:ring-[var(--brand-ocean-2)]/20`}
           />
         </div>
+        <TurnstileSlot turnstile={turnstile} />
         <div className="flex justify-end">
           <button
             type="submit"

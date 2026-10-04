@@ -42,6 +42,10 @@ jobs:
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
           VITE_ADMIN_PASSWORD_HASH: ${{ secrets.VITE_ADMIN_PASSWORD_HASH }}
           VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.VITE_PAYSTACK_PUBLIC_KEY }}
+          # Appwrite → Cosmos cutover switch: set the repository variable to "cosmos"
+          # and re-run this workflow. Unset (or anything else) keeps Appwrite.
+          VITE_DATA_BACKEND: ${{ vars.VITE_DATA_BACKEND }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
           # VITE_FUNCTIONS_BASE_URL intentionally omitted — Azure Functions in api/
           # handle /api/* on the same domain (oceaniccoder.dev), no cross-origin needed.
 

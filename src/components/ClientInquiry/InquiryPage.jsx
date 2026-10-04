@@ -8,6 +8,8 @@ import SelectDropdown from "./SelectDropdown";
 import { useToast } from "../AdminDashboard/useToastHook";
 import { ToastContainer } from "../AdminDashboard/Toast";
 import { saveDraft, loadDraft, clearDraft } from "../../utils/formDraft";
+import { useTurnstile } from "@/hooks/useTurnstile";
+import TurnstileSlot from "../TurnstileSlot";
 
 // Bump DRAFT_VERSION whenever INITIAL_FORM changes shape, so an old draft is
 // discarded instead of restored into fields that no longer exist.
@@ -191,6 +193,7 @@ export default function InquiryPage() {
     ...(restoredDraft?.form ?? {}),
   });
   const [status, setStatus] = useState("idle");
+  const turnstile = useTurnstile();
   const [submitError, setSubmitError] = useState(null);
   const [errors, setErrors] = useState({});
   const [step, setStep] = useState(restoredDraft?.step ?? 1);
@@ -370,7 +373,7 @@ export default function InquiryPage() {
         ...(needsDomain && domainExtension && { domainExtension }),
         ...(needsHosting !== null && { needsHosting }),
       };
-      await createInquiry(inquiryData);
+      await createInquiry(inquiryData, turnstile.token);
       // Notify admin via Azure Function (fire-and-forget)
       fetch(apiUrl("/api/notify-inquiry"), {
         method: "POST",
@@ -388,6 +391,7 @@ export default function InquiryPage() {
       console.error("Inquiry submission failed:", err);
       setSubmitError(err instanceof Error ? err.message : "Unknown error");
       setStatus("error");
+      turnstile.reset(); // tokens are single-use; get a fresh one for the retry
     }
   };
 
@@ -857,6 +861,8 @@ export default function InquiryPage() {
                 )}
               </div>
             )}
+
+            {step === 5 && <TurnstileSlot turnstile={turnstile} />}
 
             {/* Navigation buttons */}
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">

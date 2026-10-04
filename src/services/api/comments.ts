@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Comment } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, submitRow, usesCosmos } from "./dataApi";
 
 export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
   if (usesCosmos) {
@@ -40,7 +40,11 @@ export async function deleteComment(commentId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.COMMENTS, commentId);
 }
 
-export async function createComment(comment: Omit<Comment, "$id">): Promise<Comment> {
+export async function createComment(
+  comment: Omit<Comment, "$id">,
+  turnstileToken?: string | null,
+): Promise<Comment> {
+  if (usesCosmos) return submitRow<Comment>(COLLECTIONS.COMMENTS, comment, turnstileToken);
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.COMMENTS,

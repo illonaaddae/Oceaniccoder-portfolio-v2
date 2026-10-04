@@ -186,6 +186,64 @@ async function completeUpload(blobName) {
   return { fileId: parsed.fileId, url: blob.url, contentType, size: props.contentLength, variants };
 }
 
+// Visitor photos (testimonials) come in through /api/submit, not a SAS URL,
+// so they're decoded and re-encoded here: that proves the bytes are an image
+// and strips EXIF metadata such as GPS location before anything is stored.
+const MAX_VISITOR_IMAGE_BYTES = 5 * 1024 * 1024;
+// Caps decoded size too: a small file can declare huge dimensions (a
+// decompression bomb). 25 MP is well above any phone photo.
+const MAX_VISITOR_IMAGE_PIXELS = 25_000_000;
+// GIF too, since the form advertises it; only the first frame is kept.
+const VISITOR_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+/**
+ * Stores a visitor's photo from a data URL ("data:image/jpeg;base64,…") as
+ * <fileId>/photo.webp plus the usual resized copies. Returns its URL. Throws
+ * with status 400 for anything that isn't a JPEG, PNG, GIF or WebP under 5 MB.
+ */
+async function storeVisitorImage(dataUrl) {
+  const value = String(dataUrl || "");
+  // Base64 is 4/3 the size of the bytes; refuse before matching or decoding.
+  if (value.length > Math.ceil((MAX_VISITOR_IMAGE_BYTES * 4) / 3) + 64) {
+    throw Object.assign(new Error("The photo is too large (max 5 MB)."), { status: 400 });
+  }
+  const match = /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/=]+)$/.exec(value);
+  if (!match || !VISITOR_IMAGE_TYPES.has(match[1])) {
+    throw Object.assign(new Error("The photo must be a JPEG, PNG, GIF or WebP image."), {
+      status: 400,
+    });
+  }
+  const source = Buffer.from(match[2], "base64");
+  if (source.length > MAX_VISITOR_IMAGE_BYTES) {
+    throw Object.assign(new Error("The photo is too large (max 5 MB)."), { status: 400 });
+  }
+
+  let original;
+  try {
+    original = await sharp(source, { animated: false, limitInputPixels: MAX_VISITOR_IMAGE_PIXELS })
+      .rotate()
+      .resize({ width: VARIANT_WIDTHS[VARIANT_WIDTHS.length - 1], withoutEnlargement: true })
+      .webp({ quality: VARIANT_QUALITY })
+      .toBuffer();
+  } catch {
+    throw Object.assign(new Error("The photo couldn't be read as an image."), { status: 400 });
+  }
+
+  const { container } = getContainer();
+  const fileId = newFileId();
+  const blob = container.getBlockBlobClient(`${fileId}/photo.webp`);
+  await blob.uploadData(original, {
+    blobHTTPHeaders: { blobContentType: "image/webp", blobCacheControl: CACHE_CONTROL },
+  });
+  try {
+    await writeVariants(container, fileId, original);
+  } catch (error) {
+    await deleteFile(fileId);
+    throw error;
+  }
+  return blob.url;
+}
+
 /** Every original in the container (variants are folded into their original). */
 async function listFiles() {
   const { container } = getContainer();
@@ -236,4 +294,5 @@ module.exports = {
   completeUpload,
   listFiles,
   deleteFile,
+  storeVisitorImage,
 };

@@ -1,10 +1,24 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { getJson, postJson, usesCosmos } from "./dataApi";
+
+/** /api/counters/reactions: totals plus this visitor's own reaction. */
+interface ReactionState {
+  likes: number;
+  dislikes: number;
+  mine: "like" | "dislike" | null;
+}
 import type { BlogReaction } from "../../types";
 
 export async function getPostReactions(
   postId: string,
 ): Promise<{ likes: number; dislikes: number }> {
   try {
+    if (usesCosmos) {
+      const { likes, dislikes } = await getJson<ReactionState>(
+        `/api/counters/reactions?postId=${encodeURIComponent(postId)}`,
+      );
+      return { likes, dislikes };
+    }
     const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_REACTIONS, [
       Query.equal("postId", postId),
     ]);
@@ -22,6 +36,13 @@ export async function getVisitorReaction(
   visitorId: string,
 ): Promise<BlogReaction | null> {
   try {
+    if (usesCosmos) {
+      const { mine } = await getJson<ReactionState>(
+        `/api/counters/reactions?postId=${encodeURIComponent(postId)}&visitorId=${encodeURIComponent(visitorId)}`,
+      );
+      // Only `reaction` is read by the UI; the row id stays on the server.
+      return mine ? { $id: "", postId, visitorId, reaction: mine } : null;
+    }
     const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_REACTIONS, [
       Query.equal("postId", postId),
       Query.equal("visitorId", visitorId),
@@ -39,6 +60,10 @@ export async function addReaction(
   visitorId: string,
   reaction: "like" | "dislike",
 ): Promise<BlogReaction> {
+  if (usesCosmos) {
+    await postJson<ReactionState>("/api/counters/reaction", { postId, visitorId, reaction });
+    return { $id: "", postId, visitorId, reaction };
+  }
   const existing = await getVisitorReaction(postId, visitorId);
   if (existing) {
     if (existing.reaction === reaction) {

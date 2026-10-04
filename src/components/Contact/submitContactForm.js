@@ -15,7 +15,7 @@ function prepareFormData(fd) {
 }
 
 /** Submits the contact form to Web3Forms and saves to database. */
-export async function submitContactForm(formDataToSend, formData) {
+export async function submitContactForm(formDataToSend, formData, turnstileToken) {
   prepareFormData(formDataToSend);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -65,13 +65,16 @@ export async function submitContactForm(formDataToSend, formData) {
     );
   }
   // Save to database (fire-and-forget)
-  createMessage({
-    name: formData.name,
-    email: formData.email,
-    subject: formData.subject,
-    message: formData.message,
-    status: "new",
-  }).catch((dbError) => console.warn("Failed to save message to database:", dbError));
+  createMessage(
+    {
+      name: formData.name,
+      email: formData.email,
+      subject: formData.subject,
+      message: formData.message,
+      status: "new",
+    },
+    turnstileToken,
+  ).catch((dbError) => console.warn("Failed to save message to database:", dbError));
   return {
     success: true,
     message: "Thanks, I received your message. I'll get back to you within 24 hours!",
