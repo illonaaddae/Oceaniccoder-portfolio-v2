@@ -12,8 +12,6 @@
 // into `$id` / `$createdAt` / `$updatedAt`, so the browser sees the same shape
 // it got from Appwrite.
 
-const { CosmosClient } = require("@azure/cosmos");
-
 const DATABASE_ID = "portfolio";
 const SHARED_THROUGHPUT = 1000;
 
@@ -56,6 +54,9 @@ function createClient() {
   const endpoint = process.env.COSMOS_ENDPOINT;
   const key = process.env.COSMOS_KEY;
   if (!endpoint || !key) throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+  // Required here, not at the top: publicData.js (and its tests) import this
+  // file for constants only, where api/node_modules may not be installed.
+  const { CosmosClient } = require("@azure/cosmos");
   return new CosmosClient({ endpoint, key });
 }
 
