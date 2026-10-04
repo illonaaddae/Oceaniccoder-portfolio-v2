@@ -30,11 +30,14 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     handleForgotPassword,
   } = useAdminLogin(onLogin);
 
-  // Signed in through Static Web Apps but without the admin role.
-  const [notAdmin, setNotAdmin] = useState(false);
+  // Signed in through Static Web Apps but without the admin role: show the
+  // user their id, which is what ADMIN_USER_IDS needs.
+  const [signedInId, setSignedInId] = useState<string | null>(null);
   useEffect(() => {
     if (!usesCosmos) return;
-    getSwaUser().then((user) => setNotAdmin(Boolean(user && !user.userRoles.includes("admin"))));
+    getSwaUser().then((user) =>
+      setSignedInId(user && !user.userRoles.includes("admin") ? user.userId : null),
+    );
   }, []);
 
   return (
@@ -60,7 +63,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
       <div className="w-full max-w-md">
         <LoginHeader theme={theme} />
         {usesCosmos ? (
-          <ProviderLogin theme={theme} notAdmin={notAdmin} />
+          <ProviderLogin theme={theme} signedInId={signedInId} />
         ) : (
           <LoginForm
             theme={theme}
