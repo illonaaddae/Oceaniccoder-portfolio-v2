@@ -11,6 +11,7 @@ import {
 import { getInvoices, updateInvoice, deleteInvoice } from "@/services/api/invoices";
 import { createPayment } from "@/services/api/payments";
 import { apiUrl } from "@/utils/apiUrl";
+import { adminHeaders } from "@/services/api/adminHeaders";
 import type { Invoice } from "@/types";
 import { useConfirm } from "../ConfirmContext";
 import { Pagination } from "@/components/common/Pagination";
@@ -155,7 +156,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
         try {
           emailRes = await fetch(apiUrl("/api/send-payment-confirmation"), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: await adminHeaders(),
             body: JSON.stringify({
               invoiceNumber: inv.invoiceNumber,
               clientName: inv.clientName,

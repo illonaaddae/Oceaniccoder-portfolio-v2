@@ -53,7 +53,7 @@ async function requireAdmin(context, req) {
       const user = await new Account(client).get();
       if (user.email?.toLowerCase() === adminEmail) return { user };
       context.log.warn("Admin check: refused non-admin account", user.$id);
-      return { status: 403, error: "This account is not allowed to manage media." };
+      return { status: 403, error: "This account isn't the site admin." };
     } catch (err) {
       context.log.warn(`Admin check: token candidate rejected (len ${jwt.length}): ${err.message}`);
     }

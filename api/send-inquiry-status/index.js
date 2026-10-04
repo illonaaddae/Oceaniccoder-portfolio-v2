@@ -1,9 +1,11 @@
 const https = require("https");
+const { requireAdmin } = require("../shared/adminAuth");
 
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-appwrite-jwt",
+  Vary: "Origin",
   "Content-Type": "application/json",
 };
 
@@ -92,6 +94,18 @@ const TEMPLATES = {
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
+    return;
+  }
+
+  // Sends email from our domain to an address in the request, so only the
+  // signed-in admin (the dashboard) may call it.
+  const auth = await requireAdmin(context, req);
+  if (!auth.user) {
+    context.res = {
+      status: auth.status,
+      headers: CORS,
+      body: JSON.stringify({ error: auth.error }),
+    };
     return;
   }
 

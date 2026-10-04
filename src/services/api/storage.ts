@@ -9,7 +9,7 @@
 //
 // Every call carries a short-lived Appwrite JWT, which the function checks
 // against the admin account.
-import { account } from "./client";
+import { adminHeaders } from "./adminHeaders";
 import { apiUrl } from "@/utils/apiUrl";
 import { getFileIdFromUrl as getMediaFileId } from "@/utils/imageOptimizer";
 
@@ -47,28 +47,13 @@ const DEFAULT_STATS: StorageStats = {
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // matches api/shared/media.js
 
-async function authHeaders(): Promise<Record<string, string>> {
-  let jwt: string;
-  try {
-    ({ jwt } = await account.createJWT());
-  } catch {
-    throw new Error("Your admin session has expired. Sign in again and retry.");
-  }
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${jwt}`,
-    // Sent alongside Authorization because Static Web Apps can replace that header.
-    "x-appwrite-jwt": jwt,
-  };
-}
-
 async function mediaRequest<T>(
   path: string,
   init: { method?: string; body?: string; headers?: Record<string, string> } = {},
 ): Promise<T> {
   const res = await fetch(apiUrl(`/api/media${path}`), {
     ...init,
-    headers: { ...(await authHeaders()), ...(init.headers || {}) },
+    headers: { ...(await adminHeaders()), ...(init.headers || {}) },
   });
   const body = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new Error(body.error || `Media request failed (${res.status})`);

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { FaTimes, FaPlus, FaTrash, FaPaperPlane } from "react-icons/fa";
 import { createInvoice, updateInvoice } from "@/services/api/invoices";
 import { apiUrl } from "@/utils/apiUrl";
+import { adminHeaders } from "@/services/api/adminHeaders";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import { DatePicker } from "@/components/ui/DatePicker";
 import type { ProjectInquiry, InvoiceItem, Invoice } from "@/types";
@@ -146,7 +147,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
       // exactly how "the invoice doesn't go" looked with no error anywhere.
       const emailRes = await fetch(apiUrl("/api/send-invoice"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await adminHeaders(),
         body: JSON.stringify({
           invoiceNumber,
           clientName: inquiry.name,

@@ -26,6 +26,7 @@ import type { ProjectInquiry, Invoice } from "@/types";
 import InvoiceModal from "./ClientWork/InvoiceModal";
 import { useConfirm } from "../ConfirmContext";
 import { apiUrl } from "@/utils/apiUrl";
+import { adminHeaders } from "@/services/api/adminHeaders";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/hooks/usePagination";
 import { FilterPills } from "@/components/ui/FilterPills";
@@ -137,7 +138,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
         try {
           const res = await fetch(apiUrl("/api/send-inquiry-status"), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: await adminHeaders(),
             body: JSON.stringify({
               status,
               clientName: inq.name,
