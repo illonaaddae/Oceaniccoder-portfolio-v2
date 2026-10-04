@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaEnvelope, FaUser, FaClock, FaReply } from "react-icons/fa";
 import { Modal } from "./Modal";
 import { apiUrl } from "@/utils/apiUrl";
+import { adminHeaders } from "@/services/api/adminHeaders";
 import type { Message } from "@/types";
 
 interface MessageDetailModalProps {
@@ -57,7 +58,7 @@ export const MessageDetailModal: React.FC<MessageDetailModalProps> = ({
     try {
       const res = await fetch(apiUrl("/api/send-message-reply"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await adminHeaders(),
         body: JSON.stringify({
           to: message.email,
           subject,
