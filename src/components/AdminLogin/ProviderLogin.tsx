@@ -4,8 +4,8 @@ import { loginUrl } from "@/services/api/session";
 
 interface ProviderLoginProps {
   theme: string;
-  /** Shown when someone signed in but isn't the admin. */
-  notAdmin?: boolean;
+  /** SWA user id of someone signed in who isn't the admin (yet). */
+  signedInId?: string | null;
 }
 
 /**
@@ -14,7 +14,7 @@ interface ProviderLoginProps {
  * forgotten passwords. Whether the account is the admin is decided on the
  * server (/api/get-roles).
  */
-const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, notAdmin }) => {
+const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
   const dk = theme === "dark";
   const button = `w-full border font-medium py-3 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg ${
     dk
@@ -30,10 +30,15 @@ const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, notAdmin }) => {
           : "bg-gradient-to-br from-white/80 to-white/60 border-blue-200/40 shadow-blue-200/20"
       }`}
     >
-      {notAdmin && (
-        <p role="alert" className="text-sm text-red-500">
-          That account isn&apos;t the site admin. Sign in with the admin&apos;s GitHub or email.
-        </p>
+      {signedInId && (
+        <div role="alert" className="text-sm text-red-500 space-y-1">
+          <p>You&apos;re signed in, but this account isn&apos;t the site admin.</p>
+          <p className="break-all">
+            Setting up? Your sign-in id is <code>{signedInId}</code>. Add it to{" "}
+            <code>ADMIN_USER_IDS</code> in the Static Web App&apos;s environment variables, then
+            sign out and in again.
+          </p>
+        </div>
       )}
       <a href={loginUrl("github")} className={button}>
         <FaGithub /> Sign in with GitHub

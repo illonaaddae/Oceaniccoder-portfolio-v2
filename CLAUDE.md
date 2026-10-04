@@ -125,8 +125,7 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `CONTACT_WHATSAPP`        | Optional WhatsApp number shown on client quote pages (digits, with country code)                                                                               |
 | `ANTHROPIC_API_KEY`       | Claude API key for the AI quote drafter (PR 1b)                                                                                                                |
 | `CRON_SECRET`             | Lets the daily GitHub Action trigger maintenance offer emails                                                                                                  |
-| `ADMIN_GITHUB_LOGIN`      | GitHub username that gets the admin role                                                                                                                       |
-| `ADMIN_EMAIL`             | Email that gets the admin role (Entra)                                                                                                                         |
+| `ADMIN_USER_IDS`          | SWA sign-in ids that get the admin role                                                                                                                        |
 | `GITHUB_CLIENT_ID`        | GitHub OAuth app for admin sign-in                                                                                                                             |
 | `GITHUB_CLIENT_SECRET`    | GitHub OAuth app secret                                                                                                                                        |
 | `ENTRA_CLIENT_ID`         | Entra External ID app (email sign-in)                                                                                                                          |
