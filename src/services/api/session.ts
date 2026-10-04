@@ -2,7 +2,8 @@
  * Static Web Apps sign-in for the admin (used once VITE_DATA_BACKEND=cosmos).
  * Two providers, set up in public/staticwebapp.config.json: GitHub, and email
  * + password through Microsoft Entra External ID ("entra"). The admin role is
- * assigned on the server by /api/get-roles; the browser only reads it.
+ * assigned on the server by /api/get-roles, from the SWA user ids listed in
+ * ADMIN_USER_IDS; the browser only reads it.
  */
 
 export type LoginProvider = "github" | "entra";

@@ -6,41 +6,33 @@
 // which uses rolesFor() below; the roles it returns ride along on every later
 // request in the x-ms-client-principal header. SWA sets that header itself and
 // drops any copy a client sends, so Functions can trust it.
+//
+// The admin is identified by SWA's userId for that sign-in, never by a name or
+// email: display names and the email claim can be set or changed by the user,
+// and GitHub usernames can be renamed and re-registered by someone else. The
+// login page shows a signed-in user their id, to copy into ADMIN_USER_IDS.
 
 const ADMIN_ROLE = "admin";
+const PROVIDERS = new Set(["github", "entra"]);
 
-// Claims that can carry the signed-in email for the Entra provider.
-const EMAIL_CLAIMS = new Set([
-  "email",
-  "emails",
-  "preferred_username",
-  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
-]);
-
-const normalise = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase();
+/** ADMIN_USER_IDS: comma-separated SWA user ids (one per sign-in method). */
+function adminUserIds(env) {
+  return new Set(
+    String(env.ADMIN_USER_IDS || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+}
 
 /**
  * Roles for a just-signed-in user (the /api/get-roles payload). Fails closed:
- * with ADMIN_GITHUB_LOGIN and ADMIN_EMAIL unset, nobody is admin.
+ * with ADMIN_USER_IDS unset, nobody is admin.
  */
 function rolesFor(payload, env = process.env) {
-  const provider = payload && payload.identityProvider;
-  const adminLogin = normalise(env.ADMIN_GITHUB_LOGIN);
-  const adminEmail = normalise(env.ADMIN_EMAIL);
-
-  if (provider === "github" && adminLogin && normalise(payload.userDetails) === adminLogin) {
-    return [ADMIN_ROLE];
-  }
-  if (provider === "entra" && adminEmail) {
-    const emails = [payload.userDetails]
-      .concat((payload.claims || []).filter((c) => EMAIL_CLAIMS.has(c.typ)).map((c) => c.val))
-      .map(normalise);
-    if (emails.includes(adminEmail)) return [ADMIN_ROLE];
-  }
-  return [];
+  if (!payload || !PROVIDERS.has(payload.identityProvider)) return [];
+  const userId = typeof payload.userId === "string" ? payload.userId : "";
+  return userId && adminUserIds(env).has(userId) ? [ADMIN_ROLE] : [];
 }
 
 /** The signed-in user from x-ms-client-principal, or null. */

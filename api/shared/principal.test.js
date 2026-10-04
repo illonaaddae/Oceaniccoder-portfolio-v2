@@ -3,48 +3,37 @@ import { describe, it, expect } from "vitest";
 
 const { rolesFor, readPrincipal, isAdmin } = await import("./principal.js");
 
-const env = { ADMIN_GITHUB_LOGIN: "IllonaAddae", ADMIN_EMAIL: "Admin@Example.com" };
+const env = { ADMIN_USER_IDS: "gh-123, entra-456" };
 
 describe("rolesFor", () => {
-  it("makes the configured GitHub login admin, ignoring case", () => {
-    expect(rolesFor({ identityProvider: "github", userDetails: "illonaaddae" }, env)).toEqual([
-      "admin",
-    ]);
-  });
-
-  it("makes the configured email admin through Entra, from userDetails or a claim", () => {
-    expect(rolesFor({ identityProvider: "entra", userDetails: "admin@example.com" }, env)).toEqual([
-      "admin",
-    ]);
-    expect(
-      rolesFor(
-        {
-          identityProvider: "entra",
-          userDetails: "Admin",
-          claims: [{ typ: "emails", val: "ADMIN@example.com" }],
-        },
-        env,
-      ),
-    ).toEqual(["admin"]);
+  it("makes the configured SWA user ids admin, for either provider", () => {
+    expect(rolesFor({ identityProvider: "github", userId: "gh-123" }, env)).toEqual(["admin"]);
+    expect(rolesFor({ identityProvider: "entra", userId: "entra-456" }, env)).toEqual(["admin"]);
   });
 
   it.each([
-    [{ identityProvider: "github", userDetails: "someone-else" }],
-    [{ identityProvider: "entra", userDetails: "someone@example.com" }],
-    // The email only counts through Entra, which verifies it at sign-up.
-    [{ identityProvider: "github", userDetails: "admin@example.com" }],
-    // And the GitHub login only through GitHub.
-    [{ identityProvider: "entra", userDetails: "illonaaddae" }],
-    [{ identityProvider: "aad", userDetails: "admin@example.com" }],
+    // A name or email that looks like the admin's counts for nothing.
+    [{ identityProvider: "entra", userId: "x", userDetails: "admin@example.com" }],
+    [
+      {
+        identityProvider: "entra",
+        userId: "x",
+        claims: [{ typ: "emails", val: "admin@example.com" }],
+      },
+    ],
+    [{ identityProvider: "github", userId: "x", userDetails: "illonaaddae" }],
+    // A right id through a provider we don't use.
+    [{ identityProvider: "aad", userId: "gh-123" }],
+    [{ identityProvider: "github", userId: "" }],
+    [{ identityProvider: "github", userId: ["gh-123"] }],
     [{}],
     [null],
   ])("gives no role to %j", (payload) => {
     expect(rolesFor(payload, env)).toEqual([]);
   });
 
-  it("fails closed when nothing is configured", () => {
-    expect(rolesFor({ identityProvider: "github", userDetails: "" }, {})).toEqual([]);
-    expect(rolesFor({ identityProvider: "entra", userDetails: "" }, {})).toEqual([]);
+  it("fails closed when ADMIN_USER_IDS is unset", () => {
+    expect(rolesFor({ identityProvider: "github", userId: "gh-123" }, {})).toEqual([]);
   });
 });
 

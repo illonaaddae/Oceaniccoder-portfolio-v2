@@ -116,8 +116,7 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `COSMOS_ENDPOINT`       | Cosmos DB account (`oceaniccoder-db`)       |
 | `COSMOS_KEY`            | Cosmos DB key, used by `/api/data`          |
 | `TURNSTILE_SECRET_KEY`  | Checks visitor form tokens (`/api/submit`)  |
-| `ADMIN_GITHUB_LOGIN`    | GitHub username that gets the admin role    |
-| `ADMIN_EMAIL`           | Email that gets the admin role (Entra)      |
+| `ADMIN_USER_IDS`        | SWA sign-in ids that get the admin role     |
 | `GITHUB_CLIENT_ID`      | GitHub OAuth app for admin sign-in          |
 | `GITHUB_CLIENT_SECRET`  | GitHub OAuth app secret                     |
 | `ENTRA_CLIENT_ID`       | Entra External ID app (email sign-in)       |
