@@ -1,10 +1,14 @@
 import { account } from "./client";
+import { usesCosmos } from "./dataApi";
 
 /**
- * Headers for admin-only Azure Functions (media, outgoing email). They check
- * the short-lived Appwrite JWT in api/shared/adminAuth.js.
+ * Headers for admin-only Azure Functions (media, outgoing email, /api/manage),
+ * checked by api/shared/adminAuth.js. With Static Web Apps sign-in the session
+ * cookie travels with same-origin requests on its own; with Appwrite the
+ * browser sends a short-lived JWT.
  */
 export async function adminHeaders(): Promise<Record<string, string>> {
+  if (usesCosmos) return { "Content-Type": "application/json" };
   let jwt: string;
   try {
     ({ jwt } = await account.createJWT());
