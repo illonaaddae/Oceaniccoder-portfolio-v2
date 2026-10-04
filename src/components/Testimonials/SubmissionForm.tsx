@@ -2,6 +2,8 @@ import React from "react";
 import { FaStar, FaPaperPlane } from "react-icons/fa";
 import type { TestimonialFormData } from "./types";
 import ImageUploadField from "./ImageUploadField";
+import type { Turnstile } from "@/hooks/useTurnstile";
+import TurnstileSlot from "../TurnstileSlot";
 
 interface SubmissionFormProps {
   formData: TestimonialFormData;
@@ -15,6 +17,8 @@ interface SubmissionFormProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   titleId: string;
   imageInputId: string;
+  turnstile: Turnstile;
+  submitError: string | null;
 }
 
 const SubmissionForm: React.FC<SubmissionFormProps> = ({
@@ -29,6 +33,8 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({
   fileInputRef,
   titleId,
   imageInputId,
+  turnstile,
+  submitError,
 }) => (
   <>
     <h3 id={titleId} className="text-2xl font-bold text-[var(--text-primary)] mb-2">
@@ -140,6 +146,12 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({
           placeholder="Share your experience working with me..."
         />
       </div>
+      <TurnstileSlot turnstile={turnstile} />
+      {submitError && (
+        <p role="alert" className="text-sm text-red-500">
+          {submitError}
+        </p>
+      )}
       <button
         type="submit"
         disabled={submitting}

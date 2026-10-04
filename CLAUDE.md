@@ -93,6 +93,7 @@ All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never 
 | `VITE_PAYSTACK_PUBLIC_KEY`  | Paystack Inline JS (card, momo, Apple Pay)                    |
 | `VITE_AZURE_MEDIA_BASE_URL` | Blob `media` container URL (optional; defaults to production) |
 | `VITE_DATA_BACKEND`         | `cosmos` reads through `/api/data`; unset keeps Appwrite      |
+| `VITE_TURNSTILE_SITE_KEY`   | Cloudflare Turnstile site key for visitor forms (public)      |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
 
@@ -114,6 +115,7 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `AZURE_STORAGE_KEY`     | Signs upload URLs, writes resized copies    |
 | `COSMOS_ENDPOINT`       | Cosmos DB account (`oceaniccoder-db`)       |
 | `COSMOS_KEY`            | Cosmos DB key, used by `/api/data`          |
+| `TURNSTILE_SECRET_KEY`  | Checks visitor form tokens (`/api/submit`)  |
 
 > `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
 > sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent

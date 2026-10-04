@@ -1,4 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { submitRow, usesCosmos } from "./dataApi";
 import type { ProjectInquiry } from "../../types";
 
 export async function getInquiries(): Promise<ProjectInquiry[]> {
@@ -11,7 +12,11 @@ export async function getInquiries(): Promise<ProjectInquiry[]> {
 
 export async function createInquiry(
   inquiry: Omit<ProjectInquiry, "$id" | "$createdAt" | "$updatedAt">,
+  turnstileToken?: string | null,
 ): Promise<ProjectInquiry> {
+  if (usesCosmos) {
+    return submitRow<ProjectInquiry>(COLLECTIONS.PROJECT_INQUIRIES, inquiry, turnstileToken);
+  }
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.PROJECT_INQUIRIES,

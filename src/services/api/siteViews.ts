@@ -1,4 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { getJson, postJson, usesCosmos } from "./dataApi";
 
 export interface SiteView {
   $id: string;
@@ -8,6 +9,7 @@ export interface SiteView {
 
 export async function getSiteViews(): Promise<number> {
   try {
+    if (usesCosmos) return (await getJson<{ count: number }>("/api/counters/site-views")).count;
     const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.SITE_VIEWS, [
       Query.limit(1),
     ]);
@@ -22,6 +24,7 @@ export async function getSiteViews(): Promise<number> {
 
 export async function incrementSiteViews(): Promise<number> {
   try {
+    if (usesCosmos) return (await postJson<{ count: number }>("/api/counters/site-view", {})).count;
     const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.SITE_VIEWS, [
       Query.limit(1),
     ]);

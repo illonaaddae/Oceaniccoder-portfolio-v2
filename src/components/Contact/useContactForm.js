@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { validateForm } from "./validateForm";
 import { submitContactForm } from "./submitContactForm";
+import { useTurnstile } from "@/hooks/useTurnstile";
 
 export function useContactForm() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ export function useContactForm() {
   const timeoutRef = useRef(null);
   const lastSubmissionRef = useRef(null);
   const formStartTimeRef = useRef(Date.now());
+  const turnstile = useTurnstile();
 
   useEffect(() => {
     return () => {
@@ -49,7 +51,8 @@ export function useContactForm() {
     setStatus("sending");
 
     try {
-      const result = await submitContactForm(formDataToSend, formData);
+      const result = await submitContactForm(formDataToSend, formData, turnstile.token);
+      turnstile.reset(); // tokens are single-use
       lastSubmissionRef.current = Date.now();
       setStatus("success");
       setResponseMessage(result.message);
@@ -85,5 +88,5 @@ export function useContactForm() {
     }
   };
 
-  return { formData, status, responseMessage, handleInputChange, handleSubmit };
+  return { formData, status, responseMessage, handleInputChange, handleSubmit, turnstile };
 }

@@ -4,6 +4,7 @@ import { FaTimes } from "react-icons/fa";
 import type { TestimonialFormData } from "./types";
 import SuccessMessage from "./SuccessMessage";
 import SubmissionForm from "./SubmissionForm";
+import type { Turnstile } from "@/hooks/useTurnstile";
 
 interface TestimonialFormModalProps {
   formData: TestimonialFormData;
@@ -20,6 +21,8 @@ interface TestimonialFormModalProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   titleId: string;
   imageInputId: string;
+  turnstile: Turnstile;
+  submitError: string | null;
 }
 
 const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
@@ -33,6 +36,8 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
   submitSuccess,
   uploadingImage,
   imagePreview,
+  turnstile,
+  submitError,
   setImagePreview,
   fileInputRef,
   titleId,
@@ -77,6 +82,8 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             fileInputRef={fileInputRef}
             titleId={titleId}
             imageInputId={imageInputId}
+            turnstile={turnstile}
+            submitError={submitError}
           />
         )}
       </div>

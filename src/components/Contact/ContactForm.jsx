@@ -3,9 +3,11 @@ import { FaPaperPlane, FaCheckCircle } from "react-icons/fa";
 import { useContactForm } from "./useContactForm";
 import FormFields from "./FormFields";
 import ResponseTimeNote from "./ResponseTimeNote";
+import TurnstileSlot from "../TurnstileSlot";
 
 const ContactForm = () => {
-  const { formData, status, responseMessage, handleInputChange, handleSubmit } = useContactForm();
+  const { formData, status, responseMessage, handleInputChange, handleSubmit, turnstile } =
+    useContactForm();
 
   return (
     <div className="glass-card p-8">
@@ -44,6 +46,7 @@ const ContactForm = () => {
         )}
 
         {/* Submit Button */}
+        <TurnstileSlot turnstile={turnstile} />
         <button
           type="submit"
           disabled={status === "sending"}

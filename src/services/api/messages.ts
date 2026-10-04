@@ -1,4 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { submitRow, usesCosmos } from "./dataApi";
 import type { Message } from "../../types";
 
 export async function getMessages(): Promise<Message[]> {
@@ -10,7 +11,9 @@ export async function getMessages(): Promise<Message[]> {
 
 export async function createMessage(
   message: Omit<Message, "$id" | "$createdAt">,
+  turnstileToken?: string | null,
 ): Promise<Message> {
+  if (usesCosmos) return submitRow<Message>(COLLECTIONS.MESSAGES, message, turnstileToken);
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.MESSAGES,

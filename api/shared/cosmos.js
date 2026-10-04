@@ -12,6 +12,8 @@
 // into `$id` / `$createdAt` / `$updatedAt`, so the browser sees the same shape
 // it got from Appwrite.
 
+const crypto = require("crypto");
+
 const DATABASE_ID = "portfolio";
 const SHARED_THROUGHPUT = 1000;
 
@@ -86,6 +88,17 @@ async function ensureSchema(client) {
   return db;
 }
 
+/** A new document id: 20 hex chars, the same shape as an Appwrite id. */
+function newId() {
+  return crypto.randomBytes(10).toString("hex");
+}
+
+/** A new document with its id and timestamps set. */
+function newDocument(fields) {
+  const now = new Date().toISOString();
+  return { id: newId(), createdAt: now, updatedAt: now, ...fields };
+}
+
 /** Appwrite row → Cosmos document. Drops Appwrite-only `$` fields. */
 function toCosmos(row) {
   const doc = { id: row.$id, createdAt: row.$createdAt, updatedAt: row.$updatedAt };
@@ -106,6 +119,8 @@ module.exports = {
   CONTAINERS,
   MIGRATED_SETTINGS_KEYS,
   createClient,
+  newId,
+  newDocument,
   getDatabase,
   ensureSchema,
   toCosmos,

@@ -34,7 +34,7 @@ const PUBLIC_COLLECTIONS = {
   projects: {},
   settings: { keys: [...MIGRATED_SETTINGS_KEYS] },
   skills: {},
-  testimonials: {},
+  testimonials: { where: unlessFalse("approved") },
 };
 
 class BadRequest extends Error {}

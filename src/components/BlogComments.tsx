@@ -23,6 +23,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ postId, isDark = true }) =>
     topLevelComments,
     getReplies,
     handleSubmit,
+    turnstile,
   } = useComments(postId);
   const {
     currentIndex,
@@ -92,6 +93,7 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ postId, isDark = true }) =>
         submitting={submitting}
         onSubmit={(e) => onSubmit(e)}
         styles={s}
+        turnstile={turnstile}
       />
     </div>
   );

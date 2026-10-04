@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_AZURE_MEDIA_BASE_URL?: string;
   /** "cosmos" reads through /api/data; anything else keeps Appwrite. */
   readonly VITE_DATA_BACKEND?: string;
+  /** Cloudflare Turnstile site key for visitor forms (public). */
+  readonly VITE_TURNSTILE_SITE_KEY?: string;
 }
 
 interface ImportMeta {
