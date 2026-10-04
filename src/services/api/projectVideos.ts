@@ -9,7 +9,7 @@
 // - projectId is required (FK to projects.$id) — unique index ensures one video per project
 // - demoVideoUrl is required URL (Appwrite url-type validation)
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
 
 export interface ProjectVideo {
   $id: string;
@@ -47,25 +47,38 @@ export async function setProjectVideo(projectId: string, demoVideoUrl: string): 
   const existing = await getProjectVideo(projectId);
   if (!demoVideoUrl) {
     if (existing) {
-      await databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id);
+      await (usesCosmos
+        ? manageDelete(COLLECTIONS.PROJECT_VIDEOS, existing.$id)
+        : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id));
     }
     return;
   }
   if (existing) {
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id, {
-      demoVideoUrl,
-    });
+    await (usesCosmos
+      ? manageUpdate(COLLECTIONS.PROJECT_VIDEOS, existing.$id, {
+          demoVideoUrl,
+        })
+      : databases.updateDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id, {
+          demoVideoUrl,
+        }));
   } else {
-    await databases.createDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, ID.unique(), {
-      projectId,
-      demoVideoUrl,
-    });
+    await (usesCosmos
+      ? manageCreate(COLLECTIONS.PROJECT_VIDEOS, {
+          projectId,
+          demoVideoUrl,
+        })
+      : databases.createDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, ID.unique(), {
+          projectId,
+          demoVideoUrl,
+        }));
   }
 }
 
 export async function deleteProjectVideo(projectId: string): Promise<void> {
   const existing = await getProjectVideo(projectId);
   if (existing) {
-    await databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id);
+    await (usesCosmos
+      ? manageDelete(COLLECTIONS.PROJECT_VIDEOS, existing.$id)
+      : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id));
   }
 }
