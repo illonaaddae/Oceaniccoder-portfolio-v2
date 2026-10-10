@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type React from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import {
@@ -15,6 +16,8 @@ export interface StepProps {
   draft: QuoteDraft;
   setDraft: (next: QuoteDraft) => void;
   errors: Record<string, string>;
+  /** Price boxes report whether their text is a valid amount; the editor blocks Next/Save while any is not. */
+  onValidity?: (id: string, ok: boolean) => void;
 }
 
 const inputCls = "glass-input w-full rounded-lg px-3 py-2";
@@ -144,7 +147,7 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
   );
 }
 
-export function ItemsStep({ draft, setDraft, errors }: StepProps) {
+export function ItemsStep({ draft, setDraft, errors, onValidity }: StepProps) {
   const totals = computeTotals(draft.items, draft.discountMinor);
   const update = (i: number, patch: Partial<QuoteDraft["items"][number]>) =>
     setDraft({ ...draft, items: draft.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) });
@@ -171,17 +174,26 @@ export function ItemsStep({ draft, setDraft, errors }: StepProps) {
               </p>
             )}
           </div>
-          <input
-            aria-label={`Quantity for item ${i + 1}`}
-            type="number"
-            min="0"
-            step="any"
-            className={inputCls}
-            value={item.qty}
-            onChange={(e) => update(i, { qty: Number(e.target.value) })}
-          />
+          <div>
+            <input
+              aria-label={`Quantity for item ${i + 1}`}
+              type="number"
+              min="0"
+              step="any"
+              className={inputCls}
+              value={item.qty}
+              onChange={(e) => update(i, { qty: Number(e.target.value) })}
+            />
+            {(errors[`items.${i}.qty`] || !(item.qty > 0)) && (
+              <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
+                {!(item.qty > 0) ? "Quantity must be more than 0." : errors[`items.${i}.qty`]}
+              </p>
+            )}
+          </div>
           <PriceInput
+            id={`${item.id}-price`}
             label={`Price for item ${i + 1}`}
+            onValidity={onValidity}
             minor={item.unitMinor}
             onChange={(m) => update(i, { unitMinor: m })}
             error={errors[`items.${i}.unitMinor`]}
@@ -216,7 +228,9 @@ export function ItemsStep({ draft, setDraft, errors }: StepProps) {
         style={{ borderColor: "var(--border-subtle)" }}
       >
         <PriceInput
+          id="discount"
           label="Discount"
+          onValidity={onValidity}
           minor={draft.discountMinor}
           onChange={(m) => setDraft({ ...draft, discountMinor: m })}
           error={errors.discountMinor}
@@ -230,32 +244,46 @@ export function ItemsStep({ draft, setDraft, errors }: StepProps) {
 }
 
 function PriceInput({
+  id,
   label,
   minor,
   onChange,
+  onValidity,
   error,
 }: {
+  id: string;
   label: string;
   minor: number;
   onChange: (m: number) => void;
+  onValidity?: (id: string, ok: boolean) => void;
   error?: string;
 }) {
+  const [text, setText] = useState(minor ? fromMinor(minor) : "");
+  const [bad, setBad] = useState(false);
+  // A box that disappears (item removed) must not keep blocking the editor.
+  useEffect(() => () => onValidity?.(id, true), [id, onValidity]);
+  const shown = bad ? "Enter a valid amount, e.g. 1,250.00" : error;
   return (
     <div>
       <input
         aria-label={label}
+        aria-invalid={bad || undefined}
         inputMode="decimal"
         placeholder={label === "Discount" ? "Discount" : "0.00"}
         className={inputCls}
-        defaultValue={minor ? fromMinor(minor) : ""}
+        value={text}
         onChange={(e) => {
-          const m = e.target.value === "" ? 0 : toMinor(e.target.value);
+          const v = e.target.value;
+          setText(v);
+          const m = v.trim() === "" ? 0 : toMinor(v);
+          setBad(m === null);
+          onValidity?.(id, m !== null);
           if (m !== null) onChange(m);
         }}
       />
-      {error && (
+      {shown && (
         <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
-          {error}
+          {shown}
         </p>
       )}
     </div>

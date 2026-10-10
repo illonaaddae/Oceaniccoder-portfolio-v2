@@ -90,4 +90,55 @@ describe("QuoteEditor", () => {
     await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
     expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
   });
+
+  it("flags an unreadable price and blocks Next and Save", async () => {
+    render(
+      <QuoteEditor theme="dark" initial={{ title: "S" }} onClose={vi.fn()} onSaved={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /3\. line items/i }));
+    await userEvent.type(screen.getByLabelText(/price for item 1/i), "abc");
+    expect(screen.getByText(/enter a valid amount/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /save draft/i })).toBeDisabled();
+  });
+
+  it("jumps to Line items for a server price error", async () => {
+    const failure = new QuoteApiError("Fix the highlighted fields.", 400, {
+      "items.0.unitMinor": "Enter a valid price.",
+    });
+    rejectWith = () => Promise.reject(failure);
+    render(
+      <QuoteEditor theme="dark" initial={{ title: "S" }} onClose={vi.fn()} onSaved={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    expect(await screen.findByText("Enter a valid price.")).toBeInTheDocument();
+    expect(screen.getByLabelText(/price for item 1/i)).toBeInTheDocument();
+  });
+
+  it("closes on Escape when nothing changed", async () => {
+    const onClose = vi.fn();
+    render(<QuoteEditor theme="dark" onClose={onClose} onSaved={vi.fn()} />);
+    await userEvent.keyboard("{esc}");
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("saves an existing quote with its id", async () => {
+    quoteAdmin.mockResolvedValue({ quote: { id: "q1" }, stages: [], payments: [] });
+    render(
+      <QuoteEditor
+        theme="dark"
+        quoteId="q1"
+        initial={{ title: "S" }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    await waitFor(() =>
+      expect(quoteAdmin).toHaveBeenCalledWith(
+        "save",
+        expect.objectContaining({ id: "q1", draft: expect.objectContaining({ title: "S" }) }),
+      ),
+    );
+  });
 });

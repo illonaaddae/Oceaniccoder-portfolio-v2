@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { FaTimes } from "react-icons/fa";
 import { quoteAdmin, QuoteApiError } from "@/services/api/quotes";
 import { quoteToDraft, scheduleError } from "@/utils/quoteMath";
@@ -49,14 +49,32 @@ export default function QuoteEditor({
   const [message, setMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
+  const [invalid, setInvalid] = useState<ReadonlySet<string>>(new Set());
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<() => void>(() => {});
+
+  const onValidity = useCallback((id: string, ok: boolean) => {
+    setInvalid((prev) => {
+      if (prev.has(id) === !ok) return prev;
+      const next = new Set(prev);
+      if (ok) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const setDraft = (next: QuoteDraft) => {
     setDraftState(next);
     setDirty(true);
+    // Server errors describe the old values; clear them once the user edits.
+    setErrors({});
   };
+  const hasInvalidInput = invalid.size > 0 || draft.items.some((it) => !(it.qty > 0));
   const { Component } = STEPS[step];
-  const blocked = step === 3 && scheduleError(draft.schedule) !== null;
+  const blocked = hasInvalidInput || (step === 3 && scheduleError(draft.schedule) !== null);
 
   const save = async () => {
+    if (hasInvalidInput) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -85,20 +103,71 @@ export default function QuoteEditor({
     if (dirty && !window.confirm("Discard your unsaved changes?")) return;
     onClose();
   };
+  closeRef.current = close;
+
+  // Escape closes (through the dirty guard), Tab stays inside the dialog, body scroll is
+  // locked, and focus returns to whatever opened the editor.
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const root = dialogRef.current;
+    const focusables = () =>
+      Array.from(
+        root?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+    (focusables().find((el) => el.tagName === "INPUT") ?? focusables()[0])?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const els = focusables();
+      if (els.length === 0) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      const active = document.activeElement;
+      if (!root?.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      opener?.focus?.();
+    };
+  }, []);
 
   return (
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Quote editor"
+      aria-labelledby="quote-editor-title"
     >
       <div
+        ref={dialogRef}
         className="glass-card w-full max-w-3xl rounded-2xl p-5 sm:p-6 my-8"
         style={{ background: "var(--bg-secondary)" }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+          <h2
+            id="quote-editor-title"
+            className="text-xl font-bold"
+            style={{ color: "var(--text-primary)" }}
+          >
             {quoteId ? "Edit quote" : "New quote"}
           </h2>
           <button
@@ -137,9 +206,9 @@ export default function QuoteEditor({
             </li>
           ))}
         </ol>
-        <Component draft={draft} setDraft={setDraft} errors={errors} />
+        <Component draft={draft} setDraft={setDraft} errors={errors} onValidity={onValidity} />
         {message && (
-          <p role="status" className="mt-4 text-sm" style={{ color: "var(--status-failed-text)" }}>
+          <p role="alert" className="mt-4 text-sm" style={{ color: "var(--status-failed-text)" }}>
             {message}
           </p>
         )}
@@ -159,7 +228,7 @@ export default function QuoteEditor({
           <div className="flex gap-2">
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || hasInvalidInput}
               onClick={() => void save()}
               className="px-4 py-2 rounded-lg border"
               style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}

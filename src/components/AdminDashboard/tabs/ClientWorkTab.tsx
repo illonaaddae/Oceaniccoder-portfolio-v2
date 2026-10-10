@@ -67,9 +67,9 @@ const STATUS_CONFIG: Record<
   },
   won: {
     label: "Won",
-    pill: "bg-success-400/10 text-success-400 border-success-400/30",
-    borderLeft: "#22c55e",
-    dot: "bg-success-400",
+    pill: "bg-emerald-400/10 text-emerald-400 border-emerald-400/30",
+    borderLeft: "#10b981",
+    dot: "bg-emerald-400",
   },
   declined: {
     label: "Declined",
