@@ -485,3 +485,28 @@ modules move to Cosmos at cutover.
 - Provide or approve the default quote terms text (a starter version ships in
   the editor and is editable per quote).
 - Confirm the WhatsApp number shown on client pages.
+
+## 15. PR 1b: AI quote drafter (proposed, awaiting user answers)
+
+Added 2026-10-10 at the user's request. Builds on PR 1's quote editor.
+
+- **Flow:** the editor gains a first step, "Draft with AI". The admin pastes
+  everything known about the project (client conversation, stack, features,
+  timeline, third-party services). An admin-only function `quote-draft` sends it
+  with the admin's rate card to Claude and returns a `QuoteDraft` (line items
+  with amounts, overview, scope, timeline, payment plan) plus a private
+  "things to check" list (assumptions, risks, low-confidence prices, questions
+  for the client). The editor is filled in; the admin edits, approves and sends
+  as usual. Nothing is sent automatically and the checklist never reaches the
+  client.
+- **Recurring costs:** a "Running costs" section on the quote (e.g. Appwrite
+  Pro $25/month), shown to the client but excluded from the total and the
+  payment stages. Pass-through prepaid blocks (e.g. 12 months the admin pays
+  upfront) are ordinary line items in the deposit stage. The AI must flag who
+  pays recurring costs when unclear.
+- **Inputs needed from the user:** a rate card (day/hour rate, typical package
+  prices, third-party markup policy), `ANTHROPIC_API_KEY` set by the user in
+  Azure and local settings, and confirmation of the running-costs section.
+- **Model and SDK:** chosen when PR 1b is designed, from the current Claude API
+  reference; structured output validated against `validateDraft` before it
+  reaches the editor.
