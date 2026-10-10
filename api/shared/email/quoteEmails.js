@@ -93,7 +93,10 @@ function quoteAccepted(v) {
         "We schedule the work and keep you updated",
         "Later stages are invoiced as the project reaches them",
       ]) +
-      small(`Your quote stays available at ${v.link}`),
+      small("You can open your quote again at any time:", {
+        href: v.link,
+        label: `View quote ${v.quoteNumber}`,
+      }),
   });
   const text = lines(
     `Hi ${v.clientFirstName},`,

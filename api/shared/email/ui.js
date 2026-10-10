@@ -97,7 +97,7 @@ function heading({ eyebrow, title, intro, tone = "info" }) {
   const [color] = TONES[tone] || TONES.info;
   return (
     (eyebrow ? `<div style="${LABEL};color:${color};margin:0 0 10px">${esc(eyebrow)}</div>` : "") +
-    `<h1 style="font-family:${FONT};font-size:28px;line-height:1.2;color:${C.ink};margin:0 0 12px;font-weight:700;letter-spacing:-.01em">${esc(title)}</h1>` +
+    `<h1 style="font-family:${FONT};font-size:28px;line-height:1.2;color:${C.ink};margin:0 0 ${intro ? 12 : 24}px;font-weight:700;letter-spacing:-.01em">${esc(title)}</h1>` +
     (intro ? `<p style="margin:0 0 20px">${multiline(intro)}</p>` : "")
   );
 }
@@ -149,15 +149,18 @@ function steps(items) {
 
 function notice({ tone = "info", text }) {
   const [color, bg] = TONES[tone] || TONES.info;
-  return `<div style="background:${bg};border-left:3px solid ${color};border-radius:8px;padding:12px 14px;margin:0 0 20px;font-size:14px;color:${C.ink2}">${multiline(text)}</div>`;
+  return `<div style="background:${bg};border-radius:10px;padding:14px 16px;margin:0 0 20px;font-size:14px;font-weight:600;color:${color}">${multiline(text)}</div>`;
 }
 
 function divider() {
   return `<div style="border-top:1px solid ${C.line};margin:24px 0"></div>`;
 }
 
-function small(text) {
-  return `<p style="margin:0;font-size:12px;color:${C.ink3}">${multiline(text)}</p>`;
+function small(text, link) {
+  const a = link
+    ? ` <a href="${esc(safeUrl(link.href))}" style="color:${C.tealDark};font-weight:600">${esc(link.label)}</a>`
+    : "";
+  return `<p style="margin:0;font-size:13px;color:${C.ink3}">${multiline(text)}${a}</p>`;
 }
 
 function lines(...parts) {
