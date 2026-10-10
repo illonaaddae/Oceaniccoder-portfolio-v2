@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 const { createHandler } = await import("./index.js");
-const { createFakeRepo } = await import("../shared/quotes/fakes.js");
+const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const { hashToken, newToken } = await import("../shared/tokens.js");
 const M = await import("../shared/quotes/model.js");
 
@@ -29,23 +29,27 @@ const base = {
   tokenHash: hashToken(TOKEN),
 };
 
-function setup(quote = base) {
+function setup(quote = base, { notify: notifyOverride } = {}) {
   const repo = createFakeRepo({ quotes: [quote] });
   const notify = {
     quoteAccepted: vi.fn().mockResolvedValue({ ok: true }),
     decision: vi.fn().mockResolvedValue({ ok: true }),
+    ...notifyOverride,
   };
-  const handler = createHandler({ services: () => ({ repo, notify, now: () => NOW }) });
+  const locks = createFakeLocks();
+  const handler = createHandler({
+    services: () => ({ repo, notify, locks, now: () => NOW }),
+  });
   const call = async (body) => {
-    const context = { log: { error: vi.fn() } };
+    const context = { log: { error: vi.fn(), warn: vi.fn() } };
     await handler(context, {
       method: "POST",
       body: { token: TOKEN, ...body },
       headers: { "x-forwarded-for": "1.2.3.4:555", "user-agent": "Test UA" },
     });
-    return { status: context.res.status, body: JSON.parse(context.res.body) };
+    return { status: context.res.status, body: JSON.parse(context.res.body), context };
   };
-  return { repo, notify, call };
+  return { repo, notify, locks, call };
 }
 
 describe("quote-respond accept", () => {
@@ -110,5 +114,82 @@ describe("quote-respond decline", () => {
   it("rejects an unknown action and a bad token", async () => {
     expect((await setup().call({ action: "maybe" })).status).toBe(400);
     expect((await setup().call({ action: "accept", token: "bad" })).status).toBe(404);
+  });
+});
+
+describe("quote-respond double submits and races", () => {
+  it("two parallel accepts: both 200, one write, one acceptance email", async () => {
+    const t = setup();
+    const [a, b] = await Promise.all([
+      t.call({ action: "accept", name: "Kofi Mensah", agree: true }),
+      t.call({ action: "accept", name: "Kofi Mensah", agree: true }),
+    ]);
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+    expect(t.notify.quoteAccepted).toHaveBeenCalledTimes(1);
+  });
+
+  it("parallel accept and decline: one status change, one decision email", async () => {
+    const t = setup();
+    const [a, d] = await Promise.all([
+      t.call({ action: "accept", name: "Kofi Mensah", agree: true }),
+      t.call({ action: "decline", reason: "Budget" }),
+    ]);
+    const final = t.repo.quotes.get("q1").status;
+    expect(["accepted", "declined"]).toContain(final);
+    for (const r of [a, d]) {
+      expect([200, 409]).toContain(r.status);
+      if (r.status === 200) expect(r.body.quote.status).toBe(final);
+    }
+    expect(t.notify.decision).toHaveBeenCalledTimes(1);
+    expect(t.notify.decision).toHaveBeenCalledWith(expect.anything(), final);
+  });
+
+  it("repeat decline is idempotent: the admin is alerted once", async () => {
+    const t = setup();
+    await t.call({ action: "decline", reason: "Budget" });
+    const r = await t.call({ action: "decline", reason: "Budget" });
+    expect(r.status).toBe(200);
+    expect(t.notify.decision).toHaveBeenCalledTimes(1);
+  });
+
+  it("repeat accept after a deposit is paid shows the stage as paid", async () => {
+    const t = setup();
+    await t.call({ action: "accept", name: "Kofi Mensah", agree: true });
+    await t.repo.createPayment({
+      quoteNumber: "Q-2026-0001",
+      stageId: "deposit",
+      status: "success",
+      kind: "quote",
+      amountMinor: 6000,
+      currency: "GHS",
+      paystackReference: "ref-deposit-1",
+      paidAt: NOW.toISOString(),
+    });
+    const r = await t.call({ action: "accept", name: "Kofi Mensah", agree: true });
+    expect(r.status).toBe(200);
+    expect(r.body.quote.stages[0].state).toBe("paid");
+  });
+
+  it("a rejecting email does not fail the response; the quote is still accepted", async () => {
+    const t = setup(base, {
+      notify: {
+        quoteAccepted: vi.fn().mockRejectedValue(new Error("mail down")),
+        decision: vi.fn().mockRejectedValue(new Error("mail down")),
+      },
+    });
+    const r = await t.call({ action: "accept", name: "Kofi Mensah", agree: true });
+    expect(r.status).toBe(200);
+    expect(t.repo.quotes.get("q1").status).toBe("accepted");
+    expect(r.context.log.warn).toHaveBeenCalled();
+  });
+
+  it("the acceptance snapshot records quote number and client email", async () => {
+    const t = setup();
+    await t.call({ action: "accept", name: "Kofi Mensah", agree: true });
+    expect(JSON.parse(t.repo.quotes.get("q1").acceptedSnapshot)).toMatchObject({
+      quoteNumber: "Q-2026-0001",
+      clientEmail: "kofi@example.com",
+    });
   });
 });
