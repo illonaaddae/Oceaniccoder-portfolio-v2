@@ -177,4 +177,73 @@ describe("quote-admin", () => {
       nextDue: null,
     });
   });
+
+  it("reports whether the payment receipt was emailed", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    const r = await t.call({ action: "recordManual", id, stageId: "deposit", method: "cash" });
+    expect(r.status).toBe(200);
+    expect(r.body.emailed).toBe(true);
+    expect(r.body.quote).toBeDefined();
+  });
+
+  it("refuses a manual payment while the stage lock is already held", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    await t.locks.take(`stage:${id}:deposit`);
+    const r = await t.call({ action: "recordManual", id, stageId: "deposit", method: "bank" });
+    expect(r.status).toBe(409);
+    expect(t.repo.payments.size).toBe(0);
+  });
+
+  it("holds the stage lock after a successful manual payment", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    await t.call({ action: "recordManual", id, stageId: "deposit", method: "bank" });
+    expect(t.locks.held.has(`stage:${id}:deposit`)).toBe(true);
+  });
+
+  it("releases the stage lock when the payment write fails", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    const real = t.repo.createPayment;
+    t.repo.createPayment = vi.fn().mockRejectedValueOnce(new Error("write failed"));
+    const r = await t.call({ action: "recordManual", id, stageId: "deposit", method: "bank" });
+    expect(r.status).toBe(500);
+    expect(r.body.error).not.toContain("write failed");
+    expect(t.locks.held.has(`stage:${id}:deposit`)).toBe(false);
+    t.repo.createPayment = real;
+  });
+
+  it("rotates the link and replaces the stored token hash", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    const before = t.repo.quotes.get(id).tokenHash;
+    const r = await t.call({ action: "rotate", id });
+    expect(r.status).toBe(200);
+    expect(r.body.link).toMatch(/^https:\/\/oceaniccoder\.dev\/q\/[A-Za-z0-9_-]{43}$/);
+    expect(r.body.link).not.toBe(sent.body.link);
+    expect(t.repo.quotes.get(id).tokenHash).not.toBe(before);
+  });
+
+  it("returns 404 for an unknown quote id", async () => {
+    expect((await setup().call({ action: "get", id: "missing" })).status).toBe(404);
+  });
+
+  it("returns 404 for an unknown stage id", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    expect((await t.call({ action: "requestStage", id, stageId: "nope" })).status).toBe(404);
+  });
 });

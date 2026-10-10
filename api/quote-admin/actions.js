@@ -160,21 +160,35 @@ const actions = {
       throw new HttpError(400, "Method must be bank, momo or cash.");
     const { stage, payments } = await stageFor(svc, quote, input.stageId);
     if (stage.state === "paid") throw new HttpError(409, "This stage is already paid.");
-    if (!(await svc.locks.take(`stage:${quote.id}:${stage.id}`)))
-      throw new HttpError(409, "This stage is already paid.");
-    const payment = await svc.repo.createPayment(
-      M.paymentRow(quote, stage, {
-        status: "success",
-        method: input.method,
-        paystackReference: M.paymentReference(quote.quoteNumber, stage.index),
-        paidAt: svc.now().toISOString(),
-        note: str(input.note, 300),
-        recordedBy: (admin && (admin.email || admin.userDetails || admin.name)) || "admin",
-      }),
-    );
-    const after = M.stageStates(quote, [...payments, payment], svc.now().getTime());
-    await svc.notify.paymentReceived(quote, payment, after);
-    return detail(svc, quote);
+    const stageKey = `stage:${quote.id}:${stage.id}`;
+    if (!(await svc.locks.take(stageKey))) throw new HttpError(409, "This stage is already paid.");
+    let mail;
+    try {
+      const payment = await svc.repo.createPayment(
+        M.paymentRow(quote, stage, {
+          status: "success",
+          method: input.method,
+          paystackReference: M.paymentReference(quote.quoteNumber, stage.index),
+          paidAt: svc.now().toISOString(),
+          note: str(input.note, 300),
+          recordedBy: (admin && (admin.email || admin.userDetails || admin.name)) || "admin",
+        }),
+      );
+      const after = M.stageStates(quote, [...payments, payment], svc.now().getTime());
+      mail = await svc.notify.paymentReceived(quote, payment, after);
+    } catch (err) {
+      // Release the lock only when no success row exists for this stage, so a
+      // retry can't double-pay. If the re-read itself fails, keep the lock.
+      try {
+        const rows = await svc.repo.listPayments(quote.quoteNumber);
+        if (!rows.some((p) => p.stageId === stage.id && p.status === "success"))
+          await svc.locks.release(stageKey);
+      } catch {
+        // Keep the lock: we cannot tell whether the payment was recorded.
+      }
+      throw err;
+    }
+    return { ...(await detail(svc, quote)), emailed: mail.ok };
   },
 };
 

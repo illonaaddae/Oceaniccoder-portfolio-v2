@@ -13,7 +13,7 @@ const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store
 const MAX_BODY = 64 * 1024;
 
 function send(context, status, body) {
-  context.res = { status, headers: HEADERS, body: JSON.stringify(body) };
+  context.res = { status, headers: { ...HEADERS }, body: JSON.stringify(body) };
 }
 
 function readJson(req) {
