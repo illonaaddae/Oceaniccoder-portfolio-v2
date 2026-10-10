@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FaTimes, FaCopy, FaWhatsapp, FaExternalLinkAlt } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
@@ -28,6 +28,7 @@ export default function QuoteDetail({
   const confirm = useConfirm();
   const [data, setData] = useState<QuoteDetailResponse | null>(null);
   const [link, setLink] = useState<string | null>(null);
+  const linkRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [manual, setManual] = useState<{
@@ -44,24 +45,38 @@ export default function QuoteDetail({
     load().catch((e) => setMessage({ tone: "error", text: e.message }));
   }, [load]);
 
-  const run = async (action: string, payload: Record<string, unknown> = {}, success?: string) => {
+  const run = async (
+    action: string,
+    payload: Record<string, unknown> = {},
+    success?: string,
+  ): Promise<boolean> => {
     setBusy(true);
     setMessage(null);
     try {
       const result = await quoteAdmin<QuoteDetailResponse>(action, { id, ...payload });
       setData(result);
       if (result.link) setLink(result.link);
-      const emailNote =
-        result.emailed === false && action !== "rotate"
-          ? " The email didn't send; copy the link below and share it yourself."
-          : "";
+      else if (
+        action === "revise" ||
+        action === "cancel" ||
+        (result.quote.status !== "sent" && result.quote.status !== "accepted")
+      )
+        setLink(null);
+      let emailNote = "";
+      if (result.emailed === false) {
+        if (action === "send" || action === "requestStage")
+          emailNote = " The email didn't send; copy the link below and share it yourself.";
+        else if (action === "recordManual") emailNote = " The receipt email didn't send.";
+      }
       setMessage({
-        tone: result.emailed === false && action !== "rotate" ? "error" : "ok",
+        tone: emailNote ? "error" : "ok",
         text: `${success || "Done."}${emailNote}`,
       });
       onChanged();
+      return true;
     } catch (e) {
       setMessage({ tone: "error", text: e instanceof Error ? e.message : "Something went wrong." });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -79,6 +94,21 @@ export default function QuoteDetail({
     );
   }
   const { quote, stages, payments } = data;
+  const anyPaid =
+    stages.some((s) => s.state === "paid") || payments.some((p) => p.status === "success");
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link ?? "");
+      setMessage({ tone: "ok", text: "Link copied." });
+    } catch {
+      linkRef.current?.select();
+      setMessage({
+        tone: "error",
+        text: "Couldn't copy, the link is selected; press Ctrl/Cmd+C.",
+      });
+    }
+  };
   const money = (m: number) => formatMinor(m, quote.currency);
 
   return (
@@ -112,13 +142,9 @@ export default function QuoteDetail({
             Sent {formatDate(quote.sentAt)} · valid until {formatDate(quote.validUntil)}
           </li>
         )}
-        <li>
-          {quote.viewedAt
-            ? `Viewed ${formatDate(quote.viewedAt)}`
-            : quote.status === "sent"
-              ? "Not opened yet"
-              : null}
-        </li>
+        {(quote.viewedAt || quote.status === "sent") && (
+          <li>{quote.viewedAt ? `Viewed ${formatDate(quote.viewedAt)}` : "Not opened yet"}</li>
+        )}
         {quote.acceptedName && (
           <li>
             Accepted by “{quote.acceptedName}” on {formatDate(quote.respondedAt)}
@@ -129,7 +155,7 @@ export default function QuoteDetail({
 
       {message && (
         <p
-          role="status"
+          role={message.tone === "ok" ? "status" : "alert"}
           className="text-sm rounded-lg px-3 py-2"
           style={{
             background:
@@ -145,17 +171,14 @@ export default function QuoteDetail({
       {link && (
         <div className="flex flex-wrap items-center gap-2">
           <input
+            ref={linkRef}
+            aria-label="Quote link"
             readOnly
             value={link}
             className="glass-input flex-1 min-w-[16rem] rounded-lg px-3 py-2 text-sm font-mono"
             onFocus={(e) => e.target.select()}
           />
-          <button
-            type="button"
-            className={btn}
-            style={btnStyle}
-            onClick={() => void navigator.clipboard.writeText(link)}
-          >
+          <button type="button" className={btn} style={btnStyle} onClick={() => void copyLink()}>
             <FaCopy className="inline mr-1" />
             Copy
           </button>
@@ -197,13 +220,13 @@ export default function QuoteDetail({
                 {s.label} ({s.percent}%) <span className="font-mono">{money(s.amountMinor)}</span>
                 <span className="block text-xs" style={{ color: "var(--text-secondary)" }}>
                   {s.state === "paid"
-                    ? `Paid ${formatDate(s.paidAt)} · ${s.reference}`
+                    ? `Paid ${formatDate(s.paidAt)}${s.reference ? ` · ${s.reference}` : ""}`
                     : s.state === "due"
                       ? `Due since ${formatDate(s.dueAt)}${s.overdue ? " · overdue" : ""}`
                       : "Not requested yet"}
                 </span>
               </span>
-              {quote.status === "accepted" && s.state === "later" && (
+              {quote.status === "accepted" && s.index > 0 && s.state === "later" && (
                 <button
                   type="button"
                   disabled={busy}
@@ -220,6 +243,7 @@ export default function QuoteDetail({
                 <button
                   type="button"
                   disabled={busy}
+                  aria-label={`Resend request for ${s.label}`}
                   className={btn}
                   style={btnStyle}
                   onClick={() =>
@@ -233,6 +257,7 @@ export default function QuoteDetail({
                 <button
                   type="button"
                   disabled={busy}
+                  aria-label={`Record payment for ${s.label}`}
                   className={btn}
                   style={btnStyle}
                   onClick={() => setManual({ stageId: s.id, method: "bank", note: "" })}
@@ -251,9 +276,9 @@ export default function QuoteDetail({
           style={{ borderColor: "var(--border-subtle)" }}
           onSubmit={(e) => {
             e.preventDefault();
-            void run("recordManual", manual, "Payment recorded and receipt emailed.").then(() =>
-              setManual(null),
-            );
+            void run("recordManual", manual, "Payment recorded and receipt emailed.").then((ok) => {
+              if (ok) setManual(null);
+            });
           }}
         >
           <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
@@ -368,7 +393,7 @@ export default function QuoteDetail({
             Revise
           </button>
         )}
-        {["draft", "sent", "accepted"].includes(quote.status) && (
+        {["draft", "sent", "accepted"].includes(quote.status) && !anyPaid && (
           <button
             type="button"
             disabled={busy}
