@@ -57,4 +57,13 @@ describe("sendEmail", () => {
     expect((await sendEmail({ to: "", subject: "S", html: "h", text: "t" })).ok).toBe(false);
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("gives the Resend request a timeout signal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "e1" }) }),
+    );
+    await sendEmail({ to: "a@b.co", subject: "S", html: "<p>h</p>", text: "t" });
+    expect(fetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
 });

@@ -20,6 +20,7 @@ async function sendEmail({ to, subject, html, text, replyTo = CONTACT }) {
         html,
         text,
       }),
+      signal: AbortSignal.timeout(10000),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: body.message || `Resend ${res.status}` };
