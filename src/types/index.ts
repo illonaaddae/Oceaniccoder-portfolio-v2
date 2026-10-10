@@ -221,7 +221,7 @@ export interface ProjectInquiry {
   needsDomain?: boolean;
   domainExtension?: string;
   needsHosting?: boolean;
-  status: "new" | "reviewed" | "quoted" | "declined";
+  status: "new" | "reviewed" | "quoted" | "declined" | "won";
   $createdAt?: string;
   $updatedAt?: string;
 }

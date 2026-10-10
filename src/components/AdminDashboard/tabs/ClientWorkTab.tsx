@@ -19,11 +19,14 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaInbox,
+  FaFileSignature,
 } from "react-icons/fa";
 import { getInquiries, updateInquiry, deleteInquiry } from "@/services/api/inquiries";
 import { getInvoices } from "@/services/api/invoices";
 import type { ProjectInquiry, Invoice } from "@/types";
 import InvoiceModal from "./ClientWork/InvoiceModal";
+import QuoteEditor from "./Quotes/QuoteEditor";
+import { draftFromInquiry } from "./Quotes/draftFromInquiry";
 import { useConfirm } from "../ConfirmContext";
 import { apiUrl } from "@/utils/apiUrl";
 import { adminHeaders } from "@/services/api/adminHeaders";
@@ -34,7 +37,7 @@ import { CustomSelect } from "@/components/ui/CustomSelect";
 
 const PAGE_SIZE = 10;
 
-type StatusFilter = "all" | "new" | "reviewed" | "quoted" | "declined";
+type StatusFilter = "all" | "new" | "reviewed" | "quoted" | "declined" | "won";
 
 interface ClientWorkTabProps {
   theme: "light" | "dark";
@@ -62,6 +65,12 @@ const STATUS_CONFIG: Record<
     borderLeft: "#22c55e",
     dot: "bg-success-400",
   },
+  won: {
+    label: "Won",
+    pill: "bg-success-400/10 text-success-400 border-success-400/30",
+    borderLeft: "#22c55e",
+    dot: "bg-success-400",
+  },
   declined: {
     label: "Declined",
     pill: "bg-error-400/10 text-error-400 border-error-400/30",
@@ -70,7 +79,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const STATUS_OPTIONS = ["new", "reviewed", "quoted", "declined"] as const;
+const STATUS_OPTIONS = ["new", "reviewed", "quoted", "won", "declined"] as const;
 
 function getInitials(name: string) {
   return name
@@ -99,6 +108,8 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     inquiry: ProjectInquiry;
     existing?: Invoice;
   } | null>(null);
+  const [quoteFor, setQuoteFor] = useState<ProjectInquiry | null>(null);
+  const [quoteSaved, setQuoteSaved] = useState<string | null>(null);
   const [selectedInquiry, setSelectedInquiry] = useState<ProjectInquiry | null>(null);
   const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
   const [statusEmailError, setStatusEmailError] = useState<string | null>(null);
@@ -187,6 +198,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
   const newCount = countBy("new");
   const reviewedCount = countBy("reviewed");
   const quotedCount = countBy("quoted");
+  const wonCount = countBy("won");
   const declinedCount = countBy("declined");
 
   const statCards = [
@@ -230,6 +242,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     { key: "new" as const, label: "New", count: newCount },
     { key: "reviewed" as const, label: "Reviewed", count: reviewedCount },
     { key: "quoted" as const, label: "Quoted", count: quotedCount },
+    { key: "won" as const, label: "Won", count: wonCount },
     { key: "declined" as const, label: "Declined", count: declinedCount },
   ].filter((t) => t.key === "all" || t.count > 0);
 
@@ -586,6 +599,16 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                       </button>
                     );
                   })()}
+                  <button
+                    type="button"
+                    onClick={() => setQuoteFor(inq)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                    style={{
+                      background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                    }}
+                  >
+                    <FaFileSignature /> Create quote
+                  </button>
                   <a
                     href={`mailto:${inq.email}`}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
@@ -641,6 +664,30 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
           }}
           theme={theme}
         />
+      )}
+
+      {quoteFor && (
+        <QuoteEditor
+          theme={theme}
+          initial={draftFromInquiry(quoteFor)}
+          onClose={() => setQuoteFor(null)}
+          onSaved={() => {
+            setQuoteFor(null);
+            setQuoteSaved("Quote saved as a draft. Open the Quotes tab to preview and send it.");
+          }}
+        />
+      )}
+      {quoteSaved && (
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-[110] rounded-xl px-4 py-3 text-sm shadow-lg"
+          style={{ background: "var(--status-success-bg)", color: "var(--status-success-text)" }}
+        >
+          {quoteSaved}
+          <button type="button" className="ml-3 underline" onClick={() => setQuoteSaved(null)}>
+            Dismiss
+          </button>
+        </div>
       )}
 
       {selectedInquiry && (
