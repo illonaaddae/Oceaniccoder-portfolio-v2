@@ -24,11 +24,11 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
           </div>
           <div className="sm:text-right shrink-0">
             <p className="text-sm text-white/75 print:text-gray-600">Total</p>
-            <p className=" text-3xl font-bold tabular-nums">{money(quote.totalMinor)}</p>
+            <p className="text-2xl sm:text-3xl font-bold tabular-nums">{money(quote.totalMinor)}</p>
           </div>
         </div>
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/15 text-sm print:border-gray-300">
-          <div>
+        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-4 mt-6 pt-6 border-t border-white/15 text-sm print:border-gray-300">
+          <div className="col-span-2 sm:col-span-1">
             <dt className="text-white/75 print:text-gray-600">Prepared for</dt>
             <dd className="font-semibold mt-0.5">
               {quote.clientName}
@@ -85,7 +85,7 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
                   {money(item.unitMinor)}
                 </td>
                 <td
-                  className="py-3 text-right tabular-nums"
+                  className="py-3 pl-3 text-right tabular-nums whitespace-nowrap"
                   style={{ color: "var(--text-primary)" }}
                 >
                   {money(item.lineMinor)}

@@ -163,7 +163,7 @@ export default function CheckoutPage() {
           <p className="mt-4 text-sm text-white/75">
             {stage.label} ({stage.percent}%)
           </p>
-          <p className=" text-3xl font-bold tabular-nums">{money(stage.amountMinor)}</p>
+          <p className="text-3xl font-bold tabular-nums">{money(stage.amountMinor)}</p>
           <ol className="mt-6 space-y-2 text-sm">
             {quote.stages.map((s) => (
               <li key={s.id} className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function CheckoutPage() {
                   {s.state === "paid" ? <FaCheck aria-hidden /> : s.index + 1}
                 </span>
                 <span className="flex-1">{s.label}</span>
-                <span className=" tabular-nums">{money(s.amountMinor)}</span>
+                <span className="tabular-nums">{money(s.amountMinor)}</span>
               </li>
             ))}
           </ol>

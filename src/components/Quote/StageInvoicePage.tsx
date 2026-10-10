@@ -35,19 +35,22 @@ export default function StageInvoicePage() {
     <QuoteShell title={`Invoice ${stage.invoiceNumber}`} width="narrow">
       <QuoteCard>
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p
               className="font-mono text-[11px] uppercase tracking-[0.12em]"
               style={{ color: "var(--text-secondary)" }}
             >
               Invoice
             </p>
-            <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+            <h1
+              className="text-xl sm:text-2xl font-bold break-words"
+              style={{ color: "var(--text-primary)" }}
+            >
               {stage.invoiceNumber}
             </h1>
           </div>
           <span
-            className="rounded-full px-3 py-1 text-xs font-semibold"
+            className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
             style={
               stage.state === "paid"
                 ? { background: "var(--status-success-bg)", color: "var(--status-success-text)" }
@@ -87,7 +90,10 @@ export default function StageInvoicePage() {
                   Quote {quote.quoteNumber}
                 </span>
               </td>
-              <td className="py-3 text-right tabular-nums" style={{ color: "var(--text-primary)" }}>
+              <td
+                className="py-3 pl-3 text-right tabular-nums whitespace-nowrap"
+                style={{ color: "var(--text-primary)" }}
+              >
                 {money(stage.amountMinor)}
               </td>
             </tr>
@@ -96,7 +102,7 @@ export default function StageInvoicePage() {
                 Amount {stage.state === "paid" ? "paid" : "due"}
               </td>
               <td
-                className="py-3 text-right font-bold tabular-nums"
+                className="py-3 pl-3 text-right font-bold tabular-nums whitespace-nowrap"
                 style={{ color: "var(--text-primary)" }}
               >
                 {money(stage.amountMinor)}

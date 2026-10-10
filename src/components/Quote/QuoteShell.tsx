@@ -88,12 +88,47 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Skeleton in the shape of a quote: steps, hero, then two content cards. */
 export function QuoteLoading() {
+  const bar = (w: string) => (
+    <div className={`h-3 rounded-full ${w}`} style={{ background: "var(--bg-tertiary)" }} />
+  );
   return (
-    <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading">
-      <div className="h-40 rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
-      <div className="h-64 rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
+    <div className="space-y-6 motion-safe:animate-pulse" aria-busy="true">
+      <span className="sr-only">Loading your quote…</span>
+      <div className="grid grid-cols-4 gap-2 sm:flex sm:gap-3" aria-hidden>
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-8 rounded-full sm:w-28"
+            style={{ background: "var(--bg-tertiary)" }}
+          />
+        ))}
+      </div>
+      <div
+        aria-hidden
+        className="h-48 rounded-2xl opacity-60 bg-[linear-gradient(135deg,#04333B_0%,#085866_100%)]"
+      />
+      {[0, 1].map((i) => (
+        <QuoteCard key={i}>
+          <div className="space-y-3" aria-hidden>
+            {bar("w-24")}
+            {bar("w-full")}
+            {bar("w-5/6")}
+            {bar("w-2/3")}
+          </div>
+        </QuoteCard>
+      ))}
     </div>
+  );
+}
+
+/** Shown while a quote page's code chunk downloads, so clients never see the site spinner. */
+export function QuoteRouteFallback() {
+  return (
+    <QuoteShell title="Your quote">
+      <QuoteLoading />
+    </QuoteShell>
   );
 }
 

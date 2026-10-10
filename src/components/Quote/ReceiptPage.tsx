@@ -64,8 +64,10 @@ export default function ReceiptPage() {
         <dl className="mt-6 divide-y text-sm" style={{ borderColor: "var(--border-subtle)" }}>
           {rows.map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 py-2.5">
-              <dt style={{ color: "var(--text-secondary)" }}>{label}</dt>
-              <dd className="text-right" style={{ color: "var(--text-primary)" }}>
+              <dt className="shrink-0" style={{ color: "var(--text-secondary)" }}>
+                {label}
+              </dt>
+              <dd className="min-w-0 text-right break-all" style={{ color: "var(--text-primary)" }}>
                 {value}
               </dd>
             </div>

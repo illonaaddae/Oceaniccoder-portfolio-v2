@@ -111,34 +111,35 @@ export default function QuoteActions({
             {busy ? "Accepting…" : "Accept quote"}
           </button>
           <div
-            className="flex flex-wrap items-center gap-x-1 gap-y-2 pt-4 border-t text-sm"
+            className="flex flex-col gap-1 border-t pt-4 text-sm sm:flex-row sm:items-center sm:gap-2"
             style={{ borderColor: "var(--border-subtle)" }}
           >
-            <span className="mr-2" style={{ color: "var(--text-secondary)" }}>
-              Not ready yet?
-            </span>
-            <button type="button" onClick={() => window.print()} className={SECONDARY}>
-              Print or save PDF
-            </button>
-            <a
-              href={`mailto:${quote.contact.email}?subject=${encodeURIComponent(`Question about ${quote.quoteNumber}`)}`}
-              className={SECONDARY}
-            >
-              Ask a question
-            </a>
-            {whatsapp && (
-              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className={SECONDARY}>
-                WhatsApp
+            <span style={{ color: "var(--text-secondary)" }}>Not ready yet?</span>
+            {/* -ml-3 lines the link text up with the label despite the hit-area padding. */}
+            <div className="-ml-3 flex flex-1 flex-wrap items-center gap-x-1">
+              <button type="button" onClick={() => window.print()} className={SECONDARY}>
+                Print or save PDF
+              </button>
+              <a
+                href={`mailto:${quote.contact.email}?subject=${encodeURIComponent(`Question about ${quote.quoteNumber}`)}`}
+                className={SECONDARY}
+              >
+                Ask a question
               </a>
-            )}
-            <button
-              type="button"
-              onClick={() => setDeclining(true)}
-              className={`${SECONDARY} sm:ml-auto`}
-              style={{ color: "var(--status-failed-text)" }}
-            >
-              Decline
-            </button>
+              {whatsapp && (
+                <a href={whatsapp} target="_blank" rel="noopener noreferrer" className={SECONDARY}>
+                  WhatsApp
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setDeclining(true)}
+                className={`${SECONDARY} sm:ml-auto`}
+                style={{ color: "var(--status-failed-text)" }}
+              >
+                Decline
+              </button>
+            </div>
           </div>
         </form>
       ) : (

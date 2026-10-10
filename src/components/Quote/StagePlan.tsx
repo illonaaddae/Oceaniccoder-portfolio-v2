@@ -58,7 +58,10 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
                 )}
               </p>
             </div>
-            <span className=" font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
+            <span
+              className="font-semibold tabular-nums whitespace-nowrap"
+              style={{ color: "var(--text-primary)" }}
+            >
               {formatMinor(s.amountMinor, quote.currency)}
             </span>
             <span

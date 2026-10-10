@@ -100,7 +100,11 @@ function App() {
             <RouteErrorBoundary>
               <MainLayout theme={theme} toggleTheme={toggleTheme}>
                 <TerminalLoader />
-                <React.Suspense fallback={<div className="min-h-dvh bg-[#0d1117]" />}>
+                <React.Suspense
+                  fallback={
+                    <div className="min-h-dvh" style={{ background: "var(--bg-primary)" }} />
+                  }
+                >
                   <AnimatedRoutes
                     isAdminLoggedIn={isAdminLoggedIn}
                     onAdminLogin={handleAdminLogin}
