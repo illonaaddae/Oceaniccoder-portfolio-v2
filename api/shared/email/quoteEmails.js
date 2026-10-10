@@ -57,35 +57,47 @@ function quoteSent(v) {
 }
 
 function quoteAccepted(v) {
-  const subject = `Quote accepted: your deposit invoice for ${v.title}`;
+  // v.invoice is null when the quote has no payment stages; the invoice card,
+  // pay button and invoice lines are then left out.
+  const inv = v.invoice;
+  const subject = inv
+    ? `Quote accepted: your deposit invoice for ${v.title}`
+    : `Quote accepted: ${v.title}`;
   const html = shell({
-    preview: `Thanks ${v.clientFirstName}. Your deposit invoice is ready.`,
+    preview: inv
+      ? `Thanks ${v.clientFirstName}. Your deposit invoice is ready.`
+      : `Thanks ${v.clientFirstName}. We have your acceptance.`,
     reason: CLIENT_REASON,
     body:
       heading({
         eyebrow: "Quote accepted",
         tone: "ok",
         title: "Thank you, we're on",
-        intro: `Hi ${v.clientFirstName}, you accepted quote ${v.quoteNumber} as ${v.acceptedName}. The next step is the deposit.`,
+        intro: `Hi ${v.clientFirstName}, you accepted quote ${v.quoteNumber} as ${v.acceptedName}. ${
+          inv ? "The next step is the deposit." : "We'll be in touch with the next steps."
+        }`,
       }) +
-      invoiceBlock(v.invoice) +
-      buttons(
-        button({ href: v.invoice.payLink, label: "Pay the deposit" }),
-        button({ href: v.invoice.invoiceLink, label: "View invoice", variant: "secondary" }),
-      ) +
+      (inv
+        ? invoiceBlock(inv) +
+          buttons(
+            button({ href: inv.payLink, label: "Pay the deposit" }),
+            button({ href: inv.invoiceLink, label: "View invoice", variant: "secondary" }),
+          )
+        : "") +
       steps([
         "Pay the deposit",
         "We schedule the work and keep you updated",
-        "You pay the balance on delivery",
+        "Later stages are invoiced as the project reaches them",
       ]) +
       small(`Your quote stays available at ${v.link}`),
   });
   const text = lines(
     `Hi ${v.clientFirstName},`,
     `You accepted quote ${v.quoteNumber} as ${v.acceptedName}. Thank you.`,
-    `Deposit invoice ${v.invoice.invoiceNumber}: ${v.invoice.amount}, due ${v.invoice.dueDate}.`,
-    `Pay here: ${v.invoice.payLink}`,
-    `Invoice: ${v.invoice.invoiceLink}`,
+    inv ? `Deposit invoice ${inv.invoiceNumber}: ${inv.amount}, due ${inv.dueDate}.` : "",
+    inv ? `Pay here: ${inv.payLink}` : "",
+    inv ? `Invoice: ${inv.invoiceLink}` : "",
+    `Your quote: ${v.link}`,
   );
   return { subject, html, text };
 }

@@ -35,12 +35,14 @@ function formatMoney(minor, currency) {
 
 function formatDate(iso) {
   if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
     timeZone: "Africa/Accra",
-  }).format(new Date(iso));
+  }).format(date);
 }
 
 function firstName(name) {
@@ -127,9 +129,45 @@ function clientQuoteView(q, stages, { receiptSecret } = {}) {
   };
 }
 
+// Explicit whitelist: a stored field reaches the admin UI only if it is listed
+// here. Hashes, Appwrite $-metadata and unknown future fields are dropped.
 function adminQuoteView(q) {
-  const { tokenHash, acceptedIpHash, $permissions, $collectionId, $databaseId, ...rest } = q;
-  return { ...rest, hasLink: Boolean(tokenHash) };
+  return {
+    id: q.id ?? null,
+    quoteNumber: q.quoteNumber ?? null,
+    revision: q.revision ?? null,
+    status: q.status ?? null,
+    currency: q.currency ?? null,
+    title: q.title ?? null,
+    overview: q.overview ?? null,
+    scope: q.scope ?? null,
+    timeline: q.timeline ?? null,
+    notes: q.notes ?? null,
+    terms: q.terms ?? null,
+    clientName: q.clientName ?? null,
+    clientEmail: q.clientEmail ?? null,
+    clientPhone: q.clientPhone ?? null,
+    clientCompany: q.clientCompany ?? null,
+    items: q.items ?? null,
+    discountMinor: q.discountMinor ?? null,
+    subtotalMinor: q.subtotalMinor ?? null,
+    totalMinor: q.totalMinor ?? null,
+    schedule: q.schedule ?? null,
+    validDays: q.validDays ?? null,
+    validUntil: q.validUntil ?? null,
+    inquiryId: q.inquiryId ?? null,
+    sentAt: q.sentAt ?? null,
+    viewedAt: q.viewedAt ?? null,
+    respondedAt: q.respondedAt ?? null,
+    acceptedName: q.acceptedName ?? null,
+    acceptedUa: q.acceptedUa ?? null,
+    declineReason: q.declineReason ?? null,
+    payState: q.payState ?? null,
+    requirementsId: q.requirementsId ?? null,
+    createdAt: q.createdAt ?? null,
+    updatedAt: q.updatedAt ?? null,
+    hasLink: Boolean(q.tokenHash),
+  };
 }
 
 function summarize(q, stages) {
@@ -218,7 +256,7 @@ function acceptedView(q, token, stages, base = siteBase()) {
     quoteNumber: q.quoteNumber,
     title: q.title,
     acceptedName: q.acceptedName || q.clientName,
-    invoice: invoiceCard(q, stages[0], token, base),
+    invoice: stages.length ? invoiceCard(q, stages[0], token, base) : null,
     link: quoteLink(token, base),
   };
 }
@@ -245,7 +283,7 @@ function requestView(q, stage, token, stages, base = siteBase()) {
     title: q.title,
     invoice: invoiceCard(q, stage, token, base),
     paidSoFar: formatMoney(s.paidMinor, q.currency),
-    balanceAfter: formatMoney(s.balanceMinor - stage.amountMinor, q.currency),
+    balanceAfter: formatMoney(Math.max(0, s.balanceMinor - stage.amountMinor), q.currency),
   };
 }
 

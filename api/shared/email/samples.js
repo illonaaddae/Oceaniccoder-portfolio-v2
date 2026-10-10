@@ -12,9 +12,11 @@ const invoice = {
   invoiceLink: "https://oceaniccoder.dev/q/sample-token/invoice/deposit",
 };
 
-const SAMPLES = {
-  quoteSent: () =>
-    T.quoteSent({
+// Each entry names the template it renders and the view model it is given.
+const SAMPLE_VIEWS = {
+  quoteSent: {
+    template: "quoteSent",
+    view: {
       clientFirstName: "Kofi",
       quoteNumber: "Q-2026-0007",
       revision: 1,
@@ -23,18 +25,22 @@ const SAMPLES = {
       validUntil: "24 Oct 2026",
       planSummary: "60% deposit, 40% balance",
       link: "https://oceaniccoder.dev/q/sample-token",
-    }),
-  quoteAccepted: () =>
-    T.quoteAccepted({
+    },
+  },
+  quoteAccepted: {
+    template: "quoteAccepted",
+    view: {
       clientFirstName: "Kofi",
       quoteNumber: "Q-2026-0007",
       title: "Online store with Paystack checkout",
       acceptedName: "Kofi Mensah",
       invoice,
       link: "https://oceaniccoder.dev/q/sample-token",
-    }),
-  quoteDecisionAlert: () =>
-    T.quoteDecisionAlert({
+    },
+  },
+  quoteDecisionAlert: {
+    template: "quoteDecisionAlert",
+    view: {
       decision: "accepted",
       clientName: "Kofi Mensah",
       clientEmail: "kofi@example.com",
@@ -44,9 +50,11 @@ const SAMPLES = {
       acceptedName: "Kofi Mensah",
       reason: "",
       adminLink: "https://oceaniccoder.dev/admin/dashboard",
-    }),
-  paymentRequest: () =>
-    T.paymentRequest({
+    },
+  },
+  paymentRequest: {
+    template: "paymentRequest",
+    view: {
       clientFirstName: "Kofi",
       quoteNumber: "Q-2026-0007",
       title: "Online store with Paystack checkout",
@@ -58,9 +66,11 @@ const SAMPLES = {
       },
       paidSoFar: "GHS 6,000.00",
       balanceAfter: "GHS 0.00",
-    }),
-  paymentReceipt: () =>
-    T.paymentReceipt({
+    },
+  },
+  paymentReceipt: {
+    template: "paymentReceipt",
+    view: {
       clientFirstName: "Kofi",
       quoteNumber: "Q-2026-0007",
       title: "Online store with Paystack checkout",
@@ -72,9 +82,11 @@ const SAMPLES = {
       receiptLink: "https://oceaniccoder.dev/receipt/Q-2026-0007-1-K7Q2X9PL?s=sample",
       balance: "GHS 4,000.00",
       complete: false,
-    }),
-  paymentAlert: () =>
-    T.paymentAlert({
+    },
+  },
+  paymentAlert: {
+    template: "paymentAlert",
+    view: {
       kind: "paid",
       problem: "",
       clientName: "Kofi Mensah",
@@ -86,9 +98,11 @@ const SAMPLES = {
       reference: "Q-2026-0007-1-K7Q2X9PL",
       balance: "GHS 4,000.00",
       adminLink: "https://oceaniccoder.dev/admin/dashboard",
-    }),
-  paymentAlertProblem: () =>
-    T.paymentAlert({
+    },
+  },
+  paymentAlertProblem: {
+    template: "paymentAlert",
+    view: {
       kind: "problem",
       problem: "A second payment arrived for a stage that was already paid. Refund it in Paystack.",
       clientName: "Kofi Mensah",
@@ -100,7 +114,12 @@ const SAMPLES = {
       reference: "Q-2026-0007-1-ZZZZZZZZ",
       balance: "",
       adminLink: "https://oceaniccoder.dev/admin/dashboard",
-    }),
+    },
+  },
 };
 
-module.exports = { SAMPLES };
+const SAMPLES = Object.fromEntries(
+  Object.entries(SAMPLE_VIEWS).map(([name, { template, view }]) => [name, () => T[template](view)]),
+);
+
+module.exports = { SAMPLES, SAMPLE_VIEWS };
