@@ -26,7 +26,11 @@ describe("quote services", () => {
     );
     const err = await fetchClientQuote("tok").catch((e) => e);
     expect(err).toBeInstanceOf(QuoteApiError);
-    expect(err).toMatchObject({ status: 404, message: "This link is no longer active." });
+    expect(err).toMatchObject({
+      status: 404,
+      message: "This link is no longer active.",
+      inactive: true,
+    });
   });
 
   it("encodes the token and reference", async () => {
@@ -68,5 +72,21 @@ describe("quote services", () => {
     );
     const err = (await quoteAdmin("create", { draft: {} }).catch((e) => e)) as QuoteApiError;
     expect(err.fields).toEqual({ title: "Required" });
+  });
+
+  it("rejects an ok response that is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError("bad json");
+        },
+      }),
+    );
+    const err = await fetchClientQuote("tok").catch((e) => e);
+    expect(err).toBeInstanceOf(QuoteApiError);
+    expect(err).toMatchObject({ status: 200, message: "Unexpected response from the server." });
   });
 });

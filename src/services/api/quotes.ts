@@ -7,11 +7,18 @@ type FetchInit = Parameters<typeof fetch>[1];
 export class QuoteApiError extends Error {
   status: number;
   fields?: Record<string, string>;
-  constructor(message: string, status: number, fields?: Record<string, string>) {
+  inactive?: boolean;
+  constructor(
+    message: string,
+    status: number,
+    fields?: Record<string, string>,
+    inactive?: boolean,
+  ) {
     super(message);
     this.name = "QuoteApiError";
     this.status = status;
     this.fields = fields;
+    this.inactive = inactive;
   }
 }
 
@@ -25,15 +32,19 @@ async function call<T>(path: string, init?: FetchInit): Promise<T> {
       0,
     );
   }
-  const body = (await res.json().catch(() => ({}))) as {
-    error?: string;
-    fields?: Record<string, string>;
-  };
+  let body: { error?: string; fields?: Record<string, string>; inactive?: boolean };
+  try {
+    body = await res.json();
+  } catch {
+    if (res.ok) throw new QuoteApiError("Unexpected response from the server.", res.status);
+    body = {};
+  }
   if (!res.ok)
     throw new QuoteApiError(
       body.error || "Something went wrong. Please try again.",
       res.status,
       body.fields,
+      body.inactive,
     );
   return body as T;
 }

@@ -88,23 +88,42 @@ export interface ClientQuote {
   contact: { email: string; whatsapp: string };
 }
 
-export interface AdminQuote extends QuoteDraft {
+/** Mirrors adminQuoteView in api/shared/quotes/views.js: unset fields arrive as null. */
+export interface AdminQuote {
   id: string;
   quoteNumber: string;
   revision: number;
   status: QuoteStatus;
+  currency: QuoteCurrency;
+  title: string;
+  overview: string | null;
+  scope: string | null;
+  timeline: string | null;
+  notes: string | null;
+  terms: string | null;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string | null;
+  clientCompany: string | null;
+  items: QuoteItem[];
+  discountMinor: number | null;
   subtotalMinor: number;
   totalMinor: number;
-  sentAt?: string | null;
-  viewedAt?: string | null;
-  respondedAt?: string | null;
-  validUntil?: string | null;
-  acceptedName?: string | null;
-  acceptedUa?: string | null;
-  declineReason?: string | null;
+  schedule: QuoteStageDef[];
+  validDays: number | null;
+  validUntil: string | null;
+  inquiryId: string | null;
+  sentAt: string | null;
+  viewedAt: string | null;
+  respondedAt: string | null;
+  acceptedName: string | null;
+  acceptedUa: string | null;
+  declineReason: string | null;
+  payState: { due: Record<string, string> } | null;
+  requirementsId: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
   hasLink: boolean;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface QuoteSummary {

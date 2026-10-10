@@ -1,4 +1,10 @@
-import type { QuoteCurrency, QuoteItem, QuoteStageDef } from "@/types/quote";
+import type {
+  AdminQuote,
+  QuoteCurrency,
+  QuoteDraft,
+  QuoteItem,
+  QuoteStageDef,
+} from "@/types/quote";
 
 // Editor-side copy of the server's quote rules (api/shared/quotes/model.js),
 // so totals and stage amounts update as the admin types. quoteMath.test.ts
@@ -64,8 +70,9 @@ export function formatMinor(minor: number, currency: QuoteCurrency | string): st
 
 /** "1,234.5" → 123450. Returns null for anything that isn't a plain amount with at most 2 decimals. */
 export function toMinor(input: string): number | null {
-  const clean = input.replace(/,/g, "").trim();
-  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
+  const trimmed = input.trim();
+  if (!/^(\d{1,3}(,\d{3})+|\d+)(\.\d{1,2})?$/.test(trimmed)) return null;
+  const clean = trimmed.replace(/,/g, "");
   const [whole, frac = ""] = clean.split(".");
   return Number(whole) * 100 + Number(frac.padEnd(2, "0"));
 }
@@ -79,9 +86,40 @@ export function newId(prefix: string): string {
 }
 
 export function formatDate(iso?: string | null): string {
-  return iso
-    ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(
-        new Date(iso),
-      )
-    : "";
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Africa/Accra",
+  }).format(date);
+}
+
+/** Editor draft from a saved quote (or nothing): null/undefined fields fall back to the defaults. */
+export function quoteToDraft(q: Partial<AdminQuote> | null | undefined): QuoteDraft {
+  const pick = <T>(value: T | null | undefined, fallback: T): T => value ?? fallback;
+  return {
+    clientName: pick(q?.clientName, ""),
+    clientEmail: pick(q?.clientEmail, ""),
+    clientPhone: pick(q?.clientPhone, ""),
+    clientCompany: pick(q?.clientCompany, ""),
+    currency: pick(q?.currency, "GHS"),
+    title: pick(q?.title, ""),
+    overview: pick(q?.overview, ""),
+    scope: pick(q?.scope, ""),
+    timeline: pick(q?.timeline, ""),
+    notes: pick(q?.notes, ""),
+    terms: pick(q?.terms, DEFAULT_TERMS),
+    items: q?.items?.length
+      ? q.items.map((i) => ({ ...i }))
+      : [{ id: newId("item"), description: "", qty: 1, unitMinor: 0 }],
+    discountMinor: pick(q?.discountMinor, 0),
+    schedule: q?.schedule?.length
+      ? q.schedule.map((s) => ({ ...s }))
+      : DEFAULT_SCHEDULE.map((s) => ({ ...s })),
+    validDays: pick(q?.validDays, 14),
+    inquiryId: pick(q?.inquiryId, null),
+  };
 }
