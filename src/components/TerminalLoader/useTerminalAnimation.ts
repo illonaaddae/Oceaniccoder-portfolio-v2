@@ -3,7 +3,7 @@ import { sequence, TerminalLine } from "./terminalTheme";
 
 const LOADER_KEY = "hasSeenLoader";
 
-const SKIP_PATHS = ["/pay/", "/dashboard", "/admin"];
+const SKIP_PATHS = ["/pay/", "/q/", "/receipt/", "/dashboard", "/admin"];
 const shouldSkipForPath = () => SKIP_PATHS.some((p) => window.location.pathname.startsWith(p));
 
 export function useTerminalAnimation() {

@@ -1,0 +1,111 @@
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import QuoteShell, { QuoteCard, QuoteError, QuoteLoading } from "./QuoteShell";
+import QuoteDocument, { TermsAndNotes } from "./QuoteDocument";
+import JourneyBar from "./JourneyBar";
+import StagePlan from "./StagePlan";
+import QuoteActions from "./QuoteActions";
+import InactiveLink from "./InactiveLink";
+import { useClientQuote } from "./useClientQuote";
+import { formatDate, formatMinor } from "@/utils/quoteMath";
+import type { ClientQuote } from "@/types/quote";
+
+function StatusBanner({ quote }: { quote: ClientQuote }) {
+  const banners: Partial<Record<ClientQuote["status"], [string, string]>> = {
+    accepted: [
+      `Accepted by ${quote.acceptedName} on ${formatDate(quote.respondedAt)}.`,
+      "var(--status-success-bg)",
+    ],
+    declined: [
+      "You declined this quote. If that was a mistake, get in touch and we'll reopen it.",
+      "var(--status-pending-bg)",
+    ],
+    expired: [
+      "This quote has expired. Ask us for an updated one and we'll send it over.",
+      "var(--status-pending-bg)",
+    ],
+  };
+  const banner = banners[quote.status];
+  if (!banner) return null;
+  return (
+    <div
+      role="status"
+      className="rounded-xl px-4 py-3 text-sm"
+      style={{ background: banner[1], color: "var(--text-primary)" }}
+    >
+      {banner[0]}
+    </div>
+  );
+}
+
+function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
+  const next = quote.stages.find((s) => s.state === "due");
+  if (quote.summary.complete) {
+    return (
+      <QuoteCard className="print:hidden">
+        <p className="font-medium" style={{ color: "var(--text-primary)" }}>
+          Fully paid. Thank you for working with OceanicCoder.
+        </p>
+      </QuoteCard>
+    );
+  }
+  if (!next) return null;
+  return (
+    <QuoteCard className="print:hidden">
+      <p
+        className="font-mono text-[11px] uppercase tracking-[0.12em] mb-1"
+        style={{ color: "var(--accent-teal)" }}
+      >
+        Next step
+      </p>
+      <p className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+        {next.index === 0 ? "Your deposit is ready to pay" : `${next.label} is ready to pay`}:{" "}
+        {formatMinor(next.amountMinor, quote.currency)}
+      </p>
+      <Link
+        to={`/q/${token}/pay/${next.id}`}
+        className="inline-flex min-h-12 items-center px-6 rounded-xl font-semibold text-white"
+        style={{ background: "var(--accent-teal)" }}
+      >
+        {next.index === 0 ? "Pay the deposit" : `Pay the ${next.label.toLowerCase()}`}
+      </Link>
+    </QuoteCard>
+  );
+}
+
+export default function QuotePage() {
+  const { token = "" } = useParams();
+  const [params] = useSearchParams();
+  const { state, reload, setQuote } = useClientQuote(token, params.get("preview") === "1");
+
+  if (state.kind === "loading")
+    return (
+      <QuoteShell title="Your quote">
+        <QuoteLoading />
+      </QuoteShell>
+    );
+  if (state.kind === "inactive")
+    return (
+      <QuoteShell title="Link not active" width="narrow">
+        <InactiveLink />
+      </QuoteShell>
+    );
+  if (state.kind === "error")
+    return (
+      <QuoteShell title="Your quote">
+        <QuoteError message={state.message} onRetry={reload} />
+      </QuoteShell>
+    );
+
+  const { quote } = state;
+  return (
+    <QuoteShell title={`${quote.title} · ${quote.quoteNumber}`}>
+      <JourneyBar quote={quote} />
+      <StatusBanner quote={quote} />
+      {quote.status === "accepted" && <NextStep quote={quote} token={token} />}
+      <QuoteDocument quote={quote} />
+      <StagePlan quote={quote} token={token} />
+      <TermsAndNotes quote={quote} />
+      {quote.status === "sent" && <QuoteActions token={token} quote={quote} onChange={setQuote} />}
+    </QuoteShell>
+  );
+}

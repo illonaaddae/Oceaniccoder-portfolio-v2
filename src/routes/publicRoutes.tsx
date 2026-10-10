@@ -17,6 +17,11 @@ import {
   Booking,
   ClientInquiry,
   PaymentPage,
+  QuotePage,
+  CheckoutPage,
+  PaidPage,
+  StageInvoicePage,
+  ReceiptPage,
 } from "./lazyComponents";
 
 const Fallback = () => <LoadingSpinner />;
@@ -133,6 +138,46 @@ const publicRoutes = (
       element={
         <React.Suspense fallback={<Fallback />}>
           <PaymentPage />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/q/:token"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <QuotePage />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/q/:token/pay/:stageId"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <CheckoutPage />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/q/:token/paid"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <PaidPage />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/q/:token/invoice/:stageId"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <StageInvoicePage />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/receipt/:reference"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <ReceiptPage />
         </React.Suspense>
       }
     />
