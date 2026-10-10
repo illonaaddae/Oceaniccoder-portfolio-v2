@@ -3,9 +3,10 @@
 // caller wins even when the webhook, the return page and polling race.
 //
 // Policy: locks have no TTL. Callers must release on error (settle does). If
-// the process crashes between take() and release(), the lock is stranded. It
-// is recovered by recording the payment by hand, or by deleting the lock row
-// in the Appwrite console.
+// the process crashes between take() and release(), the lock is stranded. A
+// stranded stage lock also blocks manual recording of that stage. Recovery is
+// deleting the lock row in the Appwrite console (locks table, id = "s_" plus a
+// sha256 prefix of the key).
 
 const { DATABASE_ID } = require("./appwrite");
 const { lockId } = require("./tokens");

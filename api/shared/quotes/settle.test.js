@@ -141,4 +141,82 @@ describe("settleQuotePayment", () => {
     repo.updatePayment = original;
     expect((await run()).state).toBe("success");
   });
+
+  it("marks a pending reference duplicate when the stage was paid with no stage lock held", async () => {
+    const payments = [
+      pending({ id: "p0", paystackReference: "REF0", status: "success", paidAt: "2026-10-01" }),
+      pending({ id: "p1" }),
+    ];
+    const { repo, locks, notify, run } = setup({ payments });
+    expect(locks.held.size).toBe(0);
+    expect((await run("REF1")).state).toBe("duplicate");
+    expect(repo.payments.get("p1").status).toBe("duplicate");
+    expect(notify.paymentProblem).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      "duplicate",
+    );
+    expect(notify.paymentReceived).not.toHaveBeenCalled();
+  });
+
+  it("keeps the stage lock when the success write lands but then errors", async () => {
+    const { repo, locks, run } = setup();
+    const original = repo.updatePayment;
+    repo.updatePayment = vi.fn(async (id, patch) => {
+      await original(id, patch);
+      throw new Error("timeout after write");
+    });
+    await expect(run()).rejects.toThrow("timeout after write");
+    expect(repo.payments.get("p1").status).toBe("success");
+    expect(locks.held.has("stage:q1:deposit")).toBe(true);
+    expect(locks.held.has("settle:REF1")).toBe(false);
+  });
+
+  it("keeps the stage lock when the re-read after an error also fails", async () => {
+    const { repo, locks, run } = setup();
+    repo.updatePayment = vi.fn().mockRejectedValue(new Error("write failed"));
+    const find = repo.findPaymentByReference;
+    let calls = 0;
+    repo.findPaymentByReference = vi.fn(async (r) => {
+      calls += 1;
+      if (calls > 1) throw new Error("read failed");
+      return find(r);
+    });
+    await expect(run()).rejects.toThrow("write failed");
+    expect(locks.held.has("stage:q1:deposit")).toBe(true);
+    expect(locks.held.has("settle:REF1")).toBe(false);
+  });
+
+  it("settles two references for one stage concurrently as one success and one duplicate", async () => {
+    const payments = [pending(), pending({ id: "p2", paystackReference: "REF2" })];
+    const { run } = setup({ payments });
+    const states = (await Promise.all([run("REF1"), run("REF2")])).map((r) => r.state).sort();
+    expect(states).toEqual(["duplicate", "success"]);
+  });
+
+  it("returns the current status without updating when another caller holds the settle lock", async () => {
+    const { repo, locks, notify, run } = setup();
+    await locks.take("settle:REF1");
+    const spy = vi.spyOn(repo, "updatePayment");
+    expect((await run()).state).toBe("pending");
+    expect(spy).not.toHaveBeenCalled();
+    expect(notify.paymentReceived).not.toHaveBeenCalled();
+  });
+
+  it("leaves the winner's stage lock held after a duplicate", async () => {
+    const payments = [pending(), pending({ id: "p2", paystackReference: "REF2" })];
+    const { locks, run } = setup({ payments });
+    await run("REF1");
+    await run("REF2");
+    expect(locks.held.has("stage:q1:deposit")).toBe(true);
+  });
+
+  it("fails the payment without notifying when the quote is missing", async () => {
+    const { repo, notify, run } = setup();
+    repo.quotes.delete("q1");
+    expect((await run()).state).toBe("failed");
+    expect(repo.payments.get("p1")).toMatchObject({ status: "failed", note: "quote not found" });
+    expect(notify.paymentProblem).not.toHaveBeenCalled();
+    expect(notify.paymentReceived).not.toHaveBeenCalled();
+  });
 });

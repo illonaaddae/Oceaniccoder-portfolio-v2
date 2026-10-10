@@ -45,6 +45,15 @@ async function settleQuotePayment({
       paystackId: String(tx.id || ""),
     };
 
+    if (!quote) {
+      const p = await repo.updatePayment(payment.id, {
+        ...gateway,
+        status: "failed",
+        note: "quote not found",
+      });
+      return { state: "failed", payment: p };
+    }
+
     if (mapped === "failed") {
       const p = await repo.updatePayment(payment.id, {
         ...gateway,
@@ -66,6 +75,16 @@ async function settleQuotePayment({
 
     const payments = await repo.listPayments(quote.quoteNumber);
     const stage = M.stageStates(quote, payments).find((s) => s.id === payment.stageId);
+    if (stage && stage.state === "paid") {
+      // Already recorded by another payment (or by hand): never record twice.
+      const p = await repo.updatePayment(payment.id, {
+        ...gateway,
+        status: "duplicate",
+        note: "stage already paid",
+      });
+      await notify.paymentProblem(quote, p, "duplicate");
+      return { state: "duplicate", payment: p };
+    }
     const check = S.checkSettlement({
       expectedMinor: stage ? stage.amountMinor : 0,
       expectedCurrency: quote.currency,
@@ -103,8 +122,22 @@ async function settleQuotePayment({
     await notify.paymentReceived(quote, p, after);
     return { state: "success", payment: p };
   } catch (err) {
-    if (stageKey) await locks.release(stageKey);
-    await locks.release(settleKey);
+    // Release the stage lock only when this payment is provably still pending.
+    // If the success write may have landed (or the re-read fails), keep the
+    // lock: stranding a stage is safer than recording it twice.
+    if (stageKey) {
+      try {
+        const fresh = await repo.findPaymentByReference(reference);
+        if (fresh && fresh.status === "pending") await locks.release(stageKey);
+      } catch {
+        // keep the stage lock
+      }
+    }
+    try {
+      await locks.release(settleKey);
+    } catch {
+      // original error matters more
+    }
     throw err;
   }
 }

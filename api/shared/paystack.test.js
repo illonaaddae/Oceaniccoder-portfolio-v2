@@ -71,9 +71,9 @@ describe("paystack", () => {
   });
 
   it("passes a timeout signal and surfaces an abort as a thrown error", async () => {
-    const abort = Object.assign(new Error("The operation was aborted"), { name: "AbortError" });
+    const abort = Object.assign(new Error("The operation timed out"), { name: "TimeoutError" });
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abort));
-    await expect(P.verifyTransaction("R")).rejects.toMatchObject({ name: "AbortError" });
+    await expect(P.verifyTransaction("R")).rejects.toMatchObject({ name: "TimeoutError" });
     const [, init] = fetch.mock.calls[0];
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
