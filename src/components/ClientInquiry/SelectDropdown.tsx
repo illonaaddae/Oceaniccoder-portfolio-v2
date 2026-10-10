@@ -40,20 +40,28 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
       if (e.target instanceof globalThis.Node && menuRef.current?.contains(e.target)) return;
       setOpen(false);
     };
+    const handleResize = () => setOpen(false);
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  // Escape is only handled while this menu is open, so other fields keep their focus.
+  useEffect(() => {
+    if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setOpen(false);
       triggerRef.current?.querySelector("button")?.focus();
     };
-    document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
-  }, []);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
 
   const handleOpen = () => {
     if (!triggerRef.current) return;

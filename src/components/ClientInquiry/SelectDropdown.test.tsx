@@ -41,8 +41,31 @@ describe("SelectDropdown", () => {
       "aria-selected",
       "true",
     );
+    screen.getByRole("option", { name: "Mobile App" }).focus();
     userEvent.keyboard("{esc}");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it("ignores Escape while closed and leaves other fields focused", () => {
+    render(
+      <>
+        <input aria-label="name" />
+        <SelectDropdown value="" onChange={vi.fn()} options={options} />
+      </>,
+    );
+    const input = screen.getByLabelText("name");
+    input.focus();
+    userEvent.keyboard("{esc}");
+    expect(input).toHaveFocus();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("closes when the window is resized", () => {
+    render(<SelectDropdown value="" onChange={vi.fn()} options={options} />);
+    userEvent.click(screen.getByRole("button", { name: /select/i }));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    fireEvent(window, new Event("resize"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });
