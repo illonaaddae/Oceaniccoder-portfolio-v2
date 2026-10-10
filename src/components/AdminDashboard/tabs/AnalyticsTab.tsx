@@ -24,6 +24,8 @@ import {
   Legend,
 } from "recharts";
 import { getInvoices } from "@/services/api/invoices";
+import { getPayments } from "@/services/api/payments";
+import { quotePaymentsAsRevenue } from "./quoteRevenue";
 import { getExpenses, createExpense, deleteExpense } from "@/services/api/expenses";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import { BlogReadershipSection } from "./Analytics/BlogReadershipSection";
@@ -222,8 +224,12 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [invs, exps] = await Promise.all([getInvoices(), getExpenses()]);
-      setInvoices(invs);
+      const [invs, exps, pays] = await Promise.all([
+        getInvoices(),
+        getExpenses(),
+        getPayments().catch(() => []),
+      ]);
+      setInvoices([...invs, ...quotePaymentsAsRevenue(pays)]);
       setExpenses(exps);
       if (exps.length === 0) setExpensesUnavailable(false);
     } finally {
