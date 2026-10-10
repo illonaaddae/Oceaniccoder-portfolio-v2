@@ -29,6 +29,7 @@ export default function JourneyBar({ quote }: { quote: ClientQuote }) {
                 {s.done ? <FaCheck aria-hidden /> : i + 1}
               </span>
               {s.label}
+              {s.done && <span className="sr-only">(completed)</span>}
             </span>
             {i < steps.length - 1 && (
               <span

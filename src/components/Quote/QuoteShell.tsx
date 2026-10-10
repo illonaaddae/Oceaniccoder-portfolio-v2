@@ -22,7 +22,7 @@ export default function QuoteShell({
       </Helmet>
       <header className="print:hidden border-b" style={{ borderColor: "var(--border-subtle)" }}>
         <div className={`${max} mx-auto px-4 h-14 flex items-center justify-between`}>
-          <a href="/" className="flex items-center gap-2">
+          <a href="/" className="flex items-center gap-2 shrink-0">
             <img src="/images/logo/Oceaniccoder-croped.png" alt="" className="h-7 w-7 rounded" />
             <span className="font-heading font-semibold" style={{ color: "var(--text-primary)" }}>
               OceanicCoder
@@ -30,14 +30,14 @@ export default function QuoteShell({
           </a>
           <a
             href="mailto:hello@oceaniccoder.dev"
-            className="text-sm hidden sm:inline"
+            className="text-xs sm:text-sm truncate ml-3 min-w-0"
             style={{ color: "var(--text-secondary)" }}
           >
             hello@oceaniccoder.dev
           </a>
         </div>
       </header>
-      <main className={`${max} mx-auto px-4 py-8 sm:py-12 space-y-6 print:py-0`}>{children}</main>
+      <div className={`${max} mx-auto px-4 py-8 sm:py-12 space-y-6 print:py-0`}>{children}</div>
     </div>
   );
 }

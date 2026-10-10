@@ -33,7 +33,31 @@ function StatusBanner({ quote }: { quote: ClientQuote }) {
       style={{ background: banner[1], color: "var(--text-primary)" }}
     >
       {banner[0]}
+      {(quote.status === "declined" || quote.status === "expired") && (
+        <>
+          {" "}
+          <a
+            href={`mailto:${quote.contact.email}?subject=${encodeURIComponent(`Quote ${quote.quoteNumber}`)}`}
+            className="underline font-medium"
+          >
+            Email us at {quote.contact.email}
+          </a>
+        </>
+      )}
     </div>
+  );
+}
+
+function PrintButton({ className = "" }: { className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => window.print()}
+      className={`min-h-12 px-5 rounded-xl border print:hidden ${className}`}
+      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+    >
+      Print or save PDF
+    </button>
   );
 }
 
@@ -42,9 +66,10 @@ function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
   if (quote.summary.complete) {
     return (
       <QuoteCard className="print:hidden">
-        <p className="font-medium" style={{ color: "var(--text-primary)" }}>
+        <p className="font-medium mb-4" style={{ color: "var(--text-primary)" }}>
           Fully paid. Thank you for working with OceanicCoder.
         </p>
+        <PrintButton />
       </QuoteCard>
     );
   }
@@ -68,6 +93,7 @@ function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
       >
         {next.index === 0 ? "Pay the deposit" : `Pay the ${next.label.toLowerCase()}`}
       </Link>
+      <PrintButton className="ml-3" />
     </QuoteCard>
   );
 }

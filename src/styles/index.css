@@ -496,3 +496,22 @@ textarea:focus {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Print: browsers drop backgrounds, so the default dark theme would print
+   light text on white paper. Force a readable light palette on paper. */
+@media print {
+  :root,
+  :root.dark,
+  .dark,
+  [data-theme="light"],
+  [data-theme="dark"],
+  html[data-theme="light"],
+  html[data-theme="dark"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border-subtle: #cbd5e1;
+  }
+}

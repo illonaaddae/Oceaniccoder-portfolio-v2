@@ -150,4 +150,24 @@ describe("QuotePage", () => {
     await screen.findByRole("heading", { name: "Online store" });
     expect(fetchClientQuote).toHaveBeenCalledWith("tok", true);
   });
+
+  it("declines with a reason", async () => {
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    respondToQuote.mockResolvedValue({
+      quote: { ...baseQuote, status: "declined", respondedAt: "2026-10-02T00:00:00Z" },
+    });
+    renderAt();
+    await userEvent.click(await screen.findByRole("button", { name: "Decline" }));
+    await userEvent.type(screen.getByLabelText(/anything we should know/i), "Too pricey");
+    await userEvent.click(screen.getByRole("button", { name: /decline quote/i }));
+    await waitFor(() =>
+      expect(respondToQuote).toHaveBeenCalledWith("tok", {
+        action: "decline",
+        reason: "Too pricey",
+      }),
+    );
+    expect(
+      await screen.findByRole("link", { name: /email us at hello@oceaniccoder.dev/i }),
+    ).toHaveAttribute("href", expect.stringContaining("mailto:hello@oceaniccoder.dev"));
+  });
 });

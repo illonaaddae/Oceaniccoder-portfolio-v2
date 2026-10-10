@@ -17,4 +17,14 @@ describe("TextBlock", () => {
     );
     expect(container.querySelector("b")).toBeNull();
   });
+  it("shows HTML and non-https schemes as plain text", () => {
+    render(<TextBlock text={"<b>bold</b> javascript:alert(1) http://x.com"} />);
+    expect(screen.getByText(/<b>bold<\/b>/)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+  it("keeps trailing punctuation out of the link", () => {
+    const { container } = render(<TextBlock text={"(see https://example.com/a)."} />);
+    expect(screen.getByRole("link")).toHaveAttribute("href", "https://example.com/a");
+    expect(container.textContent).toBe("(see https://example.com/a).");
+  });
 });

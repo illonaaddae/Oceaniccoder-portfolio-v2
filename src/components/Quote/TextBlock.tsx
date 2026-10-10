@@ -5,22 +5,27 @@ import React from "react";
 // is ever rendered as HTML.
 
 function linkify(line: string) {
-  return line.split(/(https:\/\/[^\s<]+)/g).map((part, i) =>
-    part.startsWith("https://") ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline break-all"
-        style={{ color: "var(--accent-teal)" }}
-      >
-        {part}
-      </a>
-    ) : (
-      <React.Fragment key={i}>{part}</React.Fragment>
-    ),
-  );
+  return line.split(/(https:\/\/[^\s<]+)/g).map((raw, i) => {
+    if (!raw.startsWith("https://")) return <React.Fragment key={i}>{raw}</React.Fragment>;
+    // Trailing punctuation belongs to the sentence, not the URL.
+    const part = raw.replace(/[.,;:!?)]+$/, "");
+    const tail = raw.slice(part.length);
+    return (
+      <React.Fragment key={i}>
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline break-all"
+          style={{ color: "var(--accent-teal)" }}
+        >
+          {part}
+        </a>
+        {tail}
+      </React.Fragment>
+    );
+  });
 }
 
 export default function TextBlock({ text }: { text: string }) {
