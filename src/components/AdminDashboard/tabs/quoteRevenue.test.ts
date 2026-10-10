@@ -24,4 +24,24 @@ describe("quotePaymentsAsRevenue", () => {
       }),
     ]);
   });
+
+  it("keeps USD, excludes failed/refunded, and falls back to $createdAt", () => {
+    const rows = quotePaymentsAsRevenue([
+      {
+        kind: "quote",
+        status: "success",
+        amount: 10,
+        currency: "USD",
+        $createdAt: "2026-09-01T00:00:00Z",
+      },
+      { kind: "quote", status: "failed", amount: 5, currency: "USD" },
+      { kind: "quote", status: "refunded", amount: 7, currency: "USD" },
+    ] as never);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      currency: "USD",
+      total: 10,
+      $createdAt: "2026-09-01T00:00:00Z",
+    });
+  });
 });
