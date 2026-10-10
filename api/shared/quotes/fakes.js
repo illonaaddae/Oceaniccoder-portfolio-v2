@@ -1,68 +1,136 @@
 // In-memory stand-ins for the quote repo and locks, used by function tests.
-// Same method names and return shapes as repo.js and locks.js.
+// They mirror repo.js and locks.js: same method names and return shapes, the
+// same defaults for missing JSON fields, the same 404 on a missing id, the
+// same amountMinor fill, and the same numbering and ordering.
 
 const { quoteNumber } = require("./model");
 
-function clone(v) {
-  return v == null ? v : JSON.parse(JSON.stringify(v));
+const JSON_DEFAULTS = { items: [], schedule: [], payState: { due: {} } };
+const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
+
+const clone = (v) => (v == null ? v : structuredClone(v));
+const now = () => new Date().toISOString();
+
+function notFound() {
+  return Object.assign(new Error("Document not found"), { code: 404 });
+}
+
+// Same rules as repo.js toDoc: drop id fields and $-prefixed keys.
+function cleanPatch(patch) {
+  const out = {};
+  for (const [key, value] of Object.entries(patch || {})) {
+    if (key.startsWith("$") || SKIP_ON_WRITE.has(key)) continue;
+    out[key] = clone(value);
+  }
+  return out;
+}
+
+// Same defaults as repo.js toQuote, applied on every read.
+function toQuote(doc) {
+  if (!doc) return null;
+  const q = clone(doc);
+  for (const [key, fallback] of Object.entries(JSON_DEFAULTS)) {
+    if (q[key] == null) q[key] = clone(fallback);
+  }
+  return q;
+}
+
+// Same rule as repo.js toPayment.
+function toPayment(doc) {
+  if (!doc) return null;
+  const p = clone(doc);
+  p.amountMinor = Number.isInteger(doc.amountMinor)
+    ? doc.amountMinor
+    : Math.round(Number(doc.amount || 0) * 100);
+  return p;
+}
+
+function freshId(map, prefix) {
+  let n = map.size;
+  let id;
+  do {
+    n += 1;
+    id = `${prefix}${n}`;
+  } while (map.has(id));
+  return id;
 }
 
 function createFakeRepo({ quotes = [], payments = [] } = {}) {
   const q = new Map(quotes.map((x) => [x.id, clone(x)]));
   const p = new Map(payments.map((x) => [x.id, clone(x)]));
-  let seq = q.size;
-  let pseq = p.size;
   const inquiryStatus = {};
-  const now = () => new Date().toISOString();
+
+  // Next sequence for a year: highest existing NNNN for that year, plus one.
+  function nextSeq(year) {
+    const prefix = `Q-${year}-`;
+    let max = 0;
+    for (const x of q.values()) {
+      if (typeof x.quoteNumber === "string" && x.quoteNumber.startsWith(prefix)) {
+        max = Math.max(max, Number(x.quoteNumber.slice(prefix.length)) || 0);
+      }
+    }
+    return max + 1;
+  }
+
+  // Insertion order stands in for Appwrite's $createdAt desc order.
+  const newestFirst = (map) => [...map.values()].reverse();
 
   return {
     quotes: q,
     payments: p,
     inquiryStatus,
     async get(id) {
-      return clone(q.get(id)) || null;
+      return toQuote(q.get(id));
     },
     async findByTokenHash(hash) {
-      return clone([...q.values()].find((x) => x.tokenHash === hash)) || null;
+      return toQuote([...q.values()].find((x) => x.tokenHash === hash));
     },
     async list() {
-      return [...q.values()].map(clone);
+      return newestFirst(q).map(toQuote);
     },
-    async create(fields) {
-      seq += 1;
+    async create(fields, year = 2026) {
+      const id = freshId(q, "q");
       const doc = {
-        ...clone(fields),
-        id: `q${seq}`,
-        quoteNumber: quoteNumber(2026, seq),
+        ...cleanPatch(fields),
+        id,
+        quoteNumber: quoteNumber(year, nextSeq(year)),
         createdAt: now(),
       };
-      q.set(doc.id, doc);
-      return clone(doc);
+      q.set(id, doc);
+      return toQuote(doc);
     },
     async update(id, patch) {
-      const doc = { ...q.get(id), ...clone(patch), updatedAt: now() };
+      const current = q.get(id);
+      if (!current) throw notFound();
+      const doc = { ...current, ...cleanPatch(patch), updatedAt: now() };
       q.set(id, doc);
-      return clone(doc);
+      return toQuote(doc);
     },
     async listPayments(qn) {
-      return [...p.values()].filter((x) => x.quoteNumber === qn).map(clone);
+      return newestFirst(p)
+        .filter((x) => x.quoteNumber === qn)
+        .map(toPayment);
     },
     async listQuotePayments() {
-      return [...p.values()].filter((x) => x.kind === "quote").map(clone);
+      return newestFirst(p)
+        .filter((x) => x.kind === "quote")
+        .map(toPayment);
     },
     async findPaymentByReference(ref) {
-      return clone([...p.values()].find((x) => x.paystackReference === ref)) || null;
+      return toPayment([...p.values()].find((x) => x.paystackReference === ref));
     },
     async createPayment(fields) {
-      pseq += 1;
-      const doc = { ...clone(fields), id: `p${pseq}`, createdAt: fields.createdAt || now() };
-      p.set(doc.id, doc);
-      return clone(doc);
+      const id = freshId(p, "p");
+      const doc = { ...cleanPatch(fields), id, createdAt: fields.createdAt || now() };
+      p.set(id, doc);
+      return toPayment(doc);
     },
     async updatePayment(id, patch) {
-      const doc = { ...p.get(id), ...clone(patch) };
+      const current = p.get(id);
+      if (!current) throw notFound();
+      const doc = { ...current, ...cleanPatch(patch) };
       p.set(id, doc);
-      return clone(doc);
+      return toPayment(doc);
     },
     async setInquiryStatus(id, status) {
       if (id) inquiryStatus[id] = status;

@@ -14,12 +14,12 @@ const JSON_FIELDS = { items: [], schedule: [], payState: { due: {} } };
 const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
 
 function parse(raw, fallback) {
-  if (raw == null || raw === "") return fallback;
+  if (raw == null || raw === "") return structuredClone(fallback);
   if (typeof raw !== "string") return raw;
   try {
     return JSON.parse(raw);
   } catch {
-    return fallback;
+    return structuredClone(fallback);
   }
 }
 

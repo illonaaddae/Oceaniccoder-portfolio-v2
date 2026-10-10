@@ -1,6 +1,11 @@
 // Atomic locks: a document whose id is derived from the lock key. Creating a
 // document with an id that already exists fails with 409, so exactly one
 // caller wins even when the webhook, the return page and polling race.
+//
+// Policy: locks have no TTL. Callers must release on error (settle does). If
+// the process crashes between take() and release(), the lock is stranded. It
+// is recovered by recording the payment by hand, or by deleting the lock row
+// in the Appwrite console.
 
 const { DATABASE_ID } = require("./appwrite");
 const { lockId } = require("./tokens");

@@ -103,3 +103,62 @@ describe("locks", () => {
     await expect(createLocks(db).release("k")).resolves.toBeUndefined();
   });
 });
+
+describe("quote repo, additional paths", () => {
+  it("does not share fallback objects between reads", async () => {
+    const db = {
+      getDocument: vi.fn().mockResolvedValue({ $id: "q1", payState: null, items: "not json" }),
+    };
+    const repo = createQuoteRepo(db);
+    const a = await repo.get("q1");
+    a.payState.due.x = "mutated";
+    a.items.push({ id: "leak" });
+    const b = await repo.get("q1");
+    expect(b.payState).toEqual({ due: {} });
+    expect(b.items).toEqual([]);
+  });
+
+  it("findByTokenHash returns the quote or null", async () => {
+    const found = {
+      listDocuments: vi.fn().mockResolvedValue({ documents: [{ $id: "q1", items: "[]" }] }),
+    };
+    expect(await createQuoteRepo(found).findByTokenHash("h")).toMatchObject({ id: "q1" });
+    const none = { listDocuments: vi.fn().mockResolvedValue({ documents: [] }) };
+    expect(await createQuoteRepo(none).findByTokenHash("h")).toBeNull();
+  });
+
+  it("createPayment and updatePayment return amountMinor", async () => {
+    const db = {
+      createDocument: vi.fn().mockResolvedValue({ $id: "p1", amount: 3 }),
+      updateDocument: vi.fn().mockResolvedValue({ $id: "p1", amount: 1.5 }),
+    };
+    const repo = createQuoteRepo(db);
+    expect(await repo.createPayment({ amount: 3 })).toMatchObject({ id: "p1", amountMinor: 300 });
+    expect(await repo.updatePayment("p1", { amount: 1.5 })).toMatchObject({ amountMinor: 150 });
+  });
+
+  it("findPaymentByReference returns null when nothing matches", async () => {
+    const db = { listDocuments: vi.fn().mockResolvedValue({ documents: [] }) };
+    expect(await createQuoteRepo(db).findPaymentByReference("ref")).toBeNull();
+  });
+
+  it("create rethrows a non-409 error", async () => {
+    const db = {
+      listDocuments: vi.fn().mockResolvedValue({ documents: [] }),
+      createDocument: vi.fn().mockRejectedValue(new Error("down")),
+    };
+    await expect(createQuoteRepo(db).create({}, 2026)).rejects.toThrow("down");
+    expect(db.createDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("create gives up after 5 conflicts", async () => {
+    const db = {
+      listDocuments: vi.fn().mockResolvedValue({ documents: [] }),
+      createDocument: vi.fn().mockRejectedValue(conflict()),
+    };
+    await expect(createQuoteRepo(db).create({}, 2026)).rejects.toThrow(
+      "Could not allocate a quote number",
+    );
+    expect(db.createDocument).toHaveBeenCalledTimes(5);
+  });
+});
