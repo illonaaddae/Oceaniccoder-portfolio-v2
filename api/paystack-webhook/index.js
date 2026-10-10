@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const https = require("https");
 const sdk = require("node-appwrite");
 const { evaluateSettlement } = require("./settlement");
+const quoteService = require("../shared/quotes/service");
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
@@ -170,6 +171,29 @@ module.exports = async function (context, req) {
       "charge mode does not match the configured key",
       `charge was in ${data.domain} mode but PAYSTACK_SECRET_KEY is a ${keyMode} key — not recording it as revenue`,
     );
+    return;
+  }
+
+  // Quote stage payments carry metadata.kind = "quote". They are settled by
+  // the quote service, which re-fetches the transaction from Paystack rather
+  // than trusting this payload, and uses lock documents so the webhook, the
+  // return page and polling record each payment exactly once. Unlike the
+  // invoice path, a transient failure answers 500 so Paystack retries.
+  if (metadata.kind === "quote") {
+    try {
+      const result = await quoteService.handleQuoteCharge(data.reference);
+      if (result.state === "unknown") {
+        await bail("quote payment reference not found", `reference: ${data.reference || "none"}`);
+        return;
+      }
+      // "pending" is not final: a settle-lock loser can return it while another
+      // caller is still working; Paystack or the return page will complete it.
+      context.log.info(`paystack-webhook: quote payment ${data.reference} → ${result.state}`);
+      ok();
+    } catch (err) {
+      context.log.error(`paystack-webhook: quote payment ${data.reference} failed: ${err.message}`);
+      context.res = { status: 500, headers: CORS, body: JSON.stringify({ error: "retry" }) };
+    }
     return;
   }
 
