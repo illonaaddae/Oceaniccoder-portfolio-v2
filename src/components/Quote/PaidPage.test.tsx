@@ -63,4 +63,33 @@ describe("PaidPage", () => {
       "/q/tok",
     );
   });
+
+  it("without a reference it does not poll and says so", async () => {
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/q/tok/paid"]}>
+          <Routes>
+            <Route path="/q/:token/paid" element={<PaidPage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(await screen.findByText(/couldn't find that payment/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /back to your quote/i })).toHaveAttribute(
+      "href",
+      "/q/tok",
+    );
+    expect(checkStagePayment).not.toHaveBeenCalled();
+  });
+
+  it("pending past five minutes shows the still-waiting copy, never failure", async () => {
+    checkStagePayment.mockResolvedValue({ state: "pending", receiptPath: null });
+    renderAt();
+    expect(await screen.findByText(/confirming/i)).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 10000);
+    });
+    expect(await screen.findByText(/still waiting for paystack/i)).toBeInTheDocument();
+    expect(screen.queryByText(/didn't go through/i)).not.toBeInTheDocument();
+  });
 });

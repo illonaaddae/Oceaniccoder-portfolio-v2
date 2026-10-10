@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { FaCheck, FaCreditCard, FaMobileAlt, FaApple, FaLock } from "react-icons/fa";
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading, SectionLabel } from "./QuoteShell";
@@ -25,12 +25,17 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ tone: "error" | "info"; text: string } | null>(null);
-  const stopRef = useRef(false);
+  const attemptRef = useRef<{ stopped: boolean } | null>(null);
 
   useEffect(() => {
     if (state.kind === "ok" && !email) setEmail(state.quote.clientEmail);
   }, [state, email]);
-  useEffect(() => () => void (stopRef.current = true), []);
+  useEffect(
+    () => () => {
+      if (attemptRef.current) attemptRef.current.stopped = true;
+    },
+    [],
+  );
 
   if (state.kind === "loading")
     return (
@@ -61,15 +66,29 @@ export default function CheckoutPage() {
   const paidUrl = (reference: string) =>
     `/q/${token}/paid?reference=${encodeURIComponent(reference)}`;
 
+  const onMethodKey = (e: KeyboardEvent) => {
+    const keys = ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"];
+    if (!keys.includes(e.key)) return;
+    e.preventDefault();
+    const i = methods.findIndex((m) => m.id === method);
+    const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+    const next = methods[(i + step + methods.length) % methods.length];
+    setMethod(next.id);
+    requestAnimationFrame(() => document.getElementById(`pay-method-${next.id}`)?.focus());
+  };
+
   const pay = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setNote(null);
-    stopRef.current = false;
+    if (attemptRef.current) attemptRef.current.stopped = true;
+    const attempt = { stopped: false };
+    attemptRef.current = attempt;
     let started: Awaited<ReturnType<typeof startStagePayment>>;
     try {
       started = await startStagePayment({ token, stageId: stage.id, method, email: email.trim() });
     } catch (err) {
+      if (attempt.stopped) return;
       setBusy(false);
       setNote({
         tone: "error",
@@ -79,13 +98,14 @@ export default function CheckoutPage() {
     }
     // Safety net: if Paystack's success callback is slow or never fires, notice the payment ourselves.
     const watch = async (tries = 0): Promise<void> => {
-      if (stopRef.current || tries > 60) return;
+      if (attempt.stopped || tries > 60) return;
       await new Promise((r) => setTimeout(r, 4000));
-      if (stopRef.current) return;
+      if (attempt.stopped) return;
       const result = await checkStagePayment(token, started.reference).catch(() => null);
+      if (attempt.stopped) return;
       if (result && result.state === "paid") {
-        stopRef.current = true;
-        navigate(paidUrl(started.reference));
+        attempt.stopped = true;
+        navigate(paidUrl(started.reference), { replace: true });
         return;
       }
       return watch(tries + 1);
@@ -93,13 +113,16 @@ export default function CheckoutPage() {
     void watch();
     try {
       const popup = await loadPaystackV2();
+      if (attempt.stopped) return;
       popup.resumeTransaction(started.accessCode, {
         onSuccess: () => {
-          stopRef.current = true;
-          navigate(paidUrl(started.reference));
+          if (attempt.stopped) return;
+          attempt.stopped = true;
+          navigate(paidUrl(started.reference), { replace: true });
         },
         onCancel: () => {
-          stopRef.current = true;
+          if (attempt.stopped) return;
+          attempt.stopped = true;
           setBusy(false);
           setNote({
             tone: "info",
@@ -107,13 +130,15 @@ export default function CheckoutPage() {
           });
         },
         onError: () => {
-          stopRef.current = true;
+          if (attempt.stopped) return;
+          attempt.stopped = true;
           setBusy(false);
           setNote({ tone: "error", text: "The payment window had a problem. Please try again." });
         },
       });
     } catch {
       // The popup script was blocked or offline: use Paystack's hosted page instead.
+      attempt.stopped = true;
       window.location.assign(started.authorizationUrl);
     }
   };
@@ -176,13 +201,20 @@ export default function CheckoutPage() {
         <QuoteCard>
           <form onSubmit={pay} className="space-y-5">
             <SectionLabel>Choose how to pay</SectionLabel>
-            <div role="tablist" aria-label="Payment method" className="grid gap-3 sm:grid-cols-3">
+            <div
+              role="radiogroup"
+              aria-label="Payment method"
+              onKeyDown={onMethodKey}
+              className="grid gap-3 sm:grid-cols-3"
+            >
               {methods.map(({ id, label, hint, Icon }) => (
                 <button
                   key={id}
+                  id={`pay-method-${id}`}
                   type="button"
-                  role="tab"
-                  aria-selected={method === id}
+                  role="radio"
+                  aria-checked={method === id}
+                  tabIndex={method === id ? 0 : -1}
                   onClick={() => setMethod(id)}
                   className="rounded-xl border p-4 text-left transition"
                   style={{

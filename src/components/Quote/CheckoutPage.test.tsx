@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -70,6 +70,14 @@ const renderAt = (path: string) =>
     </HelmetProvider>,
   );
 
+// The email field is filled from the quote in an effect; wait for it so the form can submit.
+const payButton = async () => {
+  await waitFor(() =>
+    expect(screen.getByLabelText(/email for your receipt/i)).toHaveValue("kofi@example.com"),
+  );
+  return screen.getByRole("button", { name: /pay ghs/i });
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   fetchClientQuote.mockResolvedValue({ quote });
@@ -90,8 +98,8 @@ describe("CheckoutPage", () => {
       reference: "R1",
     });
     renderAt("/q/tok/pay/deposit");
-    await userEvent.click(await screen.findByRole("tab", { name: /mobile money/i }));
-    await userEvent.click(screen.getByRole("button", { name: /pay ghs 6,000.00/i }));
+    await userEvent.click(await screen.findByRole("radio", { name: /mobile money/i }));
+    await userEvent.click(await payButton());
     await waitFor(() =>
       expect(startStagePayment).toHaveBeenCalledWith({
         token: "tok",
@@ -106,7 +114,9 @@ describe("CheckoutPage", () => {
         expect.objectContaining({ onSuccess: expect.any(Function) }),
       ),
     );
-    resumeTransaction.mock.calls[0][1].onSuccess({ reference: "R1" });
+    act(() => {
+      resumeTransaction.mock.calls[0][1].onSuccess({ reference: "R1" });
+    });
     expect(await screen.findByText("paid page")).toBeInTheDocument();
   });
 
@@ -120,8 +130,72 @@ describe("CheckoutPage", () => {
       new Error("Paystack couldn't start the payment. Please try again in a minute."),
     );
     renderAt("/q/tok/pay/deposit");
-    await userEvent.click(await screen.findByRole("button", { name: /pay ghs/i }));
+    await userEvent.click(await payButton());
     expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't start/);
     expect(screen.getByRole("button", { name: /pay ghs/i })).toBeEnabled();
+  });
+
+  it("arrow keys move the payment method selection", async () => {
+    renderAt("/q/tok/pay/deposit");
+    const card = await screen.findByRole("radio", { name: /^card/i });
+    expect(card).toHaveAttribute("aria-checked", "true");
+    expect(card).toHaveAttribute("tabindex", "0");
+    act(() => card.focus());
+    await userEvent.keyboard("{arrowright}");
+    const momo = screen.getByRole("radio", { name: /mobile money/i });
+    expect(momo).toHaveAttribute("aria-checked", "true");
+    expect(card).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("falls back to Paystack's hosted page when the popup can't load", async () => {
+    const { loadPaystackV2 } = await import("@/utils/paystackV2");
+    vi.mocked(loadPaystackV2).mockRejectedValueOnce(new Error("blocked"));
+    startStagePayment.mockResolvedValue({
+      accessCode: "AC1",
+      authorizationUrl: "https://checkout.paystack.com/AC1",
+      reference: "R1",
+    });
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      value: { ...original, assign },
+      configurable: true,
+    });
+    try {
+      renderAt("/q/tok/pay/deposit");
+      await userEvent.click(await payButton());
+      await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.paystack.com/AC1"));
+    } finally {
+      Object.defineProperty(window, "location", { value: original, configurable: true });
+    }
+  });
+
+  it("a cancelled attempt's polling never navigates after a retry", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      startStagePayment
+        .mockResolvedValueOnce({ accessCode: "AC1", authorizationUrl: "u1", reference: "R1" })
+        .mockResolvedValueOnce({ accessCode: "AC2", authorizationUrl: "u2", reference: "R2" });
+      checkStagePayment.mockImplementation(async (_t: string, ref: string) =>
+        ref === "R1"
+          ? { state: "paid", receiptPath: "/receipt/R1" }
+          : { state: "pending", receiptPath: null },
+      );
+      renderAt("/q/tok/pay/deposit");
+      await userEvent.click(await payButton());
+      await waitFor(() => expect(resumeTransaction).toHaveBeenCalledTimes(1));
+      act(() => {
+        resumeTransaction.mock.calls[0][1].onCancel();
+      });
+      await userEvent.click(await payButton());
+      await waitFor(() => expect(resumeTransaction).toHaveBeenCalledTimes(2));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(9000);
+      });
+      expect(screen.queryByText("paid page")).not.toBeInTheDocument();
+      expect(checkStagePayment).not.toHaveBeenCalledWith("tok", "R1");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -15,6 +15,7 @@ export default function PaidPage() {
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!reference) return;
     let stop = false;
     const startedAt = Date.now();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -53,7 +54,18 @@ export default function PaidPage() {
   return (
     <QuoteShell title="Payment" width="narrow">
       <QuoteCard className="text-center">
-        {state === "paid" && (
+        {!reference && (
+          <>
+            <h1
+              className="font-heading text-2xl font-bold mb-2"
+              style={{ color: "var(--text-primary)" }}
+            >
+              We couldn't find that payment.
+            </h1>
+            {back}
+          </>
+        )}
+        {reference && state === "paid" && (
           <>
             <h1
               className="font-heading text-2xl font-bold mb-2"
@@ -76,7 +88,7 @@ export default function PaidPage() {
             {back}
           </>
         )}
-        {(state === "checking" || state === "pending") && (
+        {reference && (state === "checking" || state === "pending") && (
           <>
             <h1
               className="font-heading text-2xl font-bold mb-2"
@@ -90,7 +102,7 @@ export default function PaidPage() {
             </p>
           </>
         )}
-        {state === "slow" && (
+        {reference && state === "slow" && (
           <>
             <h1
               className="font-heading text-2xl font-bold mb-2"
@@ -105,7 +117,7 @@ export default function PaidPage() {
             {back}
           </>
         )}
-        {(state === "failed" || state === "duplicate") && (
+        {reference && (state === "failed" || state === "duplicate") && (
           <>
             <h1
               className="font-heading text-2xl font-bold mb-2"
