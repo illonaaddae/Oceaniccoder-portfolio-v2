@@ -56,10 +56,7 @@ export default function PaidPage() {
       <QuoteCard className="text-center">
         {!reference && (
           <>
-            <h1
-              className="font-heading text-2xl font-bold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
               We couldn't find that payment.
             </h1>
             {back}
@@ -67,10 +64,7 @@ export default function PaidPage() {
         )}
         {reference && state === "paid" && (
           <>
-            <h1
-              className="font-heading text-2xl font-bold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
               Payment received. Thank you!
             </h1>
             <p style={{ color: "var(--text-secondary)" }}>
@@ -80,7 +74,7 @@ export default function PaidPage() {
               <Link
                 to={receiptPath}
                 className="inline-block mt-6 mr-3 px-5 py-3 rounded-xl font-semibold text-white"
-                style={{ background: "var(--accent-teal)" }}
+                style={{ background: "var(--quote-cta)" }}
               >
                 View receipt
               </Link>
@@ -90,10 +84,7 @@ export default function PaidPage() {
         )}
         {reference && (state === "checking" || state === "pending") && (
           <>
-            <h1
-              className="font-heading text-2xl font-bold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
               Confirming your payment…
             </h1>
             <p style={{ color: "var(--text-secondary)" }}>
@@ -104,10 +95,7 @@ export default function PaidPage() {
         )}
         {reference && state === "slow" && (
           <>
-            <h1
-              className="font-heading text-2xl font-bold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
               Still waiting for Paystack
             </h1>
             <p style={{ color: "var(--text-secondary)" }}>
@@ -119,10 +107,7 @@ export default function PaidPage() {
         )}
         {reference && (state === "failed" || state === "duplicate") && (
           <>
-            <h1
-              className="font-heading text-2xl font-bold mb-2"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
               {state === "duplicate"
                 ? "This stage was already paid"
                 : "The payment didn't go through"}

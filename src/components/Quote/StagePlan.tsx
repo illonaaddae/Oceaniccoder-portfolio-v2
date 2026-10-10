@@ -31,7 +31,7 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
             style={{ borderColor: "var(--border-subtle)" }}
           >
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-full font-mono text-sm font-bold text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white"
               style={{ background: "#0a0f1a" }}
             >
               {s.index + 1}
@@ -58,10 +58,7 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
                 )}
               </p>
             </div>
-            <span
-              className="font-mono font-semibold tabular-nums"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <span className=" font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
               {formatMinor(s.amountMinor, quote.currency)}
             </span>
             <span
@@ -75,7 +72,7 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
                 <Link
                   to={`/q/${token}/pay/${s.id}`}
                   className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
-                  style={{ background: "var(--accent-teal)" }}
+                  style={{ background: "var(--quote-cta)" }}
                 >
                   Pay now
                 </Link>
@@ -102,7 +99,7 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
           </li>
         ))}
       </ol>
-      <p className="mt-4 text-sm font-mono tabular-nums" style={{ color: "var(--text-secondary)" }}>
+      <p className="mt-4 text-sm tabular-nums" style={{ color: "var(--text-secondary)" }}>
         Paid {formatMinor(quote.summary.paidMinor, quote.currency)} · Balance{" "}
         {formatMinor(quote.summary.balanceMinor, quote.currency)}
       </p>

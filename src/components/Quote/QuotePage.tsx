@@ -89,7 +89,7 @@ function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
       <Link
         to={`/q/${token}/pay/${next.id}`}
         className="inline-flex min-h-12 items-center px-6 rounded-xl font-semibold text-white"
-        style={{ background: "var(--accent-teal)" }}
+        style={{ background: "var(--quote-cta)" }}
       >
         {next.index === 0 ? "Pay the deposit" : `Pay the ${next.label.toLowerCase()}`}
       </Link>

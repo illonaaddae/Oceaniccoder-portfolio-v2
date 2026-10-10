@@ -42,10 +42,7 @@ export default function StageInvoicePage() {
             >
               Invoice
             </p>
-            <h1
-              className="font-heading text-2xl font-bold"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
               {stage.invoiceNumber}
             </h1>
           </div>
@@ -90,10 +87,7 @@ export default function StageInvoicePage() {
                   Quote {quote.quoteNumber}
                 </span>
               </td>
-              <td
-                className="py-3 text-right font-mono tabular-nums"
-                style={{ color: "var(--text-primary)" }}
-              >
+              <td className="py-3 text-right tabular-nums" style={{ color: "var(--text-primary)" }}>
                 {money(stage.amountMinor)}
               </td>
             </tr>
@@ -102,7 +96,7 @@ export default function StageInvoicePage() {
                 Amount {stage.state === "paid" ? "paid" : "due"}
               </td>
               <td
-                className="py-3 text-right font-mono font-bold tabular-nums"
+                className="py-3 text-right font-bold tabular-nums"
                 style={{ color: "var(--text-primary)" }}
               >
                 {money(stage.amountMinor)}
@@ -115,7 +109,7 @@ export default function StageInvoicePage() {
             <Link
               to={`/q/${token}/pay/${stage.id}`}
               className="px-5 py-3 rounded-xl font-semibold text-white"
-              style={{ background: "var(--accent-teal)" }}
+              style={{ background: "var(--quote-cta)" }}
             >
               Pay now
             </Link>

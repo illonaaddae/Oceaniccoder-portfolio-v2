@@ -155,15 +155,15 @@ export default function CheckoutPage() {
         </div>
       )}
       <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-        <aside className="lg:sticky lg:top-6 self-start rounded-2xl p-6 text-white bg-[linear-gradient(135deg,#04333B_0%,#0a0f1a_100%)]">
+        <aside className="lg:sticky lg:top-6 quote-on-dark self-start rounded-2xl p-6 bg-[linear-gradient(135deg,#04333B_0%,#085866_100%)]">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#7dd3e0]">
             {quote.quoteNumber} · {stage.invoiceNumber}
           </p>
-          <p className="mt-2 text-white/70">{quote.title}</p>
-          <p className="mt-4 text-sm text-white/70">
+          <p className="mt-2 text-white/75">{quote.title}</p>
+          <p className="mt-4 text-sm text-white/75">
             {stage.label} ({stage.percent}%)
           </p>
-          <p className="font-mono text-3xl font-bold tabular-nums">{money(stage.amountMinor)}</p>
+          <p className=" text-3xl font-bold tabular-nums">{money(stage.amountMinor)}</p>
           <ol className="mt-6 space-y-2 text-sm">
             {quote.stages.map((s) => (
               <li key={s.id} className="flex items-center gap-2">
@@ -182,17 +182,17 @@ export default function CheckoutPage() {
                   {s.state === "paid" ? <FaCheck aria-hidden /> : s.index + 1}
                 </span>
                 <span className="flex-1">{s.label}</span>
-                <span className="font-mono tabular-nums">{money(s.amountMinor)}</span>
+                <span className=" tabular-nums">{money(s.amountMinor)}</span>
               </li>
             ))}
           </ol>
-          <dl className="mt-6 border-t border-white/15 pt-4 text-sm font-mono tabular-nums space-y-1">
+          <dl className="mt-6 border-t border-white/15 pt-4 text-sm tabular-nums space-y-1">
             <div className="flex justify-between">
-              <dt className="text-white/70">Paid so far</dt>
+              <dt className="text-white/75">Paid so far</dt>
               <dd>{money(quote.summary.paidMinor)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-white/70">Balance after this payment</dt>
+              <dt className="text-white/75">Balance after this payment</dt>
               <dd>{money(quote.summary.balanceMinor - stage.amountMinor)}</dd>
             </div>
           </dl>
@@ -265,7 +265,7 @@ export default function CheckoutPage() {
               type="submit"
               disabled={busy}
               className="w-full min-h-12 py-3.5 rounded-xl font-semibold text-white disabled:opacity-60"
-              style={{ background: "var(--accent-teal)" }}
+              style={{ background: "var(--quote-cta)" }}
             >
               {busy ? "Waiting for Paystack…" : `Pay ${money(stage.amountMinor)}`}
             </button>

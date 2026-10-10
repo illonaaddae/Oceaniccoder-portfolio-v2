@@ -15,15 +15,15 @@ export default function JourneyBar({ quote }: { quote: ClientQuote }) {
               className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium border"
               style={{
                 borderColor: s.current ? "var(--accent-teal)" : "var(--border-subtle)",
-                background: s.done ? "var(--accent-teal-subtle)" : "transparent",
+                background: s.done ? "var(--accent-teal-subtle)" : "var(--bg-secondary)",
                 color: s.done || s.current ? "var(--text-primary)" : "var(--text-secondary)",
               }}
             >
               <span
                 className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
                 style={{
-                  background: s.done ? "var(--accent-teal)" : "var(--bg-tertiary)",
-                  color: s.done ? "#fff" : "var(--text-secondary)",
+                  background: s.done || s.current ? "var(--quote-cta)" : "var(--bg-tertiary)",
+                  color: s.done || s.current ? "#fff" : "var(--text-secondary)",
                 }}
               >
                 {s.done ? <FaCheck aria-hidden /> : i + 1}

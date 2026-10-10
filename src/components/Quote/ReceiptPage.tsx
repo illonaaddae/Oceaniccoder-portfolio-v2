@@ -53,7 +53,7 @@ export default function ReceiptPage() {
           Payment received
         </p>
         <h1
-          className="font-heading text-3xl font-bold font-mono tabular-nums mt-1"
+          className="text-3xl font-bold tabular-nums mt-1"
           style={{ color: "var(--text-primary)" }}
         >
           {money(receipt.amountMinor)}
@@ -65,7 +65,7 @@ export default function ReceiptPage() {
           {rows.map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 py-2.5">
               <dt style={{ color: "var(--text-secondary)" }}>{label}</dt>
-              <dd className="text-right font-mono" style={{ color: "var(--text-primary)" }}>
+              <dd className="text-right" style={{ color: "var(--text-primary)" }}>
                 {value}
               </dd>
             </div>

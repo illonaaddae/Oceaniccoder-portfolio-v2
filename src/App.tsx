@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { HelmetProvider } from "react-helmet-async";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import { PortfolioProvider } from "./Context";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import MainLayout from "./components/MainLayout";
@@ -17,6 +17,14 @@ import {
 } from "./services/api";
 import { prefetchRoutes } from "./utils/prefetchRoutes";
 import { PREFETCHABLE_ROUTES } from "./routes/lazyComponents";
+
+// Client documents (quotes, invoices, receipts) are for reading and paying; the
+// floating chat bubble sat beside their actions and pulled focus from them.
+function SiteChatbot() {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/q/") || pathname.startsWith("/receipt/")) return null;
+  return <Chatbot />;
+}
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -99,7 +107,7 @@ function App() {
                     onAdminLogout={handleAdminLogout}
                   />
                   <RouteChangeHandler />
-                  <Chatbot />
+                  <SiteChatbot />
                 </React.Suspense>
               </MainLayout>
             </RouteErrorBoundary>
