@@ -23,9 +23,15 @@ const C = {
   danger: "#b91c1c",
   dangerBg: "#fef2f2",
 };
-const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+// Same face as the site. Apple Mail, iOS Mail and Outlook for Mac load it;
+// Gmail and Outlook for Windows ignore web fonts and use the fallbacks.
+const FONT =
+  "'Ysabeau Office',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const FONT_LINK =
+  '<link href="https://fonts.googleapis.com/css2?family=Ysabeau+Office:wght@400;600;700&display=swap" rel="stylesheet">';
 const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
-const LOGO = "https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png";
+// Full wordmark (336x97); it already spells the name, so no text beside it.
+const LOGO = "https://oceaniccoder.dev/images/logo/Oceaniccoder-logo@3x.png";
 const SITE = "https://oceaniccoder.dev";
 const CONTACT = "hello@oceaniccoder.dev";
 const TONES = {
@@ -60,17 +66,15 @@ function multiline(text) {
 }
 
 function shell({ preview, body, reason }) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>OceanicCoder</title></head>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">${FONT_LINK}<title>OceanicCoder</title></head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preview)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
-<tr><td style="background:${C.navy};border-radius:14px 14px 0 0;padding:20px 28px">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td style="vertical-align:middle"><img src="${LOGO}" width="36" height="36" alt="OceanicCoder" style="display:block;border-radius:8px;background:#ffffff"></td>
-<td style="vertical-align:middle;padding-left:12px"><div style="color:#ffffff;font-size:16px;font-weight:700">OceanicCoder</div><div style="color:${C.tealLight};font-size:12px">Web and app development</div></td>
-</tr></table></td></tr>
-<tr><td style="background:#ffffff;border-left:1px solid ${C.line};border-right:1px solid ${C.line};padding:32px 28px;font-size:15px;line-height:1.6;color:${C.ink2}">${body}</td></tr>
+<tr><td style="background:#ffffff;border:1px solid ${C.line};border-bottom:0;border-radius:14px 14px 0 0;padding:20px 28px">
+<img src="${LOGO}" width="140" height="40" alt="OceanicCoder" style="display:block;height:40px;width:auto;max-width:140px">
+</td></tr>
+<tr><td style="background:#ffffff;border-left:1px solid ${C.line};border-right:1px solid ${C.line};padding:8px 28px 32px;font-family:${FONT};font-size:16px;line-height:1.6;color:${C.ink2}">${body}</td></tr>
 <tr><td style="background:${C.footer};border:1px solid ${C.line};border-top:0;border-radius:0 0 14px 14px;padding:20px 28px;font-size:12px;line-height:1.6;color:${C.ink3}">
 <a href="${SITE}" style="color:${C.tealDark};text-decoration:none">oceaniccoder.dev</a> &middot; <a href="mailto:${CONTACT}" style="color:${C.tealDark};text-decoration:none">${CONTACT}</a><br>${esc(reason)}
 </td></tr></table></td></tr></table></body></html>`;
@@ -82,7 +86,7 @@ function heading({ eyebrow, title, intro, tone = "info" }) {
     (eyebrow
       ? `<div style="font-family:${MONO};font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${color};margin:0 0 8px">${esc(eyebrow)}</div>`
       : "") +
-    `<h1 style="font-size:24px;line-height:1.3;color:${C.ink};margin:0 0 12px;font-weight:700">${esc(title)}</h1>` +
+    `<h1 style="font-family:${FONT};font-size:26px;line-height:1.25;color:${C.ink};margin:0 0 12px;font-weight:700">${esc(title)}</h1>` +
     (intro ? `<p style="margin:0 0 20px">${multiline(intro)}</p>` : "")
   );
 }
@@ -96,13 +100,13 @@ function card({ title, highlight, highlightLabel, rows = [] }) {
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .map(
       ([label, value]) =>
-        `<tr><td style="padding:6px 0;color:${C.ink3};font-size:13px">${esc(label)}</td><td align="right" style="padding:6px 0;color:${C.ink};font-size:13px;font-family:${MONO}">${esc(value)}</td></tr>`,
+        `<tr><td style="padding:6px 0;color:${C.ink3};font-size:13px">${esc(label)}</td><td align="right" style="padding:6px 0;color:${C.ink};font-size:13px;font-variant-numeric:tabular-nums">${esc(value)}</td></tr>`,
     )
     .join("");
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:12px;margin:0 0 20px">
 ${title ? `<tr><td style="background:${C.footer};border-bottom:1px solid ${C.line};border-radius:12px 12px 0 0;padding:10px 16px;font-family:${MONO};font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${C.ink3}">${esc(title)}</td></tr>` : ""}
 <tr><td style="padding:16px">
-${highlight ? `${highlightLabel ? `<div style="font-size:12px;color:${C.ink3}">${esc(highlightLabel)}</div>` : ""}<div style="font-size:26px;font-weight:700;color:${C.ink};font-family:${MONO};margin:2px 0 10px">${esc(highlight)}</div>` : ""}
+${highlight ? `${highlightLabel ? `<div style="font-size:12px;color:${C.ink3}">${esc(highlightLabel)}</div>` : ""}<div style="font-size:26px;font-weight:700;color:${C.ink};margin:2px 0 10px">${esc(highlight)}</div>` : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowHtml}</table>
 </td></tr></table>`;
 }
@@ -111,7 +115,7 @@ function button({ href, label, variant = "primary" }) {
   const styles =
     variant === "secondary"
       ? `background:#ffffff;color:${C.tealDark};border:1px solid ${C.line}`
-      : `background:${C.teal};color:#ffffff;border:1px solid ${C.teal}`;
+      : `background:${C.tealDark};color:#ffffff;border:1px solid ${C.tealDark}`;
   return `<a href="${esc(safeUrl(href))}" style="display:inline-block;${styles};border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;text-decoration:none;margin:0 8px 8px 0">${esc(label)}</a>`;
 }
 
@@ -125,7 +129,7 @@ function steps(items) {
     items
       .map(
         (text, i) =>
-          `<tr><td style="vertical-align:top;padding:0 12px 10px 0"><div style="width:24px;height:24px;border-radius:12px;background:${C.navy};color:#ffffff;font-size:12px;font-weight:700;line-height:24px;text-align:center">${i + 1}</div></td><td style="vertical-align:top;padding:2px 0 10px;font-size:14px;color:${C.ink2}">${esc(text)}</td></tr>`,
+          `<tr><td style="vertical-align:top;padding:0 12px 10px 0"><div style="width:24px;height:24px;border-radius:12px;background:${C.tealDark};color:#ffffff;font-size:12px;font-weight:700;line-height:24px;text-align:center">${i + 1}</div></td><td style="vertical-align:top;padding:2px 0 10px;font-size:14px;color:${C.ink2}">${esc(text)}</td></tr>`,
       )
       .join("") +
     `</table>`

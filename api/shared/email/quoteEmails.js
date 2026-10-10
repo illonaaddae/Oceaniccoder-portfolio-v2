@@ -3,7 +3,7 @@
 
 const { shell, heading, card, button, buttons, steps, notice, small, lines } = require("./ui");
 
-const CLIENT_REASON = "You received this because you asked OceanicCoder for a quote.";
+const CLIENT_REASON = "OceanicCoder · Web and app development";
 const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
 
 function invoiceBlock(inv) {
