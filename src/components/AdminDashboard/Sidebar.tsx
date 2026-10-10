@@ -27,6 +27,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     "settings",
     "bookings",
     "client-work",
+    "quotes",
+    "emails",
     "invoices",
     "payments",
     "analytics",

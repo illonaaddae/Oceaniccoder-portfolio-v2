@@ -1,0 +1,395 @@
+import { useCallback, useEffect, useState } from "react";
+import { FaTimes, FaCopy, FaWhatsapp, FaExternalLinkAlt } from "react-icons/fa";
+import { quoteAdmin } from "@/services/api/quotes";
+import { formatDate, formatMinor } from "@/utils/quoteMath";
+import { useConfirm } from "../../ConfirmContext";
+import type { ManualMethod, QuoteDetailResponse } from "@/types/quote";
+
+const btn =
+  "px-3 py-2 rounded-lg text-sm font-medium border transition hover:opacity-90 disabled:opacity-50";
+const btnStyle = { borderColor: "var(--border-subtle)", color: "var(--text-primary)" };
+const primary = {
+  background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+  color: "#fff",
+  borderColor: "transparent",
+};
+
+export default function QuoteDetail({
+  id,
+  onClose,
+  onEdit,
+  onChanged,
+}: {
+  id: string;
+  onClose: () => void;
+  onEdit: (d: QuoteDetailResponse) => void;
+  onChanged: () => void;
+}) {
+  const confirm = useConfirm();
+  const [data, setData] = useState<QuoteDetailResponse | null>(null);
+  const [link, setLink] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [manual, setManual] = useState<{
+    stageId: string;
+    method: ManualMethod;
+    note: string;
+  } | null>(null);
+
+  const load = useCallback(
+    async () => setData(await quoteAdmin<QuoteDetailResponse>("get", { id })),
+    [id],
+  );
+  useEffect(() => {
+    load().catch((e) => setMessage({ tone: "error", text: e.message }));
+  }, [load]);
+
+  const run = async (action: string, payload: Record<string, unknown> = {}, success?: string) => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const result = await quoteAdmin<QuoteDetailResponse>(action, { id, ...payload });
+      setData(result);
+      if (result.link) setLink(result.link);
+      const emailNote =
+        result.emailed === false && action !== "rotate"
+          ? " The email didn't send; copy the link below and share it yourself."
+          : "";
+      setMessage({
+        tone: result.emailed === false && action !== "rotate" ? "error" : "ok",
+        text: `${success || "Done."}${emailNote}`,
+      });
+      onChanged();
+    } catch (e) {
+      setMessage({ tone: "error", text: e instanceof Error ? e.message : "Something went wrong." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!data) {
+    return (
+      <div className="glass-card rounded-2xl p-6">
+        {message ? (
+          <p style={{ color: "var(--status-failed-text)" }}>{message.text}</p>
+        ) : (
+          <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        )}
+      </div>
+    );
+  }
+  const { quote, stages, payments } = data;
+  const money = (m: number) => formatMinor(m, quote.currency);
+
+  return (
+    <div className="glass-card rounded-2xl p-5 sm:p-6 space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+            {quote.quoteNumber} · rev {quote.revision} · {quote.status}
+          </p>
+          <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            {quote.title}
+          </h3>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            {quote.clientName} · {quote.clientEmail ?? ""} · {money(quote.totalMinor)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="p-2"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          <FaTimes />
+        </button>
+      </div>
+
+      <ul className="text-sm space-y-1" style={{ color: "var(--text-secondary)" }}>
+        {quote.sentAt && (
+          <li>
+            Sent {formatDate(quote.sentAt)} · valid until {formatDate(quote.validUntil)}
+          </li>
+        )}
+        <li>
+          {quote.viewedAt
+            ? `Viewed ${formatDate(quote.viewedAt)}`
+            : quote.status === "sent"
+              ? "Not opened yet"
+              : null}
+        </li>
+        {quote.acceptedName && (
+          <li>
+            Accepted by “{quote.acceptedName}” on {formatDate(quote.respondedAt)}
+          </li>
+        )}
+        {quote.declineReason && <li>Declined: {quote.declineReason}</li>}
+      </ul>
+
+      {message && (
+        <p
+          role="status"
+          className="text-sm rounded-lg px-3 py-2"
+          style={{
+            background:
+              message.tone === "ok" ? "var(--status-success-bg)" : "var(--status-failed-bg)",
+            color:
+              message.tone === "ok" ? "var(--status-success-text)" : "var(--status-failed-text)",
+          }}
+        >
+          {message.text}
+        </p>
+      )}
+
+      {link && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            readOnly
+            value={link}
+            className="glass-input flex-1 min-w-[16rem] rounded-lg px-3 py-2 text-sm font-mono"
+            onFocus={(e) => e.target.select()}
+          />
+          <button
+            type="button"
+            className={btn}
+            style={btnStyle}
+            onClick={() => void navigator.clipboard.writeText(link)}
+          >
+            <FaCopy className="inline mr-1" />
+            Copy
+          </button>
+          <a
+            className={btn}
+            style={btnStyle}
+            target="_blank"
+            rel="noopener noreferrer"
+            href={`https://wa.me/?text=${encodeURIComponent(`Hi ${quote.clientName.split(" ")[0]}, here is your quote from OceanicCoder: ${link}`)}`}
+          >
+            <FaWhatsapp className="inline mr-1" />
+            WhatsApp
+          </a>
+          <a
+            className={btn}
+            style={btnStyle}
+            target="_blank"
+            rel="noopener noreferrer"
+            href={`${link}?preview=1`}
+          >
+            <FaExternalLinkAlt className="inline mr-1" />
+            Preview
+          </a>
+        </div>
+      )}
+
+      <div>
+        <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+          Payment stages
+        </h4>
+        <ul className="space-y-2">
+          {stages.map((s) => (
+            <li
+              key={s.id}
+              className="flex flex-wrap items-center gap-3 rounded-xl border p-3"
+              style={{ borderColor: "var(--border-subtle)" }}
+            >
+              <span className="flex-1 min-w-[10rem]" style={{ color: "var(--text-primary)" }}>
+                {s.label} ({s.percent}%) <span className="font-mono">{money(s.amountMinor)}</span>
+                <span className="block text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {s.state === "paid"
+                    ? `Paid ${formatDate(s.paidAt)} · ${s.reference}`
+                    : s.state === "due"
+                      ? `Due since ${formatDate(s.dueAt)}${s.overdue ? " · overdue" : ""}`
+                      : "Not requested yet"}
+                </span>
+              </span>
+              {quote.status === "accepted" && s.state === "later" && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  className={btn}
+                  style={primary}
+                  onClick={() =>
+                    void run("requestStage", { stageId: s.id }, `${s.label} requested and emailed.`)
+                  }
+                >
+                  Request {s.label.toLowerCase()}
+                </button>
+              )}
+              {quote.status === "accepted" && s.state === "due" && s.index > 0 && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  className={btn}
+                  style={btnStyle}
+                  onClick={() =>
+                    void run("requestStage", { stageId: s.id }, "Reminder sent with a fresh link.")
+                  }
+                >
+                  Resend request
+                </button>
+              )}
+              {quote.status === "accepted" && s.state !== "paid" && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  className={btn}
+                  style={btnStyle}
+                  onClick={() => setManual({ stageId: s.id, method: "bank", note: "" })}
+                >
+                  Record payment
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {manual && (
+        <form
+          className="rounded-xl border p-4 space-y-3"
+          style={{ borderColor: "var(--border-subtle)" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void run("recordManual", manual, "Payment recorded and receipt emailed.").then(() =>
+              setManual(null),
+            );
+          }}
+        >
+          <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+            Record a payment received outside Paystack (amount is fixed to the stage amount)
+          </p>
+          <select
+            aria-label="Method"
+            value={manual.method}
+            onChange={(e) => setManual({ ...manual, method: e.target.value as ManualMethod })}
+            className="glass-input rounded-lg px-3 py-2"
+          >
+            <option value="bank">Bank transfer</option>
+            <option value="momo">Mobile Money (direct)</option>
+            <option value="cash">Cash</option>
+          </select>
+          <input
+            aria-label="Note"
+            placeholder="Note, e.g. bank reference"
+            maxLength={300}
+            value={manual.note}
+            onChange={(e) => setManual({ ...manual, note: e.target.value })}
+            className="glass-input w-full rounded-lg px-3 py-2"
+          />
+          <div className="flex gap-2">
+            <button type="submit" disabled={busy} className={btn} style={primary}>
+              Record payment
+            </button>
+            <button type="button" className={btn} style={btnStyle} onClick={() => setManual(null)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {payments.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-sm" style={{ color: "var(--text-secondary)" }}>
+            Payment attempts ({payments.length})
+          </summary>
+          <ul
+            className="mt-2 text-xs font-mono space-y-1"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {payments.map((p) => (
+              <li key={p.id}>
+                {p.reference} · {p.stageId} · {p.method} · {p.status}
+                {p.note ? ` · ${p.note}` : ""}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      <div
+        className="flex flex-wrap gap-2 border-t pt-4"
+        style={{ borderColor: "var(--border-subtle)" }}
+      >
+        {quote.status === "draft" && (
+          <>
+            <button type="button" className={btn} style={btnStyle} onClick={() => onEdit(data)}>
+              Edit
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className={btn}
+              style={primary}
+              onClick={() => void run("send", {}, "Quote sent to the client.")}
+            >
+              Send to client
+            </button>
+          </>
+        )}
+        {(quote.status === "sent" || quote.status === "accepted") && (
+          <button
+            type="button"
+            disabled={busy}
+            className={btn}
+            style={btnStyle}
+            onClick={async () => {
+              if (
+                await confirm({
+                  message: "Make a new link?",
+                  description: "The link the client has now will stop working.",
+                  confirmLabel: "New link",
+                })
+              )
+                void run("rotate", {}, "New link ready. The old one no longer works.");
+            }}
+          >
+            New link
+          </button>
+        )}
+        {["sent", "declined", "expired"].includes(quote.status) && (
+          <button
+            type="button"
+            disabled={busy}
+            className={btn}
+            style={btnStyle}
+            onClick={async () => {
+              if (
+                await confirm({
+                  message: "Revise this quote?",
+                  description:
+                    "It goes back to draft and the client's link stops working until you send it again.",
+                  confirmLabel: "Revise",
+                })
+              )
+                void run("revise", {}, "Back to draft. Edit it, then send again.");
+            }}
+          >
+            Revise
+          </button>
+        )}
+        {["draft", "sent", "accepted"].includes(quote.status) && (
+          <button
+            type="button"
+            disabled={busy}
+            className={btn}
+            style={{ ...btnStyle, color: "var(--status-failed-text)" }}
+            onClick={async () => {
+              if (
+                await confirm({
+                  message: "Cancel this quote?",
+                  description: "The client's link stops working. This can't be undone.",
+                  confirmLabel: "Cancel quote",
+                  variant: "danger",
+                })
+              )
+                void run("cancel", {}, "Quote cancelled.");
+            }}
+          >
+            Cancel quote
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
