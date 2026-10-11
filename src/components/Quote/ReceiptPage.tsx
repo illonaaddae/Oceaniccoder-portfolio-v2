@@ -83,7 +83,7 @@ export default function ReceiptPage() {
             {formatDate(receipt.paidAt)}
           </p>
 
-          <dl className="mt-8 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+          <dl className="mt-8 grid gap-x-8 gap-y-5 text-base sm:grid-cols-2">
             {details.map(([label, value]) => (
               <div key={label} className="min-w-0">
                 <dt style={{ color: "var(--text-secondary)" }}>{label}</dt>
@@ -98,7 +98,7 @@ export default function ReceiptPage() {
           </dl>
 
           <div
-            className="mt-8 pt-4 border-t flex justify-between text-sm font-semibold"
+            className="mt-8 pt-5 border-t flex justify-between text-lg font-semibold"
             style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
           >
             <span>Balance remaining</span>
