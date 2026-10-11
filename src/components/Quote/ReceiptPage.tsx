@@ -61,7 +61,7 @@ export default function ReceiptPage() {
         <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
           Quote {receipt.quoteNumber} · OceanicCoder · hello@oceaniccoder.dev
         </p>
-        <dl className="mt-6 divide-y text-sm" style={{ borderColor: "var(--border-subtle)" }}>
+        <dl className="mt-6 divide-y divide-[color:var(--border-subtle)] text-sm">
           {rows.map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 py-2.5">
               <dt className="shrink-0" style={{ color: "var(--text-secondary)" }}>

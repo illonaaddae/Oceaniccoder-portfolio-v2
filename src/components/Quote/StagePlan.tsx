@@ -31,8 +31,12 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
             style={{ borderColor: "var(--border-subtle)" }}
           >
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white"
-              style={{ background: "#0a0f1a" }}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold tabular-nums border"
+              style={{
+                background: "var(--accent-teal-subtle)",
+                color: "var(--accent-teal)",
+                borderColor: "var(--border-subtle)",
+              }}
             >
               {s.index + 1}
             </span>

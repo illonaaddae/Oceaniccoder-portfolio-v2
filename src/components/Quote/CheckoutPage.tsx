@@ -176,7 +176,7 @@ export default function CheckoutPage() {
                         : s.id === stage.id
                           ? "#ffffff"
                           : "rgba(255,255,255,.15)",
-                    color: s.id === stage.id ? "#0a0f1a" : "#fff",
+                    color: s.id === stage.id ? "#04333B" : "#fff",
                   }}
                 >
                   {s.state === "paid" ? <FaCheck aria-hidden /> : s.index + 1}
