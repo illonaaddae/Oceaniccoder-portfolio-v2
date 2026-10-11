@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type React from "react";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaChevronDown, FaPlus, FaTrash } from "react-icons/fa";
 import {
   computeTotals,
   formatMinor,
@@ -18,9 +18,11 @@ export interface StepProps {
   errors: Record<string, string>;
   /** Price boxes report whether their text is a valid amount; the editor blocks Next/Save while any is not. */
   onValidity?: (id: string, ok: boolean) => void;
+  /** Admin theme, so native controls (the currency list) draw in matching colours. */
+  theme?: string;
 }
 
-const inputCls = "glass-input w-full rounded-lg px-3 py-2";
+const inputCls = "glass-input w-full rounded-lg px-3 py-2 min-h-11";
 const labelCls = "block text-sm font-medium mb-1";
 
 function Field({
@@ -49,7 +51,7 @@ function Field({
   );
 }
 
-export function ClientStep({ draft, setDraft, errors }: StepProps) {
+export function ClientStep({ draft, setDraft, errors, theme }: StepProps) {
   // eslint-disable-next-line no-undef -- DOM global type, not a runtime value
   type Field = HTMLInputElement | HTMLSelectElement;
   const set = (k: keyof QuoteDraft) => (e: React.ChangeEvent<Field>) =>
@@ -90,15 +92,25 @@ export function ClientStep({ draft, setDraft, errors }: StepProps) {
         />
       </Field>
       <Field id="q-currency" label="Currency" error={errors.currency}>
-        <select
-          id="q-currency"
-          className={inputCls}
-          value={draft.currency}
-          onChange={set("currency")}
-        >
-          <option value="GHS">GHS (Ghana cedi)</option>
-          <option value="USD">USD (check USD is enabled on Paystack)</option>
-        </select>
+        {/* Native select for keyboard and screen-reader support, drawn like the
+            other inputs: same height, no OS arrows, our own chevron. */}
+        <div className="relative">
+          <select
+            id="q-currency"
+            className={`${inputCls} appearance-none pr-10 cursor-pointer`}
+            style={{ colorScheme: theme === "light" ? "light" : "dark" }}
+            value={draft.currency}
+            onChange={set("currency")}
+          >
+            <option value="GHS">GHS (Ghana cedi)</option>
+            <option value="USD">USD (check USD is enabled on Paystack)</option>
+          </select>
+          <FaChevronDown
+            aria-hidden
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs"
+            style={{ color: "var(--text-secondary)" }}
+          />
+        </div>
       </Field>
     </div>
   );
@@ -290,6 +302,45 @@ function PriceInput({
   );
 }
 
+type StageDef = QuoteDraft["schedule"][number];
+
+/** One-click payment plans. Ids are stable so a preset re-applied keeps the same stages. */
+export const PAYMENT_PRESETS: { name: string; schedule: StageDef[] }[] = [
+  { name: "100% upfront", schedule: [{ id: "full", label: "Full payment", percent: 100 }] },
+  {
+    name: "50 / 50",
+    schedule: [
+      { id: "deposit", label: "Deposit", percent: 50 },
+      { id: "balance", label: "Balance", percent: 50 },
+    ],
+  },
+  {
+    name: "60 / 40",
+    schedule: [
+      { id: "deposit", label: "Deposit", percent: 60 },
+      { id: "balance", label: "Balance", percent: 40 },
+    ],
+  },
+  {
+    name: "70 / 30",
+    schedule: [
+      { id: "deposit", label: "Deposit", percent: 70 },
+      { id: "balance", label: "Balance", percent: 30 },
+    ],
+  },
+  {
+    name: "40 / 30 / 30",
+    schedule: [
+      { id: "deposit", label: "Deposit", percent: 40 },
+      { id: "milestone", label: "Milestone", percent: 30 },
+      { id: "balance", label: "Balance", percent: 30 },
+    ],
+  },
+];
+
+const samePlan = (a: StageDef[], b: StageDef[]) =>
+  a.length === b.length && a.every((s, i) => s.percent === b[i].percent);
+
 export function StagesStep({ draft, setDraft }: StepProps) {
   const { totalMinor } = computeTotals(draft.items, draft.discountMinor);
   const amounts = stageAmounts(totalMinor, draft.schedule);
@@ -305,8 +356,36 @@ export function StagesStep({ draft, setDraft }: StepProps) {
         The first stage is due when the client accepts. You request each later stage when you're
         ready.
       </p>
+      <div role="group" aria-label="Payment plan presets" className="flex flex-wrap gap-2">
+        {PAYMENT_PRESETS.map((p) => {
+          const on = samePlan(draft.schedule, p.schedule);
+          return (
+            <button
+              key={p.name}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setDraft({ ...draft, schedule: p.schedule.map((s) => ({ ...s })) })}
+              className="min-h-10 rounded-full border px-4 text-sm font-semibold transition-colors"
+              style={
+                on
+                  ? {
+                      background: "var(--accent-teal)",
+                      borderColor: "var(--accent-teal)",
+                      color: "#fff",
+                    }
+                  : { borderColor: "var(--border-subtle)", color: "var(--text-primary)" }
+              }
+            >
+              {p.name}
+            </button>
+          );
+        })}
+      </div>
       {draft.schedule.map((s, i) => (
-        <div key={s.id} className="grid gap-2 grid-cols-[1fr_5.5rem_8rem_auto] items-center">
+        <div
+          key={s.id}
+          className="grid gap-2 grid-cols-[minmax(0,1fr)_4.5rem_auto] sm:grid-cols-[1fr_5.5rem_8rem_auto] items-center"
+        >
           <input
             aria-label={`Name for stage ${i + 1}`}
             className={inputCls}
@@ -323,7 +402,11 @@ export function StagesStep({ draft, setDraft }: StepProps) {
             value={s.percent}
             onChange={(e) => update(i, { percent: Number(e.target.value) })}
           />
-          <span className="font-mono text-sm text-right" style={{ color: "var(--text-primary)" }}>
+          {/* On phones the live summary below the form carries the amounts. */}
+          <span
+            className="hidden sm:block font-mono text-sm text-right"
+            style={{ color: "var(--text-primary)" }}
+          >
             {formatMinor(amounts[i]?.amountMinor ?? 0, draft.currency)}
           </span>
           <button
@@ -420,8 +503,8 @@ export function ReviewStep({ draft }: StepProps) {
       </p>
       <p>Valid for {draft.validDays} days after sending.</p>
       <p>
-        Save the draft, then use “Send to client” in the quote detail. You can preview the client
-        page from there first.
+        “Save and send” emails the client their link and gives you a WhatsApp button for their
+        number. To check the client page first, save the draft and use Preview in the quote detail.
       </p>
     </div>
   );

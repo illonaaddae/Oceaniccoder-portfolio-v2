@@ -8,9 +8,14 @@ vi.mock("@/services/api/quotes", async () => {
     await vi.importActual<typeof import("@/services/api/quotes")>("@/services/api/quotes");
   return { ...actual, quoteAdmin: (...a: unknown[]) => quoteAdmin(...a) };
 });
-vi.mock("./QuoteEditor", () => ({ default: () => <div>editor open</div> }));
+vi.mock("./QuoteEditor", () => ({
+  default: (p: { initial?: { clientName?: string } }) => (
+    <div>editor open{p.initial?.clientName ? ` for ${p.initial.clientName}` : ""}</div>
+  ),
+}));
 
 import QuotesTab from "./QuotesTab";
+import { setPendingQuoteDraft } from "./quoteHandoff";
 
 const summary = {
   id: "q1",
@@ -98,10 +103,17 @@ describe("QuotesTab", () => {
     expect(await screen.findByDisplayValue("https://oceaniccoder.dev/q/NEW")).toBeInTheDocument();
   });
 
-  it("opens the editor for a new quote", async () => {
+  it("opens the editor for a new quote in place of the list", async () => {
     render(<QuotesTab theme="dark" />);
     await userEvent.click(await screen.findByRole("button", { name: /new quote/i }));
     expect(screen.getByText("editor open")).toBeInTheDocument();
+    expect(screen.queryByText("Online store")).not.toBeInTheDocument();
+  });
+
+  it("opens the editor prefilled when Client Work hands over a draft", async () => {
+    setPendingQuoteDraft({ clientName: "Ama Owusu" });
+    render(<QuotesTab theme="dark" />);
+    expect(screen.getByText("editor open for Ama Owusu")).toBeInTheDocument();
   });
 
   const open = async () => {

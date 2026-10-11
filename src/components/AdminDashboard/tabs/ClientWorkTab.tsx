@@ -41,6 +41,8 @@ type StatusFilter = "all" | "new" | "reviewed" | "quoted" | "declined" | "won";
 
 interface ClientWorkTabProps {
   theme: "light" | "dark";
+  /** Opens the Quotes tab's full-page editor prefilled from this inquiry. */
+  onCreateQuote?: (inquiry: ProjectInquiry) => void;
 }
 
 const STATUS_CONFIG: Record<
@@ -99,7 +101,7 @@ function formatDate(dateStr?: string) {
   });
 }
 
-export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
+export default function ClientWorkTab({ theme, onCreateQuote }: ClientWorkTabProps) {
   const confirm = useConfirm();
   const [inquiries, setInquiries] = useState<ProjectInquiry[]>([]);
   const [invoicesByInquiry, setInvoicesByInquiry] = useState<Record<string, Invoice[]>>({});
@@ -251,6 +253,20 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
   const { page, setPage, pageItems, totalItems } = usePagination(filtered, PAGE_SIZE);
 
   const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
+
+  // Without a tab switcher (tests, embeds), the editor takes over this tab.
+  if (quoteFor)
+    return (
+      <QuoteEditor
+        theme={theme}
+        initial={draftFromInquiry(quoteFor)}
+        onClose={() => setQuoteFor(null)}
+        onSaved={() => {
+          setQuoteFor(null);
+          setQuoteSaved("Quote saved as a draft. Open the Quotes tab to preview and send it.");
+        }}
+      />
+    );
 
   return (
     <div className="space-y-6">
@@ -601,7 +617,7 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                   })()}
                   <button
                     type="button"
-                    onClick={() => setQuoteFor(inq)}
+                    onClick={() => (onCreateQuote ? onCreateQuote(inq) : setQuoteFor(inq))}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
                     style={{
                       background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
@@ -666,17 +682,6 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
         />
       )}
 
-      {quoteFor && (
-        <QuoteEditor
-          theme={theme}
-          initial={draftFromInquiry(quoteFor)}
-          onClose={() => setQuoteFor(null)}
-          onSaved={() => {
-            setQuoteFor(null);
-            setQuoteSaved("Quote saved as a draft. Open the Quotes tab to preview and send it.");
-          }}
-        />
-      )}
       {quoteSaved && (
         <div
           role="status"
