@@ -180,18 +180,10 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
         {/* Card number */}
         <div
           style={{
+            fontFamily: "'Courier New', Courier, monospace",
             ...(brand
-              ? {
-                  fontSize: "30px",
-                  fontWeight: 700,
-                  letterSpacing: "0",
-                  fontVariantNumeric: "tabular-nums",
-                }
-              : {
-                  fontFamily: "'Courier New', Courier, monospace",
-                  fontSize: "20px",
-                  letterSpacing: "3px",
-                }),
+              ? { fontSize: "22px", fontWeight: 700, letterSpacing: "3px" }
+              : { fontSize: "20px", letterSpacing: "3px" }),
             color: "#ffffff",
             textShadow: "0 1px 4px rgba(0,0,0,0.5)",
             position: "relative",
