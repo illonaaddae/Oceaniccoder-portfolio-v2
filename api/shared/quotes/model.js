@@ -39,10 +39,40 @@ const ID_RE = /^[a-z0-9-]{1,24}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TEXT_MAX = 5000;
 const TERMS_MAX = 8000;
+const LIMITS = {
+  highlights: 4,
+  highlight: 80,
+  discountLabel: 60,
+  runningCosts: 12,
+  rcService: 60,
+  rcPurpose: 120,
+  rcCost: 60,
+  exclusions: 3000,
+  assumptions: 3000,
+  nextSteps: 1500,
+  optionalTitle: 80,
+  optionalItems: 30,
+  itemDetail: 600,
+  stageNote: 80,
+};
 const REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 function str(v) {
   return typeof v === "string" ? v.trim() : "";
+}
+
+function parseItem(i) {
+  return {
+    id: str(i && i.id),
+    description: str(i && i.description),
+    qty: Number(i && i.qty),
+    unitMinor: Number(i && i.unitMinor),
+    detail: str(i && i.detail),
+  };
+}
+
+function optionalTotals(optionalItems) {
+  return { optionalTotalMinor: (optionalItems || []).reduce((t, i) => t + lineMinor(i), 0) };
 }
 
 function canMove(from, to) {
@@ -104,24 +134,34 @@ function validateDraft(input) {
     timeline: str(d.timeline),
     notes: str(d.notes),
     terms: str(d.terms),
-    items: Array.isArray(d.items)
-      ? d.items.map((i) => ({
-          id: str(i && i.id),
-          description: str(i && i.description),
-          qty: Number(i && i.qty),
-          unitMinor: Number(i && i.unitMinor),
-        }))
-      : [],
+    items: Array.isArray(d.items) ? d.items.map(parseItem) : [],
     discountMinor: Number(d.discountMinor || 0),
     schedule: Array.isArray(d.schedule)
       ? d.schedule.map((s) => ({
           id: str(s && s.id),
           label: str(s && s.label),
           percent: Number(s && s.percent),
+          note: str(s && s.note),
         }))
       : [],
     validDays: Number(d.validDays || 14),
     inquiryId: str(d.inquiryId) || null,
+    highlights: (Array.isArray(d.highlights) ? d.highlights : []).map(str).filter(Boolean),
+    discountLabel: str(d.discountLabel),
+    runningCosts: (Array.isArray(d.runningCosts) ? d.runningCosts : [])
+      .map((r) => ({
+        service: str(r && r.service),
+        purpose: str(r && r.purpose),
+        cost: str(r && r.cost),
+      }))
+      .filter((r) => r.service || r.purpose || r.cost),
+    exclusions: str(d.exclusions),
+    assumptions: str(d.assumptions),
+    nextSteps: str(d.nextSteps),
+    optionalTitle: str(d.optionalTitle),
+    optionalItems: (Array.isArray(d.optionalItems) ? d.optionalItems : [])
+      .map(parseItem)
+      .filter((i) => i.description || i.unitMinor || i.detail),
   };
 
   if (!value.clientName || value.clientName.length > 120) {
@@ -160,6 +200,49 @@ function validateDraft(input) {
       if (Object.keys(errors).some((k) => k.startsWith(`items.${i}.`))) itemsOk = false;
     });
   }
+
+  value.items.forEach((it, i) => {
+    if (it.detail.length > LIMITS.itemDetail)
+      errors[`items.${i}.detail`] = `Keep this under ${LIMITS.itemDetail} characters.`;
+  });
+  value.schedule.forEach((s, i) => {
+    if (s.note.length > LIMITS.stageNote)
+      errors[`schedule.${i}.note`] = `Keep this under ${LIMITS.stageNote} characters.`;
+  });
+  if (value.highlights.length > LIMITS.highlights)
+    errors.highlights = `Use up to ${LIMITS.highlights} short facts.`;
+  value.highlights.forEach((h, i) => {
+    if (h.length > LIMITS.highlight)
+      errors[`highlights.${i}`] = `Keep each fact under ${LIMITS.highlight} characters.`;
+  });
+  if (value.discountLabel.length > LIMITS.discountLabel)
+    errors.discountLabel = `Keep the label under ${LIMITS.discountLabel} characters.`;
+  if (value.runningCosts.length > LIMITS.runningCosts)
+    errors.runningCosts = `Use up to ${LIMITS.runningCosts} rows.`;
+  value.runningCosts.forEach((r, i) => {
+    if (!r.service || r.service.length > LIMITS.rcService)
+      errors[`runningCosts.${i}.service`] = "Name the service (up to 60 characters).";
+    if (r.purpose.length > LIMITS.rcPurpose)
+      errors[`runningCosts.${i}.purpose`] = "Keep this under 120 characters.";
+    if (!r.cost || r.cost.length > LIMITS.rcCost)
+      errors[`runningCosts.${i}.cost`] = "Add an estimated cost (up to 60 characters).";
+  });
+  for (const f of ["exclusions", "assumptions", "nextSteps", "optionalTitle"]) {
+    if (value[f].length > LIMITS[f]) errors[f] = `Keep this under ${LIMITS[f]} characters.`;
+  }
+  if (value.optionalItems.length > LIMITS.optionalItems)
+    errors.optionalItems = `Use up to ${LIMITS.optionalItems} optional items.`;
+  value.optionalItems.forEach((it, i) => {
+    if (!it.description || it.description.length > 300)
+      errors[`optionalItems.${i}.description`] = "Describe the item (up to 300 characters).";
+    if (!(it.qty > 0 && it.qty <= 10000))
+      errors[`optionalItems.${i}.qty`] = "Quantity must be more than 0.";
+    if (!Number.isInteger(it.unitMinor) || it.unitMinor < 0 || it.unitMinor > 1e11)
+      errors[`optionalItems.${i}.unitMinor`] = "Enter a valid price.";
+    if (it.detail.length > LIMITS.itemDetail)
+      errors[`optionalItems.${i}.detail`] = `Keep this under ${LIMITS.itemDetail} characters.`;
+    if (!ID_RE.test(it.id)) errors[`optionalItems.${i}.id`] = "Invalid item id.";
+  });
 
   if (!Number.isInteger(value.discountMinor) || value.discountMinor < 0) {
     errors.discountMinor = "Enter a valid discount.";
@@ -283,6 +366,8 @@ module.exports = {
   DAY_MS,
   canMove,
   lineMinor,
+  optionalTotals,
+  LIMITS,
   computeTotals,
   stageAmounts,
   scheduleError,
