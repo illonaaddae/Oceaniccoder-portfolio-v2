@@ -1,13 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { EmailPreviewList, EmailPreviewMail } from "@/services/api/quotes";
 
-type Preview = { templates?: string[]; subject?: string; html?: string; text?: string };
-const defaultFetch = async (name?: string): Promise<Preview> =>
-  name
-    ? { subject: `Subject ${name}`, html: "<p>hi</p>", text: "hi" }
-    : { templates: ["quoteSent", "paymentReceipt"] };
-let fetchImpl: (name?: string) => Promise<Preview> = defaultFetch;
+type Response = EmailPreviewList & EmailPreviewMail;
+
+const LIST: EmailPreviewList = {
+  from: "invoices@send.oceaniccoder.dev",
+  templates: [
+    {
+      id: "quoteSent",
+      group: "clients",
+      name: "Quote ready",
+      when: "You send a quote",
+      subject: "Your quote",
+    },
+    {
+      id: "paymentReceipt",
+      group: "clients",
+      name: "Stage receipt",
+      when: "A quote payment is confirmed",
+      subject: "Your receipt",
+    },
+    {
+      id: "webhookFailed",
+      group: "admin",
+      name: "Webhook not processed",
+      when: "A Paystack webhook can't be processed",
+      subject: "Action needed",
+    },
+  ],
+};
+
+const defaultFetch = async (name?: string): Promise<Response> =>
+  name ? { subject: `Subject ${name}`, html: "<p>hi</p>", text: `text ${name}` } : LIST;
+let fetchImpl: (name?: string) => Promise<Response> = defaultFetch;
 const fetchEmailPreview = vi.fn((name?: string) => fetchImpl(name));
 let sendImpl: (name: string) => Promise<{ sent: boolean; to: string }> = async () => ({
   sent: true,
@@ -21,39 +48,84 @@ vi.mock("@/services/api/quotes", () => ({
 
 import EmailsTab from "./EmailsTab";
 
+const row = (name: RegExp) => screen.findByRole("button", { name });
+
 describe("EmailsTab", () => {
   beforeEach(() => {
     fetchImpl = defaultFetch;
     sendImpl = async () => ({ sent: true, to: "admin@oceaniccoder.dev" });
     sendTestEmail.mockClear();
+    try {
+      localStorage.clear();
+    } catch {
+      /* storage unavailable */
+    }
   });
 
-  it("previews the selected template and sends a test", async () => {
+  it("groups emails by audience with counts, names and triggers", async () => {
+    render(<EmailsTab theme="dark" />);
+    const clients = await screen.findByRole("region", { name: /to clients/i });
+    expect(within(clients).getByText("Quote ready")).toBeInTheDocument();
+    expect(within(clients).getByText("You send a quote")).toBeInTheDocument();
+    expect(within(clients).getByText("2")).toBeInTheDocument();
+    const admin = screen.getByRole("region", { name: /to you/i });
+    expect(within(admin).getByText("Webhook not processed")).toBeInTheDocument();
+  });
+
+  it("previews the selected email with its sender and sends a test", async () => {
     render(<EmailsTab theme="dark" />);
     expect(await screen.findByText("Subject quoteSent")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "paymentReceipt" }));
+    expect(screen.getByText(/OceanicCoder <invoices@send.oceaniccoder.dev>/)).toBeInTheDocument();
+    await userEvent.click(await row(/stage receipt/i));
     expect(await screen.findByText("Subject paymentReceipt")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /send test to me/i }));
+    expect(screen.getByRole("button", { name: /stage receipt/i })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /send me a test/i }));
     await waitFor(() => expect(sendTestEmail).toHaveBeenCalledWith("paymentReceipt"));
     expect(await screen.findByText(/sent to admin@oceaniccoder.dev/i)).toBeInTheDocument();
   });
 
-  it("renders the preview in a sandboxed iframe with the html", async () => {
+  it("renders the preview in a sandboxed iframe and switches to mobile width", async () => {
     render(<EmailsTab theme="dark" />);
-    const frame = await screen.findByTitle("quoteSent preview");
+    const frame = await screen.findByTitle("Preview: Quote ready");
     expect(frame.getAttribute("sandbox")).toBe("");
     expect(frame.getAttribute("srcdoc")).toContain("<p>hi</p>");
+    await userEvent.click(screen.getByRole("button", { name: /mobile width/i }));
+    expect(screen.getByRole("button", { name: /mobile width/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTitle("Preview: Quote ready").className).toContain("w-[390px]");
+  });
+
+  it("shows the plain-text version", async () => {
+    render(<EmailsTab theme="dark" />);
+    await screen.findByText("Subject quoteSent");
+    await userEvent.click(screen.getByRole("button", { name: /plain text/i }));
+    expect(screen.getByText("text quoteSent")).toBeInTheDocument();
+  });
+
+  it("collapses a group that holds no selection", async () => {
+    render(<EmailsTab theme="dark" />);
+    await screen.findByText("Webhook not processed");
+    const toggle = screen.getByRole("button", { name: /to you/i });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Webhook not processed")).not.toBeVisible();
   });
 
   it("ignores a stale preview that resolves after a newer selection", async () => {
-    let resolveA: (v: Preview) => void = () => {};
+    let resolveA: (v: Response) => void = () => {};
     fetchImpl = (name) => {
-      if (!name) return Promise.resolve({ templates: ["quoteSent", "paymentReceipt"] });
-      if (name === "quoteSent") return new Promise<Preview>((res) => (resolveA = res));
+      if (!name) return Promise.resolve(LIST);
+      if (name === "quoteSent") return new Promise<Response>((res) => (resolveA = res));
       return Promise.resolve({ subject: "Subject B", html: "<p>b</p>", text: "b" });
     };
     render(<EmailsTab theme="dark" />);
-    await userEvent.click(await screen.findByRole("button", { name: "paymentReceipt" }));
+    await userEvent.click(await row(/stage receipt/i));
     expect(await screen.findByText("Subject B")).toBeInTheDocument();
     resolveA({ subject: "Subject A", html: "<p>a</p>", text: "a" });
     await new Promise((r) => setTimeout(r, 20));
@@ -61,22 +133,23 @@ describe("EmailsTab", () => {
     expect(screen.queryByText("Subject A")).not.toBeInTheDocument();
   });
 
-  it("shows an alert when the template list fails to load", async () => {
+  it("shows an alert when the list fails to load", async () => {
     // A thenable that rejects: a vi.fn returning a real rejected promise fails the run.
     fetchImpl = () =>
       ({
         then: () => Promise.reject(new Error("boom list")),
-      }) as unknown as Promise<Preview>;
+      }) as unknown as Promise<Response>;
     render(<EmailsTab theme="dark" />);
     expect(await screen.findByRole("alert")).toHaveTextContent("boom list");
-    expect(screen.getByText("No templates found.")).toBeInTheDocument();
+    expect(screen.getByText("No emails found.")).toBeInTheDocument();
   });
 
   it("disables the send button while sending", async () => {
     let finish: (v: { sent: boolean; to: string }) => void = () => {};
     sendImpl = () => new Promise((res) => (finish = res));
     render(<EmailsTab theme="dark" />);
-    await userEvent.click(await screen.findByRole("button", { name: /send test to me/i }));
+    await screen.findByText("Subject quoteSent");
+    await userEvent.click(screen.getByRole("button", { name: /send me a test/i }));
     const btn = await screen.findByRole("button", { name: /sending/i });
     expect(btn).toBeDisabled();
     await userEvent.click(btn);

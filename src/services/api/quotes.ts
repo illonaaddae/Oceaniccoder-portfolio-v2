@@ -105,12 +105,34 @@ export async function quoteAdmin<T>(
   });
 }
 
+export type EmailGroup = "clients" | "admin";
+
+/** One entry in the admin Emails tab list. */
+export interface EmailTemplateInfo {
+  id: string;
+  group: EmailGroup;
+  name: string;
+  when: string;
+  subject: string;
+}
+
+export interface EmailPreviewList {
+  from?: string;
+  templates?: EmailTemplateInfo[];
+}
+
+export interface EmailPreviewMail {
+  name?: string;
+  subject?: string;
+  html?: string;
+  text?: string;
+}
+
+/** With no name, lists every email; with a name, renders that one. */
 export async function fetchEmailPreview(name?: string) {
   const headers = await adminHeaders();
   const path = name ? `/api/email-preview?name=${encodeURIComponent(name)}` : "/api/email-preview";
-  return call<{ templates?: string[]; subject?: string; html?: string; text?: string }>(path, {
-    headers,
-  });
+  return call<EmailPreviewList & EmailPreviewMail>(path, { headers });
 }
 
 export async function sendTestEmail(name: string) {
