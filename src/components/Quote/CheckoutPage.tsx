@@ -33,6 +33,9 @@ const METHODS: { id: UiMethod; label: string; hint: string; Icon: typeof FaCredi
   { id: "bank", label: "Bank transfer", hint: "We send the details", Icon: FaUniversity },
 ];
 const APPLE_PAY = import.meta.env.VITE_APPLE_PAY_ENABLED === "true";
+/** When to offer Paystack's own page, and when to go there, if its window never shows. */
+const SLOW_WINDOW_MS = 3000;
+const HOSTED_FALLBACK_MS = 8000;
 const TEST_MODE = String(import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "").startsWith("pk_test_");
 
 export default function CheckoutPage() {
@@ -44,6 +47,8 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [editingEmail, setEditingEmail] = useState(false);
   const [lastRef, setLastRef] = useState<string | null>(null);
+  // Paystack's own page, offered when its checkout window is slow to appear.
+  const [hostedUrl, setHostedUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ tone: "error" | "info"; text: string } | null>(null);
   const attemptRef = useRef<{ stopped: boolean } | null>(null);
@@ -112,6 +117,7 @@ export default function CheckoutPage() {
     }
     setBusy(true);
     setNote(null);
+    setHostedUrl(null);
     if (attemptRef.current) attemptRef.current.stopped = true;
     const attempt = { stopped: false };
     attemptRef.current = attempt;
@@ -149,16 +155,39 @@ export default function CheckoutPage() {
       return watch(tries + 1);
     };
     void watch();
+    // Privacy browsers can block Paystack's checkout window after its script
+    // loads, and then no callback ever fires. Unless Paystack says the window
+    // loaded, offer its own page after a moment and go there after a while.
+    let loaded = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const settle = () => {
+      loaded = true;
+      timers.forEach(clearTimeout);
+      setHostedUrl(null);
+    };
     try {
       const popup = await loadPaystackV2();
       if (attempt.stopped) return;
+      timers.push(
+        setTimeout(() => {
+          if (!attempt.stopped && !loaded) setHostedUrl(started.authorizationUrl);
+        }, SLOW_WINDOW_MS),
+        setTimeout(() => {
+          if (attempt.stopped || loaded) return;
+          attempt.stopped = true;
+          window.location.assign(started.authorizationUrl);
+        }, HOSTED_FALLBACK_MS),
+      );
       popup.resumeTransaction(started.accessCode, {
+        onLoad: settle,
         onSuccess: () => {
+          settle();
           if (attempt.stopped) return;
           attempt.stopped = true;
           navigate(paidUrl(started.reference), { replace: true });
         },
         onCancel: () => {
+          settle();
           if (attempt.stopped) return;
           attempt.stopped = true;
           setBusy(false);
@@ -168,6 +197,7 @@ export default function CheckoutPage() {
           });
         },
         onError: () => {
+          settle();
           if (attempt.stopped) return;
           attempt.stopped = true;
           setBusy(false);
@@ -570,6 +600,18 @@ export default function CheckoutPage() {
                 >
                   {busy ? "Opening the secure window…" : `Pay ${money(stage.amountMinor)}`}
                 </button>
+                {busy && hostedUrl && (
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    Taking a while?{" "}
+                    <a
+                      href={hostedUrl}
+                      className="font-semibold underline underline-offset-2"
+                      style={{ color: "var(--accent-teal)" }}
+                    >
+                      Open Paystack's secure page
+                    </a>
+                  </p>
+                )}
                 <p
                   className="flex items-center gap-2 text-xs"
                   style={{ color: "var(--text-secondary)" }}

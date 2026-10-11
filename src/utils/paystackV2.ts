@@ -16,6 +16,8 @@ export interface PaystackTransactionCallbacks {
   onSuccess?: (transaction: { reference?: string }) => void;
   onCancel?: () => void;
   onError?: (error: { message?: string }) => void;
+  /** Paystack's checkout window has loaded and is showing. */
+  onLoad?: () => void;
 }
 
 export interface PaystackV2 {
