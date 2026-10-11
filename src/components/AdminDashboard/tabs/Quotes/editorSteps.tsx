@@ -207,64 +207,18 @@ export function ItemsStep({ draft, setDraft, errors, onValidity }: StepProps) {
         </p>
       )}
       {draft.items.map((item, i) => (
-        <div key={item.id} className="space-y-2">
-          <div className="grid gap-2 sm:grid-cols-[1fr_5rem_8rem_auto] items-start">
-            <div>
-              <input
-                aria-label={`Description for item ${i + 1}`}
-                className={inputCls}
-                placeholder="What's included"
-                value={item.description}
-                onChange={(e) => update(i, { description: e.target.value })}
-              />
-              {errors[`items.${i}.description`] && (
-                <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
-                  {errors[`items.${i}.description`]}
-                </p>
-              )}
-            </div>
-            <div>
-              <input
-                aria-label={`Quantity for item ${i + 1}`}
-                type="number"
-                min="0"
-                step="any"
-                className={inputCls}
-                value={item.qty}
-                onChange={(e) => update(i, { qty: Number(e.target.value) })}
-              />
-              {(errors[`items.${i}.qty`] || !(item.qty > 0)) && (
-                <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
-                  {!(item.qty > 0) ? "Quantity must be more than 0." : errors[`items.${i}.qty`]}
-                </p>
-              )}
-            </div>
-            <PriceInput
-              id={`${item.id}-price`}
-              label={`Price for item ${i + 1}`}
-              onValidity={onValidity}
-              minor={item.unitMinor}
-              onChange={(m) => update(i, { unitMinor: m })}
-              error={errors[`items.${i}.unitMinor`]}
-            />
-            <button
-              type="button"
-              aria-label={`Remove item ${i + 1}`}
-              disabled={draft.items.length === 1}
-              className="p-2.5 disabled:opacity-30"
-              style={{ color: "var(--text-secondary)" }}
-              onClick={() => setDraft({ ...draft, items: draft.items.filter((_, j) => j !== i) })}
-            >
-              <FaTrash />
-            </button>
-          </div>
-          <ItemDetail
-            n={i + 1}
-            value={item.detail ?? ""}
-            error={errors[`items.${i}.detail`]}
-            onChange={(v) => update(i, { detail: v })}
-          />
-        </div>
+        <ItemRow
+          key={item.id}
+          noun="item"
+          index={i}
+          item={item}
+          errors={errors}
+          errorPrefix="items"
+          onValidity={onValidity}
+          canRemove={draft.items.length > 1}
+          onChange={(patch) => update(i, patch)}
+          onRemove={() => setDraft({ ...draft, items: draft.items.filter((_, j) => j !== i) })}
+        />
       ))}
       <button
         type="button"
@@ -309,12 +263,100 @@ export function ItemsStep({ draft, setDraft, errors, onValidity }: StepProps) {
   );
 }
 
+/** One line-item row: description, quantity, price, remove, and the optional "what it includes" note. */
+function ItemRow({
+  noun,
+  index: i,
+  item,
+  errors,
+  errorPrefix,
+  onValidity,
+  canRemove,
+  onChange,
+  onRemove,
+}: {
+  noun: "item" | "optional item";
+  index: number;
+  item: QuoteDraft["items"][number];
+  errors: Record<string, string>;
+  errorPrefix: "items" | "optionalItems";
+  onValidity?: (id: string, ok: boolean) => void;
+  canRemove: boolean;
+  onChange: (patch: Partial<QuoteDraft["items"][number]>) => void;
+  onRemove: () => void;
+}) {
+  const err = (field: string) => errors[`${errorPrefix}.${i}.${field}`];
+  return (
+    <div className="space-y-2">
+      <div className="grid gap-2 sm:grid-cols-[1fr_5rem_8rem_auto] items-start">
+        <div>
+          <input
+            aria-label={`Description for ${noun} ${i + 1}`}
+            className={inputCls}
+            placeholder="What's included"
+            value={item.description}
+            onChange={(e) => onChange({ description: e.target.value })}
+          />
+          {err("description") && (
+            <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
+              {err("description")}
+            </p>
+          )}
+        </div>
+        <div>
+          <input
+            aria-label={`Quantity for ${noun} ${i + 1}`}
+            type="number"
+            min="0"
+            step="any"
+            className={inputCls}
+            value={item.qty}
+            onChange={(e) => onChange({ qty: Number(e.target.value) })}
+          />
+          {(err("qty") || !(item.qty > 0)) && (
+            <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
+              {!(item.qty > 0) ? "Quantity must be more than 0." : err("qty")}
+            </p>
+          )}
+        </div>
+        <PriceInput
+          id={`${item.id}-price`}
+          label={`Price for ${noun} ${i + 1}`}
+          onValidity={onValidity}
+          minor={item.unitMinor}
+          onChange={(m) => onChange({ unitMinor: m })}
+          error={err("unitMinor")}
+        />
+        <button
+          type="button"
+          aria-label={`Remove ${noun} ${i + 1}`}
+          disabled={!canRemove}
+          className="p-2.5 disabled:opacity-30"
+          style={{ color: "var(--text-secondary)" }}
+          onClick={onRemove}
+        >
+          <FaTrash />
+        </button>
+      </div>
+      <ItemDetail
+        noun={noun}
+        n={i + 1}
+        value={item.detail ?? ""}
+        error={err("detail")}
+        onChange={(v) => onChange({ detail: v })}
+      />
+    </div>
+  );
+}
+
 function ItemDetail({
+  noun,
   n,
   value,
   error,
   onChange,
 }: {
+  noun: string;
   n: number;
   value: string;
   error?: string;
@@ -334,7 +376,7 @@ function ItemDetail({
       </button>
       {open && (
         <textarea
-          aria-label={`What item ${n} includes`}
+          aria-label={`What ${noun} ${n} includes`}
           rows={3}
           maxLength={600}
           className={`${inputCls} mt-1`}
@@ -563,6 +605,195 @@ export function StagesStep({ draft, setDraft, errors }: StepProps) {
           {problem}
         </p>
       )}
+    </div>
+  );
+}
+
+const subCard = "space-y-3 rounded-xl border p-4";
+const subCardStyle = { borderColor: "var(--border-subtle)" };
+const hintCls = "text-xs";
+const hintStyle = { color: "var(--text-secondary)" };
+
+export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
+  const setCost = (i: number, patch: Partial<QuoteDraft["runningCosts"][number]>) =>
+    setDraft({
+      ...draft,
+      runningCosts: draft.runningCosts.map((c, j) => (j === i ? { ...c, ...patch } : c)),
+    });
+  const setOpt = (i: number, patch: Partial<QuoteDraft["optionalItems"][number]>) =>
+    setDraft({
+      ...draft,
+      optionalItems: draft.optionalItems.map((it, j) => (j === i ? { ...it, ...patch } : it)),
+    });
+  const errorText = (key: string) =>
+    errors[key] && (
+      <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
+        {errors[key]}
+      </p>
+    );
+  return (
+    <div className="space-y-4">
+      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+        Nothing here changes the price or the payments.
+      </p>
+
+      <section className={subCard} style={subCardStyle}>
+        <h4 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          Running costs
+        </h4>
+        {errorText("runningCosts")}
+        {draft.runningCosts.map((c, i) => (
+          // eslint-disable-next-line react/no-array-index-key -- running costs have no id; the inputs are controlled
+          <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1fr_10rem_auto] items-start">
+            <div>
+              <input
+                aria-label={`Service for running cost ${i + 1}`}
+                className={inputCls}
+                placeholder="Service"
+                value={c.service}
+                onChange={(e) => setCost(i, { service: e.target.value })}
+              />
+              {errorText(`runningCosts.${i}.service`)}
+            </div>
+            <div>
+              <input
+                aria-label={`What running cost ${i + 1} is for`}
+                className={inputCls}
+                placeholder="What it is for"
+                value={c.purpose}
+                onChange={(e) => setCost(i, { purpose: e.target.value })}
+              />
+              {errorText(`runningCosts.${i}.purpose`)}
+            </div>
+            <div>
+              <input
+                aria-label={`Estimated cost ${i + 1}`}
+                className={inputCls}
+                placeholder="USD 25 / month"
+                value={c.cost}
+                onChange={(e) => setCost(i, { cost: e.target.value })}
+              />
+              {errorText(`runningCosts.${i}.cost`)}
+            </div>
+            <button
+              type="button"
+              aria-label={`Remove running cost ${i + 1}`}
+              className="p-2.5"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() =>
+                setDraft({ ...draft, runningCosts: draft.runningCosts.filter((_, j) => j !== i) })
+              }
+            >
+              <FaTrash />
+            </button>
+          </div>
+        ))}
+        {draft.runningCosts.length < 12 && (
+          <button
+            type="button"
+            className="text-sm flex items-center gap-2"
+            style={{ color: "var(--accent-teal)" }}
+            onClick={() =>
+              setDraft({
+                ...draft,
+                runningCosts: [...draft.runningCosts, { service: "", purpose: "", cost: "" }],
+              })
+            }
+          >
+            <FaPlus /> Add running cost
+          </button>
+        )}
+      </section>
+
+      <section className={subCard} style={subCardStyle}>
+        <p className={hintCls} style={hintStyle}>
+          One item per line.
+        </p>
+        <Field id="q-exclusions" label="Not included" error={errors.exclusions}>
+          <textarea
+            id="q-exclusions"
+            rows={4}
+            maxLength={3000}
+            className={inputCls}
+            value={draft.exclusions}
+            onChange={(e) => setDraft({ ...draft, exclusions: e.target.value })}
+          />
+        </Field>
+        <Field id="q-assumptions" label="What I need from you" error={errors.assumptions}>
+          <textarea
+            id="q-assumptions"
+            rows={4}
+            maxLength={3000}
+            className={inputCls}
+            value={draft.assumptions}
+            onChange={(e) => setDraft({ ...draft, assumptions: e.target.value })}
+          />
+        </Field>
+      </section>
+
+      <section className={subCard} style={subCardStyle}>
+        <p className={hintCls} style={hintStyle}>
+          One step per line.
+        </p>
+        <Field id="q-next-steps" label="Next steps" error={errors.nextSteps}>
+          <textarea
+            id="q-next-steps"
+            rows={4}
+            maxLength={1500}
+            className={inputCls}
+            value={draft.nextSteps}
+            onChange={(e) => setDraft({ ...draft, nextSteps: e.target.value })}
+          />
+        </Field>
+      </section>
+
+      <section className={subCard} style={subCardStyle}>
+        <Field id="q-optional-title" label="Optional section title" error={errors.optionalTitle}>
+          <input
+            id="q-optional-title"
+            className={inputCls}
+            maxLength={80}
+            placeholder="Optional extras for later"
+            value={draft.optionalTitle}
+            onChange={(e) => setDraft({ ...draft, optionalTitle: e.target.value })}
+          />
+        </Field>
+        {errorText("optionalItems")}
+        {draft.optionalItems.map((item, i) => (
+          <ItemRow
+            key={item.id}
+            noun="optional item"
+            index={i}
+            item={item}
+            errors={errors}
+            errorPrefix="optionalItems"
+            onValidity={onValidity}
+            canRemove
+            onChange={(patch) => setOpt(i, patch)}
+            onRemove={() =>
+              setDraft({ ...draft, optionalItems: draft.optionalItems.filter((_, j) => j !== i) })
+            }
+          />
+        ))}
+        {draft.optionalItems.length < 30 && (
+          <button
+            type="button"
+            className="text-sm flex items-center gap-2"
+            style={{ color: "var(--accent-teal)" }}
+            onClick={() =>
+              setDraft({
+                ...draft,
+                optionalItems: [
+                  ...draft.optionalItems,
+                  { id: newId("opt"), description: "", qty: 1, unitMinor: 0 },
+                ],
+              })
+            }
+          >
+            <FaPlus /> Add optional item
+          </button>
+        )}
+      </section>
     </div>
   );
 }

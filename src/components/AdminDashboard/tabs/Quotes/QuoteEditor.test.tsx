@@ -98,6 +98,47 @@ describe("QuoteEditor", () => {
     expect(draft.schedule[0].note).toBe("To start the project");
   });
 
+  it("adds extras that never change the total", async () => {
+    quoteAdmin.mockResolvedValue({
+      quote: { id: "q1", status: "draft" },
+      stages: [],
+      payments: [],
+    });
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await fillClient();
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/project title/i), "Store");
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/description for item 1/i), "Build");
+    await userEvent.clear(screen.getByLabelText(/price for item 1/i));
+    await userEvent.type(screen.getByLabelText(/price for item 1/i), "10000");
+    await userEvent.click(screen.getByRole("button", { name: /next/i })); // stages
+    await userEvent.click(screen.getByRole("button", { name: /next/i })); // extras
+    await userEvent.click(screen.getByRole("button", { name: /add running cost/i }));
+    await userEvent.type(screen.getByLabelText(/service for running cost 1/i), "Appwrite Pro");
+    await userEvent.type(screen.getByLabelText(/estimated cost 1/i), "USD 25 / month");
+    await userEvent.type(screen.getByLabelText(/not included/i), "Logo design");
+    await userEvent.type(screen.getByLabelText(/optional section title/i), "Phase 2");
+    await userEvent.click(screen.getByRole("button", { name: /add optional item/i }));
+    await userEvent.type(screen.getByLabelText(/description for optional item 1/i), "SMS updates");
+    await userEvent.clear(screen.getByLabelText(/price for optional item 1/i));
+    await userEvent.type(screen.getByLabelText(/price for optional item 1/i), "2500");
+    const summary = screen.getByRole("complementary", { name: /quote summary/i });
+    expect(within(summary).getAllByText("GHS 10,000.00")).toHaveLength(2); // total and subtotal
+    expect(summary).not.toHaveTextContent("12,500.00");
+    expect(screen.getByText(/optional extras \(not in total\)/i).parentElement).toHaveTextContent(
+      "GHS 2,500.00",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    const draft = quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft;
+    expect(draft.runningCosts[0]).toMatchObject({
+      service: "Appwrite Pro",
+      cost: "USD 25 / month",
+    });
+    expect(draft.exclusions).toBe("Logo design");
+    expect(draft.optionalItems[0]).toMatchObject({ description: "SMS updates", unitMinor: 250000 });
+  });
+
   it("saves a new draft and reports the new id", async () => {
     quoteAdmin.mockResolvedValue({ quote: { id: "q9" }, stages: [], payments: [] });
     const onSaved = vi.fn();
@@ -179,11 +220,11 @@ describe("QuoteEditor", () => {
   it("hides Back on the first step and shows where you are", async () => {
     render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
     expect(screen.queryByRole("button", { name: /^back$/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/step 1 of 6/i)).toBeInTheDocument();
+    expect(screen.getByText(/step 1 of 7/i)).toBeInTheDocument();
     await fillClient();
     await userEvent.click(screen.getByRole("button", { name: /next/i }));
     expect(screen.getByRole("button", { name: /^back$/i })).toBeInTheDocument();
-    expect(screen.getByText(/step 2 of 6/i)).toBeInTheDocument();
+    expect(screen.getByText(/step 2 of 7/i)).toBeInTheDocument();
   });
 
   it("keeps a live summary with the total and stage amounts", () => {
