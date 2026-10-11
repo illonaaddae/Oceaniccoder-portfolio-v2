@@ -83,17 +83,18 @@ To run manually: `npx lint-staged`
 
 All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never reads them at runtime.
 
-| Variable                    | Purpose                                                       |
-| --------------------------- | ------------------------------------------------------------- |
-| `VITE_APPWRITE_ENDPOINT`    | Appwrite API endpoint                                         |
-| `VITE_APPWRITE_PROJECT_ID`  | Appwrite project                                              |
-| `VITE_APPWRITE_DATABASE_ID` | Appwrite database                                             |
-| `VITE_APPWRITE_BUCKET_ID`   | Appwrite storage bucket                                       |
-| `VITE_ADMIN_EMAIL`          | Admin account email (Appwrite Auth)                           |
-| `VITE_PAYSTACK_PUBLIC_KEY`  | Paystack Inline JS (card, momo, Apple Pay)                    |
-| `VITE_AZURE_MEDIA_BASE_URL` | Blob `media` container URL (optional; defaults to production) |
-| `VITE_DATA_BACKEND`         | `cosmos` reads through `/api/data`; unset keeps Appwrite      |
-| `VITE_TURNSTILE_SITE_KEY`   | Cloudflare Turnstile site key for visitor forms (public)      |
+| Variable                                                                                         | Purpose                                                       |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `VITE_APPWRITE_ENDPOINT`                                                                         | Appwrite API endpoint                                         |
+| `VITE_APPWRITE_PROJECT_ID`                                                                       | Appwrite project                                              |
+| `VITE_APPWRITE_DATABASE_ID`                                                                      | Appwrite database                                             |
+| `VITE_APPWRITE_BUCKET_ID`                                                                        | Appwrite storage bucket                                       |
+| `VITE_ADMIN_EMAIL`                                                                               | Admin account email (Appwrite Auth)                           |
+| `VITE_PAYSTACK_PUBLIC_KEY`                                                                       | Paystack Inline JS (card, momo, Apple Pay)                    |
+| `VITE_AZURE_MEDIA_BASE_URL`                                                                      | Blob `media` container URL (optional; defaults to production) |
+| `VITE_DATA_BACKEND`                                                                              | `cosmos` reads through `/api/data`; unset keeps Appwrite      |
+| `VITE_TURNSTILE_SITE_KEY`                                                                        | Cloudflare Turnstile site key for visitor forms (public)      |
+| `VITE_BANK_NAME` / `VITE_BANK_ACCOUNT_NAME` / `VITE_BANK_ACCOUNT_NUMBER` / `VITE_BANK_SORT_CODE` | Bank transfer details on pay pages (Actions secrets)          |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
 

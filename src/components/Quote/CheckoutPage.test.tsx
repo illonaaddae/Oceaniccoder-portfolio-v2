@@ -72,9 +72,7 @@ const renderAt = (path: string) =>
 
 // The email field is filled from the quote in an effect; wait for it so the form can submit.
 const payButton = async () => {
-  await waitFor(() =>
-    expect(screen.getByLabelText(/email for your receipt/i)).toHaveValue("kofi@example.com"),
-  );
+  await waitFor(() => expect(screen.getByText("kofi@example.com")).toBeInTheDocument());
   return screen.getByRole("button", { name: /pay ghs/i });
 };
 
@@ -152,6 +150,55 @@ describe("CheckoutPage", () => {
     expect(document.querySelector(".animated-card-inner")).not.toBeNull();
     await userEvent.click(screen.getByRole("radio", { name: /mobile money/i }));
     expect(document.querySelector(".animated-card-inner")).toBeNull();
+  });
+
+  it("shows the receipt email as one line, editable with Change", async () => {
+    renderAt("/q/tok/pay/deposit");
+    await payButton();
+    expect(screen.queryByLabelText(/email for your receipt/i)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /change/i }));
+    const input = screen.getByLabelText(/email for your receipt/i);
+    expect(input).toHaveValue("kofi@example.com");
+    expect(input).toHaveFocus();
+  });
+
+  it("shows the stage position, what comes next and a way back to the quote", async () => {
+    renderAt("/q/tok/pay/deposit");
+    expect(await screen.findByText(/stage 1 of 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/coming up next/i)).toBeInTheDocument();
+    expect(screen.getByText(/paying now/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /back to the quote/i })).toHaveAttribute(
+      "href",
+      "/q/tok",
+    );
+  });
+
+  it("offers bank transfer by message, without starting a Paystack payment", async () => {
+    renderAt("/q/tok/pay/deposit");
+    await userEvent.click(await screen.findByRole("radio", { name: /bank transfer/i }));
+    expect(screen.getByRole("link", { name: /email us/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mailto:"),
+    );
+    expect(screen.queryByRole("button", { name: /pay ghs/i })).toBeNull();
+    expect(startStagePayment).not.toHaveBeenCalled();
+  });
+
+  it("lets the client check a payment themselves after the window closes", async () => {
+    startStagePayment.mockResolvedValue({
+      accessCode: "AC1",
+      authorizationUrl: "https://checkout.paystack.com/AC1",
+      reference: "R1",
+    });
+    renderAt("/q/tok/pay/deposit");
+    await userEvent.click(await payButton());
+    await waitFor(() => expect(resumeTransaction).toHaveBeenCalled());
+    act(() => {
+      resumeTransaction.mock.calls[0][1].onCancel();
+    });
+    checkStagePayment.mockResolvedValue({ state: "paid", receiptPath: "/receipt/R1" });
+    await userEvent.click(await screen.findByRole("button", { name: /i've paid, check now/i }));
+    expect(await screen.findByText("paid page")).toBeInTheDocument();
   });
 
   it("arrow keys move the payment method selection", async () => {

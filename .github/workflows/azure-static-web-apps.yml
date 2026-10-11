@@ -42,6 +42,12 @@ jobs:
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
           VITE_ADMIN_PASSWORD_HASH: ${{ secrets.VITE_ADMIN_PASSWORD_HASH }}
           VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.VITE_PAYSTACK_PUBLIC_KEY }}
+          VITE_BANK_NAME: ${{ secrets.VITE_BANK_NAME }}
+          VITE_BANK_ACCOUNT_NAME: ${{ secrets.VITE_BANK_ACCOUNT_NAME }}
+          VITE_BANK_ACCOUNT_NUMBER: ${{ secrets.VITE_BANK_ACCOUNT_NUMBER }}
+          VITE_BANK_SORT_CODE: ${{ secrets.VITE_BANK_SORT_CODE }}
+          VITE_MOMO_NUMBER: ${{ secrets.VITE_MOMO_NUMBER }}
+          VITE_MOMO_NETWORK: ${{ secrets.VITE_MOMO_NETWORK }}
           # Appwrite → Cosmos cutover switch: set the repository variable to "cosmos"
           # and re-run this workflow. Unset (or anything else) keeps Appwrite.
           VITE_DATA_BACKEND: ${{ vars.VITE_DATA_BACKEND }}
