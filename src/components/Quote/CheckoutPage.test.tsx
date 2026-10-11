@@ -223,6 +223,68 @@ describe("CheckoutPage", () => {
     expect(card).toHaveAttribute("tabindex", "-1");
   });
 
+  it("sends the client to Paystack's page when the checkout window never loads", async () => {
+    startStagePayment.mockResolvedValue({
+      accessCode: "AC1",
+      authorizationUrl: "https://checkout.paystack.com/AC1",
+      reference: "R1",
+    });
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      value: { ...original, assign },
+      configurable: true,
+    });
+    try {
+      renderAt("/q/tok/pay/deposit");
+      await userEvent.click(await payButton());
+      // Paystack accepted the call but never reported onLoad (window blocked).
+      await waitFor(() => expect(resumeTransaction).toHaveBeenCalled());
+      expect(
+        await screen.findByRole(
+          "link",
+          { name: /open paystack's secure page/i },
+          { timeout: 6000 },
+        ),
+      ).toHaveAttribute("href", "https://checkout.paystack.com/AC1");
+      await waitFor(
+        () => expect(assign).toHaveBeenCalledWith("https://checkout.paystack.com/AC1"),
+        {
+          timeout: 6000,
+        },
+      );
+    } finally {
+      Object.defineProperty(window, "location", { value: original, configurable: true });
+    }
+  }, 20000);
+
+  it("does not leave the page when the checkout window loads", async () => {
+    startStagePayment.mockResolvedValue({
+      accessCode: "AC1",
+      authorizationUrl: "https://checkout.paystack.com/AC1",
+      reference: "R1",
+    });
+    resumeTransaction.mockImplementation((_code: string, cb: { onLoad?: () => void }) =>
+      cb.onLoad?.(),
+    );
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      value: { ...original, assign },
+      configurable: true,
+    });
+    try {
+      renderAt("/q/tok/pay/deposit");
+      await userEvent.click(await payButton());
+      await waitFor(() => expect(resumeTransaction).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 5500));
+      expect(assign).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, "location", { value: original, configurable: true });
+      resumeTransaction.mockReset();
+    }
+  }, 20000);
+
   it("falls back to Paystack's hosted page when the popup can't load", async () => {
     const { loadPaystackV2 } = await import("@/utils/paystackV2");
     vi.mocked(loadPaystackV2).mockRejectedValueOnce(new Error("blocked"));
