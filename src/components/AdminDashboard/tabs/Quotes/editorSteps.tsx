@@ -855,7 +855,7 @@ export function ReviewStep({ draft }: StepProps) {
       <p>Valid for {draft.validDays} days after sending.</p>
       <p>
         “Save and send” emails the client their link and gives you a WhatsApp button for their
-        number. To check the client page first, save the draft and use Preview in the quote detail.
+        number. To check the client page first, send it and use Preview in the sidebar.
       </p>
     </div>
   );

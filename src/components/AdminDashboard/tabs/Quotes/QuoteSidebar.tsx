@@ -1,22 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { FaTimes, FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck } from "react-icons/fa";
+import { useRef, useState } from "react";
+import { FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { useConfirm } from "../../ConfirmContext";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { ManualMethod, QuoteDetailResponse } from "@/types/quote";
-
-/**
- * Opens WhatsApp straight to the client's chat. wa.me needs the number with
- * its country code and no symbols, so a Ghana number typed as 024… becomes
- * 23324…. With no number on file it falls back to WhatsApp's contact picker.
- */
-export function waLink(phone: string | null | undefined, message: string): string {
-  let digits = (phone || "").replace(/\D/g, "");
-  if (digits.startsWith("00")) digits = digits.slice(2);
-  else if (digits.length === 10 && digits.startsWith("0")) digits = `233${digits.slice(1)}`;
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
-}
+import { waLink } from "./waLink";
 
 const btn =
   "px-3 py-2 rounded-lg text-sm font-medium border transition hover:opacity-90 disabled:opacity-50";
@@ -27,22 +16,26 @@ const primary = {
   borderColor: "transparent",
 };
 
-export default function QuoteDetail({
-  id,
-  onClose,
-  onEdit,
+/**
+ * The quote page's sidebar: status, what the client did, the client link,
+ * payment stages and the Send / Revise / Cancel actions. Every action returns
+ * the updated quote, which goes back to the page through onChanged.
+ */
+export default function QuoteSidebar({
+  data,
   onChanged,
+  sendBlocked = false,
   theme = "dark",
 }: {
+  data: QuoteDetailResponse;
   theme?: string;
-  id: string;
-  onClose: () => void;
-  onEdit: (d: QuoteDetailResponse) => void;
-  onChanged: () => void;
+  onChanged: (next: QuoteDetailResponse) => void;
+  /** The editor beside it has unsaved changes, so Send would send the old version. */
+  sendBlocked?: boolean;
 }) {
   const confirm = useConfirm();
-  const [data, setData] = useState<QuoteDetailResponse | null>(null);
-  const [link, setLink] = useState<string | null>(null);
+  const id = data.quote.id;
+  const [link, setLink] = useState<string | null>(data.link ?? null);
   const linkRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -51,14 +44,6 @@ export default function QuoteDetail({
     method: ManualMethod;
     note: string;
   } | null>(null);
-
-  const load = useCallback(
-    async () => setData(await quoteAdmin<QuoteDetailResponse>("get", { id })),
-    [id],
-  );
-  useEffect(() => {
-    load().catch((e) => setMessage({ tone: "error", text: e.message }));
-  }, [load]);
 
   const run = async (
     action: string,
@@ -69,7 +54,6 @@ export default function QuoteDetail({
     setMessage(null);
     try {
       const result = await quoteAdmin<QuoteDetailResponse>(action, { id, ...payload });
-      setData(result);
       if (result.link) setLink(result.link);
       else if (
         action === "revise" ||
@@ -87,7 +71,7 @@ export default function QuoteDetail({
         tone: emailNote ? "error" : "ok",
         text: `${success || "Done."}${emailNote}`,
       });
-      onChanged();
+      onChanged(result);
       return true;
     } catch (e) {
       setMessage({ tone: "error", text: e instanceof Error ? e.message : "Something went wrong." });
@@ -97,17 +81,6 @@ export default function QuoteDetail({
     }
   };
 
-  if (!data) {
-    return (
-      <div className="glass-card rounded-2xl p-6">
-        {message ? (
-          <p style={{ color: "var(--status-failed-text)" }}>{message.text}</p>
-        ) : (
-          <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
-        )}
-      </div>
-    );
-  }
   const { quote, stages, payments } = data;
   const anyPaid =
     stages.some((s) => s.state === "paid") || payments.some((p) => p.status === "success");
@@ -127,28 +100,14 @@ export default function QuoteDetail({
   const money = (m: number) => formatMinor(m, quote.currency);
 
   return (
-    <div className="glass-card rounded-2xl p-5 sm:p-6 space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
-            {quote.quoteNumber} · rev {quote.revision} · {quote.status}
-          </p>
-          <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            {quote.title}
-          </h3>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            {quote.clientName} · {quote.clientEmail ?? ""} · {money(quote.totalMinor)}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="p-2"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          <FaTimes />
-        </button>
+    <aside aria-label="Quote status and actions" className="glass-card rounded-2xl p-5 space-y-5">
+      <div>
+        <p className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+          {quote.quoteNumber} · rev {quote.revision} · {quote.status}
+        </p>
+        <p className="text-sm break-words" style={{ color: "var(--text-secondary)" }}>
+          {quote.clientName} · {quote.clientEmail ?? ""} · {money(quote.totalMinor)}
+        </p>
       </div>
 
       <ul className="text-sm space-y-1" style={{ color: "var(--text-secondary)" }}>
@@ -190,7 +149,7 @@ export default function QuoteDetail({
             aria-label="Quote link"
             readOnly
             value={link}
-            className="glass-input flex-1 min-w-[16rem] rounded-lg px-3 py-2 text-sm font-mono"
+            className="glass-input w-full min-w-0 rounded-lg px-3 py-2 text-sm font-mono"
             onFocus={(e) => e.target.select()}
           />
           <button type="button" className={btn} style={btnStyle} onClick={() => void copyLink()}>
@@ -370,18 +329,25 @@ export default function QuoteDetail({
       >
         {quote.status === "draft" && (
           <>
-            <button type="button" className={btn} style={btnStyle} onClick={() => onEdit(data)}>
-              Edit
-            </button>
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || sendBlocked}
               className={btn}
               style={primary}
+              aria-describedby={sendBlocked ? "quote-send-blocked" : undefined}
               onClick={() => void run("send", {}, "Quote sent to the client.")}
             >
               Send to client
             </button>
+            {sendBlocked && (
+              <p
+                id="quote-send-blocked"
+                className="w-full text-xs"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Save your changes first, so the client gets this version.
+              </p>
+            )}
           </>
         )}
         {(quote.status === "sent" || quote.status === "accepted") && (
@@ -447,6 +413,6 @@ export default function QuoteDetail({
           </button>
         )}
       </div>
-    </div>
+    </aside>
   );
 }

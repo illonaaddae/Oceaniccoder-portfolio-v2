@@ -27,7 +27,7 @@ import {
   BRAND_FILL,
   type StepProps,
 } from "./editorSteps";
-import { waLink } from "./QuoteDetail";
+import { waLink } from "./waLink";
 import type { QuoteDetailResponse, QuoteDraft } from "@/types/quote";
 
 const STEPS: {
@@ -91,19 +91,36 @@ const quietBtn =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold disabled:opacity-40";
 const quietStyle = { borderColor: "var(--border-subtle)", color: "var(--text-primary)" };
 
-/** Full-page quote builder: step rail, form on the left, live summary on the right. */
+const noop = () => {};
+
+/**
+ * Quote builder: step rail, form on the left, live summary on the right.
+ * `embedded` drops the page title, close link and summary so it can sit on a
+ * quote's own page, which shows those itself. `readOnly` stacks every step,
+ * disabled, with no rail or action bar, for quotes that are no longer drafts.
+ */
 export default function QuoteEditor({
   theme,
   quoteId,
   initial,
   onClose,
   onSaved,
+  embedded = false,
+  readOnly = false,
+  onChange,
+  onSent,
 }: {
   theme: string;
   quoteId?: string;
   initial?: Partial<QuoteDraft>;
   onClose: () => void;
   onSaved: (id: string) => void;
+  embedded?: boolean;
+  readOnly?: boolean;
+  /** Called with the live draft and whether it has unsaved changes. */
+  onChange?: (draft: QuoteDraft, dirty: boolean) => void;
+  /** Called once "Save and send" has sent the quote, while the sent panel shows. */
+  onSent?: (id: string) => void;
 }) {
   const [draft, setDraftState] = useState<QuoteDraft>(() => quoteToDraft(initial));
   const [step, setStep] = useState(0);
@@ -136,6 +153,10 @@ export default function QuoteEditor({
     }
     topRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
   }, [step, sent]);
+
+  useEffect(() => {
+    onChange?.(draft, dirty);
+  }, [onChange, draft, dirty]);
 
   const setDraft = (next: QuoteDraft) => {
     setDraftState(next);
@@ -198,6 +219,7 @@ export default function QuoteEditor({
     try {
       const result = await quoteAdmin<QuoteDetailResponse>("send", { id });
       setSent({ id, link: result.link, emailed: result.emailed });
+      onSent?.(id);
     } catch (err) {
       setMessage(
         `Saved as a draft, but it didn't send: ${err instanceof Error ? err.message : "unknown error"}`,
@@ -218,24 +240,48 @@ export default function QuoteEditor({
     ? `Hi ${firstName}, here is your quote from OceanicCoder: ${sent.link}`
     : "";
 
+  if (readOnly)
+    return (
+      <fieldset disabled aria-label="Quote content" className="min-w-0 space-y-6">
+        {STEPS.slice(0, LAST).map(({ label, Component: Step }, i) => (
+          <section
+            key={label}
+            aria-labelledby={`quote-view-step-${i}`}
+            className="glass-card rounded-2xl p-5 sm:p-6"
+          >
+            <h3
+              id={`quote-view-step-${i}`}
+              className="text-lg font-bold mb-4"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {label}
+            </h3>
+            <Step draft={draft} setDraft={noop} errors={{}} theme={theme} />
+          </section>
+        ))}
+      </fieldset>
+    );
+
   return (
     <div ref={topRef} className="space-y-6 scroll-mt-24">
-      <div>
-        <button
-          type="button"
-          onClick={close}
-          className="mb-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          <FaArrowLeft aria-hidden /> All quotes
-        </button>
-        <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-          {quoteId ? "Edit quote" : "New quote"}
-        </h2>
-        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          {draft.title || "Fill in each step, then send it from Review."}
-        </p>
-      </div>
+      {!embedded && (
+        <div>
+          <button
+            type="button"
+            onClick={close}
+            className="mb-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <FaArrowLeft aria-hidden /> All quotes
+          </button>
+          <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+            {quoteId ? "Edit quote" : "New quote"}
+          </h2>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            {draft.title || "Fill in each step, then send it from Review."}
+          </p>
+        </div>
+      )}
 
       {!sent && (
         <nav aria-label="Quote steps" className="glass-card rounded-2xl p-2">
@@ -302,7 +348,11 @@ export default function QuoteEditor({
         </nav>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div
+        className={
+          embedded ? "min-w-0" : "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]"
+        }
+      >
         <div className="min-w-0">
           {sent ? (
             <SentPanel
@@ -399,20 +449,24 @@ export default function QuoteEditor({
             </section>
           )}
         </div>
-        <Summary draft={draft} />
+        {!embedded && <Summary draft={draft} />}
       </div>
     </div>
   );
 }
 
-function Summary({ draft }: { draft: QuoteDraft }) {
+/** Live totals and stage amounts for a draft. */
+export function Summary({ draft, sticky = true }: { draft: QuoteDraft; sticky?: boolean }) {
   const totals = computeTotals(draft.items, draft.discountMinor);
   const stages = stageAmounts(totals.totalMinor, draft.schedule);
   const optionalMinor = computeTotals(draft.optionalItems).subtotalMinor;
   const money = (m: number) => formatMinor(m, draft.currency);
   const row = "flex min-w-0 justify-between gap-3";
   return (
-    <aside aria-label="Quote summary" className="min-w-0 xl:sticky xl:top-24 xl:self-start">
+    <aside
+      aria-label="Quote summary"
+      className={sticky ? "min-w-0 xl:sticky xl:top-24 xl:self-start" : "min-w-0"}
+    >
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="border-b p-5" style={{ borderColor: "var(--border-subtle)" }}>
           <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { waLink } from "./QuoteDetail";
+import { waLink } from "./waLink";
 
 const num = (url: string) => new URL(url).pathname.slice(1);
 
