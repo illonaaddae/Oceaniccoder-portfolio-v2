@@ -3,8 +3,13 @@ import { sequence, TerminalLine } from "./terminalTheme";
 
 const LOADER_KEY = "hasSeenLoader";
 
-const SKIP_PATHS = ["/pay/", "/dashboard", "/admin"];
-const shouldSkipForPath = () => SKIP_PATHS.some((p) => window.location.pathname.startsWith(p));
+// The terminal intro belongs to the portfolio only. Client flows (quotes,
+// invoices, payments, receipts, booking, inquiry), admin pages and unknown
+// URLs never show it, so list where it may run rather than where it may not.
+const PORTFOLIO_PATHS = ["/about", "/skills", "/projects", "/services", "/blog", "/contact"];
+export const isPortfolioPath = (path: string) =>
+  path === "/" || PORTFOLIO_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+const shouldSkipForPath = () => !isPortfolioPath(window.location.pathname);
 
 export function useTerminalAnimation() {
   const isBot = typeof navigator !== "undefined" && navigator.webdriver === true;

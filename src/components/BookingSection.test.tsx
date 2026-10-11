@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 
 vi.mock("framer-motion", () => ({
@@ -70,6 +70,22 @@ beforeEach(() => {
 
 // ── Navigation helpers ────────────────────────────────────────────────────────
 
+// getByRole works out the accessible name of every element on each call, which
+// on this form cost 0.4–1.3s per query in jsdom. Under the full parallel suite
+// that pushed these tests past their timeout. Matching buttons by aria-label or
+// text is enough here and takes a few milliseconds.
+const buttons = (name: RegExp) =>
+  Array.from(document.querySelectorAll("button")).filter((b) =>
+    name.test(b.getAttribute("aria-label") ?? b.textContent ?? ""),
+  );
+const button = (name: RegExp) => {
+  const found = buttons(name);
+  if (found.length !== 1) {
+    throw new Error(`Expected one button matching ${name}, found ${found.length}`);
+  }
+  return found[0];
+};
+
 // fireEvent.change is more reliable than userEvent.type with React 19 +
 // @testing-library/user-event@13 (older API, not designed for React 19).
 const fillStep1 = () => {
@@ -83,7 +99,7 @@ const fillStep1 = () => {
 
 const advanceToStep2 = async () => {
   fillStep1();
-  fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+  fireEvent.click(button(/continue/i));
   await waitFor(() => screen.getByLabelText(/preferred date/i));
 };
 
@@ -104,19 +120,19 @@ const advanceToStep2 = async () => {
 const pickDate = async () => {
   fireEvent.click(screen.getByLabelText(/preferred date/i));
   const dialog = await screen.findByRole("dialog", { name: /preferred date/i });
-  const days = within(dialog)
-    .getAllByRole("button")
-    .filter((b) => /^\d+$/.test(b.textContent ?? "") && !b.hasAttribute("disabled"));
+  const days = Array.from(dialog.querySelectorAll("button")).filter(
+    (b) => /^\d+$/.test(b.textContent ?? "") && !b.hasAttribute("disabled"),
+  );
   fireEvent.click(days[days.length - 1]);
 };
 
 const advanceToStep3 = async () => {
-  fireEvent.click(screen.getAllByRole("button", { name: /discovery call/i })[0]);
+  fireEvent.click(buttons(/discovery call/i)[0]);
   await pickDate();
-  await waitFor(() => screen.getByRole("button", { name: /09:00 AM/i }));
-  fireEvent.click(screen.getByRole("button", { name: /09:00 AM/i }));
-  fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-  await waitFor(() => screen.getByRole("button", { name: /confirm booking/i }));
+  await waitFor(() => button(/09:00 AM/i));
+  fireEvent.click(button(/09:00 AM/i));
+  fireEvent.click(button(/continue/i));
+  await waitFor(() => button(/confirm booking/i));
 };
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -127,7 +143,7 @@ describe("BookingSection — submit flow", () => {
     await advanceToStep2();
     await advanceToStep3();
 
-    fireEvent.click(screen.getByRole("button", { name: /confirm booking/i }));
+    fireEvent.click(button(/confirm booking/i));
 
     await waitFor(() => {
       expect(screen.getByText("Booking Received!")).toBeInTheDocument();
@@ -151,7 +167,7 @@ describe("BookingSection — submit flow", () => {
     await advanceToStep2();
     await advanceToStep3();
 
-    fireEvent.click(screen.getByRole("button", { name: /confirm booking/i }));
+    fireEvent.click(button(/confirm booking/i));
 
     await waitFor(() => {
       expect(screen.getByText("You're Booked!")).toBeInTheDocument();
@@ -176,7 +192,7 @@ describe("BookingSection — submit flow", () => {
     await advanceToStep2();
     await advanceToStep3();
 
-    fireEvent.click(screen.getByRole("button", { name: /confirm booking/i }));
+    fireEvent.click(button(/confirm booking/i));
 
     await waitFor(() => {
       expect(screen.getByText(/09:00 AM on 2099-06-15 is already booked/i)).toBeInTheDocument();
@@ -200,12 +216,12 @@ describe("BookingSection — submit flow", () => {
     await advanceToStep2();
     await advanceToStep3();
 
-    fireEvent.click(screen.getByRole("button", { name: /confirm booking/i }));
+    fireEvent.click(button(/confirm booking/i));
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /choose a different time/i })).toBeInTheDocument();
+      expect(button(/choose a different time/i)).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByRole("button", { name: /choose a different time/i }));
+    fireEvent.click(button(/choose a different time/i));
     expect(screen.getByLabelText(/preferred date/i)).toBeInTheDocument();
   });
 
@@ -217,7 +233,7 @@ describe("BookingSection — submit flow", () => {
     await advanceToStep2();
     await advanceToStep3();
 
-    fireEvent.click(screen.getByRole("button", { name: /confirm booking/i }));
+    fireEvent.click(button(/confirm booking/i));
 
     await waitFor(() => {
       expect(screen.getByText(/booking failed/i)).toBeInTheDocument();
@@ -226,15 +242,13 @@ describe("BookingSection — submit flow", () => {
 
   test("continue button starts disabled and enables once name and email are filled", async () => {
     render(<BookingSection />);
-    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+    expect(button(/continue/i)).toBeDisabled();
 
     // Wrap in act so React flushes state updates before waitFor polls
     await act(async () => {
       fillStep1();
     });
     // Re-query inside waitFor — avoids stale reference after React re-render
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /continue/i })).not.toBeDisabled(),
-    );
+    await waitFor(() => expect(button(/continue/i)).not.toBeDisabled());
   });
 });

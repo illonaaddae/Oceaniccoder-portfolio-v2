@@ -496,3 +496,70 @@ textarea:focus {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Print: browsers drop backgrounds, so the default dark theme would print
+   light text on white paper. Force a readable light palette on paper. */
+@media print {
+  :root,
+  :root.dark,
+  .dark,
+  [data-theme="light"],
+  [data-theme="dark"],
+  html[data-theme="light"],
+  html[data-theme="dark"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border-subtle: #cbd5e1;
+  }
+}
+
+/* Client quote pages (/q/*). The site-wide light theme tints cards mint and
+   repaints every .text-white and heading with --text-primary, which turned the
+   dark quote hero's text dark-on-dark. Scope a neutral palette here and let
+   .quote-on-dark surfaces resolve those rules to white. */
+.quote-ui {
+  --bg-primary: #f4f7f9;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e9eef2;
+  --border-subtle: #d5dee5;
+  --text-primary: #0b1b2b;
+  --text-secondary: #3d4f60; /* 8.6:1 on white */
+  --accent-teal: #085866; /* 8.1:1 on white */
+  --accent-teal-subtle: #e3f1f3;
+  --quote-cta: #085866;
+}
+[data-theme="dark"] .quote-ui {
+  --bg-primary: #000b21;
+  --bg-secondary: #061a2e;
+  --bg-tertiary: #0b2a40;
+  --border-subtle: rgba(38, 169, 197, 0.22);
+  --text-primary: #f1f5f9;
+  --text-secondary: #c3d0dc;
+  --accent-teal: #26a9c5;
+  --accent-teal-subtle: rgba(38, 169, 197, 0.14);
+  --quote-cta: #0a6e7d; /* white text 5.9:1 */
+}
+.quote-on-dark {
+  --text-primary: #ffffff;
+  color: #ffffff;
+}
+[data-theme] .quote-ui .text-white {
+  color: #ffffff !important;
+}
+@media print {
+  .quote-ui,
+  [data-theme="dark"] .quote-ui {
+    --bg-primary: #ffffff;
+    --bg-secondary: #ffffff;
+    --border-subtle: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+  }
+  .quote-on-dark {
+    --text-primary: #0f172a;
+    color: #0f172a;
+  }
+}

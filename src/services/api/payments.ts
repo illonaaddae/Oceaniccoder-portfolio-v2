@@ -17,10 +17,13 @@ export interface PaymentRecord {
   clientEmail: string;
   amount: number;
   currency: string;
-  method: "card" | "momo" | "bank" | "apple_pay";
+  method: "card" | "momo" | "bank" | "apple_pay" | "cash";
   paystackReference?: string;
   paidAt?: string;
-  status?: "success" | "pending" | "failed";
+  status?: "success" | "pending" | "failed" | "abandoned" | "duplicate" | "refunded";
+  kind?: "invoice" | "quote";
+  quoteNumber?: string;
+  stageId?: string;
 }
 
 export async function createPayment(payment: PaymentRecord) {

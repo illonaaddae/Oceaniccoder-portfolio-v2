@@ -34,28 +34,47 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
         setOpen(false);
       }
     };
-    const handleScroll = () => setOpen(false);
+    // Scrolling the list itself must not close it; any other scroll would detach the fixed menu.
+    const handleScroll = (e: Event) => {
+      // window/document targets are not Nodes that contain() accepts, so check first.
+      if (e.target instanceof globalThis.Node && menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const handleResize = () => setOpen(false);
     document.addEventListener("mousedown", handleClickOutside);
     window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
+
+  // Escape is only handled while this menu is open, so other fields keep their focus.
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.querySelector("button")?.focus();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
 
   const handleOpen = () => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const maxH = 320;
     const spaceBelow = window.innerHeight - rect.bottom - 8;
     const spaceAbove = rect.top - 8;
-    const openUpward = spaceBelow < maxH && spaceAbove > spaceBelow;
+    const openUpward = spaceBelow < 240 && spaceAbove > spaceBelow;
     setDropdownStyle({
       position: "fixed",
       ...(openUpward ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
       left: rect.left,
       width: rect.width,
-      maxHeight: Math.max(openUpward ? spaceAbove : spaceBelow, 200),
+      maxHeight: Math.max(0, Math.min(320, openUpward ? spaceAbove : spaceBelow)),
       zIndex: 9999,
     });
     setOpen((prev) => !prev);
@@ -71,6 +90,8 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
       <button
         type="button"
         onClick={handleOpen}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         className={`w-full glass-input flex items-center justify-between text-left ${
           value ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)] opacity-70"
         }`}
@@ -85,11 +106,14 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
         createPortal(
           <div
             ref={menuRef}
+            role="listbox"
             style={dropdownStyle}
-            className="glass-card border border-oceanic-500/30 rounded-xl overflow-hidden shadow-2xl shadow-black/50 overflow-y-auto"
+            className="glass-card border border-oceanic-500/30 rounded-xl overflow-hidden shadow-2xl shadow-black/50 overflow-y-auto overscroll-contain"
           >
             <button
               type="button"
+              role="option"
+              aria-selected={value === ""}
               onClick={() => handleSelect("")}
               className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 ${
                 value === ""
@@ -103,6 +127,8 @@ const SelectDropdown: React.FC<SelectDropdownProps> = ({
               <button
                 key={opt}
                 type="button"
+                role="option"
+                aria-selected={value === opt}
                 onClick={() => handleSelect(opt)}
                 className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 border-t border-white/5 ${
                   value === opt

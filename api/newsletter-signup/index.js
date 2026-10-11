@@ -1,4 +1,5 @@
 const https = require("https");
+const { shell, heading, button, buttons, small } = require("../shared/email/ui");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -35,45 +36,29 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email));
 }
 
+const SUBSCRIBER_REASON =
+  "You're receiving this because you subscribed at oceaniccoder.dev. No spam. Unsubscribe anytime.";
+
+function welcomeEmailHtml() {
+  return shell({
+    preview: "You're subscribed. New posts will land here first.",
+    reason: SUBSCRIBER_REASON,
+    body:
+      heading({
+        eyebrow: "Newsletter",
+        title: "Welcome aboard",
+        intro:
+          "Hey there, you're now subscribed to the OceanicCoder newsletter. You'll be the first to know when I publish new blog posts, from tutorials and project breakdowns to tips from my journey as a software and AI engineer.",
+      }) +
+      buttons(button({ href: "https://oceaniccoder.dev/blog", label: "Browse the blog" })) +
+      small(
+        "If this landed in your spam folder, please move it to your inbox so future emails reach you.",
+      ),
+  });
+}
+
 async function sendWelcomeEmail(context, { email, apiKey, fromEmail }) {
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid #334155;">
-        <tr>
-          <td style="background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);padding:32px 40px;">
-            <p style="margin:0;font-size:13px;color:#ffffff;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">OceanicCoder</p>
-            <h1 style="margin:8px 0 0;font-size:24px;color:#ffffff;font-weight:700;">Welcome aboard! 🎉</h1>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:40px;">
-            <p style="margin:0 0 16px;font-size:16px;color:#f1f5f9;font-weight:600;">Hey there,</p>
-            <p style="margin:0 0 24px;font-size:15px;color:#94a3b8;line-height:1.7;">
-              You're now subscribed to the OceanicCoder newsletter. You'll be the first to know when I publish new blog posts, from tutorials and project breakdowns to tips from my journey as a software and AI engineer.
-            </p>
-            <a href="https://oceaniccoder.dev/blog" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px;">Browse the Blog →</a>
-            <p style="margin:24px 0 0;font-size:13px;color:#64748b;line-height:1.6;">
-              If this landed in your spam folder, please move it to your inbox so future emails reach you.
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:24px 40px;border-top:1px solid #334155;">
-            <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-              You're receiving this because you subscribed at <a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a>.<br>
-              No spam. Unsubscribe anytime.
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const html = welcomeEmailHtml();
 
   await httpsPost(
     "api.resend.com",
@@ -160,3 +145,6 @@ module.exports = async function (context, req) {
     };
   }
 };
+
+// Exported for tests; the Azure runtime only uses the default export above.
+module.exports.welcomeEmailHtml = welcomeEmailHtml;

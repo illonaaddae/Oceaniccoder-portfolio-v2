@@ -103,19 +103,23 @@ Set all in: **GitHub → Settings → Secrets and variables → Actions**
 
 Azure Function runtime vars (set in **Azure Portal → Static Web App → Configuration → Application settings**):
 
-| Variable                | Purpose                                     |
-| ----------------------- | ------------------------------------------- |
-| `GOOGLE_CLIENT_ID`      | OAuth client for Calendar API               |
-| `GOOGLE_CLIENT_SECRET`  | OAuth secret                                |
-| `GOOGLE_REFRESH_TOKEN`  | Long-lived refresh token                    |
-| `GOOGLE_CALENDAR_ID`    | Calendar ID (usually your email)            |
-| `OPENAI_API_KEY`        | Chatbot (GPT-4o-mini)                       |
-| `PAYSTACK_SECRET_KEY`   | Webhook signature verification              |
-| `AZURE_STORAGE_ACCOUNT` | Media storage account (`oceaniccodermedia`) |
-| `AZURE_STORAGE_KEY`     | Signs upload URLs, writes resized copies    |
-| `COSMOS_ENDPOINT`       | Cosmos DB account (`oceaniccoder-db`)       |
-| `COSMOS_KEY`            | Cosmos DB key, used by `/api/data`          |
-| `TURNSTILE_SECRET_KEY`  | Checks visitor form tokens (`/api/submit`)  |
+| Variable                 | Purpose                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| `GOOGLE_CLIENT_ID`       | OAuth client for Calendar API                                                        |
+| `GOOGLE_CLIENT_SECRET`   | OAuth secret                                                                         |
+| `GOOGLE_REFRESH_TOKEN`   | Long-lived refresh token                                                             |
+| `GOOGLE_CALENDAR_ID`     | Calendar ID (usually your email)                                                     |
+| `OPENAI_API_KEY`         | Chatbot (GPT-4o-mini)                                                                |
+| `PAYSTACK_SECRET_KEY`    | Webhook signature verification                                                       |
+| `AZURE_STORAGE_ACCOUNT`  | Media storage account (`oceaniccodermedia`)                                          |
+| `AZURE_STORAGE_KEY`      | Signs upload URLs, writes resized copies                                             |
+| `COSMOS_ENDPOINT`        | Cosmos DB account (`oceaniccoder-db`)                                                |
+| `COSMOS_KEY`             | Cosmos DB key, used by `/api/data`                                                   |
+| `TURNSTILE_SECRET_KEY`   | Checks visitor form tokens (`/api/submit`)                                           |
+| `RECEIPT_SIGNING_SECRET` | Signs receipt links (`/receipt/<ref>?s=`); any long random string                    |
+| `SITE_URL`               | Base URL in quote emails and Paystack callbacks (default `https://oceaniccoder.dev`) |
+| `CONTACT_WHATSAPP`       | Optional WhatsApp number shown on client quote pages (digits, with country code)     |
+| `ANTHROPIC_API_KEY`      | Claude API key for the AI quote drafter (PR 1b)                                      |
 
 > `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
 > sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent
@@ -137,6 +141,11 @@ recorded on our side:
 | `RESEND_FROM_EMAIL` | Sender address (defaults if unset)                      |
 | `RESEND_TO_EMAIL`   | Admin address that receives failure alerts              |
 
+Quote payments (`/api/quote-pay`, `/api/paystack-webhook` quote branch) also need
+`PAYSTACK_SECRET_KEY` and `APPWRITE_API_KEY`. The `quotes` and `locks` tables and the
+extra `payments` columns were created in the Appwrite console; their schema is in
+`docs/plans/2026-10-01-appwrite-to-azure-migration.md`.
+
 Other vars the functions read: `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`,
 `APPWRITE_DATABASE_ID`, `RESEND_AUDIENCE_ID`, `AT_API_KEY`, `AT_USERNAME`,
 `AT_SENDER_ID`, `ADMIN_PHONE`, `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`,
@@ -155,7 +164,7 @@ src/
   utils/              # Pure utilities
   lib/                # SDK setup (appwrite.ts)
   types/              # Shared TypeScript types
-api/                  # Azure Functions (chat, create-booking, get-availability)
+api/                  # Azure Functions (bookings, invoices, quotes, payments, email)
 .github/
   workflows/          # CI (ci.yml) + Azure deploy (azure-static-web-apps.yml)
   PULL_REQUEST_TEMPLATE.md

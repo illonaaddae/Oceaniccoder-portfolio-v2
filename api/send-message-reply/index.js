@@ -1,5 +1,6 @@
 const https = require("https");
 const { requireAdmin } = require("../shared/adminAuth");
+const { shell, heading, p, small, lines } = require("../shared/email/ui");
 
 const CORS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
@@ -8,13 +9,6 @@ const CORS = {
   Vary: "Origin",
   "Content-Type": "application/json",
 };
-
-function escHtml(s) {
-  return String(s ?? "").replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
-  );
-}
 
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
@@ -40,7 +34,28 @@ function httpsPost(hostname, path, headers, body) {
   });
 }
 
-module.exports = async function (context, req) {
+const REASON = "OceanicCoder · Web and app development";
+const REPLY_LINE = "Reply to this email to continue the conversation.";
+
+// Returns { html, text } for an admin reply. Inputs are raw; the email kit
+// escapes them and keeps the admin's line breaks.
+function buildReplyEmail({ subject, message, recipientName }) {
+  const greeting = recipientName ? `Hi ${recipientName},` : "Hi,";
+  const body = String(message).replace(/\r\n?/g, "\n");
+  const html = shell({
+    preview: body.slice(0, 120),
+    reason: REASON,
+    body:
+      heading({ eyebrow: "Message from OceanicCoder", title: subject }) +
+      p(greeting) +
+      p(body) +
+      small(REPLY_LINE),
+  });
+  const text = lines(greeting, body);
+  return { html, text };
+}
+
+async function handler(context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
     return;
@@ -77,47 +92,7 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const safeSubject = escHtml(subject);
-  const safeGreeting = recipientName ? `Hi ${escHtml(recipientName)},` : "Hi,";
-  // Preserve the admin's line breaks in the HTML body.
-  const safeBody = escHtml(message).replace(/\r?\n/g, "<br>");
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeSubject}</title></head>
-<body style="margin:0;padding:0;background:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0f1a;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-
-        <!-- Header -->
-        <tr>
-          <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
-            <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="130" style="display:block;" />
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="background:#111827;padding:32px 40px;border-top:1px solid #1e293b;">
-            <p style="margin:0 0 16px;font-size:15px;color:#f1f5f9;font-weight:600;">${safeGreeting}</p>
-            <p style="margin:0;font-size:15px;color:#94a3b8;line-height:1.8;">${safeBody}</p>
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
-            <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#374151;">Illona @ OceanicCoder</p>
-            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a> &nbsp;·&nbsp; hello@oceaniccoder.dev</p>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const email = buildReplyEmail({ subject, message, recipientName });
 
   try {
     const result = await httpsPost(
@@ -129,7 +104,8 @@ module.exports = async function (context, req) {
         to: [to],
         reply_to: "hello@oceaniccoder.dev",
         subject,
-        html,
+        html: email.html,
+        text: email.text,
       },
     );
 
@@ -147,4 +123,7 @@ module.exports = async function (context, req) {
     context.log.error("send-message-reply error:", err.message);
     context.res = { status: 500, headers: CORS, body: JSON.stringify({ error: "Internal error" }) };
   }
-};
+}
+
+module.exports = handler;
+module.exports.buildReplyEmail = buildReplyEmail;

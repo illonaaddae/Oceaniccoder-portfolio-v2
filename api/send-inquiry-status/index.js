@@ -1,5 +1,6 @@
 const https = require("https");
 const { requireAdmin } = require("../shared/adminAuth");
+const { shell, heading, p, notice, small, lines } = require("../shared/email/ui");
 
 const CORS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
@@ -8,13 +9,6 @@ const CORS = {
   Vary: "Origin",
   "Content-Type": "application/json",
 };
-
-function escHtml(s) {
-  return String(s ?? "").replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
-  );
-}
 
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
@@ -40,58 +34,63 @@ function httpsPost(hostname, path, headers, body) {
   });
 }
 
+const REASON = "OceanicCoder · Web and app development";
+
+// One entry per inquiry status that emails the client. Statuses not listed
+// here are skipped by the handler.
 const TEMPLATES = {
   reviewed: {
     subject: (pt) => `Your ${pt} Inquiry – I've Reviewed Your Project`,
-    hero: {
-      bg: "#0f2233",
-      badge: "#0C8599",
-      badgeText: "UNDER REVIEW",
-      icon: "&#128269;",
-      iconBg: "rgba(12,133,153,0.15)",
-      iconBorder: "rgba(12,133,153,0.5)",
-      iconColor: "#26a9c5",
-    },
-    heading: (name) => `Thanks, ${name}!`,
-    body: (name, pt) =>
-      `I've had a good look at your <strong style="color:#f1f5f9;">${pt}</strong> project brief and it looks really interesting. I'm reviewing the details carefully and will be in touch very soon with next steps and a tailored proposal.`,
+    eyebrow: "Under review",
+    tone: "info",
+    title: (name) => `Thanks, ${name}!`,
+    body: (pt) =>
+      `I've had a good look at your ${pt} project brief and it looks really interesting. I'm reviewing the details carefully and will be in touch very soon with next steps and a tailored proposal.`,
     note: "Expect to hear from me within 24 hours.",
   },
   quoted: {
     subject: (pt) => `Your ${pt} Project – Proposal Ready`,
-    hero: {
-      bg: "#0f2a1f",
-      badge: "#0C8599",
-      badgeText: "PROPOSAL READY",
-      icon: "&#128196;",
-      iconBg: "rgba(13,148,136,0.15)",
-      iconBorder: "rgba(13,148,136,0.5)",
-      iconColor: "#26a9c5",
-    },
-    heading: (name) => `Great news, ${name}!`,
-    body: (name, pt) =>
-      `I've carefully reviewed your <strong style="color:#f1f5f9;">${pt}</strong> project and prepared a detailed proposal and pricing just for you. Check your inbox for the invoice. It includes a full breakdown of deliverables, timeline, and payment options.`,
+    eyebrow: "Proposal ready",
+    tone: "ok",
+    title: (name) => `Great news, ${name}!`,
+    body: (pt) =>
+      `I've carefully reviewed your ${pt} project and prepared a detailed proposal and pricing just for you. Check your inbox for the invoice. It includes a full breakdown of deliverables, timeline, and payment options.`,
     note: "Questions about the proposal? Just reply to this email.",
   },
   declined: {
     subject: (pt) => `Re: Your ${pt} Inquiry`,
-    hero: {
-      bg: "#1f1010",
-      badge: "#6b7280",
-      badgeText: "UPDATE",
-      icon: "&#128075;",
-      iconBg: "rgba(107,114,128,0.15)",
-      iconBorder: "rgba(107,114,128,0.4)",
-      iconColor: "#9ca3af",
-    },
-    heading: (name) => `Hi ${name},`,
-    body: (name, pt) =>
-      `Thank you so much for considering me for your <strong style="color:#f1f5f9;">${pt}</strong> project. I really appreciate you taking the time to reach out. Unfortunately, I'm not able to take on new projects at this time due to existing commitments.`,
+    eyebrow: "Update",
+    tone: "info",
+    title: (name) => `Hi ${name},`,
+    body: (pt) =>
+      `Thank you so much for considering me for your ${pt} project. I really appreciate you taking the time to reach out. Unfortunately, I'm not able to take on new projects at this time due to existing commitments.`,
     note: "I hope we get the chance to work together in the future. Feel free to reach out again!",
   },
 };
 
-module.exports = async function (context, req) {
+const CONTACT_LINE = "You can also write to me at hello@oceaniccoder.dev.";
+
+// Returns { subject, html, text } for a status, or null when the status sends
+// no email. Inputs are raw; the email kit escapes them.
+function buildStatusEmail({ status, clientName, projectType }) {
+  const tpl = Object.prototype.hasOwnProperty.call(TEMPLATES, status) ? TEMPLATES[status] : null;
+  if (!tpl) return null;
+  const pt = projectType || "your project";
+  const subject = tpl.subject(pt);
+  const html = shell({
+    preview: tpl.note,
+    reason: REASON,
+    body:
+      heading({ eyebrow: tpl.eyebrow, tone: tpl.tone, title: tpl.title(clientName) }) +
+      p(tpl.body(pt)) +
+      notice({ tone: tpl.tone, text: tpl.note }) +
+      small(CONTACT_LINE),
+  });
+  const text = lines(tpl.title(clientName), tpl.body(pt), tpl.note, CONTACT_LINE);
+  return { subject, html, text };
+}
+
+async function handler(context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
     return;
@@ -120,8 +119,8 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const tpl = TEMPLATES[status];
-  if (!tpl) {
+  const email = buildStatusEmail({ status, clientName, projectType });
+  if (!email) {
     context.res = { status: 200, headers: CORS, body: JSON.stringify({ skipped: true }) };
     return;
   }
@@ -134,71 +133,6 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const safeName = escHtml(clientName);
-  const pt = escHtml(projectType || "your project");
-  const h = tpl.hero;
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${tpl.subject(pt)}</title></head>
-<body style="margin:0;padding:0;background:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0f1a;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-
-        <!-- Header -->
-        <tr>
-          <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="padding-right:16px;"><img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="120" style="display:block;" /></td>
-                <td style="text-align:right;vertical-align:middle;white-space:nowrap;padding-left:16px;">
-                  <span style="display:inline-block;white-space:nowrap;background:#ffffff;border-radius:20px;padding:5px 14px;font-size:11px;color:${h.badge};font-weight:700;letter-spacing:0.08em;">${h.badgeText}</span>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Hero -->
-        <tr>
-          <td style="background:${h.bg};padding:32px 40px;text-align:center;">
-            <div style="width:68px;height:68px;border-radius:50%;background:${h.iconBg};border:2px solid ${h.iconBorder};display:inline-block;line-height:68px;font-size:34px;margin-bottom:16px;">${h.icon}</div>
-            <p style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">${tpl.heading(safeName)}</p>
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="background:#111827;padding:28px 40px;border-top:1px solid #1e293b;">
-            <p style="margin:0 0 16px;font-size:15px;color:#94a3b8;line-height:1.8;">${tpl.body(safeName, pt)}</p>
-            <div style="background:#0f172a;border-left:3px solid #0C8599;border-radius:0 8px 8px 0;padding:14px 16px;">
-              <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">${tpl.note}</p>
-            </div>
-          </td>
-        </tr>
-
-        <!-- CTA -->
-        <tr>
-          <td style="background:#111827;padding:0 40px 28px;text-align:center;">
-            <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#085866 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;">Reply to Illona</a>
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
-            <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#374151;">OceanicCoder</p>
-            <p style="margin:0;font-size:12px;color:#374151;"><a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a> &nbsp;·&nbsp; hello@oceaniccoder.dev</p>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-
   try {
     const result = await httpsPost(
       "api.resend.com",
@@ -207,8 +141,9 @@ module.exports = async function (context, req) {
       {
         from: `Illona @ OceanicCoder <${fromEmail}>`,
         to: [clientEmail],
-        subject: tpl.subject(pt),
-        html,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
       },
     );
 
@@ -226,4 +161,7 @@ module.exports = async function (context, req) {
     context.log.error("send-inquiry-status error:", err.message);
     context.res = { status: 500, headers: CORS, body: JSON.stringify({ error: "Internal error" }) };
   }
-};
+}
+
+module.exports = handler;
+module.exports.buildStatusEmail = buildStatusEmail;

@@ -15,7 +15,13 @@ interface MainLayoutProps {
 
 const MainLayout: FC<MainLayoutProps> = ({ theme, toggleTheme, children }) => {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith("/admin") || location.pathname === "/dashboard";
+  // Admin pages and client documents (quotes, invoices, receipts) bring their
+  // own frame; the marketing navbar, banner and footer would only distract.
+  const isAdminRoute =
+    location.pathname.startsWith("/admin") ||
+    location.pathname === "/dashboard" ||
+    location.pathname.startsWith("/q/") ||
+    location.pathname.startsWith("/receipt/");
 
   return (
     <>

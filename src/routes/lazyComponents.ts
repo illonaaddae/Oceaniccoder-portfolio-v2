@@ -36,6 +36,17 @@ const ClientInquiry = lazyWithReload(
   () => import("@/components/ClientInquiry/InquiryPage"),
 );
 const PaymentPage = lazyWithReload("PaymentPage", () => import("@/components/Payment/PaymentPage"));
+const QuotePage = lazyWithReload("QuotePage", () => import("@/components/Quote/QuotePage"));
+const CheckoutPage = lazyWithReload(
+  "CheckoutPage",
+  () => import("@/components/Quote/CheckoutPage"),
+);
+const PaidPage = lazyWithReload("PaidPage", () => import("@/components/Quote/PaidPage"));
+const StageInvoicePage = lazyWithReload(
+  "StageInvoicePage",
+  () => import("@/components/Quote/StageInvoicePage"),
+);
+const ReceiptPage = lazyWithReload("ReceiptPage", () => import("@/components/Quote/ReceiptPage"));
 
 /**
  * Route chunks worth warming on idle, so an open tab already holds them in the
@@ -50,6 +61,7 @@ export const PREFETCHABLE_ROUTES: (() => Promise<unknown>)[] = [
   // Ordered by how costly the failure is: losing a payment or a lead matters
   // more than a slow About page.
   () => import("@/components/Payment/PaymentPage"),
+  () => import("@/components/Quote/QuotePage"),
   () => import("@/components/ClientInquiry/InquiryPage"),
   () => import("@/components/BookingSection"),
   () => import("@/components/ContactSection"),
@@ -78,4 +90,9 @@ export {
   Booking,
   ClientInquiry,
   PaymentPage,
+  QuotePage,
+  CheckoutPage,
+  PaidPage,
+  StageInvoicePage,
+  ReceiptPage,
 };
