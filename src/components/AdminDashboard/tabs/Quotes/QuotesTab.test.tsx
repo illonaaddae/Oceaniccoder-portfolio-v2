@@ -190,9 +190,11 @@ describe("QuotesTab", () => {
     expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
     // The header renders before the quote's detail arrives; wait for the form.
     expect(await screen.findByLabelText(/client name/i)).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /line items/i }));
     expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
     expect(screen.getByRole("button", { name: /revise/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^next/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /save draft/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /save and send/i })).toBeNull();
   });
 
   it("opens a draft as the editable stepper and stays there after saving", async () => {
