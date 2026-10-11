@@ -335,15 +335,28 @@ export default function CheckoutPage() {
                   onClick={() => setMethod(id)}
                   className="rounded-xl border p-4 text-left transition"
                   style={{
-                    borderColor: method === id ? "var(--accent-teal)" : "var(--border-subtle)",
-                    background: method === id ? "var(--accent-teal-subtle)" : "transparent",
+                    borderColor: method === id ? "var(--quote-cta)" : "var(--border-subtle)",
+                    background: method === id ? "var(--quote-cta)" : "transparent",
                   }}
                 >
-                  <Icon aria-hidden className="mb-2" style={{ color: "var(--accent-teal)" }} />
-                  <span className="block font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {/* The picked method is a solid brand block, as on Craigtec. */}
+                  <Icon
+                    aria-hidden
+                    className="mb-2"
+                    style={{ color: method === id ? "#ffffff" : "var(--accent-teal)" }}
+                  />
+                  <span
+                    className="block font-semibold"
+                    style={{ color: method === id ? "#ffffff" : "var(--text-primary)" }}
+                  >
                     {label}
                   </span>
-                  <span className="block text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <span
+                    className="block text-xs"
+                    style={{
+                      color: method === id ? "rgba(255,255,255,0.8)" : "var(--text-secondary)",
+                    }}
+                  >
                     {hint}
                   </span>
                 </button>
