@@ -188,7 +188,8 @@ describe("QuotesTab", () => {
     render(<QuotesTab theme="dark" />);
     await userEvent.click(await screen.findByText("Q-2026-0001"));
     expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/client name/i)).toBeDisabled();
+    // The header renders before the quote's detail arrives; wait for the form.
+    expect(await screen.findByLabelText(/client name/i)).toBeDisabled();
     expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
     expect(screen.getByRole("button", { name: /revise/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^next/i })).toBeNull();
@@ -210,8 +211,7 @@ describe("QuotesTab", () => {
       expect(quoteAdmin).toHaveBeenCalledWith("save", expect.objectContaining({ id: "q2" })),
     );
     expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/client name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/client name/i)).not.toBeDisabled();
+    expect(await screen.findByLabelText(/client name/i)).not.toBeDisabled();
   });
 
   it("goes back to the list", async () => {
