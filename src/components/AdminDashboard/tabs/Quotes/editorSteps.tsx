@@ -112,6 +112,8 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
   const set =
     (k: keyof QuoteDraft) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setDraft({ ...draft, [k]: e.target.value });
+  // Empty boxes are not stored, so keep typed-but-blank text locally in step with the draft.
+  const slots = [0, 1, 2, 3].map((n) => draft.highlights[n] ?? "");
   return (
     <div className="space-y-4">
       <Field id="q-title" label="Project title" error={errors.title}>
@@ -120,6 +122,36 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
       <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
         Plain text. Start a line with “- ” for a bullet. Blank sections are hidden from the client.
       </p>
+      <fieldset className="space-y-2">
+        <legend className={labelCls} style={{ color: "var(--text-primary)" }}>
+          At a glance (optional)
+        </legend>
+        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          Up to four short facts shown at the top of the quote, such as "Live in 14 weeks".
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((n) => (
+            <Field
+              key={n}
+              id={`q-hl-${n + 1}`}
+              label={`At a glance fact ${n + 1}`}
+              error={errors[`highlights.${n}`]}
+            >
+              <input
+                id={`q-hl-${n + 1}`}
+                className={inputCls}
+                maxLength={80}
+                value={slots[n]}
+                onChange={(e) => {
+                  const next = [...slots];
+                  next[n] = e.target.value;
+                  setDraft({ ...draft, highlights: next.filter((v) => v.trim() !== "") });
+                }}
+              />
+            </Field>
+          ))}
+        </div>
+      </fieldset>
       <Field id="q-overview" label="Overview" error={errors.overview}>
         <textarea
           id="q-overview"
@@ -163,55 +195,63 @@ export function ItemsStep({ draft, setDraft, errors, onValidity }: StepProps) {
         </p>
       )}
       {draft.items.map((item, i) => (
-        <div key={item.id} className="grid gap-2 sm:grid-cols-[1fr_5rem_8rem_auto] items-start">
-          <div>
-            <input
-              aria-label={`Description for item ${i + 1}`}
-              className={inputCls}
-              placeholder="What's included"
-              value={item.description}
-              onChange={(e) => update(i, { description: e.target.value })}
+        <div key={item.id} className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-[1fr_5rem_8rem_auto] items-start">
+            <div>
+              <input
+                aria-label={`Description for item ${i + 1}`}
+                className={inputCls}
+                placeholder="What's included"
+                value={item.description}
+                onChange={(e) => update(i, { description: e.target.value })}
+              />
+              {errors[`items.${i}.description`] && (
+                <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
+                  {errors[`items.${i}.description`]}
+                </p>
+              )}
+            </div>
+            <div>
+              <input
+                aria-label={`Quantity for item ${i + 1}`}
+                type="number"
+                min="0"
+                step="any"
+                className={inputCls}
+                value={item.qty}
+                onChange={(e) => update(i, { qty: Number(e.target.value) })}
+              />
+              {(errors[`items.${i}.qty`] || !(item.qty > 0)) && (
+                <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
+                  {!(item.qty > 0) ? "Quantity must be more than 0." : errors[`items.${i}.qty`]}
+                </p>
+              )}
+            </div>
+            <PriceInput
+              id={`${item.id}-price`}
+              label={`Price for item ${i + 1}`}
+              onValidity={onValidity}
+              minor={item.unitMinor}
+              onChange={(m) => update(i, { unitMinor: m })}
+              error={errors[`items.${i}.unitMinor`]}
             />
-            {errors[`items.${i}.description`] && (
-              <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
-                {errors[`items.${i}.description`]}
-              </p>
-            )}
+            <button
+              type="button"
+              aria-label={`Remove item ${i + 1}`}
+              disabled={draft.items.length === 1}
+              className="p-2.5 disabled:opacity-30"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() => setDraft({ ...draft, items: draft.items.filter((_, j) => j !== i) })}
+            >
+              <FaTrash />
+            </button>
           </div>
-          <div>
-            <input
-              aria-label={`Quantity for item ${i + 1}`}
-              type="number"
-              min="0"
-              step="any"
-              className={inputCls}
-              value={item.qty}
-              onChange={(e) => update(i, { qty: Number(e.target.value) })}
-            />
-            {(errors[`items.${i}.qty`] || !(item.qty > 0)) && (
-              <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
-                {!(item.qty > 0) ? "Quantity must be more than 0." : errors[`items.${i}.qty`]}
-              </p>
-            )}
-          </div>
-          <PriceInput
-            id={`${item.id}-price`}
-            label={`Price for item ${i + 1}`}
-            onValidity={onValidity}
-            minor={item.unitMinor}
-            onChange={(m) => update(i, { unitMinor: m })}
-            error={errors[`items.${i}.unitMinor`]}
+          <ItemDetail
+            n={i + 1}
+            value={item.detail ?? ""}
+            error={errors[`items.${i}.detail`]}
+            onChange={(v) => update(i, { detail: v })}
           />
-          <button
-            type="button"
-            aria-label={`Remove item ${i + 1}`}
-            disabled={draft.items.length === 1}
-            className="p-2.5 disabled:opacity-30"
-            style={{ color: "var(--text-secondary)" }}
-            onClick={() => setDraft({ ...draft, items: draft.items.filter((_, j) => j !== i) })}
-          >
-            <FaTrash />
-          </button>
         </div>
       ))}
       <button
@@ -231,6 +271,16 @@ export function ItemsStep({ draft, setDraft, errors, onValidity }: StepProps) {
         className="flex flex-wrap items-center justify-end gap-3 border-t pt-3"
         style={{ borderColor: "var(--border-subtle)" }}
       >
+        <Field id="q-discount-label" label="Discount label" error={errors.discountLabel}>
+          <input
+            id="q-discount-label"
+            className={inputCls}
+            maxLength={60}
+            placeholder="First-client discount"
+            value={draft.discountLabel}
+            onChange={(e) => setDraft({ ...draft, discountLabel: e.target.value })}
+          />
+        </Field>
         <PriceInput
           id="discount"
           label="Discount"
@@ -243,6 +293,48 @@ export function ItemsStep({ draft, setDraft, errors, onValidity }: StepProps) {
           Total {formatMinor(totals.totalMinor, draft.currency)}
         </p>
       </div>
+    </div>
+  );
+}
+
+function ItemDetail({
+  n,
+  value,
+  error,
+  onChange,
+}: {
+  n: number;
+  value: string;
+  error?: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(value !== "");
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        className="text-sm"
+        style={{ color: "var(--accent-teal)" }}
+        onClick={() => setOpen(!open)}
+      >
+        {open ? "Hide what it includes" : "Add what it includes"}
+      </button>
+      {open && (
+        <textarea
+          aria-label={`What item ${n} includes`}
+          rows={3}
+          maxLength={600}
+          className={`${inputCls} mt-1`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+      {error && (
+        <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -339,7 +431,7 @@ export const PAYMENT_PRESETS: { name: string; schedule: StageDef[] }[] = [
 const samePlan = (a: StageDef[], b: StageDef[]) =>
   a.length === b.length && a.every((s, i) => s.percent === b[i].percent);
 
-export function StagesStep({ draft, setDraft }: StepProps) {
+export function StagesStep({ draft, setDraft, errors }: StepProps) {
   const { totalMinor } = computeTotals(draft.items, draft.discountMinor);
   const amounts = stageAmounts(totalMinor, draft.schedule);
   const problem = scheduleError(draft.schedule);
@@ -380,45 +472,63 @@ export function StagesStep({ draft, setDraft }: StepProps) {
         })}
       </div>
       {draft.schedule.map((s, i) => (
-        <div
-          key={s.id}
-          className="grid gap-2 grid-cols-[minmax(0,1fr)_4.5rem_auto] sm:grid-cols-[1fr_5.5rem_8rem_auto] items-center"
-        >
+        <div key={s.id} className="space-y-2">
+          <div className="grid gap-2 grid-cols-[minmax(0,1fr)_4.5rem_auto] sm:grid-cols-[1fr_5.5rem_8rem_auto] items-center">
+            <input
+              aria-label={`Name for stage ${i + 1}`}
+              className={inputCls}
+              value={s.label}
+              onChange={(e) => update(i, { label: e.target.value })}
+            />
+            <input
+              aria-label={`Percent for stage ${i + 1}`}
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              className={inputCls}
+              value={s.percent}
+              onChange={(e) => update(i, { percent: Number(e.target.value) })}
+            />
+            {/* On phones the live summary below the form carries the amounts. */}
+            <span
+              className="hidden sm:block font-mono text-sm text-right"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {formatMinor(amounts[i]?.amountMinor ?? 0, draft.currency)}
+            </span>
+            <button
+              type="button"
+              aria-label={`Remove stage ${i + 1}`}
+              disabled={draft.schedule.length === 1}
+              className="p-2.5 disabled:opacity-30"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() =>
+                setDraft({ ...draft, schedule: draft.schedule.filter((_, j) => j !== i) })
+              }
+            >
+              <FaTrash />
+            </button>
+          </div>
           <input
-            aria-label={`Name for stage ${i + 1}`}
+            aria-label={`When stage ${i + 1} is due`}
             className={inputCls}
-            value={s.label}
-            onChange={(e) => update(i, { label: e.target.value })}
-          />
-          <input
-            aria-label={`Percent for stage ${i + 1}`}
-            type="number"
-            min="1"
-            max="100"
-            step="1"
-            className={inputCls}
-            value={s.percent}
-            onChange={(e) => update(i, { percent: Number(e.target.value) })}
-          />
-          {/* On phones the live summary below the form carries the amounts. */}
-          <span
-            className="hidden sm:block font-mono text-sm text-right"
-            style={{ color: "var(--text-primary)" }}
-          >
-            {formatMinor(amounts[i]?.amountMinor ?? 0, draft.currency)}
-          </span>
-          <button
-            type="button"
-            aria-label={`Remove stage ${i + 1}`}
-            disabled={draft.schedule.length === 1}
-            className="p-2.5 disabled:opacity-30"
-            style={{ color: "var(--text-secondary)" }}
-            onClick={() =>
-              setDraft({ ...draft, schedule: draft.schedule.filter((_, j) => j !== i) })
+            maxLength={80}
+            placeholder={
+              i === 0
+                ? "To start the project"
+                : i === draft.schedule.length - 1
+                  ? "When the project is live"
+                  : "When this stage is done"
             }
-          >
-            <FaTrash />
-          </button>
+            value={s.note ?? ""}
+            onChange={(e) => update(i, { note: e.target.value })}
+          />
+          {errors[`schedule.${i}.note`] && (
+            <p className="text-xs" style={{ color: "var(--status-failed-text)" }}>
+              {errors[`schedule.${i}.note`]}
+            </p>
+          )}
         </div>
       ))}
       {draft.schedule.length < 8 && (

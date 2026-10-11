@@ -54,6 +54,32 @@ describe("QuoteEditor", () => {
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
   });
 
+  it("saves highlights, item details, a discount label and stage notes", async () => {
+    quoteAdmin.mockResolvedValue({
+      quote: { id: "q1", status: "draft" },
+      stages: [],
+      payments: [],
+    });
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await fillClient();
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/project title/i), "Store");
+    await userEvent.type(screen.getByLabelText(/at a glance fact 1/i), "Live in 14 weeks");
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/description for item 1/i), "Build");
+    await userEvent.click(screen.getByRole("button", { name: /add what it includes/i }));
+    await userEvent.type(screen.getByLabelText(/what item 1 includes/i), "Pages and checkout");
+    await userEvent.type(screen.getByLabelText(/discount label/i), "First-client discount");
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/when stage 1 is due/i), "To start the project");
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    const draft = quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft;
+    expect(draft.highlights).toEqual(["Live in 14 weeks"]);
+    expect(draft.items[0].detail).toBe("Pages and checkout");
+    expect(draft.discountLabel).toBe("First-client discount");
+    expect(draft.schedule[0].note).toBe("To start the project");
+  });
+
   it("saves a new draft and reports the new id", async () => {
     quoteAdmin.mockResolvedValue({ quote: { id: "q9" }, stages: [], payments: [] });
     const onSaved = vi.fn();

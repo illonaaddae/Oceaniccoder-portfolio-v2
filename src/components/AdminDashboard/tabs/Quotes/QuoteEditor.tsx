@@ -45,13 +45,13 @@ const STEPS: {
     label: "Page content",
     hint: "What you'll build",
     Component: ContentStep,
-    fields: ["title", "overview", "scope", "timeline"],
+    fields: ["title", "highlights", "overview", "scope", "timeline"],
   },
   {
     label: "Line items",
     hint: "What it costs",
     Component: ItemsStep,
-    fields: ["items", "discountMinor"],
+    fields: ["items", "discountMinor", "discountLabel"],
   },
   { label: "Payment stages", hint: "When they pay", Component: StagesStep, fields: ["schedule"] },
   {
