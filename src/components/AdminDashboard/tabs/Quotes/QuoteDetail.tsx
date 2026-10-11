@@ -3,6 +3,7 @@ import { FaTimes, FaCopy, FaWhatsapp, FaExternalLinkAlt } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { useConfirm } from "../../ConfirmContext";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { ManualMethod, QuoteDetailResponse } from "@/types/quote";
 
 /**
@@ -31,7 +32,9 @@ export default function QuoteDetail({
   onClose,
   onEdit,
   onChanged,
+  theme = "dark",
 }: {
+  theme?: string;
   id: string;
   onClose: () => void;
   onEdit: (d: QuoteDetailResponse) => void;
@@ -299,16 +302,17 @@ export default function QuoteDetail({
           <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
             Record a payment received outside Paystack (amount is fixed to the stage amount)
           </p>
-          <select
-            aria-label="Method"
+          <CustomSelect
             value={manual.method}
-            onChange={(e) => setManual({ ...manual, method: e.target.value as ManualMethod })}
-            className="glass-input rounded-lg px-3 py-2"
-          >
-            <option value="bank">Bank transfer</option>
-            <option value="momo">Mobile Money (direct)</option>
-            <option value="cash">Cash</option>
-          </select>
+            onChange={(value) => setManual({ ...manual, method: value as ManualMethod })}
+            options={[
+              { value: "bank", label: "Bank transfer" },
+              { value: "momo", label: "Mobile Money (direct)" },
+              { value: "cash", label: "Cash" },
+            ]}
+            theme={theme === "light" ? "light" : "dark"}
+            ariaLabel="Method"
+          />
           <input
             aria-label="Note"
             placeholder="Note, e.g. bank reference"
