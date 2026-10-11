@@ -99,6 +99,7 @@ describe("CheckoutPage", () => {
     });
     renderAt("/q/tok/pay/deposit");
     await userEvent.click(await screen.findByRole("radio", { name: /mobile money/i }));
+    await userEvent.click(screen.getByRole("radio", { name: /mtn momo/i }));
     await userEvent.click(await payButton());
     await waitFor(() =>
       expect(startStagePayment).toHaveBeenCalledWith({
@@ -106,6 +107,7 @@ describe("CheckoutPage", () => {
         stageId: "deposit",
         method: "momo",
         email: "kofi@example.com",
+        network: "mtn",
       }),
     );
     await waitFor(() =>
@@ -118,6 +120,15 @@ describe("CheckoutPage", () => {
       resumeTransaction.mock.calls[0][1].onSuccess({ reference: "R1" });
     });
     expect(await screen.findByText("paid page")).toBeInTheDocument();
+  });
+
+  it("asks for a Mobile Money network before starting the payment", async () => {
+    renderAt("/q/tok/pay/deposit");
+    await userEvent.click(await screen.findByRole("radio", { name: /mobile money/i }));
+    expect(screen.getByRole("radiogroup", { name: /mobile money network/i })).toBeInTheDocument();
+    await userEvent.click(await payButton());
+    expect(await screen.findByText(/choose your mobile money network/i)).toBeInTheDocument();
+    expect(startStagePayment).not.toHaveBeenCalled();
   });
 
   it("sends a stage that isn't due back to the quote", async () => {

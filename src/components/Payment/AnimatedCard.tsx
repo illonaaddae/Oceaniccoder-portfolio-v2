@@ -2,9 +2,20 @@ import React from "react";
 
 export interface AnimatedCardProps {
   flipped?: boolean;
+  /** Shown in place of the card number, e.g. "GHS 6,000.00". */
+  amount?: string;
+  /** Who pays; defaults to the brand name. */
+  holder?: string;
+  /** Bottom-right detail, e.g. the quote number; replaces "Valid thru". */
+  reference?: { label: string; value: string };
 }
 
-const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
+const AnimatedCard: React.FC<AnimatedCardProps> = ({
+  flipped = false,
+  amount,
+  holder = "OceanicCoder",
+  reference,
+}) => {
   return (
     <div
       style={{
@@ -156,7 +167,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
             zIndex: 2,
           }}
         >
-          •••• •••• •••• ••••
+          {amount ?? "•••• •••• •••• ••••"}
         </div>
 
         {/* Bottom row: name + valid */}
@@ -189,7 +200,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
                 textTransform: "uppercase",
               }}
             >
-              OceanicCoder
+              {holder}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -202,9 +213,11 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
                 marginBottom: "2px",
               }}
             >
-              Valid Thru
+              {reference ? reference.label : "Valid Thru"}
             </div>
-            <div style={{ fontSize: "13px", fontWeight: "600" }}>MM/YY</div>
+            <div style={{ fontSize: "13px", fontWeight: "600" }}>
+              {reference ? reference.value : "MM/YY"}
+            </div>
           </div>
         </div>
       </div>

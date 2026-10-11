@@ -11,6 +11,13 @@ const METHOD_LABELS = {
   bank: "Bank transfer",
   cash: "Cash",
 };
+
+/** "Mobile Money (MTN)" when the client picked a network, else the plain method name. */
+function methodLabel(p) {
+  const base = METHOD_LABELS[p.method] || p.method || "";
+  const network = p.method === "momo" ? M.networkFromNote(p.note) : null;
+  return network ? `${base} (${M.MOMO_NETWORKS[network]})` : base;
+}
 const PROBLEMS = {
   duplicate: "A second payment arrived for a stage that was already paid. Refund it in Paystack.",
   underpaid: "The amount paid is less than the stage amount, so the stage was not marked paid.",
@@ -219,7 +226,7 @@ function receiptView(q, p, stages) {
     invoiceNumber: stage ? stage.invoiceNumber : p.invoiceNumber,
     amountMinor: p.amountMinor,
     currency: p.currency,
-    method: METHOD_LABELS[p.method] || p.method,
+    method: methodLabel(p),
     reference: p.paystackReference,
     paidAt: p.paidAt,
     balanceMinor: summary.balanceMinor,
@@ -306,7 +313,7 @@ function receiptEmailView(
     title: q.title,
     stageLabel: stage ? stage.label : p.stageId,
     amount: formatMoney(p.amountMinor, p.currency),
-    method: METHOD_LABELS[p.method] || p.method,
+    method: methodLabel(p),
     reference: p.paystackReference,
     paidAt: formatDate(p.paidAt),
     receiptLink: path ? `${base}${path}` : "",
@@ -325,7 +332,7 @@ function alertView(q, p, stages, kind, problem, base = siteBase()) {
     title: q.title,
     stageLabel: stage ? stage.label : p.stageId,
     amount: formatMoney(p.amountMinor, p.currency),
-    method: METHOD_LABELS[p.method] || p.method || "",
+    method: methodLabel(p),
     reference: p.paystackReference,
     balance: stages ? formatMoney(M.paymentSummary(stages).balanceMinor, q.currency) : "",
     adminLink: `${base}/admin/dashboard`,

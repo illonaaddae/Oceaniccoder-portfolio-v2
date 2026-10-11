@@ -260,7 +260,21 @@ function paymentRow(quote, stage, fields) {
   };
 }
 
+/** Ghana Mobile Money networks a client can pick at checkout. */
+const MOMO_NETWORKS = { mtn: "MTN", telecel: "Telecel", airteltigo: "AirtelTigo" };
+const NETWORK_NOTE = "network:";
+
+/** The network stored on a payment's note at checkout, if any. */
+function networkFromNote(note) {
+  if (typeof note !== "string" || !note.startsWith(NETWORK_NOTE)) return null;
+  const id = note.slice(NETWORK_NOTE.length);
+  return Object.prototype.hasOwnProperty.call(MOMO_NETWORKS, id) ? id : null;
+}
+
 module.exports = {
+  MOMO_NETWORKS,
+  NETWORK_NOTE,
+  networkFromNote,
   CURRENCIES,
   STATUSES,
   DEFAULT_SCHEDULE,

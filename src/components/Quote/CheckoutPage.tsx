@@ -4,6 +4,7 @@ import { FaCheck, FaCreditCard, FaMobileAlt, FaApple, FaLock } from "react-icons
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading, SectionLabel } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
 import AnimatedCard from "@/components/Payment/AnimatedCard";
+import MomoNetworkPicker, { type MomoNetwork } from "@/components/Payment/MomoNetworkPicker";
 import { useClientQuote } from "./useClientQuote";
 import { startStagePayment, checkStagePayment } from "@/services/api/quotes";
 import { loadPaystackV2 } from "@/utils/paystackV2";
@@ -23,6 +24,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { state, reload } = useClientQuote(token, true);
   const [method, setMethod] = useState<PayMethod>("card");
+  const [network, setNetwork] = useState<MomoNetwork | null>(null);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ tone: "error" | "info"; text: string } | null>(null);
@@ -80,6 +82,10 @@ export default function CheckoutPage() {
 
   const pay = async (e: FormEvent) => {
     e.preventDefault();
+    if (method === "momo" && !network) {
+      setNote({ tone: "error", text: "Choose your Mobile Money network first." });
+      return;
+    }
     setBusy(true);
     setNote(null);
     if (attemptRef.current) attemptRef.current.stopped = true;
@@ -87,7 +93,13 @@ export default function CheckoutPage() {
     attemptRef.current = attempt;
     let started: Awaited<ReturnType<typeof startStagePayment>>;
     try {
-      started = await startStagePayment({ token, stageId: stage.id, method, email: email.trim() });
+      started = await startStagePayment({
+        token,
+        stageId: stage.id,
+        method,
+        email: email.trim(),
+        ...(method === "momo" && network ? { network } : {}),
+      });
     } catch (err) {
       if (attempt.stopped) return;
       setBusy(false);
@@ -233,10 +245,30 @@ export default function CheckoutPage() {
                 </button>
               ))}
             </div>
+            {method === "momo" && (
+              <div className="space-y-2">
+                <MomoNetworkPicker
+                  value={network}
+                  onChange={(n) => {
+                    setNetwork(n);
+                    setNote(null);
+                  }}
+                />
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {network
+                    ? `Paystack's secure window asks for your number. Then approve ${money(stage.amountMinor)} on your phone.`
+                    : "Choose your network, then tap Pay."}
+                </p>
+              </div>
+            )}
             {/* The same card preview the invoice pay page uses, shown while Card is picked. */}
             {method === "card" && (
               <div className="py-2" aria-hidden>
-                <AnimatedCard />
+                <AnimatedCard
+                  amount={money(stage.amountMinor)}
+                  holder={quote.clientName}
+                  reference={{ label: "Quote", value: quote.quoteNumber }}
+                />
               </div>
             )}
             <div>

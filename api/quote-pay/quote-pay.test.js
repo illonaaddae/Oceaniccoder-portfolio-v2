@@ -51,7 +51,14 @@ function setup({ quote = accepted, payments = [], initialize, charge } = {}) {
 
 const start = (over = {}) => ({
   method: "POST",
-  body: { token: TOKEN, stageId: "deposit", method: "momo", email: "kofi@example.com", ...over },
+  body: {
+    token: TOKEN,
+    stageId: "deposit",
+    method: "momo",
+    network: "mtn",
+    email: "kofi@example.com",
+    ...over,
+  },
 });
 
 describe("quote-pay POST", () => {
@@ -87,6 +94,25 @@ describe("quote-pay POST", () => {
       accessCode: "AC1",
       paystackReference: r.body.reference,
     });
+  });
+
+  it("records the Mobile Money network the client picked", async () => {
+    const t = setup();
+    expect((await t.call(start({ network: "telecel" }))).status).toBe(200);
+    expect(t.services.initialize.mock.calls[0][0].metadata).toMatchObject({
+      momoNetwork: "telecel",
+    });
+    const [row] = [...t.repo.payments.values()];
+    expect(row.note).toBe("network:telecel");
+  });
+
+  it("asks for a network for Mobile Money, and ignores one for card", async () => {
+    expect((await setup().call(start({ network: undefined }))).status).toBe(400);
+    expect((await setup().call(start({ network: "orange" }))).status).toBe(400);
+    const t = setup();
+    expect((await t.call(start({ method: "card", network: "mtn" }))).status).toBe(200);
+    const [row] = [...t.repo.payments.values()];
+    expect(row.note || "").toBe("");
   });
 
   it("reuses pending: a second click within 15 minutes gets the same reference", async () => {
