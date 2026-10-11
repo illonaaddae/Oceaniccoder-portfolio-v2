@@ -223,3 +223,29 @@ describe("email views", () => {
     expect(v.balanceAfter).toBe("GHS 0.00");
   });
 });
+
+describe("payment method label", () => {
+  const stages = M.stageStates({ ...quote, status: "accepted" }, [], Date.now());
+  const pay = (over) => ({
+    stageId: stages[0].id,
+    amountMinor: 100,
+    currency: "GHS",
+    paystackReference: "R",
+    paidAt: "2026-10-11T00:00:00Z",
+    ...over,
+  });
+
+  it("names the Mobile Money network on the receipt when the client picked one", () => {
+    expect(V.receiptView(quote, pay({ method: "momo", note: "network:mtn" }), stages).method).toBe(
+      "Mobile Money (MTN)",
+    );
+    expect(
+      V.receiptView(quote, pay({ method: "momo", note: "network:telecel" }), stages).method,
+    ).toBe("Mobile Money (Telecel)");
+  });
+
+  it("falls back to the plain method name", () => {
+    expect(V.receiptView(quote, pay({ method: "momo" }), stages).method).toBe("Mobile Money");
+    expect(V.receiptView(quote, pay({ method: "card", note: "x" }), stages).method).toBe("Card");
+  });
+});

@@ -129,6 +129,9 @@ const BankTransfer: React.FC<BankTransferProps> = ({ invoiceNumber }) => {
         <DetailRow label="Bank" value={PAYMENT_CONFIG.bankName} />
         <DetailRow label="Account Name" value={PAYMENT_CONFIG.bankAccountName} />
         <DetailRow label="Account Number" value={PAYMENT_CONFIG.bankAccountNumber} copyable />
+        {PAYMENT_CONFIG.bankSortCode && (
+          <DetailRow label="Sort Code" value={PAYMENT_CONFIG.bankSortCode} copyable />
+        )}
       </div>
 
       {/* MoMo details */}

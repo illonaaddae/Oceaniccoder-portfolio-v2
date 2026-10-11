@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { PAYMENT_CONFIG } from "../../config/payment";
+import MomoNetworkPicker, { type MomoNetwork } from "./MomoNetworkPicker";
 
 export interface MomoPaymentProps {
   invoice: {
@@ -13,48 +14,6 @@ export interface MomoPaymentProps {
   // (/api/paystack-webhook) owns invoice "paid" status + payments row creation.
   onSuccess: () => void;
 }
-
-type MomoNetwork = "mtn" | "vodafone" | "airteltigo";
-
-interface NetworkOption {
-  id: MomoNetwork;
-  label: string;
-  shortLabel: string;
-  bg: string;
-  textColor: string;
-  border: string;
-  glow: string;
-}
-
-const NETWORKS: NetworkOption[] = [
-  {
-    id: "mtn",
-    label: "MTN MoMo",
-    shortLabel: "MTN",
-    bg: "#ffcc00",
-    textColor: "#000000",
-    border: "#ffcc00",
-    glow: "rgba(255,204,0,0.4)",
-  },
-  {
-    id: "vodafone",
-    label: "Telecel Cash",
-    shortLabel: "VODA",
-    bg: "#e60000",
-    textColor: "#ffffff",
-    border: "#e60000",
-    glow: "rgba(230,0,0,0.4)",
-  },
-  {
-    id: "airteltigo",
-    label: "AirtelTigo Money",
-    shortLabel: "AT",
-    bg: "linear-gradient(135deg, #e60000 0%, #001f6b 100%)",
-    textColor: "#ffffff",
-    border: "#5b7fd4",
-    glow: "rgba(91,127,212,0.4)",
-  },
-];
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GHS: "₵",
@@ -150,75 +109,7 @@ const MomoPayment: React.FC<MomoPaymentProps> = ({ invoice, onSuccess }) => {
         Pay with Mobile Money
       </h3>
 
-      <div className="flex flex-col gap-3">
-        {NETWORKS.map((net) => {
-          const isSelected = selected === net.id;
-          return (
-            <button
-              key={net.id}
-              type="button"
-              onClick={() => setSelected(net.id)}
-              className="flex items-center gap-4 w-full rounded-xl px-4 py-3 transition-all"
-              style={{
-                border: isSelected ? `2px solid ${net.border}` : "2px solid var(--border-subtle)",
-                background: isSelected
-                  ? `rgba(${net.id === "mtn" ? "255,204,0" : net.id === "vodafone" ? "230,0,0" : "91,127,212"},0.08)`
-                  : "var(--bg-secondary)",
-                boxShadow: isSelected ? `0 0 12px ${net.glow}` : "none",
-                cursor: "pointer",
-              }}
-            >
-              <div
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "50%",
-                  background: net.bg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  fontWeight: "800",
-                  fontSize: net.shortLabel.length > 3 ? "10px" : "12px",
-                  color: net.textColor,
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {net.shortLabel}
-              </div>
-              <span className="font-semibold text-base" style={{ color: "var(--text-primary)" }}>
-                {net.label}
-              </span>
-              <div
-                className="ml-auto"
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                  border: isSelected ? "none" : "2px solid var(--border-subtle)",
-                  background: isSelected ? "var(--accent-teal)" : "transparent",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {isSelected && (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path
-                      d="M2 6l3 3 5-5"
-                      stroke="#fff"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      <MomoNetworkPicker value={selected} onChange={setSelected} />
 
       {error && (
         <div
