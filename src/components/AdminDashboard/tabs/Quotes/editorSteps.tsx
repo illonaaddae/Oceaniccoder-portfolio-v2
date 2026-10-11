@@ -302,6 +302,12 @@ function PriceInput({
   );
 }
 
+/**
+ * Fill for controls with white text. Fixed brand teal rather than --accent-teal:
+ * dark mode's #26a9c5 gives white text only 2.8:1, #085866 gives 8.1:1.
+ */
+export const BRAND_FILL = "#085866";
+
 type StageDef = QuoteDraft["schedule"][number];
 
 /** One-click payment plans. Ids are stable so a preset re-applied keeps the same stages. */
@@ -369,7 +375,7 @@ export function StagesStep({ draft, setDraft }: StepProps) {
               style={
                 on
                   ? {
-                      background: "var(--accent-teal)",
+                      background: BRAND_FILL,
                       borderColor: "var(--accent-teal)",
                       color: "#fff",
                     }

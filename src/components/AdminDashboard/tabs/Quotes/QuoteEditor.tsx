@@ -23,6 +23,7 @@ import {
   StagesStep,
   TermsStep,
   ReviewStep,
+  BRAND_FILL,
   type StepProps,
 } from "./editorSteps";
 import { waLink } from "./QuoteDetail";
@@ -65,8 +66,13 @@ const STAGES_STEP = 3;
 const LAST = STEPS.length - 1;
 
 const primaryBtn =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold text-white disabled:opacity-50";
-const primaryStyle = { background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" };
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold disabled:opacity-50";
+// White is set inline, not with .text-white, because the light theme repaints
+// that class with --text-primary (!important).
+const primaryStyle = {
+  background: `linear-gradient(135deg, ${BRAND_FILL} 0%, #0d7a6e 100%)`,
+  color: "#fff",
+};
 const quietBtn =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold disabled:opacity-40";
 const quietStyle = { borderColor: "var(--border-subtle)", color: "var(--text-primary)" };
@@ -234,7 +240,7 @@ export default function QuoteEditor({
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold"
                       style={
                         on
-                          ? { background: "var(--accent-teal)", color: "#fff" }
+                          ? { background: BRAND_FILL, color: "#fff" }
                           : done
                             ? {
                                 background: "var(--status-success-bg)",
