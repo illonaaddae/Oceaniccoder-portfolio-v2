@@ -531,15 +531,18 @@ textarea:focus {
   --accent-teal-subtle: #e3f1f3;
   --quote-cta: #085866;
 }
+/* Dark client pages: neutral navy cards with soft white edges, like the
+   dashboard's cards. Brand cyan is kept for labels and accents only; tinting
+   the cards and borders with it read as green glass. */
 [data-theme="dark"] .quote-ui {
   --bg-primary: #000b21;
-  --bg-secondary: #061a2e;
-  --bg-tertiary: #0b2a40;
-  --border-subtle: rgba(38, 169, 197, 0.22);
+  --bg-secondary: #0b1628;
+  --bg-tertiary: #13213a;
+  --border-subtle: rgba(255, 255, 255, 0.09);
   --text-primary: #f1f5f9;
   --text-secondary: #c3d0dc;
   --accent-teal: #26a9c5;
-  --accent-teal-subtle: rgba(38, 169, 197, 0.14);
+  --accent-teal-subtle: rgba(255, 255, 255, 0.06);
   --quote-cta: #0a6e7d; /* white text 5.9:1 */
 }
 .quote-on-dark {
