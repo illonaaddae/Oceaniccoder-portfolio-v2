@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaPlus, FaEye } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
-import { formatDate, formatMinor, quoteToDraft } from "@/utils/quoteMath";
+import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { FilterPills } from "@/components/ui/FilterPills";
-import QuoteDetail from "./QuoteDetail";
 import QuoteEditor from "./QuoteEditor";
+import QuoteWorkspace from "./QuoteWorkspace";
 import {
   clearPendingQuoteDraft,
   clearPendingQuoteOpen,
   peekPendingQuoteDraft,
   peekPendingQuoteOpen,
 } from "./quoteHandoff";
-import type { QuoteDetailResponse, QuoteDraft, QuoteStatus, QuoteSummary } from "@/types/quote";
+import type { QuoteDraft, QuoteStatus, QuoteSummary } from "@/types/quote";
 
 type Filter = "all" | QuoteStatus;
+/** The tab shows the list, one quote's page, or the editor for a new quote. */
+type View = { list: true } | { open: string } | { creating: Partial<QuoteDraft> | null };
 const FILTERS: Filter[] = ["all", "draft", "sent", "accepted", "declined", "expired", "cancelled"];
 
 export default function QuotesTab({ theme }: { theme: string }) {
@@ -21,13 +23,12 @@ export default function QuotesTab({ theme }: { theme: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-  const [selected, setSelected] = useState<string | null>(() => peekPendingQuoteOpen());
-  const [editing, setEditing] = useState<{ id?: string; draft?: Partial<QuoteDraft> } | null>(
-    () => {
-      const handed = peekPendingQuoteDraft();
-      return handed ? { draft: handed } : null;
-    },
-  );
+  const [view, setView] = useState<View>(() => {
+    const handed = peekPendingQuoteDraft();
+    if (handed) return { creating: handed };
+    const opened = peekPendingQuoteOpen();
+    return opened ? { open: opened } : { list: true };
+  });
   useEffect(() => {
     clearPendingQuoteDraft();
     clearPendingQuoteOpen();
@@ -53,20 +54,22 @@ export default function QuotesTab({ theme }: { theme: string }) {
     [quotes, filter],
   );
 
-  const openEditor = (d?: QuoteDetailResponse) =>
-    setEditing(d ? { id: d.quote.id, draft: quoteToDraft(d.quote) } : {});
+  const backToList = () => {
+    setView({ list: true });
+    void load();
+  };
 
-  // The editor takes over the tab as a full page; the list comes back on close.
-  if (editing)
+  // A quote's page and the new-quote editor take over the tab as a full page.
+  if ("open" in view)
+    return <QuoteWorkspace key={view.open} id={view.open} theme={theme} onBack={backToList} />;
+  if ("creating" in view)
     return (
       <QuoteEditor
         theme={theme}
-        quoteId={editing.id}
-        initial={editing.draft}
-        onClose={() => setEditing(null)}
+        initial={view.creating ?? undefined}
+        onClose={() => setView({ list: true })}
         onSaved={(id) => {
-          setEditing(null);
-          setSelected(id);
+          setView({ open: id });
           void load();
         }}
       />
@@ -85,7 +88,7 @@ export default function QuotesTab({ theme }: { theme: string }) {
         </div>
         <button
           type="button"
-          onClick={() => openEditor()}
+          onClick={() => setView({ creating: null })}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white"
           style={{ background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" }}
         >
@@ -110,73 +113,60 @@ export default function QuotesTab({ theme }: { theme: string }) {
         </p>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
-        <ul className="space-y-3">
-          {loading && <li style={{ color: "var(--text-secondary)" }}>Loading…</li>}
-          {!loading && shown.length === 0 && (
-            <li style={{ color: "var(--text-secondary)" }}>No quotes here yet.</li>
-          )}
-          {shown.map((q) => (
-            <li key={q.id}>
-              <button
-                type="button"
-                onClick={() => setSelected(q.id)}
-                className="glass-card w-full rounded-xl p-4 text-left transition"
-                style={{ outline: selected === q.id ? "2px solid var(--accent-teal)" : "none" }}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {q.title}
-                  </span>
-                  <span
-                    className="text-xs rounded-full px-2 py-0.5 border"
-                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
-                  >
-                    {q.status}
-                  </span>
-                </div>
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  {q.quoteNumber} · {q.clientName}
-                  {q.viewedAt && (
-                    <FaEye
-                      className="inline ml-2"
-                      title={`Viewed ${formatDate(q.viewedAt)}`}
-                      aria-label="Viewed"
-                    />
-                  )}
-                </p>
-                <p className="text-sm font-mono mt-1" style={{ color: "var(--text-primary)" }}>
-                  {formatMinor(q.paidMinor, q.currency)} of {formatMinor(q.totalMinor, q.currency)}
-                  {q.complete && " · fully paid"}
-                  {q.nextDue && (
-                    <span
-                      style={{
-                        color: q.nextDue.overdue
-                          ? "var(--status-failed-text)"
-                          : "var(--text-secondary)",
-                      }}
-                    >
-                      {" "}
-                      · Next: {q.nextDue.label}
-                      {q.nextDue.overdue ? " (overdue)" : ""}
-                    </span>
-                  )}
-                </p>
-              </button>
-            </li>
-          ))}
-        </ul>
-        {selected && (
-          <QuoteDetail
-            theme={theme}
-            key={selected}
-            id={selected}
-            onClose={() => setSelected(null)}
-            onEdit={(d) => openEditor(d)}
-            onChanged={() => void load()}
-          />
+      <ul className="grid gap-3 lg:grid-cols-2">
+        {loading && <li style={{ color: "var(--text-secondary)" }}>Loading…</li>}
+        {!loading && shown.length === 0 && (
+          <li style={{ color: "var(--text-secondary)" }}>No quotes here yet.</li>
         )}
-      </div>
+        {shown.map((q) => (
+          <li key={q.id}>
+            <button
+              type="button"
+              onClick={() => setView({ open: q.id })}
+              className="glass-card h-full w-full rounded-xl p-4 text-left transition"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {q.title}
+                </span>
+                <span
+                  className="text-xs rounded-full px-2 py-0.5 border"
+                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+                >
+                  {q.status}
+                </span>
+              </div>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                <span>{q.quoteNumber}</span> · {q.clientName}
+                {q.viewedAt && (
+                  <FaEye
+                    className="inline ml-2"
+                    title={`Viewed ${formatDate(q.viewedAt)}`}
+                    aria-label="Viewed"
+                  />
+                )}
+              </p>
+              <p className="text-sm font-mono mt-1" style={{ color: "var(--text-primary)" }}>
+                {formatMinor(q.paidMinor, q.currency)} of {formatMinor(q.totalMinor, q.currency)}
+                {q.complete && " · fully paid"}
+                {q.nextDue && (
+                  <span
+                    style={{
+                      color: q.nextDue.overdue
+                        ? "var(--status-failed-text)"
+                        : "var(--text-secondary)",
+                    }}
+                  >
+                    {" "}
+                    · Next: {q.nextDue.label}
+                    {q.nextDue.overdue ? " (overdue)" : ""}
+                  </span>
+                )}
+              </p>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

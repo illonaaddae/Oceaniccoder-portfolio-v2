@@ -349,4 +349,102 @@ describe("QuoteEditor", () => {
       ),
     );
   });
+  describe("embedded on a quote page", () => {
+    const initial = {
+      clientName: "Kofi",
+      clientEmail: "kofi@example.com",
+      title: "Store",
+      items: [{ id: "item-a", description: "Build", qty: 1, unitMinor: 100000 }],
+    };
+
+    it("drops the page title and close, and saving stays on the page", async () => {
+      quoteAdmin.mockResolvedValue({
+        quote: { id: "q1", status: "draft" },
+        stages: [],
+        payments: [],
+      });
+      const onSaved = vi.fn();
+      const onClose = vi.fn();
+      render(
+        <QuoteEditor
+          theme="dark"
+          embedded
+          quoteId="q1"
+          initial={initial}
+          onClose={onClose}
+          onSaved={onSaved}
+        />,
+      );
+      expect(screen.queryByRole("button", { name: /all quotes/i })).toBeNull();
+      expect(screen.queryByRole("heading", { name: /edit quote|new quote/i })).toBeNull();
+      expect(screen.getByRole("navigation", { name: /quote steps/i })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /3\. line items/i }));
+      await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+      await waitFor(() => expect(onSaved).toHaveBeenCalledWith("q1"));
+      expect(onClose).not.toHaveBeenCalled();
+      // Still on the same step after saving.
+      expect(screen.getByLabelText(/description for item 1/i)).toHaveValue("Build");
+    });
+
+    it("reports the live draft and whether it has unsaved changes", async () => {
+      const onChange = vi.fn();
+      render(
+        <QuoteEditor
+          theme="dark"
+          embedded
+          quoteId="q1"
+          initial={initial}
+          onClose={vi.fn()}
+          onSaved={vi.fn()}
+          onChange={onChange}
+        />,
+      );
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ clientName: "Kofi" }),
+        false,
+      );
+      await userEvent.type(screen.getByLabelText(/client name/i), "!");
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ clientName: "Kofi!" }),
+        true,
+      );
+    });
+  });
+
+  describe("read-only", () => {
+    it("stacks every step with its heading, disabled, with no rail or action bar", () => {
+      render(
+        <QuoteEditor
+          theme="dark"
+          readOnly
+          quoteId="q1"
+          initial={{
+            clientName: "Kofi",
+            title: "Store",
+            items: [{ id: "item-a", description: "Build", qty: 1, unitMinor: 100000 }],
+          }}
+          onClose={vi.fn()}
+          onSaved={vi.fn()}
+        />,
+      );
+      for (const heading of [
+        "Client",
+        "Page content",
+        "Line items",
+        "Payment stages",
+        "Extras",
+        "Terms",
+      ])
+        expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+      expect(screen.getByLabelText(/client name/i)).toBeDisabled();
+      expect(screen.getByLabelText(/client name/i)).toHaveValue("Kofi");
+      expect(screen.getByLabelText(/project title/i)).toBeDisabled();
+      expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
+      expect(screen.getByRole("textbox", { name: "Terms" })).toBeDisabled();
+      expect(screen.queryByRole("navigation", { name: /quote steps/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /save draft/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /^next/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /all quotes/i })).toBeNull();
+    });
+  });
 });
