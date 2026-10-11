@@ -71,6 +71,18 @@ function parseItem(i) {
   };
 }
 
+// Checks one line item; error keys are `${key}.<field>`.
+function itemErrors(it, key, errors) {
+  if (!ID_RE.test(it.id)) errors[`${key}.id`] = "Invalid item id.";
+  if (!it.description || it.description.length > 300)
+    errors[`${key}.description`] = "Describe the item (up to 300 characters).";
+  if (!(it.qty > 0 && it.qty <= 10000)) errors[`${key}.qty`] = "Quantity must be more than 0.";
+  if (!Number.isInteger(it.unitMinor) || it.unitMinor < 0 || it.unitMinor > 1e11)
+    errors[`${key}.unitMinor`] = "Enter a valid price.";
+  if (it.detail.length > LIMITS.itemDetail)
+    errors[`${key}.detail`] = `Keep this under ${LIMITS.itemDetail} characters.`;
+}
+
 function optionalTotals(optionalItems) {
   return { optionalTotalMinor: (optionalItems || []).reduce((t, i) => t + lineMinor(i), 0) };
 }
@@ -188,23 +200,11 @@ function validateDraft(input) {
     itemsOk = false;
   } else {
     value.items.forEach((it, i) => {
-      if (!ID_RE.test(it.id)) errors[`items.${i}.id`] = "Invalid item id.";
-      if (!it.description || it.description.length > 300) {
-        errors[`items.${i}.description`] = "Describe the item (up to 300 characters).";
-      }
-      if (!(it.qty > 0 && it.qty <= 10000))
-        errors[`items.${i}.qty`] = "Quantity must be more than 0.";
-      if (!Number.isInteger(it.unitMinor) || it.unitMinor < 0 || it.unitMinor > 1e11) {
-        errors[`items.${i}.unitMinor`] = "Enter a valid price.";
-      }
+      itemErrors(it, `items.${i}`, errors);
       if (Object.keys(errors).some((k) => k.startsWith(`items.${i}.`))) itemsOk = false;
     });
   }
 
-  value.items.forEach((it, i) => {
-    if (it.detail.length > LIMITS.itemDetail)
-      errors[`items.${i}.detail`] = `Keep this under ${LIMITS.itemDetail} characters.`;
-  });
   value.schedule.forEach((s, i) => {
     if (s.note.length > LIMITS.stageNote)
       errors[`schedule.${i}.note`] = `Keep this under ${LIMITS.stageNote} characters.`;
@@ -232,17 +232,7 @@ function validateDraft(input) {
   }
   if (value.optionalItems.length > LIMITS.optionalItems)
     errors.optionalItems = `Use up to ${LIMITS.optionalItems} optional items.`;
-  value.optionalItems.forEach((it, i) => {
-    if (!it.description || it.description.length > 300)
-      errors[`optionalItems.${i}.description`] = "Describe the item (up to 300 characters).";
-    if (!(it.qty > 0 && it.qty <= 10000))
-      errors[`optionalItems.${i}.qty`] = "Quantity must be more than 0.";
-    if (!Number.isInteger(it.unitMinor) || it.unitMinor < 0 || it.unitMinor > 1e11)
-      errors[`optionalItems.${i}.unitMinor`] = "Enter a valid price.";
-    if (it.detail.length > LIMITS.itemDetail)
-      errors[`optionalItems.${i}.detail`] = `Keep this under ${LIMITS.itemDetail} characters.`;
-    if (!ID_RE.test(it.id)) errors[`optionalItems.${i}.id`] = "Invalid item id.";
-  });
+  value.optionalItems.forEach((it, i) => itemErrors(it, `optionalItems.${i}`, errors));
 
   if (!Number.isInteger(value.discountMinor) || value.discountMinor < 0) {
     errors.discountMinor = "Enter a valid discount.";
