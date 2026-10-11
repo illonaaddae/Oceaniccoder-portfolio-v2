@@ -144,6 +144,35 @@ describe("QuotePage", () => {
     );
   });
 
+  it("offers one full payment, with no deposit or balance step, for a one-stage quote", async () => {
+    fetchClientQuote.mockResolvedValue({
+      quote: {
+        ...baseQuote,
+        status: "accepted",
+        acceptedName: "Kofi Mensah",
+        respondedAt: "2026-10-02T00:00:00Z",
+        stages: [
+          {
+            ...baseQuote.stages[0],
+            id: "full",
+            label: "Full payment",
+            percent: 100,
+            amountMinor: 1000000,
+            state: "due",
+            dueAt: "2026-10-02T00:00:00Z",
+          },
+        ],
+      },
+    });
+    renderAt();
+    expect(await screen.findByText(/your payment is ready/i)).toBeInTheDocument();
+    for (const link of screen.getAllByRole("link", { name: /^pay now$/i })) {
+      expect(link).toHaveAttribute("href", "/q/tok/pay/full");
+    }
+    expect(screen.queryByText(/deposit/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^balance$/i)).not.toBeInTheDocument();
+  });
+
   it("passes preview=1 through without counting a view", async () => {
     fetchClientQuote.mockResolvedValue({ quote: baseQuote });
     renderAt("/q/tok?preview=1");

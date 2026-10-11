@@ -49,6 +49,38 @@ describe("quote email templates", () => {
     expect(mail.html).not.toContain("<img src=x>");
   });
 
+  it("talks about paying in full, not a deposit, for a one-stage quote", () => {
+    const sent = T.quoteSent({
+      ...SAMPLE_VIEWS.quoteSent.view,
+      planSummary: "100% full payment",
+      singleStage: true,
+    });
+    expect(sent.html).toContain("Pay in full to book your slot");
+    expect(sent.html).not.toMatch(/deposit/i);
+
+    const { view } = SAMPLE_VIEWS.quoteAccepted;
+    const acc = T.quoteAccepted({
+      ...view,
+      invoice: {
+        ...view.invoice,
+        label: "Full payment (100%)",
+        payLink: "https://oceaniccoder.dev/q/t/pay/full",
+        invoiceLink: "https://oceaniccoder.dev/q/t/invoice/full",
+      },
+      singleStage: true,
+    });
+    expect(acc.subject).toBe(`Quote accepted: your invoice for ${view.title}`);
+    expect(acc.html).toContain("Pay now");
+    expect(acc.html).not.toMatch(/deposit|later stages/i);
+    expect(acc.text).not.toMatch(/deposit/i);
+  });
+
+  it("keeps the deposit wording for a staged quote", () => {
+    const acc = T.quoteAccepted({ ...SAMPLE_VIEWS.quoteAccepted.view, singleStage: false });
+    expect(acc.html).toContain("Pay the deposit");
+    expect(acc.subject).toMatch(/deposit invoice/);
+  });
+
   it("omits the invoice block and pay button when there is no invoice", () => {
     const { view } = SAMPLE_VIEWS.quoteAccepted;
     const mail = T.quoteAccepted({ ...view, invoice: null });

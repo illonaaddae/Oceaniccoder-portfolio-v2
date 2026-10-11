@@ -41,7 +41,7 @@ function quoteSent(v) {
       steps([
         "Open the quote and read the scope and terms",
         "Accept it by typing your name",
-        "Pay the deposit to book your slot",
+        v.singleStage ? "Pay in full to book your slot" : "Pay the deposit to book your slot",
       ]) +
       small("Questions? Reply to this email."),
   });
@@ -61,15 +61,18 @@ function quoteAccepted(v) {
   // v.invoice is null when the quote has no payment stages; the invoice card,
   // pay button and invoice lines are then left out.
   const inv = v.invoice;
+  // A one-stage quote is paid in full, so there is no deposit and no later stage.
+  const one = Boolean(v.singleStage);
+  const invoiceName = one ? "invoice" : "deposit invoice";
   const subject = inv
-    ? `Quote accepted: your deposit invoice for ${v.title}`
+    ? `Quote accepted: your ${invoiceName} for ${v.title}`
     : `Quote accepted: ${v.title}`;
   const html = shell({
     meta: inv
       ? { label: "Invoice", number: inv.invoiceNumber }
       : { label: "Quote", number: v.quoteNumber },
     preview: inv
-      ? `Thanks ${v.clientFirstName}. Your deposit invoice is ready.`
+      ? `Thanks ${v.clientFirstName}. Your ${invoiceName} is ready.`
       : `Thanks ${v.clientFirstName}. We have your acceptance.`,
     reason: CLIENT_REASON,
     body:
@@ -78,21 +81,29 @@ function quoteAccepted(v) {
         tone: "ok",
         title: "Thank you, we're on",
         intro: `Hi ${v.clientFirstName}, you accepted quote ${v.quoteNumber} as ${v.acceptedName}. ${
-          inv ? "The next step is the deposit." : "We'll be in touch with the next steps."
+          inv
+            ? one
+              ? "The next step is payment."
+              : "The next step is the deposit."
+            : "We'll be in touch with the next steps."
         }`,
       }) +
       (inv
         ? invoiceBlock(inv) +
           buttons(
-            button({ href: inv.payLink, label: "Pay the deposit" }),
+            button({ href: inv.payLink, label: one ? "Pay now" : "Pay the deposit" }),
             button({ href: inv.invoiceLink, label: "View invoice", variant: "secondary" }),
           )
         : "") +
-      steps([
-        "Pay the deposit",
-        "We schedule the work and keep you updated",
-        "Later stages are invoiced as the project reaches them",
-      ]) +
+      steps(
+        one
+          ? ["Pay the invoice", "We schedule the work and keep you updated"]
+          : [
+              "Pay the deposit",
+              "We schedule the work and keep you updated",
+              "Later stages are invoiced as the project reaches them",
+            ],
+      ) +
       small("You can open your quote again at any time:", {
         href: v.link,
         label: `View quote ${v.quoteNumber}`,
@@ -101,7 +112,9 @@ function quoteAccepted(v) {
   const text = lines(
     `Hi ${v.clientFirstName},`,
     `You accepted quote ${v.quoteNumber} as ${v.acceptedName}. Thank you.`,
-    inv ? `Deposit invoice ${inv.invoiceNumber}: ${inv.amount}, due ${inv.dueDate}.` : "",
+    inv
+      ? `${one ? "Invoice" : "Deposit invoice"} ${inv.invoiceNumber}: ${inv.amount}, due ${inv.dueDate}.`
+      : "",
     inv ? `Pay here: ${inv.payLink}` : "",
     inv ? `Invoice: ${inv.invoiceLink}` : "",
     `Your quote: ${v.link}`,

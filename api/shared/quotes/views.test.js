@@ -201,6 +201,14 @@ describe("email views", () => {
       payLink: "https://oceaniccoder.dev/q/TOKEN/pay/deposit",
     });
   });
+  it("flags a one-stage quote so emails skip the deposit wording", () => {
+    const one = { ...quote, schedule: [{ id: "full", label: "Full payment", percent: 100 }] };
+    expect(V.quoteSentView(one, "TOKEN").singleStage).toBe(true);
+    expect(V.quoteSentView(quote, "TOKEN").singleStage).toBe(false);
+    const stages = M.stageStates(one, []);
+    expect(V.acceptedView(one, "TOKEN", stages).singleStage).toBe(true);
+    expect(V.acceptedView(quote, "TOKEN", M.stageStates(quote, [])).singleStage).toBe(false);
+  });
   it("sets invoice to null when the quote has no stages", () => {
     const v = V.acceptedView(quote, "TOKEN", [], "https://oceaniccoder.dev");
     expect(v.invoice).toBeNull();
