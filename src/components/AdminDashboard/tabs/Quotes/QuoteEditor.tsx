@@ -19,6 +19,7 @@ import {
 import {
   ClientStep,
   ContentStep,
+  ExtrasStep,
   ItemsStep,
   StagesStep,
   TermsStep,
@@ -45,15 +46,28 @@ const STEPS: {
     label: "Page content",
     hint: "What you'll build",
     Component: ContentStep,
-    fields: ["title", "overview", "scope", "timeline"],
+    fields: ["title", "highlights", "overview", "scope", "timeline"],
   },
   {
     label: "Line items",
     hint: "What it costs",
     Component: ItemsStep,
-    fields: ["items", "discountMinor"],
+    fields: ["items", "discountMinor", "discountLabel"],
   },
   { label: "Payment stages", hint: "When they pay", Component: StagesStep, fields: ["schedule"] },
+  {
+    label: "Extras",
+    hint: "Costs, scope, next steps",
+    Component: ExtrasStep,
+    fields: [
+      "runningCosts",
+      "exclusions",
+      "assumptions",
+      "nextSteps",
+      "optionalTitle",
+      "optionalItems",
+    ],
+  },
   {
     label: "Terms",
     hint: "The small print",
@@ -129,7 +143,10 @@ export default function QuoteEditor({
     // Server errors describe the old values; clear them once the user edits.
     setErrors({});
   };
-  const hasInvalidInput = invalid.size > 0 || draft.items.some((it) => !(it.qty > 0));
+  const hasInvalidInput =
+    invalid.size > 0 ||
+    draft.items.some((it) => !(it.qty > 0)) ||
+    draft.optionalItems.some((it) => !(it.qty > 0));
   const { Component } = STEPS[step];
   const blocked =
     hasInvalidInput || (step === STAGES_STEP && scheduleError(draft.schedule) !== null);
@@ -222,7 +239,7 @@ export default function QuoteEditor({
 
       {!sent && (
         <nav aria-label="Quote steps" className="glass-card rounded-2xl p-2">
-          <ol className="grid grid-cols-6 gap-1">
+          <ol className="grid grid-cols-7 gap-1">
             {STEPS.map((s, i) => {
               const on = i === step;
               const done = i < step;
@@ -391,6 +408,7 @@ export default function QuoteEditor({
 function Summary({ draft }: { draft: QuoteDraft }) {
   const totals = computeTotals(draft.items, draft.discountMinor);
   const stages = stageAmounts(totals.totalMinor, draft.schedule);
+  const optionalMinor = computeTotals(draft.optionalItems).subtotalMinor;
   const money = (m: number) => formatMinor(m, draft.currency);
   const row = "flex min-w-0 justify-between gap-3";
   return (
@@ -441,6 +459,14 @@ function Summary({ draft }: { draft: QuoteDraft }) {
               </dd>
             </div>
           ))}
+          {optionalMinor > 0 && (
+            <div className={row}>
+              <dt style={{ color: "var(--text-secondary)" }}>Optional extras (not in total)</dt>
+              <dd className="shrink-0 font-mono" style={{ color: "var(--text-primary)" }}>
+                {money(optionalMinor)}
+              </dd>
+            </div>
+          )}
           <div className={`${row} pt-1`}>
             <dt style={{ color: "var(--text-secondary)" }}>Valid for</dt>
             <dd style={{ color: "var(--text-primary)" }}>{draft.validDays} days</dd>

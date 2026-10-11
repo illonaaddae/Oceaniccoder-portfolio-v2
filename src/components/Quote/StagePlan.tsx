@@ -84,6 +84,14 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
                   </span>
                 )}
               </p>
+              {s.note.trim() && (
+                <p
+                  className="mt-1 min-w-0 break-words text-sm"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {s.note}
+                </p>
+              )}
             </div>
             <span
               className="font-semibold tabular-nums whitespace-nowrap"

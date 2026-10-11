@@ -35,8 +35,24 @@ const baseQuote: ClientQuote = {
   clientCompany: "",
   clientEmail: "kofi@example.com",
   items: [
-    { id: "item-1", description: "Store build", qty: 1, unitMinor: 1000000, lineMinor: 1000000 },
+    {
+      id: "item-1",
+      description: "Store build",
+      qty: 1,
+      unitMinor: 1000000,
+      lineMinor: 1000000,
+      detail: "",
+    },
   ],
+  highlights: [],
+  discountLabel: "",
+  runningCosts: [],
+  exclusions: "",
+  assumptions: "",
+  nextSteps: "",
+  optionalTitle: "",
+  optionalItems: [],
+  optionalTotalMinor: 0,
   subtotalMinor: 1000000,
   discountMinor: 0,
   totalMinor: 1000000,
@@ -58,6 +74,7 @@ const baseQuote: ClientQuote = {
       invoiceNumber: "Q-2026-0001-INV-1",
       paidAt: null,
       receiptPath: null,
+      note: "",
     },
     {
       id: "balance",
@@ -72,6 +89,7 @@ const baseQuote: ClientQuote = {
       invoiceNumber: "Q-2026-0001-INV-2",
       paidAt: null,
       receiptPath: null,
+      note: "",
     },
   ],
   summary: { paidMinor: 0, balanceMinor: 1000000, complete: false },
@@ -120,6 +138,7 @@ describe("QuotePage", () => {
     expect(screen.getAllByText("GHS 10,000.00").length).toBeGreaterThan(0);
     expect(screen.getByText("Catalogue")).toBeInTheDocument();
     expect(screen.getByText(/GHS 6,000.00/)).toBeInTheDocument();
+    expect(screen.queryByText("Standard value")).toBeNull();
   });
 
   it("shows the inactive screen for a dead link", async () => {
@@ -215,5 +234,92 @@ describe("QuotePage", () => {
     expect(
       await screen.findByRole("link", { name: /email us at hello@oceaniccoder.dev/i }),
     ).toHaveAttribute("href", expect.stringContaining("mailto:hello@oceaniccoder.dev"));
+  });
+
+  it("renders proposal sections only when filled", async () => {
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    renderAt();
+    await screen.findByText("Online store");
+    for (const t of [
+      /at a glance/i,
+      /running costs/i,
+      /scope notes/i,
+      /next steps/i,
+      /optional extras/i,
+    ])
+      expect(screen.queryByText(t)).toBeNull();
+  });
+
+  it("shows the full proposal with optional extras kept out of the price", async () => {
+    fetchClientQuote.mockResolvedValue({
+      quote: {
+        ...baseQuote,
+        highlights: ["Live in about 14 weeks"],
+        discountLabel: "First-client discount",
+        discountMinor: 100000,
+        subtotalMinor: 1100000,
+        totalMinor: 1000000,
+        items: [{ ...baseQuote.items[0], detail: "Pages, cart and checkout" }],
+        runningCosts: [{ service: "Appwrite Pro", purpose: "Hosting", cost: "USD 25 / month" }],
+        exclusions: "Logo design",
+        assumptions: "Content on time",
+        nextSteps: "Review\nAccept",
+        optionalTitle: "Phase 2",
+        optionalItems: [
+          {
+            id: "o1",
+            description: "SMS",
+            qty: 1,
+            unitMinor: 250000,
+            lineMinor: 250000,
+            detail: "",
+          },
+        ],
+        optionalTotalMinor: 250000,
+        stages: baseQuote.stages.map((s, i) => ({
+          ...s,
+          note: i === 0 ? "To start the project" : "",
+        })),
+      },
+    });
+    renderAt();
+    expect(await screen.findByText("Live in about 14 weeks")).toBeInTheDocument();
+    expect(screen.getByText("Standard value")).toBeInTheDocument();
+    expect(screen.getByText("First-client discount")).toBeInTheDocument();
+    expect(screen.getByText("Pages, cart and checkout")).toBeInTheDocument();
+    expect(screen.getByText("To start the project")).toBeInTheDocument();
+    expect(screen.getByText("Appwrite Pro")).toBeInTheDocument();
+    expect(screen.getByText(/not part of the price above/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Not included in the GHS 10,000.00 above, and not part of these payments. Ask for a separate quote when you're ready.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Logo design")).toBeInTheDocument();
+    expect(screen.getByText("Content on time")).toBeInTheDocument();
+    const steps = screen.getByRole("heading", { name: /next steps/i }).closest("section")!;
+    expect(within(steps).getByText("Review")).toBeInTheDocument();
+    expect(within(steps).getByText("Accept")).toBeInTheDocument();
+
+    const summary = screen.getByText(/Phase 2 · Not in this quote/);
+    const details = summary.closest("details") as HTMLElement;
+    expect(details).not.toHaveAttribute("open");
+    const accept = screen.getByRole("button", { name: /accept quote/i });
+    expect(
+      accept.compareDocumentPosition(summary) & 4 /* DOCUMENT_POSITION_FOLLOWING */,
+    ).toBeTruthy();
+
+    const optionalAmount = "GHS 2,500.00";
+    const total = screen.getByText("Total", { selector: "dt" }).closest("div") as HTMLElement;
+    expect(total).not.toHaveTextContent(optionalAmount);
+    const plan = screen.getByRole("heading", { name: /how you pay/i }).closest("section")!;
+    expect(plan).not.toHaveTextContent(optionalAmount);
+    expect(details).toHaveTextContent(optionalAmount);
+
+    // Long unbroken item text must wrap inside the card at narrow widths.
+    expect(screen.getByText("Pages, cart and checkout").className).toMatch(
+      /overflow-wrap:anywhere/,
+    );
+    expect(screen.getByText("Store build").className).toMatch(/overflow-wrap:anywhere/);
   });
 });

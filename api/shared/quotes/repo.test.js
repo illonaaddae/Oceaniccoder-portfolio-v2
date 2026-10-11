@@ -28,6 +28,24 @@ describe("quote repo", () => {
     });
   });
 
+  it("parses the full-proposal JSON fields and defaults them when absent", async () => {
+    const db = {
+      getDocument: vi.fn().mockResolvedValue({
+        $id: "q1",
+        highlights: '["Live in 14 weeks"]',
+        runningCosts: '[{"service":"Appwrite","purpose":"Hosting","cost":"USD 25"}]',
+        optionalItems: '[{"id":"o1","description":"SMS"}]',
+      }),
+    };
+    const q = await createQuoteRepo(db).get("q1");
+    expect(q.highlights).toEqual(["Live in 14 weeks"]);
+    expect(q.runningCosts[0].service).toBe("Appwrite");
+    expect(q.optionalItems[0].description).toBe("SMS");
+    db.getDocument.mockResolvedValue({ $id: "q2" });
+    const old = await createQuoteRepo(db).get("q2");
+    expect(old).toMatchObject({ highlights: [], runningCosts: [], optionalItems: [] });
+  });
+
   it("returns null for a missing quote", async () => {
     const db = {
       getDocument: vi.fn().mockRejectedValue(Object.assign(new Error("nf"), { code: 404 })),
