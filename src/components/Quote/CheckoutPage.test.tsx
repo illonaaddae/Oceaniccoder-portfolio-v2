@@ -165,7 +165,7 @@ describe("CheckoutPage", () => {
   it("shows the stage position, what comes next and a way back to the quote", async () => {
     renderAt("/q/tok/pay/deposit");
     expect(await screen.findByText(/stage 1 of 2/i)).toBeInTheDocument();
-    expect(screen.getByText(/coming up next/i)).toBeInTheDocument();
+    expect(screen.getByText(/next · we.ll email you a payment link/i)).toBeInTheDocument();
     expect(screen.getByText(/paying now/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /back to the quote/i })).toHaveAttribute(
       "href",
