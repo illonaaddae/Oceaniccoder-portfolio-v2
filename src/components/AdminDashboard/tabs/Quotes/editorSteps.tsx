@@ -112,8 +112,16 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
   const set =
     (k: keyof QuoteDraft) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setDraft({ ...draft, [k]: e.target.value });
-  // Empty boxes are not stored, so keep typed-but-blank text locally in step with the draft.
-  const slots = [0, 1, 2, 3].map((n) => draft.highlights[n] ?? "");
+  // Raw box values live here so blanks keep their place; the draft gets only the non-empty ones.
+  const [slots, setSlots] = useState<string[]>(() =>
+    [0, 1, 2, 3].map((n) => draft.highlights[n] ?? ""),
+  );
+  // Server errors index the compacted list: the i-th error belongs to the i-th non-empty box.
+  const filled = slots.flatMap((v, n) => (v.trim() !== "" ? [n] : []));
+  const highlightError = (n: number) => {
+    const i = filled.indexOf(n);
+    return i >= 0 ? errors[`highlights.${i}`] : undefined;
+  };
   return (
     <div className="space-y-4">
       <Field id="q-title" label="Project title" error={errors.title}>
@@ -135,7 +143,7 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
               key={n}
               id={`q-hl-${n + 1}`}
               label={`At a glance fact ${n + 1}`}
-              error={errors[`highlights.${n}`]}
+              error={highlightError(n)}
             >
               <input
                 id={`q-hl-${n + 1}`}
@@ -145,7 +153,11 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
                 onChange={(e) => {
                   const next = [...slots];
                   next[n] = e.target.value;
-                  setDraft({ ...draft, highlights: next.filter((v) => v.trim() !== "") });
+                  setSlots(next);
+                  setDraft({
+                    ...draft,
+                    highlights: next.map((v) => v.trim()).filter(Boolean),
+                  });
                 }}
               />
             </Field>

@@ -35,6 +35,24 @@ describe("QuoteEditor", () => {
     expect(screen.getByRole("button", { name: "Currency" })).toHaveTextContent("USD");
   });
 
+  it("keeps At a glance boxes stable while typing into a later box", async () => {
+    quoteAdmin.mockResolvedValue({
+      quote: { id: "q1", status: "draft" },
+      stages: [],
+      payments: [],
+    });
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await fillClient();
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/project title/i), "Store");
+    await userEvent.type(screen.getByLabelText(/at a glance fact 3/i), "Fast");
+    expect(screen.getByLabelText(/at a glance fact 3/i)).toHaveValue("Fast");
+    expect(screen.getByLabelText(/at a glance fact 1/i)).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    const draft = quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft;
+    expect(draft.highlights).toEqual(["Fast"]);
+  });
+
   it("walks the steps and shows live stage amounts", async () => {
     render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
     await fillClient();
