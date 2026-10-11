@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { configDefaults } from "vitest/config";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -105,5 +106,9 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: "./src/setupTests.ts",
+    // Agent worktrees under .claude/ hold full copies of the repo; collecting
+    // them doubled the suite and pushed jsdom tests past the 5s default.
+    exclude: [...configDefaults.exclude, ".claude/**", ".agents/**"],
+    testTimeout: 15000,
   },
 });
