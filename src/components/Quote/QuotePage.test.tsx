@@ -234,4 +234,63 @@ describe("QuotePage", () => {
       await screen.findByRole("link", { name: /email us at hello@oceaniccoder.dev/i }),
     ).toHaveAttribute("href", expect.stringContaining("mailto:hello@oceaniccoder.dev"));
   });
+
+  it("renders proposal sections only when filled", async () => {
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    renderAt();
+    await screen.findByText("Online store");
+    for (const t of [
+      /at a glance/i,
+      /running costs/i,
+      /scope notes/i,
+      /next steps/i,
+      /optional extras/i,
+    ])
+      expect(screen.queryByText(t)).toBeNull();
+  });
+
+  it("shows the full proposal with optional extras kept out of the price", async () => {
+    fetchClientQuote.mockResolvedValue({
+      quote: {
+        ...baseQuote,
+        highlights: ["Live in about 14 weeks"],
+        discountLabel: "First-client discount",
+        discountMinor: 100000,
+        subtotalMinor: 1100000,
+        totalMinor: 1000000,
+        items: [{ ...baseQuote.items[0], detail: "Pages, cart and checkout" }],
+        runningCosts: [{ service: "Appwrite Pro", purpose: "Hosting", cost: "USD 25 / month" }],
+        exclusions: "Logo design",
+        assumptions: "Content on time",
+        nextSteps: "Review\nAccept",
+        optionalTitle: "Phase 2",
+        optionalItems: [
+          {
+            id: "o1",
+            description: "SMS",
+            qty: 1,
+            unitMinor: 250000,
+            lineMinor: 250000,
+            detail: "",
+          },
+        ],
+        optionalTotalMinor: 250000,
+        stages: baseQuote.stages.map((s, i) => ({
+          ...s,
+          note: i === 0 ? "To start the project" : "",
+        })),
+      },
+    });
+    renderAt();
+    expect(await screen.findByText("Live in about 14 weeks")).toBeInTheDocument();
+    expect(screen.getByText("Standard value")).toBeInTheDocument();
+    expect(screen.getByText("First-client discount")).toBeInTheDocument();
+    expect(screen.getByText("Pages, cart and checkout")).toBeInTheDocument();
+    expect(screen.getByText("To start the project")).toBeInTheDocument();
+    expect(screen.getByText("Appwrite Pro")).toBeInTheDocument();
+    expect(screen.getByText(/not part of the price above/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/not included in the GHS 10,000.00 above, and not part of these payments/i),
+    ).toBeInTheDocument();
+  });
 });
