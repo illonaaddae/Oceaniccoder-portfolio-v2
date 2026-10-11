@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import QuoteShell, { QuoteCard, QuoteError, QuoteLoading } from "./QuoteShell";
+import { FaCheckCircle } from "react-icons/fa";
+import { LOGO_PATHS } from "@/components/Navbar/navData";
+import QuoteShell, { QuoteError, QuoteLoading } from "./QuoteShell";
 import { fetchReceipt } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ReceiptView } from "@/types/quote";
@@ -30,59 +32,100 @@ export default function ReceiptPage() {
       </QuoteShell>
     );
   const money = (m: number) => formatMinor(m, receipt.currency);
-  const rows: [string, string][] = [
+  const details: [string, string][] = [
     [
       "Received from",
       `${receipt.clientName}${receipt.clientCompany ? `, ${receipt.clientCompany}` : ""}`,
     ],
-    ["For", `${receipt.stageLabel}, ${receipt.title}`],
-    ["Invoice", receipt.invoiceNumber],
-    ["Method", receipt.method],
-    ["Reference", receipt.reference],
-    ["Date", formatDate(receipt.paidAt)],
-    ["Remaining balance", receipt.balanceMinor > 0 ? money(receipt.balanceMinor) : "Fully paid"],
+    ["Paid by", receipt.method],
+    ["For", `Quote ${receipt.quoteNumber}: ${receipt.title}`],
+    ["Stage", `${receipt.stageLabel} · ${receipt.invoiceNumber}`],
   ];
 
+  // One document, like a paper receipt: brand header, body, contact footer.
   return (
     <QuoteShell title={`Receipt ${receipt.reference}`} width="narrow">
-      <section className="quote-on-dark rounded-2xl p-6 sm:p-8 bg-[linear-gradient(135deg,#04333B_0%,#085866_100%)] print:bg-none print:border print:border-gray-300">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-          <div className="min-w-0">
+      <article
+        className="rounded-2xl border overflow-hidden print:rounded-none print:border-0"
+        style={{ background: "var(--bg-secondary)", borderColor: "var(--border-subtle)" }}
+      >
+        <header className="quote-on-dark flex flex-wrap items-center justify-between gap-4 p-6 sm:p-8 bg-[linear-gradient(135deg,#04333B_0%,#085866_100%)] print:bg-none print:border-b print:border-gray-300">
+          <img
+            src={LOGO_PATHS.dark}
+            alt="Oceaniccoder"
+            className="h-8 w-auto brightness-0 invert print:hidden"
+            width="112"
+            height="32"
+          />
+          <div className="text-right">
             <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-[#8dd7e7] print:text-gray-600">
-              Receipt · Quote {receipt.quoteNumber}
+              Receipt
             </p>
-            <h1 className="text-2xl sm:text-3xl font-bold mt-2 leading-tight">{receipt.title}</h1>
+            <p className="font-mono text-sm font-bold">{receipt.reference}</p>
           </div>
-          <div className="sm:text-right shrink-0">
-            <p className="text-sm text-white/75 print:text-gray-600">Payment received</p>
-            <p className="text-2xl sm:text-3xl font-bold tabular-nums">
-              {money(receipt.amountMinor)}
-            </p>
+        </header>
+
+        <div className="p-6 sm:p-8">
+          <h1 className="sr-only">Receipt {receipt.reference}</h1>
+          <p
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold"
+            style={{ background: "var(--status-success-bg)", color: "var(--status-success-text)" }}
+          >
+            <FaCheckCircle aria-hidden /> Paid
+          </p>
+          <p
+            className="mt-4 text-4xl font-bold tabular-nums"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {money(receipt.amountMinor)}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            {formatDate(receipt.paidAt)}
+          </p>
+
+          <dl className="mt-8 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+            {details.map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <dt style={{ color: "var(--text-secondary)" }}>{label}</dt>
+                <dd
+                  className="mt-0.5 font-semibold break-words"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <div
+            className="mt-8 pt-4 border-t flex justify-between text-sm font-semibold"
+            style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+          >
+            <span>Balance remaining</span>
+            <span className="tabular-nums">
+              {receipt.balanceMinor > 0 ? money(receipt.balanceMinor) : "Fully paid"}
+            </span>
           </div>
         </div>
-      </section>
-      <QuoteCard>
-        <dl className="divide-y divide-[color:var(--border-subtle)] text-sm">
-          {rows.map(([label, value]) => (
-            <div key={label} className="flex justify-between gap-4 py-2.5">
-              <dt className="shrink-0" style={{ color: "var(--text-secondary)" }}>
-                {label}
-              </dt>
-              <dd className="min-w-0 text-right break-all" style={{ color: "var(--text-primary)" }}>
-                {value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+
+        <footer
+          className="flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 text-xs sm:px-8"
+          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+        >
+          <span>OceanicCoder · Web and app development</span>
+          <span>hello@oceaniccoder.dev · oceaniccoder.dev</span>
+        </footer>
+      </article>
+      <div className="flex justify-end print:hidden">
         <button
           type="button"
           onClick={() => window.print()}
-          className="mt-6 px-5 py-3 rounded-xl border print:hidden"
+          className="px-5 py-3 rounded-xl border"
           style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
         >
           Print or save PDF
         </button>
-      </QuoteCard>
+      </div>
     </QuoteShell>
   );
 }
