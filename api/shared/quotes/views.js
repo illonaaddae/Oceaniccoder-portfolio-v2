@@ -195,6 +195,21 @@ function summarize(q, stages) {
     sentAt: q.sentAt || null,
     viewedAt: q.viewedAt || null,
     updatedAt: q.updatedAt || q.createdAt || null,
+    // Stage invoices that exist for the client (requested or paid), for the
+    // dashboard's Invoices tab. "later" stages haven't been invoiced yet.
+    invoices: stages
+      .filter((st) => st.state === "due" || st.state === "paid")
+      .map((st) => ({
+        stageId: st.id,
+        invoiceNumber: st.invoiceNumber,
+        label: st.label,
+        percent: st.percent,
+        amountMinor: st.amountMinor,
+        state: st.state,
+        dueBy: stageDueDate(st),
+        overdue: Boolean(st.overdue),
+        paidAt: st.paidAt || null,
+      })),
   };
 }
 

@@ -17,6 +17,9 @@ import { useConfirm } from "../ConfirmContext";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/hooks/usePagination";
 import { FilterPills } from "@/components/ui/FilterPills";
+import { quoteAdmin } from "@/services/api/quotes";
+import { formatMinor } from "@/utils/quoteMath";
+import type { QuoteStageInvoice, QuoteSummary } from "@/types/quote";
 
 const PAGE_SIZE = 10;
 
@@ -32,9 +35,39 @@ const MANUAL_PAYMENT_METHODS: { value: ManualPaymentMethod; label: string }[] = 
 ];
 
 type StatusFilter = "all" | "sent" | "paid";
+type SourceFilter = "all" | "oneoff" | "quotes";
+
+/** A quote stage invoice, read-only here; it's managed from the quote. */
+interface QuoteInvoiceRow extends QuoteStageInvoice {
+  quoteId: string;
+  quoteNumber: string;
+  title: string;
+  clientName: string;
+  currency: string;
+}
+
+type Entry =
+  | { kind: "invoice"; key: string; status: "sent" | "paid"; at: string; inv: Invoice }
+  | { kind: "quote"; key: string; status: "sent" | "paid"; at: string; row: QuoteInvoiceRow };
+
+/** Quote stage invoices, flattened from the admin quote list. */
+function quoteRows(quotes: QuoteSummary[]): QuoteInvoiceRow[] {
+  return quotes.flatMap((q) =>
+    (q.invoices || []).map((inv) => ({
+      ...inv,
+      quoteId: q.id,
+      quoteNumber: q.quoteNumber,
+      title: q.title,
+      clientName: q.clientName,
+      currency: q.currency,
+    })),
+  );
+}
 
 interface InvoicesTabProps {
   theme: "light" | "dark";
+  /** Opens a quote in the Quotes tab (quote invoices are managed there). */
+  onOpenQuote?: (quoteId: string) => void;
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -73,7 +106,7 @@ function formatDate(dateStr?: string) {
   });
 }
 
-export default function InvoicesTab({ theme }: InvoicesTabProps) {
+export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   const confirm = useConfirm();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,11 +114,30 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
+  const [activeSource, setActiveSource] = useState<SourceFilter>("all");
+  const [quoteInvoices, setQuoteInvoices] = useState<QuoteInvoiceRow[]>([]);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setInvoices(await getInvoices());
+      // Quote invoices come from the quote list; a failure there shouldn't hide
+      // the one-off invoices.
+      const [list, quotes] = await Promise.all([
+        getInvoices(),
+        quoteAdmin<{ quotes: QuoteSummary[] }>("list").then(
+          (r) => {
+            setQuoteError(null);
+            return r.quotes;
+          },
+          (e: unknown) => {
+            setQuoteError(e instanceof Error ? e.message : "Couldn't load quote invoices.");
+            return [] as QuoteSummary[];
+          },
+        ),
+      ]);
+      setInvoices(list);
+      setQuoteInvoices(quoteRows(quotes));
     } finally {
       setLoading(false);
     }
@@ -201,16 +253,41 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
     setInvoices((prev) => prev.filter((i) => i.$id !== id));
   };
 
-  const paidCount = invoices.filter((i) => i.status === "paid").length;
-  const pendingCount = invoices.filter((i) => i.status === "sent").length;
+  const entries: Entry[] = [
+    ...invoices.map((inv) => ({
+      kind: "invoice" as const,
+      key: inv.$id,
+      status: (inv.status === "paid" ? "paid" : "sent") as "sent" | "paid",
+      at: inv.$createdAt || "",
+      inv,
+    })),
+    ...quoteInvoices.map((row) => ({
+      kind: "quote" as const,
+      key: `${row.quoteId}:${row.stageId}`,
+      status: (row.state === "paid" ? "paid" : "sent") as "sent" | "paid",
+      at: row.paidAt || row.dueBy || "",
+      row,
+    })),
+  ].sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0));
 
-  const sumBy = (pred: (i: Invoice) => boolean) =>
-    invoices.filter(pred).reduce((s, i) => s + Number(i.total || 0), 0);
+  const amountOf = (e: Entry) =>
+    e.kind === "invoice" ? Number(e.inv.total || 0) : e.row.amountMinor / 100;
+  const bySource = entries.filter(
+    (e) =>
+      activeSource === "all" ||
+      (activeSource === "quotes" ? e.kind === "quote" : e.kind === "invoice"),
+  );
+  const paidCount = bySource.filter((e) => e.status === "paid").length;
+  const pendingCount = bySource.filter((e) => e.status === "sent").length;
+
+  const sumBy = (pred: (e: Entry) => boolean) =>
+    bySource.filter(pred).reduce((s, e) => s + amountOf(e), 0);
   // Dominant currency for the summary figures (invoices are almost always one currency).
   const domCurrency =
     Object.entries(
-      invoices.reduce<Record<string, number>>((acc, i) => {
-        acc[i.currency] = (acc[i.currency] || 0) + 1;
+      entries.reduce<Record<string, number>>((acc, e) => {
+        const c = e.kind === "invoice" ? e.inv.currency : e.row.currency;
+        acc[c] = (acc[c] || 0) + 1;
         return acc;
       }, {}),
     ).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "GHS";
@@ -222,7 +299,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
     {
       key: "all" as const,
       label: "Total Invoices",
-      count: invoices.length,
+      count: bySource.length,
       amount: sumBy(() => true),
       icon: FaFileInvoiceDollar,
       grad: "from-oceanic-500 to-oceanic-700",
@@ -231,7 +308,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
       key: "paid" as const,
       label: "Paid",
       count: paidCount,
-      amount: sumBy((i) => i.status === "paid"),
+      amount: sumBy((e) => e.status === "paid"),
       icon: FaCheckCircle,
       grad: "from-success-500 to-success-700",
     },
@@ -239,20 +316,25 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
       key: "sent" as const,
       label: "Pending",
       count: pendingCount,
-      amount: sumBy((i) => i.status === "sent"),
+      amount: sumBy((e) => e.status === "sent"),
       icon: FaClock,
       grad: "from-warning-500 to-warning-700",
     },
   ];
 
   const tabs: { key: StatusFilter; label: string; count: number }[] = [
-    { key: "all", label: "All", count: invoices.length },
+    { key: "all", label: "All", count: bySource.length },
     { key: "sent", label: "Pending", count: pendingCount },
     { key: "paid", label: "Paid", count: paidCount },
   ];
+  const sourceTabs: { key: SourceFilter; label: string; count: number }[] = [
+    { key: "all", label: "All sources", count: entries.length },
+    { key: "quotes", label: "Quotes", count: quoteInvoices.length },
+    { key: "oneoff", label: "One-off", count: invoices.length },
+  ];
 
   const filtered =
-    activeStatus === "all" ? invoices : invoices.filter((i) => i.status === activeStatus);
+    activeStatus === "all" ? bySource : bySource.filter((e) => e.status === activeStatus);
   const { page, setPage, pageItems, totalItems } = usePagination(filtered, PAGE_SIZE);
 
   const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
@@ -345,12 +427,25 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
           </div>
 
           {/* Status tabs */}
-          <FilterPills
-            tabs={tabs}
-            active={activeStatus}
-            onChange={(k) => setActiveStatus(k as StatusFilter)}
-            theme={theme}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <FilterPills
+              tabs={tabs}
+              active={activeStatus}
+              onChange={(k) => setActiveStatus(k as StatusFilter)}
+              theme={theme}
+            />
+            <FilterPills
+              tabs={sourceTabs}
+              active={activeSource}
+              onChange={(k) => setActiveSource(k as SourceFilter)}
+              theme={theme}
+            />
+          </div>
+          {quoteError && (
+            <p className="text-sm" style={{ color: "var(--status-failed-text)" }}>
+              Quote invoices couldn't load: {quoteError}
+            </p>
+          )}
         </>
       )}
 
@@ -358,7 +453,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
         <div className="text-center py-16" style={{ color: "var(--text-secondary)" }}>
           Loading…
         </div>
-      ) : invoices.length === 0 ? (
+      ) : entries.length === 0 ? (
         <div className="text-center py-16">
           <FaFileInvoiceDollar
             className="text-5xl mx-auto mb-4"
@@ -366,7 +461,7 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
           />
           <p className="font-semibold text-[var(--text-primary)] mb-1">No invoices yet</p>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Generate invoices from Client Work tab.
+            Invoices appear here when you send a quote or a one-off invoice.
           </p>
         </div>
       ) : filtered.length === 0 ? (
@@ -375,7 +470,16 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {pageItems.map((inv) => {
+          {pageItems.map((entry) => {
+            if (entry.kind === "quote")
+              return (
+                <QuoteInvoiceCard
+                  key={entry.key}
+                  row={entry.row}
+                  onOpen={onOpenQuote ? () => onOpenQuote(entry.row.quoteId) : undefined}
+                />
+              );
+            const inv = entry.inv;
             const sc = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.sent;
             const sym = CURRENCY_SYMBOLS[inv.currency] ?? inv.currency;
             const isPaid = inv.status === "paid";
@@ -508,6 +612,65 @@ export default function InvoicesTab({ theme }: InvoicesTabProps) {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+/** A quote stage invoice: read-only, opens the quote where it's managed. */
+function QuoteInvoiceCard({ row, onOpen }: { row: QuoteInvoiceRow; onOpen?: () => void }) {
+  const paid = row.state === "paid";
+  const status = paid ? "paid" : row.overdue ? "overdue" : "sent";
+  const sc = STATUS_CONFIG[status];
+  return (
+    <div
+      className="glass-card overflow-hidden"
+      style={{ borderLeft: paid ? "4px solid #22c55e" : "4px solid var(--accent-teal)" }}
+    >
+      <div className="p-5 flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap mb-1">
+            <h3 className="text-base font-bold text-[var(--text-primary)]">{row.invoiceNumber}</h3>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${sc.pill}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+              {paid ? "Paid" : row.overdue ? "Overdue" : "Due"}
+            </span>
+            <span
+              className="px-2 py-0.5 rounded-full text-xs font-medium border"
+              style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+            >
+              Quote · {row.quoteNumber}
+            </span>
+          </div>
+          <p className="text-sm text-[var(--text-primary)] truncate">
+            {row.clientName} · {row.title}
+          </p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+            {row.label} ({row.percent}%)
+            {paid
+              ? ` · Paid ${formatDate(row.paidAt || undefined)}`
+              : row.dueBy
+                ? ` · Due ${formatDate(row.dueBy)}`
+                : ""}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <span className="text-lg font-bold tabular-nums text-[var(--text-primary)]">
+            {formatMinor(row.amountMinor, row.currency as "GHS" | "USD")}
+          </span>
+          {onOpen && (
+            <button
+              type="button"
+              onClick={onOpen}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+              style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+            >
+              Open quote
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
