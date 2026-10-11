@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -95,6 +95,23 @@ beforeEach(() => {
 });
 
 describe("QuotePage", () => {
+  it("marks a paid stage with a tick instead of its number", async () => {
+    fetchClientQuote.mockResolvedValue({
+      quote: {
+        ...baseQuote,
+        status: "accepted",
+        acceptedName: "Kofi Mensah",
+        stages: baseQuote.stages.map((s, i) =>
+          i === 0 ? { ...s, state: "paid", paidAt: "2026-10-11T19:01:48Z" } : s,
+        ),
+      },
+    });
+    renderAt();
+    const plan = (await screen.findByText("How you pay")).closest("section, div")!.parentElement!;
+    expect(within(plan).getAllByText("Paid").length).toBeGreaterThan(0);
+    expect(within(plan).getByText("Paid", { selector: ".sr-only" })).toBeInTheDocument();
+  });
+
   it("shows the full quote document", async () => {
     fetchClientQuote.mockResolvedValue({ quote: baseQuote });
     renderAt();

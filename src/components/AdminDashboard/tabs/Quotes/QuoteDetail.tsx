@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaTimes, FaCopy, FaWhatsapp, FaExternalLinkAlt } from "react-icons/fa";
+import { FaTimes, FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { useConfirm } from "../../ConfirmContext";
@@ -234,6 +234,19 @@ export default function QuoteDetail({
               className="flex flex-wrap items-center gap-3 rounded-xl border p-3"
               style={{ borderColor: "var(--border-subtle)" }}
             >
+              <span
+                aria-hidden
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                style={
+                  s.state === "paid"
+                    ? { background: "var(--status-success-text)", color: "#ffffff" }
+                    : s.state === "due"
+                      ? { border: "1px solid var(--accent-teal)", color: "var(--accent-teal)" }
+                      : { border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }
+                }
+              >
+                {s.state === "paid" ? <FaCheck /> : s.index + 1}
+              </span>
               <span className="flex-1 min-w-[10rem]" style={{ color: "var(--text-primary)" }}>
                 {s.label} ({s.percent}%) <span className="font-mono">{money(s.amountMinor)}</span>
                 <span className="block text-xs" style={{ color: "var(--text-secondary)" }}>
