@@ -210,7 +210,7 @@ export default function BookingSection() {
       if (calEventLink) setCalendarLink(calEventLink);
 
       setStep(4);
-      sectionTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      sectionTopRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     } catch (err) {
       console.error(err);
       setError("Booking failed. Please try again or contact me directly.");
