@@ -2,6 +2,7 @@ import React from "react";
 import { Helmet } from "react-helmet-async";
 import { FaMoon, FaSun } from "react-icons/fa";
 import NavLogo from "@/components/Navbar/Logo";
+import { LOGO_PATHS } from "@/components/Navbar/navData";
 import useTheme from "@/hooks/useTheme";
 
 // Logo.jsx is untyped JS, so its props infer as {}.
@@ -56,7 +57,18 @@ export default function QuoteShell({
           </div>
         </div>
       </header>
-      <div className={`${max} mx-auto px-4 py-8 sm:py-12 space-y-6 print:py-0`}>{children}</div>
+      <div className={`${max} mx-auto px-4 py-8 sm:py-12 space-y-6 print:py-0`}>
+        {/* The brand bar is hidden in print, so printed and saved-PDF
+            documents carry the wordmark here instead. */}
+        <img
+          src={LOGO_PATHS.light}
+          alt="Oceaniccoder"
+          className="hidden print:block h-8 w-auto"
+          width="112"
+          height="32"
+        />
+        {children}
+      </div>
     </div>
   );
 }

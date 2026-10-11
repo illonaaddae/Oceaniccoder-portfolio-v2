@@ -45,23 +45,24 @@ export default function ReceiptPage() {
 
   return (
     <QuoteShell title={`Receipt ${receipt.reference}`} width="narrow">
+      <section className="quote-on-dark rounded-2xl p-6 sm:p-8 bg-[linear-gradient(135deg,#04333B_0%,#085866_100%)] print:bg-none print:border print:border-gray-300">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+          <div className="min-w-0">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-[#8dd7e7] print:text-gray-600">
+              Receipt · Quote {receipt.quoteNumber}
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold mt-2 leading-tight">{receipt.title}</h1>
+          </div>
+          <div className="sm:text-right shrink-0">
+            <p className="text-sm text-white/75 print:text-gray-600">Payment received</p>
+            <p className="text-2xl sm:text-3xl font-bold tabular-nums">
+              {money(receipt.amountMinor)}
+            </p>
+          </div>
+        </div>
+      </section>
       <QuoteCard>
-        <p
-          className="font-mono text-[11px] uppercase tracking-[0.12em]"
-          style={{ color: "var(--status-success-text)" }}
-        >
-          Payment received
-        </p>
-        <h1
-          className="text-3xl font-bold tabular-nums mt-1"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {money(receipt.amountMinor)}
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-          Quote {receipt.quoteNumber} · OceanicCoder · hello@oceaniccoder.dev
-        </p>
-        <dl className="mt-6 divide-y divide-[color:var(--border-subtle)] text-sm">
+        <dl className="divide-y divide-[color:var(--border-subtle)] text-sm">
           {rows.map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 py-2.5">
               <dt className="shrink-0" style={{ color: "var(--text-secondary)" }}>
