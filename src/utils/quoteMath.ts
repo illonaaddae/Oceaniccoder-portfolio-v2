@@ -121,5 +121,13 @@ export function quoteToDraft(q: Partial<AdminQuote> | null | undefined): QuoteDr
       : DEFAULT_SCHEDULE.map((s) => ({ ...s })),
     validDays: pick(q?.validDays, 14),
     inquiryId: pick(q?.inquiryId, null),
+    highlights: q?.highlights ? [...q.highlights] : [],
+    discountLabel: pick(q?.discountLabel, ""),
+    runningCosts: q?.runningCosts ? q.runningCosts.map((r) => ({ ...r })) : [],
+    exclusions: pick(q?.exclusions, ""),
+    assumptions: pick(q?.assumptions, ""),
+    nextSteps: pick(q?.nextSteps, ""),
+    optionalTitle: pick(q?.optionalTitle, ""),
+    optionalItems: q?.optionalItems ? q.optionalItems.map((i) => ({ ...i })) : [],
   };
 }
