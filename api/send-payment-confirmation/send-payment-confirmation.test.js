@@ -1,0 +1,48 @@
+// @vitest-environment node
+import { describe, it, expect } from "vitest";
+
+const { renderPaymentConfirmation } = await import("./index.js");
+
+const base = {
+  invoiceNumber: "INV-2026-0042",
+  clientName: "Kofi Mensah",
+  total: 3413.03,
+  currency: "GHS",
+  currencySymbol: "GH₵",
+  paidDate: "10 October 2026",
+};
+
+describe("renderPaymentConfirmation", () => {
+  it("uses the branded kit shell with a receipt reference", () => {
+    const html = renderPaymentConfirmation(base);
+    expect(html).toContain("Ysabeau Office");
+    expect(html).toContain("Oceaniccoder-logo@3x.png");
+    expect(html).toContain("Receipt");
+    expect(html).toContain("INV-2026-0042");
+  });
+
+  it("shows the client, amount, date and paid status", () => {
+    const html = renderPaymentConfirmation(base);
+    expect(html).toContain("Thank you, Kofi Mensah");
+    expect(html).toContain("GH₵3413.03 GHS");
+    expect(html).toContain("10 October 2026");
+    expect(html).toContain(">Paid<");
+    expect(html).toContain("hello@oceaniccoder.dev");
+  });
+
+  it("falls back to the currency code when there is no symbol", () => {
+    const html = renderPaymentConfirmation({ ...base, currencySymbol: undefined });
+    expect(html).toContain("GHS3413.03 GHS");
+  });
+
+  it("escapes client-supplied text", () => {
+    const html = renderPaymentConfirmation({
+      ...base,
+      clientName: "<b>Kofi</b>",
+      invoiceNumber: "<i>INV</i>",
+    });
+    expect(html).not.toContain("<b>Kofi</b>");
+    expect(html).not.toContain("<i>INV</i>");
+    expect(html).toContain("&lt;b&gt;Kofi&lt;/b&gt;");
+  });
+});

@@ -253,6 +253,78 @@ describe("create-booking Azure Function", () => {
     expect(written).toMatch(/invalid_grant/);
     expect(written).toMatch(/GOOGLE_REFRESH_TOKEN/);
     expect(written).toMatch(/Action needed/);
+    expect(written).toMatch(/No meeting link was created/);
+
+    delete process.env.RESEND_API_KEY;
+    delete process.env.RESEND_TO_EMAIL;
+  });
+  it("sends branded, escaped host and booker emails with the Meet and calendar links", async () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "fake-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+    process.env.RESEND_API_KEY = "resend-key";
+    process.env.RESEND_TO_EMAIL = "host@example.com";
+
+    stubHttps(200, { access_token: "tok" }); // OAuth
+    stubHttps(200, {
+      id: "evt9",
+      htmlLink: "https://calendar.google.com/event?eid=evt9",
+      hangoutLink: "https://meet.google.com/abc-defg-hij",
+    }); // calendar insert
+    stubHttps(200, { id: "email-host" }); // Resend host notification
+    stubHttps(200, { id: "email-booker" }); // Resend booker confirmation
+
+    const ctx = makeContext();
+    await handler(ctx, {
+      method: "POST",
+      body: {
+        ...validBody,
+        name: "Ada <b>Lovelace</b>",
+        timezone: "Africa/Accra",
+        phone: "+233 20 000 0000",
+        message: "Line one\n<script>x</script>",
+      },
+      query: {},
+    });
+
+    const emails = mockRequest.mock.results
+      .flatMap((r) => r.value?.write?.mock?.calls ?? [])
+      .map(([chunk]) => String(chunk))
+      .filter((chunk) => chunk.includes('"html"'))
+      .map((chunk) => JSON.parse(chunk));
+    expect(emails).toHaveLength(2);
+
+    const host = emails.find((e) => e.to[0] === "host@example.com");
+    const booker = emails.find((e) => e.to[0] === "ada@example.com");
+
+    expect(host.from).toMatch(/^OceanicCoder Bookings </);
+    expect(host.subject).toBe(
+      "New Booking: Discovery Call with Ada <b>Lovelace</b> on 2099-06-15 at 09:00 AM",
+    );
+    expect(booker.from).toMatch(/^Illona Addae \(OceanicCoder\) </);
+    expect(booker.subject).toBe("Your Google Meet is Confirmed for 2099-06-15 at 09:00 AM");
+
+    for (const html of [host.html, booker.html]) {
+      expect(html).toContain("Ysabeau Office");
+      expect(html).toContain("Oceaniccoder-logo@3x.png");
+      expect(html).toContain('href="https://meet.google.com/abc-defg-hij"');
+      expect(html).toContain('href="https://calendar.google.com/event?eid=evt9"');
+      expect(html).toContain("2099-06-15 at 09:00 AM");
+      expect(html).toContain("Africa/Accra");
+      expect(html).toContain("Discovery Call (30 min)");
+      expect(html).toContain("Ada &lt;b&gt;Lovelace&lt;/b&gt;");
+      expect(html).not.toContain("<b>Lovelace</b>");
+    }
+
+    expect(host.html).toContain("+233 20 000 0000");
+    expect(host.html).toContain("Line one<br>&lt;script&gt;x&lt;/script&gt;");
+    expect(host.html).not.toContain("<script>");
+    expect(host.html).toContain('href="mailto:ada@example.com"');
+    expect(host.html).toContain("View in Google Calendar");
+    expect(host.html).not.toContain("No meeting link was created");
+    expect(booker.html).toContain("Add to Google Calendar");
+    expect(booker.html).toContain("Save this link.");
 
     delete process.env.RESEND_API_KEY;
     delete process.env.RESEND_TO_EMAIL;

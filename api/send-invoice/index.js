@@ -1,5 +1,17 @@
+/* global require, module, Buffer */
 const https = require("https");
 const { requireAdmin } = require("../shared/adminAuth");
+const {
+  C,
+  esc,
+  multiline,
+  shell,
+  heading,
+  card,
+  button,
+  buttons,
+  small,
+} = require("../shared/email/ui");
 
 const CORS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
@@ -9,11 +21,104 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
-function escHtml(s) {
-  return String(s ?? "").replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+const CLIENT_REASON = "OceanicCoder · Web and app development";
+const CONTACT = "hello@oceaniccoder.dev";
+const LABEL = "font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase";
+const NUM = "font-variant-numeric:tabular-nums;white-space:nowrap";
+
+function formatDate(d) {
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+// The kit's button() only allows https links, so the mailto reply button is
+// built here with the same secondary styling.
+function mailtoButton(label) {
+  return `<a href="mailto:${CONTACT}" style="display:inline-block;background:#ffffff;color:${C.tealDark};border:1px solid ${C.line};border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;text-decoration:none;margin:0 8px 8px 0">${esc(label)}</a>`;
+}
+
+function party(title, name, details) {
+  return `<div style="${LABEL};color:${C.ink3};margin:0 0 8px">${esc(title)}</div><div style="font-size:15px;font-weight:700;color:${C.ink}">${esc(name)}</div>${details
+    .filter(Boolean)
+    .map((d) => `<div style="font-size:14px;color:${C.ink3}">${esc(d)}</div>`)
+    .join("")}`;
+}
+
+function parties({ clientName, clientEmail, clientPhone }) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px"><tr>
+<td width="50%" style="vertical-align:top;padding:0 12px 0 0">${party("From", "Illona Addae", ["OceanicCoder", "oceaniccoder.dev"])}</td>
+<td width="50%" style="vertical-align:top;padding:0 0 0 12px;border-left:1px solid ${C.line}">${party("Billed to", clientName, [clientEmail, clientPhone])}</td>
+</tr></table>`;
+}
+
+function itemsTable({ items, money, subtotal, tax, taxRate, total }) {
+  const th = (label, align) =>
+    `<th align="${align}" style="padding:0 0 10px;${LABEL};color:${C.ink3};text-align:${align}">${label}</th>`;
+  const rows = items
+    .map(
+      (i) =>
+        `<tr><td style="padding:12px 8px 12px 0;border-top:1px solid ${C.line};font-size:14px;color:${C.ink}">${esc(i.description)}</td><td align="center" style="padding:12px 8px;border-top:1px solid ${C.line};font-size:14px;color:${C.ink2};${NUM}">${esc(i.quantity)}</td><td align="right" style="padding:12px 8px;border-top:1px solid ${C.line};font-size:14px;color:${C.ink2};${NUM}">${esc(money(i.unitPrice))}</td><td align="right" style="padding:12px 0 12px 8px;border-top:1px solid ${C.line};font-size:14px;font-weight:600;color:${C.ink};${NUM}">${esc(money(i.quantity * i.unitPrice))}</td></tr>`,
+    )
+    .join("");
+  const sum = (label, value, strong) =>
+    `<tr><td colspan="3" align="right" style="padding:${strong ? "12px" : "8px"} 8px ${strong ? "4px" : "0"} 0;${strong ? `border-top:1px solid ${C.line};font-size:16px;font-weight:700;color:${C.ink}` : `font-size:14px;color:${C.ink3}`}">${esc(label)}</td><td align="right" style="padding:${strong ? "12px" : "8px"} 0 ${strong ? "4px" : "0"} 8px;${strong ? `border-top:1px solid ${C.line};font-size:16px;font-weight:700;color:${C.tealDark}` : `font-size:14px;color:${C.ink2}`};${NUM}">${esc(value)}</td></tr>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 24px">
+<tr>${th("Description", "left")}${th("Qty", "center")}${th("Unit price", "right")}${th("Total", "right")}</tr>
+${rows}
+${sum("Subtotal", money(subtotal))}
+${taxRate > 0 ? sum(`Tax (${taxRate}%)`, money(tax)) : ""}
+${sum("Total", money(total), true)}
+</table>`;
+}
+
+function notesBlock(notes) {
+  return `<div style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;padding:16px 20px;margin:0 0 24px"><div style="${LABEL};color:${C.ink3};margin:0 0 8px">Notes</div><div style="font-size:14px;color:${C.ink2}">${multiline(notes)}</div></div>`;
+}
+
+// Pure: builds the invoice email HTML from the request body fields.
+function renderInvoiceEmail(d, now = new Date()) {
+  const sym = d.currencySymbol || d.currency;
+  const money = (n) => `${sym}${Number(n).toFixed(2)}`;
+  const items = d.items || [];
+  // Older callers sent items only; work the sums out rather than print NaN.
+  const num = (v, fallback) =>
+    Number.isFinite(Number(v)) && v !== "" && v !== null && v !== undefined ? Number(v) : fallback;
+  const subtotal = num(
+    d.subtotal,
+    items.reduce((s, i) => s + i.quantity * i.unitPrice, 0),
   );
+  const tax = num(d.tax, 0);
+  d = { ...d, subtotal, tax, total: num(d.total, subtotal + tax) };
+  const issuedDate = formatDate(now);
+  const dueDate = d.dueDate ? formatDate(new Date(d.dueDate)) : null;
+  const delivery = d.estimatedDelivery ? formatDate(new Date(d.estimatedDelivery)) : null;
+  const amountDue = `${money(d.total)} ${d.currency}`;
+  const payLink = `https://oceaniccoder.dev/pay/${encodeURIComponent(d.invoiceNumber)}`;
+
+  return shell({
+    preview: `Invoice ${d.invoiceNumber}: ${amountDue}${dueDate ? `, due ${dueDate}` : ""}`,
+    meta: { label: "Invoice", number: d.invoiceNumber },
+    reason: CLIENT_REASON,
+    body:
+      heading({
+        eyebrow: "Invoice",
+        title: "Your invoice from OceanicCoder",
+        intro: `Hi ${d.clientName}, here is invoice ${d.invoiceNumber}, issued ${issuedDate}.`,
+      }) +
+      card({
+        title: "Amount due",
+        highlight: amountDue,
+        rows: [
+          ["Issued", issuedDate],
+          ["Payment due", dueDate],
+          ["Estimated delivery", delivery],
+        ],
+      }) +
+      parties(d) +
+      itemsTable({ ...d, items, money }) +
+      (d.notes ? notesBlock(d.notes) : "") +
+      buttons(button({ href: payLink, label: "Pay now" }), mailtoButton("Reply to this invoice")) +
+      small("Have questions about this invoice? Get in touch."),
+  });
 }
 
 function httpsPost(hostname, path, headers, body) {
@@ -146,214 +251,22 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const safeClientName = escHtml(clientName);
-  const safeClientEmail = escHtml(clientEmail);
-  const safeClientPhone = clientPhone ? escHtml(clientPhone) : null;
-  const safeInvoiceNumber = escHtml(invoiceNumber);
-
-  const issuedDate = new Date().toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+  const html = renderInvoiceEmail({
+    invoiceNumber,
+    clientName,
+    clientEmail,
+    clientPhone,
+    items,
+    currency,
+    currencySymbol,
+    subtotal,
+    tax,
+    taxRate,
+    total,
+    dueDate,
+    estimatedDelivery,
+    notes,
   });
-  const dueDateFormatted = dueDate
-    ? new Date(dueDate).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-  const estimatedDeliveryFormatted = estimatedDelivery
-    ? new Date(estimatedDelivery).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-
-  const itemRows = items
-    .map(
-      (i, idx) => `
-    <tr style="background:${idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)"};">
-      <td style="padding:12px 8px 12px 0;border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">${escHtml(i.description)}</td>
-      <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:center;">${i.quantity}</td>
-      <td style="padding:12px 8px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:14px;text-align:right;">${sym}${Number(i.unitPrice).toFixed(2)}</td>
-      <td style="padding:12px 0 12px 8px;border-bottom:1px solid #1e293b;color:#0C8599;font-size:14px;text-align:right;font-weight:700;">${sym}${(i.quantity * i.unitPrice).toFixed(2)}</td>
-    </tr>`,
-    )
-    .join("");
-
-  const taxRow =
-    taxRate > 0
-      ? `<tr>
-          <td style="padding:6px 0;color:#94a3b8;font-size:13px;">Tax (${taxRate}%)</td>
-          <td style="padding:6px 0;color:#94a3b8;font-size:13px;text-align:right;">${sym}${Number(tax).toFixed(2)}</td>
-        </tr>`
-      : "";
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Invoice ${invoiceNumber}</title>
-</head>
-<body style="margin:0;padding:0;background:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0f1a;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-
-        <!-- Header bar -->
-        <tr>
-          <td style="background:linear-gradient(135deg,#0C8599 0%,#085866 100%);border-radius:16px 16px 0 0;padding:28px 40px;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="vertical-align:middle;padding-right:16px;">
-                  <img src="https://oceaniccoder.dev/images/logo/Oceaniccoder-croped.png" alt="OceanicCoder" width="120" style="display:block;" />
-                </td>
-                <td style="text-align:right;vertical-align:middle;padding-left:16px;">
-                  <p style="margin:0;font-size:11px;color:#ffffff;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Invoice</p>
-                  <p style="margin:4px 0 0;font-size:20px;color:#ffffff;font-weight:800;letter-spacing:0.01em;">${safeInvoiceNumber}</p>
-                  <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.75);">Issued ${issuedDate}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Total hero -->
-        <tr>
-          <td style="background:#0f2a27;padding:24px 40px;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td>
-                  <p style="margin:0;font-size:12px;color:#52bfd7;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Amount Due</p>
-                  <p style="margin:6px 0 0;font-size:36px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${sym}${Number(total).toFixed(2)} <span style="font-size:18px;font-weight:500;color:#52bfd7;">${currency}</span></p>
-                </td>
-                ${
-                  dueDateFormatted || estimatedDeliveryFormatted
-                    ? `<td style="text-align:right;vertical-align:middle;">
-                  ${
-                    dueDateFormatted
-                      ? `<div style="display:inline-block;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px 16px;${estimatedDeliveryFormatted ? "margin-bottom:8px;" : ""}">
-                    <p style="margin:0;font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Payment Due</p>
-                    <p style="margin:3px 0 0;font-size:14px;color:#fde68a;font-weight:700;">${dueDateFormatted}</p>
-                  </div>`
-                      : ""
-                  }
-                  ${
-                    estimatedDeliveryFormatted
-                      ? `<div style="display:inline-block;background:rgba(13,148,136,0.15);border:1px solid rgba(13,148,136,0.4);border-radius:8px;padding:8px 16px;">
-                    <p style="margin:0;font-size:11px;color:#26a9c5;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Est. Delivery</p>
-                    <p style="margin:3px 0 0;font-size:14px;color:#8dd7e7;font-weight:700;">${estimatedDeliveryFormatted}</p>
-                  </div>`
-                      : ""
-                  }
-                </td>`
-                    : ""
-                }
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- From / To -->
-        <tr>
-          <td style="background:#111827;padding:24px 40px;border-top:1px solid #1e293b;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="width:50%;vertical-align:top;padding-right:20px;">
-                  <p style="margin:0 0 8px;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">From</p>
-                  <p style="margin:0;font-size:14px;color:#f1f5f9;font-weight:700;">Illona Addae</p>
-                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">OceanicCoder</p>
-                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">oceaniccoder.dev</p>
-                </td>
-                <td style="width:50%;vertical-align:top;padding-left:20px;border-left:1px solid #1f2937;">
-                  <p style="margin:0 0 8px;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Billed To</p>
-                  <p style="margin:0;font-size:14px;color:#f1f5f9;font-weight:700;">${safeClientName}</p>
-                  <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${safeClientEmail}</p>
-                  ${safeClientPhone ? `<p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${safeClientPhone}</p>` : ""}
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Items -->
-        <tr>
-          <td style="background:#111827;padding:0 40px 24px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-              <tr style="border-bottom:2px solid #1e3a5f;">
-                <th style="padding:10px 8px 10px 0;text-align:left;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Description</th>
-                <th style="padding:10px 8px;text-align:center;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Qty</th>
-                <th style="padding:10px 8px;text-align:right;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Unit Price</th>
-                <th style="padding:10px 0 10px 8px;text-align:right;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Total</th>
-              </tr>
-              ${itemRows}
-            </table>
-
-            <!-- Totals summary -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
-              <tr>
-                <td style="width:55%"></td>
-                <td style="width:45%;">
-                  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;border-radius:10px;padding:4px 0;">
-                    <tr>
-                      <td style="padding:8px 16px;color:#6b7280;font-size:13px;">Subtotal</td>
-                      <td style="padding:8px 16px;color:#9ca3af;font-size:13px;text-align:right;">${sym}${Number(subtotal).toFixed(2)}</td>
-                    </tr>
-                    ${taxRow}
-                    <tr style="border-top:1px solid #1e293b;">
-                      <td style="padding:12px 16px;color:#f1f5f9;font-size:15px;font-weight:800;">Total</td>
-                      <td style="padding:12px 16px;color:#0C8599;font-size:15px;font-weight:800;text-align:right;">${sym}${Number(total).toFixed(2)}</td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        ${
-          notes
-            ? `<!-- Notes -->
-        <tr>
-          <td style="background:#111827;padding:0 40px 24px;">
-            <div style="background:#0f172a;border-left:3px solid #0C8599;border-radius:0 8px 8px 0;padding:14px 16px;">
-              <p style="margin:0 0 4px;font-size:11px;color:#0C8599;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Notes</p>
-              <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">${notes}</p>
-            </div>
-          </td>
-        </tr>`
-            : ""
-        }
-
-        <!-- CTA -->
-        <tr>
-          <td style="background:#111827;padding:0 40px 28px;text-align:center;">
-            <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">Have questions about this invoice? Get in touch.</p>
-            <a href="https://oceaniccoder.dev/pay/${invoiceNumber}" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#085866 100%);color:#ffffff;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.01em;margin-bottom:12px;">Pay Now →</a>
-            <br>
-            <a href="mailto:hello@oceaniccoder.dev" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#085866 100%);color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.01em;">Reply to this Invoice</a>
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="background:#0a0f1a;border-radius:0 0 16px 16px;padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
-            <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#374151;">OceanicCoder</p>
-            <p style="margin:0;font-size:12px;color:#374151;line-height:1.6;">
-              <a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a>
-              &nbsp;·&nbsp; hello@oceaniccoder.dev
-            </p>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
 
   try {
     const result = await httpsPost(
@@ -400,3 +313,5 @@ module.exports = async function (context, req) {
     };
   }
 };
+
+module.exports.renderInvoiceEmail = renderInvoiceEmail;

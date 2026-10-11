@@ -1,4 +1,6 @@
+/* global require, module, Buffer */
 const https = require("https");
+const { shell, heading, card, button, buttons } = require("../shared/email/ui");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -6,13 +8,6 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
   "Content-Type": "application/json",
 };
-
-function escHtml(s) {
-  return String(s ?? "").replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
-  );
-}
 
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
@@ -87,6 +82,26 @@ async function sendSMS(to, message, log) {
   }
 }
 
+const DASHBOARD_URL = "https://oceaniccoder.dev/dashboard";
+
+function inquiryEmail({ name, email, projectType }) {
+  return shell({
+    preview: `New project inquiry from ${name || "someone"}`,
+    reason: "Sent to you as the OceanicCoder admin.",
+    body:
+      heading({ eyebrow: "New project inquiry", title: "Someone wants to work with you" }) +
+      card({
+        title: "Inquiry",
+        rows: [
+          ["Name", name || "N/A"],
+          ["Email", email || "N/A"],
+          ["Project type", projectType || "N/A"],
+        ],
+      }) +
+      buttons(button({ href: DASHBOARD_URL, label: "View in Dashboard" })),
+  });
+}
+
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
@@ -114,43 +129,7 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid #334155;">
-        <tr>
-          <td style="background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);padding:28px 40px;">
-            <p style="margin:0;font-size:13px;color:#ffffff;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">New Project Inquiry</p>
-            <h1 style="margin:8px 0 0;font-size:22px;color:#ffffff;font-weight:700;">Someone wants to work with you</h1>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:32px 40px;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:8px 0;border-bottom:1px solid #334155;">
-                <span style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Name</span><br>
-                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${escHtml(name) || "N/A"}</span>
-              </td></tr>
-              <tr><td style="padding:8px 0;border-bottom:1px solid #334155;">
-                <span style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Email</span><br>
-                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${escHtml(email) || "N/A"}</span>
-              </td></tr>
-              <tr><td style="padding:8px 0;">
-                <span style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:600;">Project Type</span><br>
-                <span style="font-size:15px;color:#f1f5f9;font-weight:500;">${escHtml(projectType) || "N/A"}</span>
-              </td></tr>
-            </table>
-            <a href="https://oceaniccoder.dev/dashboard" style="display:inline-block;margin-top:24px;background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px;">View in Dashboard</a>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const html = inquiryEmail({ name, email, projectType });
 
   try {
     await httpsPost(
@@ -170,3 +149,6 @@ module.exports = async function (context, req) {
 
   context.res = { status: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
 };
+
+// Exposed for tests only; the Functions host calls the default export.
+module.exports.inquiryEmail = inquiryEmail;

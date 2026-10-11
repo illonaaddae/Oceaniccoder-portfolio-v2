@@ -1,5 +1,15 @@
 const https = require("https");
 const { Client, Account } = require("node-appwrite");
+const {
+  esc,
+  safeUrl,
+  shell,
+  heading,
+  button,
+  buttons,
+  notice,
+  small,
+} = require("../shared/email/ui");
 
 // This endpoint sends mail from a verified domain to a real subscriber list,
 // so it is restricted to the site itself and to a signed-in admin. It used to
@@ -21,25 +31,41 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
-/** Everything interpolated into the email body is attacker-controlled input. */
-function esc(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+const SUBSCRIBER_REASON = "You're receiving this because you subscribed to OceanicCoder updates.";
 
-/** Only http(s) URLs may reach an href or src. */
-function safeUrl(value) {
-  if (!value) return "";
-  try {
-    const url = new URL(String(value));
-    return url.protocol === "http:" || url.protocol === "https:" ? esc(url.toString()) : "";
-  } catch {
-    return "";
-  }
+/**
+ * The post announcement. Every request field is attacker-controlled input:
+ * the kit escapes text and only lets https URLs into the image and the link.
+ */
+function newsletterEmailHtml({ title, excerpt, slug, category, image, isTest }) {
+  const postUrl = `https://oceaniccoder.dev/blog/${encodeURIComponent(slug)}`;
+  const imageUrl = image ? safeUrl(image) : "#";
+  const banner =
+    imageUrl !== "#"
+      ? `<img src="${esc(imageUrl)}" alt="${esc(title)}" width="544" style="display:block;width:100%;max-width:544px;height:auto;max-height:240px;object-fit:cover;border:0;border-radius:12px;margin:0 0 24px">`
+      : "";
+  return shell({
+    preview: excerpt || `New post: ${title}`,
+    reason: SUBSCRIBER_REASON,
+    body:
+      (isTest
+        ? notice({
+            tone: "warn",
+            text: "Test send: this went only to you. Subscribers have not received it.",
+          })
+        : "") +
+      banner +
+      heading({
+        eyebrow: category ? `New post · ${category}` : "New post",
+        title,
+        intro: excerpt || undefined,
+      }) +
+      buttons(button({ href: postUrl, label: "Read the article" })) +
+      small("Read more posts at", {
+        href: "https://oceaniccoder.dev/blog",
+        label: "oceaniccoder.dev/blog",
+      }),
+  });
 }
 
 function httpsRequest(hostname, path, method, headers, body) {
@@ -221,55 +247,7 @@ const handler = async function (context, req) {
     return;
   }
 
-  const safeTitle = esc(title);
-  const postUrl = `https://oceaniccoder.dev/blog/${encodeURIComponent(slug)}`;
-  const categoryLine = category
-    ? `<p style="margin:0 0 8px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">${esc(category)}</p>`
-    : "";
-  const imageUrl = safeUrl(image);
-  const imageBanner = imageUrl
-    ? `<tr><td style="padding:0;"><img src="${imageUrl}" alt="${safeTitle}" width="600" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;" /></td></tr>`
-    : "";
-  const testNotice = isTest
-    ? `<tr><td style="padding:14px 40px;background:#334155;"><p style="margin:0;font-size:13px;color:#e2e8f0;font-weight:600;">Test send: this went only to you. Subscribers have not received it.</p></td></tr>`
-    : "";
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid #334155;">
-        ${testNotice}
-        ${imageBanner}
-        <tr>
-          <td style="background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);padding:32px 40px;">
-            <p style="margin:0;font-size:13px;color:#ffffff;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">OceanicCoder Blog</p>
-            <h1 style="margin:8px 0 0;font-size:24px;color:#ffffff;font-weight:700;">New Post Published</h1>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:40px;">
-            ${categoryLine}
-            <h2 style="margin:0 0 16px;font-size:22px;color:#f1f5f9;font-weight:700;line-height:1.3;">${safeTitle}</h2>
-            ${excerpt ? `<p style="margin:0 0 32px;font-size:15px;color:#94a3b8;line-height:1.7;">${esc(excerpt)}</p>` : ""}
-            <a href="${postUrl}" style="display:inline-block;background:linear-gradient(135deg,#0C8599 0%,#0a6e7d 100%);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px;">Read Article →</a>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:24px 40px;border-top:1px solid #334155;">
-            <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-              You're receiving this because you subscribed to OceanicCoder updates.<br>
-              <a href="https://oceaniccoder.dev" style="color:#0C8599;text-decoration:none;">oceaniccoder.dev</a>
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const html = newsletterEmailHtml({ title, excerpt, slug, category, image, isTest });
 
   const authHeaders = {
     Authorization: `Bearer ${apiKey}`,
@@ -372,3 +350,4 @@ module.exports = handler;
 // Exported for tests; the Azure runtime only uses the default export above.
 module.exports.readJwtCandidates = readJwtCandidates;
 module.exports.describeTransports = describeTransports;
+module.exports.newsletterEmailHtml = newsletterEmailHtml;

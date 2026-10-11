@@ -1,3 +1,4 @@
+/* global require, module, Buffer */
 // POST /api/paystack-webhook
 // Handles Paystack payment webhook events.
 // Verifies signature using PAYSTACK_SECRET_KEY, updates invoice status in Appwrite,
@@ -9,6 +10,7 @@ const https = require("https");
 const sdk = require("node-appwrite");
 const { evaluateSettlement } = require("./settlement");
 const quoteService = require("../shared/quotes/service");
+const { shell, heading, p, card, notice, small } = require("../shared/email/ui");
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
@@ -60,6 +62,106 @@ async function sendEmail(apiKey, fromEmail, to, subject, html, log) {
   }
 }
 
+// Email bodies, built on the shared kit so every value is escaped. Invoice
+// numbers and references come from the Paystack payload and error messages
+// from Appwrite, so none of them is trusted as HTML.
+const CLIENT_REASON = "OceanicCoder · Web and app development";
+const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
+
+function webhookFailedEmail(reason, detail) {
+  return shell({
+    preview: `Paystack webhook not processed: ${reason}`,
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Webhook not processed",
+        tone: "danger",
+        title: "A Paystack payment may be unrecorded",
+        intro:
+          "A Paystack webhook arrived but could not be processed, so an invoice may have been paid without being recorded.",
+      }) +
+      notice({ tone: "danger", text: `Reason: ${reason}` }) +
+      (detail ? p(`Detail: ${detail}`) : "") +
+      small(
+        "Check the Payments tab against the Paystack dashboard, and mark the invoice paid by hand if the money did arrive.",
+      ),
+  });
+}
+
+function recordFailedEmail({ invoiceNumber, error, amount, reference }) {
+  return shell({
+    preview: `Payment record failed for invoice ${invoiceNumber}`,
+    meta: { label: "Invoice", number: invoiceNumber },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Payment record failed",
+        tone: "danger",
+        title: "A paid invoice is missing from Payments",
+        intro: `Paystack payment for invoice ${invoiceNumber} succeeded and the invoice was marked paid, but the audit-log record failed to save.`,
+      }) +
+      notice({ tone: "danger", text: `Error: ${error}` }) +
+      card({
+        title: "Payment details",
+        rows: [
+          ["Amount", amount],
+          ["Reference", reference],
+        ],
+      }) +
+      small(
+        "This payment is missing from the Payments tab. Run scripts/backfill-payments.mjs to repair.",
+      ),
+  });
+}
+
+function clientReceiptEmail({ clientName, invoiceNumber, amount }) {
+  return shell({
+    preview: `Payment received for invoice ${invoiceNumber}. Thank you.`,
+    meta: { label: "Invoice", number: invoiceNumber },
+    reason: CLIENT_REASON,
+    body:
+      heading({
+        eyebrow: "Payment received",
+        tone: "ok",
+        title: "Thank you, payment received",
+        intro: `Hi ${clientName}, payment received for invoice ${invoiceNumber}. Thank you!`,
+      }) +
+      card({
+        title: "Payment summary",
+        highlightLabel: "Amount",
+        highlight: amount,
+        rows: [["Invoice", invoiceNumber]],
+      }) +
+      p("Best,\nIllona @ OceanicCoder"),
+  });
+}
+
+// problem = { tone, text } | null; set when the payment did not settle cleanly.
+function adminPaymentEmail({ invoiceNumber, clientName, amount, reference, settles, problem }) {
+  return shell({
+    preview: `${clientName} paid ${amount} on invoice ${invoiceNumber}`,
+    meta: { label: "Invoice", number: invoiceNumber },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: settles ? "Payment received" : "Payment problem",
+        tone: settles ? "ok" : "danger",
+        title: `${clientName} paid ${amount}`,
+        intro: `Payment received for invoice ${invoiceNumber} from ${clientName}.`,
+      }) +
+      (problem ? notice(problem) : "") +
+      card({
+        title: "Payment details",
+        rows: [
+          ["Invoice", invoiceNumber],
+          ["Client", clientName],
+          ["Amount", amount],
+          ["Reference", reference],
+        ],
+      }),
+  });
+}
+
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
@@ -94,10 +196,7 @@ module.exports = async function (context, req) {
         fromEmail,
         adminEmail,
         "Action needed: a Paystack webhook was not processed",
-        `<p>A Paystack webhook arrived but could not be processed, so an invoice may have been paid without being recorded.</p>` +
-          `<p>Reason: <strong>${reason}</strong></p>` +
-          (detail ? `<p>Detail: <code>${detail}</code></p>` : "") +
-          `<p>Check the Payments tab against the Paystack dashboard, and mark the invoice paid by hand if the money did arrive.</p>`,
+        webhookFailedEmail(reason, detail),
         context.log,
       );
     }
@@ -198,7 +297,7 @@ module.exports = async function (context, req) {
   }
 
   // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp)
-  let invoiceNumber =
+  const invoiceNumber =
     metadata.invoiceNumber ||
     (data.reference && data.reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
 
@@ -332,10 +431,12 @@ module.exports = async function (context, req) {
               fromEmail,
               adminEmail,
               `Action needed: payment record failed for invoice ${invoiceNumber}`,
-              `<p>Paystack payment for invoice <strong>${invoiceNumber}</strong> succeeded and the invoice was marked paid, but the audit-log record failed to save.</p>` +
-                `<p>Error: <code>${pErr.message}</code></p>` +
-                `<p>Amount: <strong>${sym}${amountPaid.toFixed(2)} ${currency}</strong>. Reference: <code>${data.reference || "n/a"}</code>.</p>` +
-                `<p>This payment is missing from the Payments tab. Run <code>scripts/backfill-payments.mjs</code> to repair.</p>`,
+              recordFailedEmail({
+                invoiceNumber,
+                error: pErr.message,
+                amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+                reference: data.reference || "n/a",
+              }),
               context.log,
             );
           }
@@ -348,7 +449,11 @@ module.exports = async function (context, req) {
             fromEmail,
             clientEmail,
             `Payment received for invoice ${invoiceNumber}`,
-            `<p>Hi ${clientName},</p><p>Payment received for invoice <strong>${invoiceNumber}</strong>. Amount: <strong>${sym}${amountPaid.toFixed(2)} ${currency}</strong>. Thank you!</p><p>Best,<br>Illona @ OceanicCoder</p>`,
+            clientReceiptEmail({
+              clientName,
+              invoiceNumber,
+              amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+            }),
             context.log,
           );
         }
@@ -356,12 +461,21 @@ module.exports = async function (context, req) {
         // Send notification to admin
         if (resendKey && adminEmail) {
           const problem = currencyMismatch
-            ? `<p style="color:#b91c1c;"><strong>Currency mismatch.</strong> Paid in ${paidCurrency}, invoiced in ${invoiceCurrency}. The invoice has been left open.</p>`
+            ? {
+                tone: "danger",
+                text: `Currency mismatch. Paid in ${paidCurrency}, invoiced in ${invoiceCurrency}. The invoice has been left open.`,
+              }
             : underpaid
-              ? `<p style="color:#b91c1c;"><strong>Underpaid by ${sym}${shortfall.toFixed(2)}.</strong> Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.</p>`
+              ? {
+                  tone: "danger",
+                  text: `Underpaid by ${sym}${shortfall.toFixed(2)}. Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.`,
+                }
               : overpaid
-                ? `<p><strong>Overpaid by ${sym}${surplus.toFixed(2)}.</strong> The invoice has been marked paid.</p>`
-                : "";
+                ? {
+                    tone: "warn",
+                    text: `Overpaid by ${sym}${surplus.toFixed(2)}. The invoice has been marked paid.`,
+                  }
+                : null;
           await sendEmail(
             resendKey,
             fromEmail,
@@ -369,9 +483,14 @@ module.exports = async function (context, req) {
             settles
               ? `Payment received for invoice ${invoiceNumber}`
               : `Action needed: underpayment on invoice ${invoiceNumber}`,
-            `<p>Payment received for invoice <strong>${invoiceNumber}</strong> from <strong>${clientName}</strong>. Amount: <strong>${sym}${amountPaid.toFixed(2)} ${currency}</strong>.</p>` +
-              problem +
-              `<p>Reference: <code>${reference || "n/a"}</code></p>`,
+            adminPaymentEmail({
+              invoiceNumber,
+              clientName,
+              amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+              reference: reference || "n/a",
+              settles,
+              problem,
+            }),
             context.log,
           );
         }
@@ -395,4 +514,12 @@ module.exports = async function (context, req) {
   }
 
   ok();
+};
+
+// Exposed for tests only; the Functions host calls the default export.
+module.exports.emails = {
+  webhookFailedEmail,
+  recordFailedEmail,
+  clientReceiptEmail,
+  adminPaymentEmail,
 };

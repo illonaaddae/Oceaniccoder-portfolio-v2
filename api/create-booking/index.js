@@ -1,5 +1,20 @@
+/* global require, module, Buffer */
 const https = require("https");
 const querystring = require("querystring");
+const {
+  C,
+  esc,
+  multiline,
+  shell,
+  heading,
+  p,
+  card,
+  button,
+  buttons,
+  notice,
+  divider,
+  small,
+} = require("../shared/email/ui");
 
 const MEETING_DURATIONS = { discovery: 30, project: 60, mentorship: 45, general: 30 };
 const MEETING_LABELS = {
@@ -199,6 +214,137 @@ async function isSlotTaken(date, time) {
   return (data.total ?? 0) > 0;
 }
 
+const CLIENT_REASON = "OceanicCoder · Web and app development";
+const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
+
+// Free-text block for the booker's message: card styling, but the text keeps
+// its line breaks instead of sitting right-aligned in a table row.
+function messageBlock(name, message) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 24px">
+<tr><td style="padding:18px 22px">
+<div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${C.ink3};margin:0 0 10px">Message from ${esc(name)}</div>
+<div style="font-size:14px;line-height:1.6;color:${C.ink2}">${multiline(message)}</div>
+</td></tr></table>`;
+}
+
+// safeUrl() only passes https links, so the reply link is built here. The
+// address is escaped and only linked when it looks like an address.
+function replyLink(name, email) {
+  if (!/^[^\s@<>"']+@[^\s@<>"']+$/.test(String(email))) return "";
+  return `<p style="margin:0 0 20px;font-size:14px"><a href="mailto:${esc(email)}" style="color:${C.tealDark};font-weight:600">Reply to ${esc(name)}</a></p>`;
+}
+
+function hostNotificationHtml({
+  name,
+  email,
+  phone,
+  label,
+  duration,
+  preferredDate,
+  preferredTime,
+  timezone,
+  message,
+  platform,
+  joinLink,
+  calendarEventLink,
+  failureReason,
+}) {
+  const when = `${preferredDate} at ${preferredTime}`;
+  const links = [
+    joinLink ? button({ href: joinLink, label: `Join ${platform} meeting` }) : "",
+    calendarEventLink
+      ? button({ href: calendarEventLink, label: "View in Google Calendar", variant: "secondary" })
+      : "",
+  ].filter(Boolean);
+  return shell({
+    preview: failureReason
+      ? `No meeting link was created for ${name} on ${when}`
+      : `${name} booked a ${label} on ${when}`,
+    meta: { label: "Booking", number: preferredDate },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: failureReason ? "Action needed" : "New booking",
+        tone: failureReason ? "danger" : "info",
+        title: `${label} with ${name}`,
+      }) +
+      // A booking with no meeting link is not obviously broken from the outside:
+      // the visitor is told a link is coming within 24 hours, and nothing says
+      // why one was never made. Say it here, where it will actually be read.
+      (failureReason
+        ? notice({
+            tone: "danger",
+            text: `No meeting link was created\n${failureReason}\nSend this booker a link by hand, then check the Google credentials in Azure configuration.`,
+          })
+        : "") +
+      card({
+        title: "Booking details",
+        highlightLabel: "Date & time",
+        highlight: when,
+        rows: [
+          ["Name", name],
+          ["Email", email],
+          ["Phone", phone],
+          ["Meeting type", `${label} (${duration} min)`],
+          ["Timezone", timezone || "UTC"],
+          ["Platform", platform],
+        ],
+      }) +
+      (message ? messageBlock(name, message) : "") +
+      (links.length ? buttons(...links) : "") +
+      replyLink(name, email),
+  });
+}
+
+function bookerConfirmationHtml({
+  name,
+  label,
+  duration,
+  preferredDate,
+  preferredTime,
+  timezone,
+  platform,
+  joinLink,
+  calendarEventLink,
+}) {
+  const when = `${preferredDate} at ${preferredTime}`;
+  return shell({
+    preview: `${label} on ${when} (${timezone || "UTC"}). Your ${platform} link is inside.`,
+    meta: { label: "Booking", number: preferredDate },
+    reason: CLIENT_REASON,
+    body:
+      heading({
+        eyebrow: "Booking confirmed",
+        tone: "ok",
+        title: `Your ${platform} call is confirmed`,
+        intro: `Hi ${name}, your booking with Illona Addae is confirmed.`,
+      }) +
+      card({
+        title: "Meeting details",
+        highlightLabel: "Date & time",
+        highlight: when,
+        rows: [
+          ["Meeting", `${label} (${duration} min)`],
+          ["Timezone", timezone || "UTC"],
+          ["Platform", platform],
+        ],
+      }) +
+      buttons(
+        button({ href: joinLink, label: `Join ${platform}` }),
+        calendarEventLink
+          ? button({
+              href: calendarEventLink,
+              label: "Add to Google Calendar",
+              variant: "secondary",
+            })
+          : "",
+      ) +
+      p("Save this link. You'll need it to join the call.") +
+      divider() +
+      small("Need to change the time? Reply to this email."),
+  });
+}
+
 async function sendNotificationEmail(
   context,
   {
@@ -233,40 +379,21 @@ async function sendNotificationEmail(
   const joinLink = meetLink || zoomLink || null;
   const platform = zoomLink ? "Zoom" : "Google Meet";
 
-  // A booking with no meeting link is not obviously broken from the outside:
-  // the visitor is told a link is coming within 24 hours, and nothing says why
-  // one was never made. Say it here, where it will actually be read.
-  const failureBanner = failureReason
-    ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:14px 16px;margin-bottom:18px">
-         <p style="margin:0 0 6px;font-weight:700;color:#991b1b;font-size:14px">No meeting link was created</p>
-         <p style="margin:0;font-size:13px;color:#7f1d1d">${failureReason}</p>
-         <p style="margin:8px 0 0;font-size:13px;color:#7f1d1d">Send this booker a link by hand, then check the Google credentials in Azure configuration.</p>
-       </div>`
-    : "";
-
-  const html = `
-    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-      <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
-        <h1 style="margin:0;color:#fff;font-size:20px">📅 New Booking: ${label}</h1>
-      </div>
-      <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
-        ${failureBanner}
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
-          <tr><td style="padding:6px 0;color:#6b7280;width:140px">Name</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:#0a6e7d">${email}</a></td></tr>
-          ${phone ? `<tr><td style="padding:6px 0;color:#6b7280">Phone</td><td style="padding:6px 0">${phone}</td></tr>` : ""}
-          <tr><td style="padding:6px 0;color:#6b7280">Meeting type</td><td style="padding:6px 0">${label} (${duration} min)</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Date &amp; time</td><td style="padding:6px 0;font-weight:600">${preferredDate} at ${preferredTime}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Timezone</td><td style="padding:6px 0">${timezone || "UTC"}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">${platform}</td></tr>
-          ${message ? `<tr><td style="padding:6px 0;color:#6b7280;vertical-align:top">Message</td><td style="padding:6px 0">${message.replace(/\n/g, "<br>")}</td></tr>` : ""}
-        </table>
-        ${joinLink ? `<div style="margin-top:20px"><a href="${joinLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">Join ${platform} Meeting →</a></div>` : ""}
-        ${calendarEventLink ? `<p style="margin-top:12px;font-size:13px"><a href="${calendarEventLink}" style="color:#0a6e7d">View in Google Calendar</a></p>` : ""}
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
-        <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
-      </div>
-    </div>`;
+  const html = hostNotificationHtml({
+    name,
+    email,
+    phone,
+    label,
+    duration,
+    preferredDate,
+    preferredTime,
+    timezone,
+    message,
+    platform,
+    joinLink,
+    calendarEventLink,
+    failureReason,
+  });
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
@@ -303,27 +430,17 @@ async function sendBookerZoomEmail(
   const duration = MEETING_DURATIONS[meetingType] ?? 30;
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
-  const html = `
-    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-      <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
-        <h1 style="margin:0;color:#fff;font-size:20px">Your Zoom Meeting is Confirmed 🎉</h1>
-      </div>
-      <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
-        <p style="margin:0 0 16px;font-size:15px">Hi ${name}, your booking with Illona Addae is confirmed.</p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
-          <tr><td style="padding:6px 0;color:#6b7280;width:140px">Meeting</td><td style="padding:6px 0;font-weight:600">${label} (${duration} min)</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Date &amp; time</td><td style="padding:6px 0;font-weight:600">${preferredDate} at ${preferredTime}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Timezone</td><td style="padding:6px 0">${timezone || "UTC"}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">Zoom</td></tr>
-        </table>
-        <div style="margin-top:24px">
-          <a href="${zoomLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Zoom Meeting →</a>
-        </div>
-        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link. You'll need it to join the call.</p>
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
-        <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
-      </div>
-    </div>`;
+  const html = bookerConfirmationHtml({
+    name,
+    label,
+    duration,
+    preferredDate,
+    preferredTime,
+    timezone,
+    platform: "Zoom",
+    joinLink: zoomLink,
+    calendarEventLink: null,
+  });
 
   const result = await httpsRequest(
     "api.resend.com",
@@ -356,28 +473,17 @@ async function sendBookerMeetEmail(
   const duration = MEETING_DURATIONS[meetingType] ?? 30;
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
-  const html = `
-    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-      <div style="background:#0a6e7d;padding:24px 32px;border-radius:8px 8px 0 0">
-        <h1 style="margin:0;color:#fff;font-size:20px">Your Google Meet is Confirmed 🎉</h1>
-      </div>
-      <div style="border:1px solid #e5e7eb;border-top:none;padding:24px 32px;border-radius:0 0 8px 8px">
-        <p style="margin:0 0 16px;font-size:15px">Hi ${name}, your booking with Illona Addae is confirmed.</p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
-          <tr><td style="padding:6px 0;color:#6b7280;width:140px">Meeting</td><td style="padding:6px 0;font-weight:600">${label} (${duration} min)</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Date &amp; time</td><td style="padding:6px 0;font-weight:600">${preferredDate} at ${preferredTime}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Timezone</td><td style="padding:6px 0">${timezone || "UTC"}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Platform</td><td style="padding:6px 0">Google Meet</td></tr>
-        </table>
-        <div style="margin-top:24px">
-          <a href="${meetLink}" style="display:inline-block;background:#0a6e7d;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Join Google Meet →</a>
-        </div>
-        <p style="margin-top:16px;font-size:13px;color:#6b7280">Save this link. You'll need it to join the call.</p>
-        ${calendarEventLink ? `<p style="margin-top:8px;font-size:13px"><a href="${calendarEventLink}" style="color:#0a6e7d">Add to Google Calendar</a></p>` : ""}
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
-        <p style="font-size:12px;color:#9ca3af;margin:0">OceanicCoder · oceaniccoder.dev</p>
-      </div>
-    </div>`;
+  const html = bookerConfirmationHtml({
+    name,
+    label,
+    duration,
+    preferredDate,
+    preferredTime,
+    timezone,
+    platform: "Google Meet",
+    joinLink: meetLink,
+    calendarEventLink: calendarEventLink,
+  });
 
   const result = await httpsRequest(
     "api.resend.com",
