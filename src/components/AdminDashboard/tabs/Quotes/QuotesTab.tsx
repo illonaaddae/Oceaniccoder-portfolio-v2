@@ -160,6 +160,7 @@ export default function QuotesTab({ theme }: { theme: string }) {
         </ul>
         {selected && (
           <QuoteDetail
+            theme={theme}
             key={selected}
             id={selected}
             onClose={() => setSelected(null)}

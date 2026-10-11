@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type React from "react";
-import { FaChevronDown, FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTrash } from "react-icons/fa";
 import {
   computeTotals,
   formatMinor,
@@ -10,6 +10,7 @@ import {
   stageAmounts,
   toMinor,
 } from "@/utils/quoteMath";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { QuoteDraft } from "@/types/quote";
 
 export interface StepProps {
@@ -18,7 +19,7 @@ export interface StepProps {
   errors: Record<string, string>;
   /** Price boxes report whether their text is a valid amount; the editor blocks Next/Save while any is not. */
   onValidity?: (id: string, ok: boolean) => void;
-  /** Admin theme, so native controls (the currency list) draw in matching colours. */
+  /** Admin theme, so the currency dropdown draws in matching colours. */
   theme?: string;
 }
 
@@ -92,25 +93,16 @@ export function ClientStep({ draft, setDraft, errors, theme }: StepProps) {
         />
       </Field>
       <Field id="q-currency" label="Currency" error={errors.currency}>
-        {/* Native select for keyboard and screen-reader support, drawn like the
-            other inputs: same height, no OS arrows, our own chevron. */}
-        <div className="relative">
-          <select
-            id="q-currency"
-            className={`${inputCls} appearance-none pr-10 cursor-pointer`}
-            style={{ colorScheme: theme === "light" ? "light" : "dark" }}
-            value={draft.currency}
-            onChange={set("currency")}
-          >
-            <option value="GHS">GHS (Ghana cedi)</option>
-            <option value="USD">USD (check USD is enabled on Paystack)</option>
-          </select>
-          <FaChevronDown
-            aria-hidden
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs"
-            style={{ color: "var(--text-secondary)" }}
-          />
-        </div>
+        <CustomSelect
+          value={draft.currency}
+          onChange={(value) => setDraft({ ...draft, currency: value as QuoteDraft["currency"] })}
+          options={[
+            { value: "GHS", label: "GHS (Ghana cedi)" },
+            { value: "USD", label: "USD (check USD is enabled on Paystack)" },
+          ]}
+          theme={theme === "light" ? "light" : "dark"}
+          ariaLabel="Currency"
+        />
       </Field>
     </div>
   );
