@@ -677,3 +677,69 @@ it("shows the full proposal with optional extras kept out of the price", async (
 
 - [ ] Create a draft quote in a local mock (or extend the scratchpad mock API) with the West Africa Wander content and check `/q/<token>` at 375px and 1280px, light and dark: sections collapsed by default, `document.documentElement.scrollWidth === clientWidth`, no empty headings on a plain quote.
 - [ ] Run all gates. Push and open PR `feat(OC-0): full-proposal sections on the client quote page` with the template filled.
+
+---
+
+## PR 3: one page per quote (owner request, 2026-10-11)
+
+Owner approved: like Craigtec, opening a quote goes to one page for that quote. Drafts show the editable stepper; every other status shows the same sections read-only, with a sidebar for status, link, payments and actions. Saving keeps you on the page.
+
+### Task 9: Quote page (admin)
+
+**Files:**
+
+- Create: `src/components/AdminDashboard/tabs/Quotes/QuoteWorkspace.tsx` (loads one quote, picks editable or read-only, lays out main + sidebar)
+- Create: `src/components/AdminDashboard/tabs/Quotes/QuoteSidebar.tsx` (status, viewed/accepted/declined info, client link with Copy / Send on WhatsApp / Preview, payment stages with Request stage / reminder / Record payment, actions Send / Revise / Cancel). Move this markup and its `run()` logic out of `QuoteDetail.tsx`; do not rewrite it.
+- Modify: `QuoteEditor.tsx` (prop `embedded?: boolean`: no full-page title/close, "Save draft" stays on the page and calls `onSaved(id)`; a `readOnly?: boolean` mode renders every step stacked inside `<fieldset disabled>` with each step's heading, no step rail, no action bar)
+- Modify: `QuotesTab.tsx` (state: list | `{ open: id }` | `{ creating: draft? }`; list row click opens the page; "New quote" and the Client Work handoff open the editor; after the first save switch to `{ open: id }`; Invoices tab handoff `peekPendingQuoteOpen` opens the page)
+- Delete or reduce: `QuoteDetail.tsx` (nothing left that the sidebar doesn't cover)
+- Test: `QuotesTab.test.tsx`, `QuoteEditor.test.tsx`
+
+**Interfaces:**
+
+- `QuoteWorkspace({ id, theme, onBack })` — fetches `quoteAdmin("get", { id })` → `QuoteDetailResponse`; reloads after any sidebar action.
+- `QuoteSidebar({ data, theme, onChanged })` — `onChanged(next: QuoteDetailResponse)`.
+- Page header: "← All quotes" (button, calls `onBack`), quote number, title, status pill.
+
+- [ ] **Step 1: Failing tests** (`QuotesTab.test.tsx`)
+
+```tsx
+it("opens a sent quote as a read-only page with its actions", async () => {
+  // list returns one sent quote q1; get returns its detail
+  render(<QuotesTab theme="dark" />);
+  await userEvent.click(await screen.findByText("Q-2026-0001"));
+  expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
+  expect(screen.getByLabelText(/client name/i)).toBeDisabled();
+  expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
+  expect(screen.getByRole("button", { name: /revise/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^next/i })).toBeNull();
+});
+
+it("opens a draft as the editable stepper and stays there after saving", async () => {
+  render(<QuotesTab theme="dark" />);
+  await userEvent.click(await screen.findByText("Q-2026-0002"));
+  const name = await screen.findByLabelText(/client name/i);
+  expect(name).not.toBeDisabled();
+  await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+  expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
+  expect(screen.getByLabelText(/client name/i)).toBeInTheDocument();
+});
+
+it("goes back to the list", async () => {
+  render(<QuotesTab theme="dark" />);
+  await userEvent.click(await screen.findByText("Q-2026-0001"));
+  await userEvent.click(await screen.findByRole("button", { name: /all quotes/i }));
+  expect(await screen.findByRole("button", { name: /new quote/i })).toBeInTheDocument();
+});
+```
+
+Adapt mock data to the existing `QuotesTab.test.tsx` setup (`quoteAdmin` mock by action).
+
+- [ ] **Step 2: Run, expect failures.**
+- [ ] **Step 3: Implement** as in Files. Layout: two columns on `xl` (main `minmax(0,1fr)`, sidebar `22rem`, sticky), one column below. Read-only view uses the same step components so new fields appear automatically. After Revise the page re-renders as the editable stepper.
+- [ ] **Step 4: Run** Quotes tests, `npm run type-check`, `npm run check:colors`.
+- [ ] **Step 5: Commit** `feat(OC-0): one page per quote with a read-only view and sidebar`.
+
+### Task 10: PR 3
+
+- [ ] Gates, browser check of a draft and a sent quote at 1280px and 375px, push branch `feat/OC-0-quote-page`, open PR `feat(OC-0): one page per quote, like Craigtec`. Do not merge.

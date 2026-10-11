@@ -1,5 +1,6 @@
 import TextBlock from "./TextBlock";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
+import { AtAGlance, ItemDetail, NextSteps, RunningCosts, ScopeNotes } from "./ProposalSections";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ClientQuote } from "@/types/quote";
 
@@ -46,6 +47,8 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
         </dl>
       </section>
 
+      <AtAGlance quote={quote} />
+
       {sections.map(([label, text]) => (
         <QuoteCard key={label}>
           <SectionLabel>{label}</SectionLabel>
@@ -55,13 +58,13 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
 
       <QuoteCard>
         <SectionLabel>What's included</SectionLabel>
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="text-left" style={{ color: "var(--text-secondary)" }}>
               <th className="py-2 font-medium">Item</th>
-              <th className="py-2 font-medium text-right hidden sm:table-cell">Qty</th>
-              <th className="py-2 font-medium text-right hidden sm:table-cell">Unit price</th>
-              <th className="py-2 font-medium text-right">Amount</th>
+              <th className="py-2 font-medium text-right hidden sm:table-cell w-16">Qty</th>
+              <th className="py-2 font-medium text-right hidden sm:table-cell w-32">Unit price</th>
+              <th className="py-2 font-medium text-right w-28 sm:w-32">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -71,8 +74,14 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
                 className="border-t"
                 style={{ borderColor: "var(--border-subtle)" }}
               >
-                <td className="py-3 pr-3" style={{ color: "var(--text-primary)" }}>
-                  {item.description}
+                <td
+                  className="min-w-0 py-3 pr-3 align-top"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <span className="block min-w-0 break-words [overflow-wrap:anywhere]">
+                    {item.description}
+                  </span>
+                  <ItemDetail detail={item.detail} />
                   <span
                     className="block sm:hidden text-xs mt-1 tabular-nums"
                     style={{ color: "var(--text-secondary)" }}
@@ -96,12 +105,16 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
         </table>
         <dl className="mt-4 ml-auto max-w-xs text-sm tabular-nums space-y-1">
           <div className="flex justify-between">
-            <dt style={{ color: "var(--text-secondary)" }}>Subtotal</dt>
+            <dt style={{ color: "var(--text-secondary)" }}>
+              {quote.discountMinor > 0 ? "Standard value" : "Subtotal"}
+            </dt>
             <dd>{money(quote.subtotalMinor)}</dd>
           </div>
           {quote.discountMinor > 0 && (
             <div className="flex justify-between">
-              <dt style={{ color: "var(--text-secondary)" }}>Discount</dt>
+              <dt style={{ color: "var(--text-secondary)" }}>
+                {quote.discountLabel || "Discount"}
+              </dt>
               <dd>−{money(quote.discountMinor)}</dd>
             </div>
           )}
@@ -121,6 +134,9 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
 export function TermsAndNotes({ quote }: { quote: ClientQuote }) {
   return (
     <>
+      <RunningCosts quote={quote} />
+      <ScopeNotes quote={quote} />
+      <NextSteps quote={quote} />
       {quote.notes.trim() && (
         <QuoteCard>
           <SectionLabel>Notes</SectionLabel>
