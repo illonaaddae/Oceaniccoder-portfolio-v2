@@ -47,6 +47,12 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
         .card-shimmer:hover {
           animation-duration: 1.5s;
         }
+        @media (prefers-reduced-motion: reduce) {
+          .animated-card-inner,
+          .card-shimmer {
+            animation: none;
+          }
+        }
       `}</style>
 
       <div

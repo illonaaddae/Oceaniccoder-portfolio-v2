@@ -135,6 +135,14 @@ describe("CheckoutPage", () => {
     expect(screen.getByRole("button", { name: /pay ghs/i })).toBeEnabled();
   });
 
+  it("shows the animated card preview only while Card is picked", async () => {
+    renderAt("/q/tok/pay/deposit");
+    await screen.findByRole("radio", { name: /^card/i });
+    expect(document.querySelector(".animated-card-inner")).not.toBeNull();
+    await userEvent.click(screen.getByRole("radio", { name: /mobile money/i }));
+    expect(document.querySelector(".animated-card-inner")).toBeNull();
+  });
+
   it("arrow keys move the payment method selection", async () => {
     renderAt("/q/tok/pay/deposit");
     const card = await screen.findByRole("radio", { name: /^card/i });

@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { FaCheck, FaCreditCard, FaMobileAlt, FaApple, FaLock } from "react-icons/fa";
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading, SectionLabel } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
+import AnimatedCard from "@/components/Payment/AnimatedCard";
 import { useClientQuote } from "./useClientQuote";
 import { startStagePayment, checkStagePayment } from "@/services/api/quotes";
 import { loadPaystackV2 } from "@/utils/paystackV2";
@@ -232,6 +233,12 @@ export default function CheckoutPage() {
                 </button>
               ))}
             </div>
+            {/* The same card preview the invoice pay page uses, shown while Card is picked. */}
+            {method === "card" && (
+              <div className="py-2" aria-hidden>
+                <AnimatedCard />
+              </div>
+            )}
             <div>
               <label
                 htmlFor="pay-email"
