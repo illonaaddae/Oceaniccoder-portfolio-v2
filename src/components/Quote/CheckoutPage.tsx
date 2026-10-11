@@ -434,6 +434,7 @@ export default function CheckoutPage() {
             {method === "card" && (
               <div className="py-2" aria-hidden>
                 <AnimatedCard
+                  variant="brand"
                   amount={money(stage.amountMinor)}
                   holder={quote.clientName}
                   reference={{ label: "Quote", value: quote.quoteNumber }}
