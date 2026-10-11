@@ -15,7 +15,7 @@ import { TestimonialsTab } from "./tabs/TestimonialsTab";
 import EmailsTab from "./tabs/EmailsTab";
 import QuotesTab from "./tabs/Quotes/QuotesTab";
 import { draftFromInquiry } from "./tabs/Quotes/draftFromInquiry";
-import { setPendingQuoteDraft } from "./tabs/Quotes/quoteHandoff";
+import { setPendingQuoteDraft, setPendingQuoteOpen } from "./tabs/Quotes/quoteHandoff";
 import type { TabContentProps } from "./TabContentProps";
 
 export const TabContentExtra: React.FC<TabContentProps> = (props) => {
@@ -116,7 +116,15 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
       )}
       {activeTab === "quotes" && !isReadOnly && <QuotesTab theme={theme} />}
       {activeTab === "emails" && !isReadOnly && <EmailsTab theme={theme} />}
-      {activeTab === "invoices" && !isReadOnly && <InvoicesTab theme={theme} />}
+      {activeTab === "invoices" && !isReadOnly && (
+        <InvoicesTab
+          theme={theme}
+          onOpenQuote={(id) => {
+            setPendingQuoteOpen(id);
+            props.onTabChange("quotes");
+          }}
+        />
+      )}
       {activeTab === "payments" && !isReadOnly && <PaymentsTab theme={theme} />}
       {activeTab === "analytics" && !isReadOnly && <AnalyticsTab theme={theme} />}
       {activeTab === "settings" && !isReadOnly && <SettingsTab theme={theme} />}

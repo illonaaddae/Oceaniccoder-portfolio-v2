@@ -5,7 +5,12 @@ import { formatDate, formatMinor, quoteToDraft } from "@/utils/quoteMath";
 import { FilterPills } from "@/components/ui/FilterPills";
 import QuoteDetail from "./QuoteDetail";
 import QuoteEditor from "./QuoteEditor";
-import { clearPendingQuoteDraft, peekPendingQuoteDraft } from "./quoteHandoff";
+import {
+  clearPendingQuoteDraft,
+  clearPendingQuoteOpen,
+  peekPendingQuoteDraft,
+  peekPendingQuoteOpen,
+} from "./quoteHandoff";
 import type { QuoteDetailResponse, QuoteDraft, QuoteStatus, QuoteSummary } from "@/types/quote";
 
 type Filter = "all" | QuoteStatus;
@@ -16,14 +21,17 @@ export default function QuotesTab({ theme }: { theme: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(() => peekPendingQuoteOpen());
   const [editing, setEditing] = useState<{ id?: string; draft?: Partial<QuoteDraft> } | null>(
     () => {
       const handed = peekPendingQuoteDraft();
       return handed ? { draft: handed } : null;
     },
   );
-  useEffect(() => clearPendingQuoteDraft(), []);
+  useEffect(() => {
+    clearPendingQuoteDraft();
+    clearPendingQuoteOpen();
+  }, []);
 
   const load = useCallback(async () => {
     try {

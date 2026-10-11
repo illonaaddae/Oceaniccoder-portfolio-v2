@@ -126,6 +126,19 @@ export interface AdminQuote {
   hasLink: boolean;
 }
 
+/** A stage invoice that exists for the client (requested or paid). */
+export interface QuoteStageInvoice {
+  stageId: string;
+  invoiceNumber: string;
+  label: string;
+  percent: number;
+  amountMinor: number;
+  state: "due" | "paid";
+  dueBy: string | null;
+  overdue: boolean;
+  paidAt: string | null;
+}
+
 export interface QuoteSummary {
   id: string;
   quoteNumber: string;
@@ -140,6 +153,7 @@ export interface QuoteSummary {
   sentAt: string | null;
   viewedAt: string | null;
   updatedAt: string | null;
+  invoices?: QuoteStageInvoice[];
 }
 
 export interface QuotePayment {

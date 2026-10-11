@@ -16,3 +16,19 @@ export function peekPendingQuoteDraft(): Partial<QuoteDraft> | null {
 export function clearPendingQuoteDraft() {
   pending = null;
 }
+
+// The Invoices tab opens a quote the same way: the id waits here until the
+// Quotes tab mounts and shows that quote's detail.
+let pendingOpen: string | null = null;
+
+export function setPendingQuoteOpen(id: string) {
+  pendingOpen = id;
+}
+
+export function peekPendingQuoteOpen(): string | null {
+  return pendingOpen;
+}
+
+export function clearPendingQuoteOpen() {
+  pendingOpen = null;
+}
