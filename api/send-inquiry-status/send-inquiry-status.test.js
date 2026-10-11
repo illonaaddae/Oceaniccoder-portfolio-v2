@@ -21,12 +21,23 @@ describe("send-inquiry-status email", () => {
     expect(q.subject).toBe("Your Store Project – Proposal Ready");
     expect(q.html).toContain("Proposal ready");
     expect(q.html).toContain("Great news, Ama!");
-    expect(q.html).toContain("Check your inbox for the invoice.");
+    expect(q.html).toContain("Check your inbox for the quote.");
 
     const d = buildStatusEmail({ status: "declined", clientName: "Ama", projectType: "Store" });
     expect(d.subject).toBe("Re: Your Store Inquiry");
     expect(d.html).toContain("Hi Ama,");
     expect(d.html).toContain("not able to take on new projects");
+  });
+
+  it("confirms a won project on the branded shell", () => {
+    const w = buildStatusEmail({ status: "won", clientName: "Ama", projectType: "Store" });
+    expect(w.subject).toBe("Your Store Project – We're Going Ahead");
+    expect(w.html).toContain("Oceaniccoder-logo@3x.png");
+    expect(w.html).toContain("Confirmed");
+    expect(w.html).toContain("Hi Ama,");
+    expect(w.html).toContain("choosing OceanicCoder for your Store project");
+    expect(w.html).toContain("project kickoff");
+    expect(w.text).toContain("going ahead");
   });
 
   it("falls back to 'your project' when no project type is given", () => {
