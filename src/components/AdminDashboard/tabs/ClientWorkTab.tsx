@@ -13,7 +13,6 @@ import {
   FaLayerGroup,
   FaStickyNote,
   FaCalendarAlt,
-  FaPlus,
   FaEye,
   FaFileAlt,
   FaCheckCircle,
@@ -141,7 +140,10 @@ export default function ClientWorkTab({ theme, onCreateQuote }: ClientWorkTabPro
     setInquiries((prev) => prev.map((i) => (i.$id === id ? { ...i, status } : i)));
     await updateInquiry(id, { status });
 
-    if (status === "reviewed" || status === "quoted" || status === "declined") {
+    // Only manual changes here email the client. When the quote flow moves an
+    // inquiry itself (sending a quote → quoted, the client accepting → won),
+    // the quote and quote-accepted emails already tell them, so nothing more goes.
+    if (status === "reviewed" || status === "quoted" || status === "won" || status === "declined") {
       const inq = inquiries.find((i) => i.$id === id);
       if (inq) {
         // Was `void fetch(...)` — the response was discarded, so a failed status
@@ -553,9 +555,20 @@ export default function ClientWorkTab({ theme, onCreateQuote }: ClientWorkTabPro
 
                 {/* Actions */}
                 <div className="px-5 py-3 flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => (onCreateQuote ? onCreateQuote(inq) : setQuoteFor(inq))}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                    style={{
+                      background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                    }}
+                  >
+                    <FaFileSignature /> Create quote
+                  </button>
+                  {/* New work is quoted, not invoiced. Inquiries billed before quotes
+                      keep their invoice and Edit & Resend, the only resend path. */}
                   {(() => {
-                    const existingInvs = invoicesByInquiry[inq.$id] ?? [];
-                    const latest = existingInvs[0];
+                    const latest = (invoicesByInquiry[inq.$id] ?? [])[0];
                     if (latest) {
                       return (
                         <>
@@ -578,17 +591,6 @@ export default function ClientWorkTab({ theme, onCreateQuote }: ClientWorkTabPro
                           <button
                             type="button"
                             onClick={() => setInvoiceTarget({ inquiry: inq, existing: latest })}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                            style={{
-                              background:
-                                "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                            }}
-                          >
-                            <FaFileInvoiceDollar /> Edit & Resend
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setInvoiceTarget({ inquiry: inq })}
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
                             style={{
                               background: "var(--bg-primary)",
@@ -596,35 +598,13 @@ export default function ClientWorkTab({ theme, onCreateQuote }: ClientWorkTabPro
                               color: "var(--text-secondary)",
                             }}
                           >
-                            <FaPlus className="text-xs" /> New Invoice
+                            <FaFileInvoiceDollar /> Edit & Resend
                           </button>
                         </>
                       );
                     }
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => setInvoiceTarget({ inquiry: inq })}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                        }}
-                      >
-                        <FaFileInvoiceDollar /> Generate Invoice
-                      </button>
-                    );
+                    return null;
                   })()}
-                  <button
-                    type="button"
-                    onClick={() => (onCreateQuote ? onCreateQuote(inq) : setQuoteFor(inq))}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                    style={{
-                      background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                    }}
-                  >
-                    <FaFileSignature /> Create quote
-                  </button>
                   <a
                     href={`mailto:${inq.email}`}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
