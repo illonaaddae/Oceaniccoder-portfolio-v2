@@ -14,6 +14,7 @@ import {
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading, SectionLabel } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
 import AnimatedCard from "@/components/Payment/AnimatedCard";
+import { CopyButton } from "@/components/Payment/BankTransfer";
 import MomoNetworkPicker, { type MomoNetwork } from "@/components/Payment/MomoNetworkPicker";
 import { useClientQuote } from "./useClientQuote";
 import { startStagePayment, checkStagePayment } from "@/services/api/quotes";
@@ -462,18 +463,7 @@ export default function CheckoutPage() {
                         <dd className="flex items-center gap-2 font-semibold tabular-nums">
                           <span style={{ color: "var(--text-primary)" }}>{value}</span>
                           {label !== "Bank" && label !== "Account name" && (
-                            <button
-                              type="button"
-                              onClick={() => void navigator.clipboard?.writeText(value)}
-                              aria-label={`Copy ${label.toLowerCase()}`}
-                              className="rounded-md border px-2 py-0.5 text-xs font-medium"
-                              style={{
-                                borderColor: "var(--border-subtle)",
-                                color: "var(--text-secondary)",
-                              }}
-                            >
-                              Copy
-                            </button>
+                            <CopyButton text={value} label={`Copy ${label.toLowerCase()}`} />
                           )}
                         </dd>
                       </div>
