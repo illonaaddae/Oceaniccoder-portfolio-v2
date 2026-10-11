@@ -193,3 +193,96 @@ describe("isExpired", () => {
     );
   });
 });
+
+describe("full-proposal fields", () => {
+  const base = {
+    clientName: "Kofi",
+    currency: "GHS",
+    title: "Store",
+    items: [
+      {
+        id: "i1",
+        description: "Build",
+        qty: 1,
+        unitMinor: 100000,
+        detail: "  Pages and checkout  ",
+      },
+    ],
+    schedule: [
+      { id: "deposit", label: "Deposit", percent: 60, note: " To start " },
+      { id: "balance", label: "Balance", percent: 40 },
+    ],
+  };
+
+  it("keeps trimmed item details and stage notes, empty when blank", () => {
+    const r = M.validateDraft({
+      ...base,
+      items: [
+        { ...base.items[0] },
+        { id: "i2", description: "Hosting", qty: 1, unitMinor: 0, detail: "   " },
+      ],
+    });
+    expect(r.ok).toBe(true);
+    expect(r.value.items[0].detail).toBe("Pages and checkout");
+    expect(r.value.items[1].detail).toBe("");
+    expect(r.value.schedule[0].note).toBe("To start");
+    expect(r.value.schedule[1].note).toBe("");
+  });
+
+  it("drops empty highlight and running-cost rows and limits them", () => {
+    const r = M.validateDraft({
+      ...base,
+      highlights: ["Live in 14 weeks", " ", "You own it"],
+      runningCosts: [
+        { service: "Appwrite", purpose: "Hosting", cost: "USD 25/month" },
+        { service: "", purpose: "", cost: "" },
+      ],
+    });
+    expect(r.value.highlights).toEqual(["Live in 14 weeks", "You own it"]);
+    expect(r.value.runningCosts).toHaveLength(1);
+    expect(
+      M.validateDraft({ ...base, highlights: ["a", "b", "c", "d", "e"] }).errors.highlights,
+    ).toMatch(/4/);
+  });
+
+  it("flags a half-filled running cost row instead of dropping it", () => {
+    const r = M.validateDraft({
+      ...base,
+      runningCosts: [{ service: "", purpose: "", cost: "USD 25" }],
+    });
+    expect(r.errors["runningCosts.0.service"]).toBeDefined();
+  });
+
+  it("never lets optional items change the price", () => {
+    const withOpt = M.validateDraft({
+      ...base,
+      optionalItems: [{ id: "o1", description: "SMS", qty: 1, unitMinor: 250000 }],
+    });
+    const plain = M.validateDraft(base);
+    expect(M.computeTotals(withOpt.value.items, 0)).toEqual(M.computeTotals(plain.value.items, 0));
+    expect(M.optionalTotals(withOpt.value.optionalItems).optionalTotalMinor).toBe(250000);
+  });
+
+  it("applies the text limits", () => {
+    const r = M.validateDraft({
+      ...base,
+      discountLabel: "x".repeat(61),
+      exclusions: "x".repeat(3001),
+      optionalTitle: "x".repeat(81),
+    });
+    expect(r.errors.discountLabel).toBeDefined();
+    expect(r.errors.exclusions).toBeDefined();
+    expect(r.errors.optionalTitle).toBeDefined();
+  });
+
+  it("reads a quote saved before these fields existed", () => {
+    const r = M.validateDraft(base);
+    expect(r.value).toMatchObject({
+      highlights: [],
+      runningCosts: [],
+      optionalItems: [],
+      exclusions: "",
+      discountLabel: "",
+    });
+  });
+});

@@ -73,6 +73,8 @@ export function startStagePayment(body: {
   stageId: string;
   method: PayMethod;
   email: string;
+  /** Mobile Money network; required by the server when method is "momo". */
+  network?: string;
 }) {
   return call<{ accessCode: string; authorizationUrl: string; reference: string }>(
     "/api/quote-pay",

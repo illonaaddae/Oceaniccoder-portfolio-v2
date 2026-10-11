@@ -10,7 +10,14 @@ const PAYMENTS = "payments";
 const INQUIRIES = "project_inquiries";
 
 // Stored as JSON strings; parsed on the way out.
-const JSON_FIELDS = { items: [], schedule: [], payState: { due: {} } };
+const JSON_FIELDS = {
+  items: [],
+  schedule: [],
+  payState: { due: {} },
+  highlights: [],
+  runningCosts: [],
+  optionalItems: [],
+};
 const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
 
 function parse(raw, fallback) {

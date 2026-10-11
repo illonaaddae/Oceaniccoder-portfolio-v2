@@ -1,5 +1,6 @@
 import type React from "react";
 import { Link } from "react-router-dom";
+import { FaCheck } from "react-icons/fa";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ClientQuote, ClientStage } from "@/types/quote";
@@ -30,15 +31,37 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
             className="flex flex-wrap items-center gap-3 rounded-xl border p-4"
             style={{ borderColor: "var(--border-subtle)" }}
           >
+            {/* Paid stages get a tick on the brand colour; the due one is outlined. */}
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold tabular-nums border"
-              style={{
-                background: "var(--accent-teal-subtle)",
-                color: "var(--accent-teal)",
-                borderColor: "var(--border-subtle)",
-              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums border"
+              style={
+                s.state === "paid"
+                  ? {
+                      background: "var(--quote-cta)",
+                      color: "#ffffff",
+                      borderColor: "var(--quote-cta)",
+                    }
+                  : s.state === "due"
+                    ? {
+                        background: "transparent",
+                        color: "var(--quote-cta)",
+                        borderColor: "var(--quote-cta)",
+                      }
+                    : {
+                        background: "var(--bg-tertiary)",
+                        color: "var(--text-secondary)",
+                        borderColor: "var(--border-subtle)",
+                      }
+              }
             >
-              {s.index + 1}
+              {s.state === "paid" ? (
+                <>
+                  <FaCheck aria-hidden />
+                  <span className="sr-only">Paid</span>
+                </>
+              ) : (
+                s.index + 1
+              )}
             </span>
             <div className="flex-1 min-w-[10rem]">
               <p className="font-medium" style={{ color: "var(--text-primary)" }}>
@@ -61,6 +84,14 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
                   </span>
                 )}
               </p>
+              {s.note.trim() && (
+                <p
+                  className="mt-1 min-w-0 break-words text-sm"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {s.note}
+                </p>
+              )}
             </div>
             <span
               className="font-semibold tabular-nums whitespace-nowrap"

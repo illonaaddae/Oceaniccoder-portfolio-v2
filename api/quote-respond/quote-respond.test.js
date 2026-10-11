@@ -184,6 +184,25 @@ describe("quote-respond double submits and races", () => {
     expect(r.context.log.warn).toHaveBeenCalled();
   });
 
+  it("the acceptance snapshot includes the full-proposal fields", async () => {
+    const t = setup({
+      ...base,
+      highlights: ["Fast"],
+      exclusions: "No hosting",
+      runningCosts: [{ service: "A", purpose: "B", cost: "C" }],
+      optionalItems: [{ id: "o1", description: "SMS", qty: 1, unitMinor: 1, detail: "" }],
+    });
+    await t.call({ action: "accept", name: "Kofi Mensah", agree: true });
+    expect(JSON.parse(t.repo.quotes.get("q1").acceptedSnapshot)).toMatchObject({
+      highlights: ["Fast"],
+      exclusions: "No hosting",
+      runningCosts: [{ service: "A", purpose: "B", cost: "C" }],
+      optionalItems: [{ id: "o1", description: "SMS", qty: 1, unitMinor: 1, detail: "" }],
+      assumptions: "",
+      nextSteps: "",
+    });
+  });
+
   it("the acceptance snapshot records quote number and client email", async () => {
     const t = setup();
     await t.call({ action: "accept", name: "Kofi Mensah", agree: true });

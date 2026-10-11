@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const quoteAdmin = vi.fn();
@@ -8,14 +8,11 @@ vi.mock("@/services/api/quotes", async () => {
     await vi.importActual<typeof import("@/services/api/quotes")>("@/services/api/quotes");
   return { ...actual, quoteAdmin: (...a: unknown[]) => quoteAdmin(...a) };
 });
-vi.mock("./QuoteEditor", () => ({
-  default: (p: { initial?: { clientName?: string } }) => (
-    <div>editor open{p.initial?.clientName ? ` for ${p.initial.clientName}` : ""}</div>
-  ),
-}));
+// Revise and Cancel ask first; the tests answer yes.
+vi.mock("../../ConfirmContext", () => ({ useConfirm: () => async () => true }));
 
 import QuotesTab from "./QuotesTab";
-import { setPendingQuoteDraft } from "./quoteHandoff";
+import { setPendingQuoteDraft, setPendingQuoteOpen } from "./quoteHandoff";
 
 const summary = {
   id: "q1",
@@ -74,6 +71,45 @@ const detail = {
   payments: [],
 };
 
+const withStatus = (stages: typeof detail.stages, status = "accepted") => ({
+  ...detail,
+  stages,
+  quote: { ...detail.quote, status },
+});
+const unpaidStages = detail.stages.map((s) => ({
+  ...s,
+  state: "later",
+  paidAt: null,
+  reference: null,
+}));
+const draftSummary = {
+  ...summary,
+  id: "q2",
+  quoteNumber: "Q-2026-0002",
+  title: "Booking site",
+  clientName: "Ama Owusu",
+  status: "draft",
+  paidMinor: 0,
+  nextDue: null,
+  sentAt: null,
+  viewedAt: null,
+};
+const draftDetail = {
+  quote: {
+    ...draftSummary,
+    revision: 1,
+    hasLink: false,
+    items: [{ id: "item-a", description: "Site build", qty: 1, unitMinor: 500000 }],
+    schedule: [],
+    clientEmail: "ama@example.com",
+  },
+  stages: unpaidStages,
+  payments: [],
+};
+
+// The read-only page also has a "Payment stages" section, so look in the sidebar.
+const sidebar = () => screen.findByRole("complementary", { name: /status and actions/i });
+
 beforeEach(() => {
   quoteAdmin.mockReset();
   quoteAdmin.mockImplementation(async (action: string) => {
@@ -106,25 +142,107 @@ describe("QuotesTab", () => {
   it("opens the editor for a new quote in place of the list", async () => {
     render(<QuotesTab theme="dark" />);
     await userEvent.click(await screen.findByRole("button", { name: /new quote/i }));
-    expect(screen.getByText("editor open")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "New quote" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/client name/i)).toHaveValue("");
     expect(screen.queryByText("Online store")).not.toBeInTheDocument();
   });
 
   it("opens the editor prefilled when Client Work hands over a draft", async () => {
     setPendingQuoteDraft({ clientName: "Ama Owusu" });
     render(<QuotesTab theme="dark" />);
-    expect(screen.getByText("editor open for Ama Owusu")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "New quote" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/client name/i)).toHaveValue("Ama Owusu");
+  });
+
+  it("switches a new quote to its own page after the first save", async () => {
+    quoteAdmin.mockImplementation(async (action: string, payload?: { id?: string }) => {
+      if (action === "list") return { quotes: [summary] };
+      if (action === "create") return draftDetail;
+      if (action === "get" && payload?.id === "q2") return draftDetail;
+      throw new Error(`unexpected ${action}`);
+    });
+    render(<QuotesTab theme="dark" />);
+    await userEvent.click(await screen.findByRole("button", { name: /new quote/i }));
+    await userEvent.type(screen.getByLabelText(/client name/i), "Ama Owusu");
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    expect(await screen.findByText("Q-2026-0002")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "New quote" })).toBeNull();
+    expect(screen.getByLabelText(/client name/i)).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /all quotes/i })).toBeInTheDocument();
+  });
+
+  it("opens the quote page when the Invoices tab hands over a quote", async () => {
+    setPendingQuoteOpen("q1");
+    render(<QuotesTab theme="dark" />);
+    expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
+    expect(await within(await sidebar()).findByText("Payment stages")).toBeInTheDocument();
+    expect(quoteAdmin).toHaveBeenCalledWith("get", { id: "q1" });
+  });
+
+  it("opens a sent quote as a read-only page with its actions", async () => {
+    quoteAdmin.mockImplementation(async (action: string) => {
+      if (action === "list") return { quotes: [{ ...summary, status: "sent" }, draftSummary] };
+      if (action === "get") return withStatus(unpaidStages, "sent");
+      throw new Error(`unexpected ${action}`);
+    });
+    render(<QuotesTab theme="dark" />);
+    await userEvent.click(await screen.findByText("Q-2026-0001"));
+    expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/client name/i)).toBeDisabled();
+    expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
+    expect(screen.getByRole("button", { name: /revise/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^next/i })).toBeNull();
+  });
+
+  it("opens a draft as the editable stepper and stays there after saving", async () => {
+    quoteAdmin.mockImplementation(async (action: string, payload?: { id?: string }) => {
+      if (action === "list") return { quotes: [summary, draftSummary] };
+      if (action === "get" && payload?.id === "q2") return draftDetail;
+      if (action === "save") return draftDetail;
+      throw new Error(`unexpected ${action}`);
+    });
+    render(<QuotesTab theme="dark" />);
+    await userEvent.click(await screen.findByText("Q-2026-0002"));
+    const name = await screen.findByLabelText(/client name/i);
+    expect(name).not.toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    await waitFor(() =>
+      expect(quoteAdmin).toHaveBeenCalledWith("save", expect.objectContaining({ id: "q2" })),
+    );
+    expect(await screen.findByRole("button", { name: /all quotes/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/client name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/client name/i)).not.toBeDisabled();
+  });
+
+  it("goes back to the list", async () => {
+    render(<QuotesTab theme="dark" />);
+    await userEvent.click(await screen.findByText("Q-2026-0001"));
+    await userEvent.click(await screen.findByRole("button", { name: /all quotes/i }));
+    expect(await screen.findByRole("button", { name: /new quote/i })).toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: /status and actions/i })).toBeNull();
+  });
+
+  it("turns the page back into the editable stepper after Revise", async () => {
+    quoteAdmin.mockImplementation(async (action: string) => {
+      if (action === "list") return { quotes: [{ ...summary, status: "sent" }] };
+      if (action === "get") return withStatus(unpaidStages, "sent");
+      if (action === "revise") return withStatus(unpaidStages, "draft");
+      throw new Error(`unexpected ${action}`);
+    });
+    render(<QuotesTab theme="dark" />);
+    await userEvent.click(await screen.findByText("Q-2026-0001"));
+    expect(await screen.findByLabelText(/client name/i)).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /revise/i }));
+    await waitFor(() => expect(quoteAdmin).toHaveBeenCalledWith("revise", { id: "q1" }));
+    expect(await screen.findByText(/Back to draft/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText(/client name/i)).not.toBeDisabled());
+    expect(screen.getByRole("navigation", { name: /quote steps/i })).toBeInTheDocument();
   });
 
   const open = async () => {
     render(<QuotesTab theme="dark" />);
     await userEvent.click(await screen.findByText("Online store"));
   };
-  const withStatus = (stages: typeof detail.stages, status = "accepted") => ({
-    ...detail,
-    stages,
-    quote: { ...detail.quote, status },
-  });
 
   it("records a manual payment and closes the form", async () => {
     quoteAdmin.mockImplementation(async (action: string) => {
@@ -169,17 +287,14 @@ describe("QuotesTab", () => {
 
   it("hides Cancel quote once a stage is paid", async () => {
     await open();
-    await screen.findByText("Payment stages");
+    await within(await sidebar()).findByText("Payment stages");
     expect(screen.queryByRole("button", { name: /cancel quote/i })).toBeNull();
   });
 
   it("offers Cancel quote when nothing is paid", async () => {
     quoteAdmin.mockImplementation(async (action: string) => {
       if (action === "list") return { quotes: [summary] };
-      return withStatus(
-        detail.stages.map((s) => ({ ...s, state: "later", paidAt: null, reference: null })),
-        "sent",
-      );
+      return withStatus(unpaidStages, "sent");
     });
     await open();
     expect(await screen.findByRole("button", { name: /cancel quote/i })).toBeInTheDocument();
@@ -187,7 +302,7 @@ describe("QuotesTab", () => {
 
   it("never offers Request for the deposit or a paid stage", async () => {
     await open();
-    await screen.findByText("Payment stages");
+    await within(await sidebar()).findByText("Payment stages");
     expect(screen.queryByRole("button", { name: /request deposit/i })).toBeNull();
     expect(screen.getAllByRole("button", { name: /^request /i })).toHaveLength(1);
   });

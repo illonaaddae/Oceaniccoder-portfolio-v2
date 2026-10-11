@@ -7,9 +7,12 @@ interface BankTransferProps {
 
 interface CopyButtonProps {
   text: string;
+  /** Read out instead of "Copy", e.g. "Copy account number". */
+  label?: string;
 }
 
-const CopyButton: React.FC<CopyButtonProps> = ({ text }) => {
+/** Copies text and says so for two seconds; falls back where the Clipboard API is missing. */
+export const CopyButton: React.FC<CopyButtonProps> = ({ text, label }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -21,6 +24,9 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text }) => {
       // Fallback for older browsers
       const el = document.createElement("textarea");
       el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.opacity = "0";
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
@@ -32,7 +38,9 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text }) => {
 
   return (
     <button
-      onClick={handleCopy}
+      type="button"
+      onClick={() => void handleCopy()}
+      aria-label={copied ? "Copied" : label || "Copy"}
       className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all"
       style={{
         background: copied ? "var(--accent-teal-subtle)" : "var(--bg-primary)",
@@ -129,6 +137,9 @@ const BankTransfer: React.FC<BankTransferProps> = ({ invoiceNumber }) => {
         <DetailRow label="Bank" value={PAYMENT_CONFIG.bankName} />
         <DetailRow label="Account Name" value={PAYMENT_CONFIG.bankAccountName} />
         <DetailRow label="Account Number" value={PAYMENT_CONFIG.bankAccountNumber} copyable />
+        {PAYMENT_CONFIG.bankSortCode && (
+          <DetailRow label="Sort Code" value={PAYMENT_CONFIG.bankSortCode} copyable />
+        )}
       </div>
 
       {/* MoMo details */}

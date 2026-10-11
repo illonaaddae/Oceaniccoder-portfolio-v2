@@ -5,7 +5,14 @@
 
 const { quoteNumber } = require("./model");
 
-const JSON_DEFAULTS = { items: [], schedule: [], payState: { due: {} } };
+const JSON_DEFAULTS = {
+  items: [],
+  schedule: [],
+  payState: { due: {} },
+  highlights: [],
+  runningCosts: [],
+  optionalItems: [],
+};
 const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
 
 const clone = (v) => (v == null ? v : structuredClone(v));

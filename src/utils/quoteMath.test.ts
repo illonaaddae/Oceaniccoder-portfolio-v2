@@ -111,4 +111,19 @@ describe("quoteToDraft", () => {
     expect(d.schedule).not.toBe(q.schedule);
     expect(Q.quoteToDraft(null).schedule).not.toBe(Q.DEFAULT_SCHEDULE);
   });
+
+  it("gives new full-proposal fields empty defaults and keeps saved ones", () => {
+    expect(Q.quoteToDraft(null)).toMatchObject({
+      highlights: [],
+      runningCosts: [],
+      optionalItems: [],
+      exclusions: "",
+      discountLabel: "",
+      optionalTitle: "",
+    });
+    expect(Q.quoteToDraft({ highlights: ["Live soon"], optionalTitle: "Phase 2" })).toMatchObject({
+      highlights: ["Live soon"],
+      optionalTitle: "Phase 2",
+    });
+  });
 });

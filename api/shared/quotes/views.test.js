@@ -34,6 +34,15 @@ const quote = {
 };
 
 const CLIENT_KEYS = [
+  "highlights",
+  "discountLabel",
+  "runningCosts",
+  "exclusions",
+  "assumptions",
+  "nextSteps",
+  "optionalTitle",
+  "optionalItems",
+  "optionalTotalMinor",
   "acceptedName",
   "clientCompany",
   "clientEmail",
@@ -61,6 +70,7 @@ const CLIENT_KEYS = [
 ];
 
 const CLIENT_STAGE_KEYS = [
+  "note",
   "amountMinor",
   "dueAt",
   "dueBy",
@@ -76,6 +86,14 @@ const CLIENT_STAGE_KEYS = [
 ];
 
 const ADMIN_KEYS = [
+  "highlights",
+  "discountLabel",
+  "runningCosts",
+  "exclusions",
+  "assumptions",
+  "nextSteps",
+  "optionalTitle",
+  "optionalItems",
   "acceptedName",
   "acceptedUa",
   "clientCompany",
@@ -221,5 +239,76 @@ describe("email views", () => {
     const stages = M.stageStates(quote, payments);
     const v = V.requestView(quote, stages[0], "TOKEN", stages, "https://oceaniccoder.dev");
     expect(v.balanceAfter).toBe("GHS 0.00");
+  });
+});
+
+describe("payment method label", () => {
+  const stages = M.stageStates({ ...quote, status: "accepted" }, [], Date.now());
+  const pay = (over) => ({
+    stageId: stages[0].id,
+    amountMinor: 100,
+    currency: "GHS",
+    paystackReference: "R",
+    paidAt: "2026-10-11T00:00:00Z",
+    ...over,
+  });
+
+  it("names the Mobile Money network on the receipt when the client picked one", () => {
+    expect(V.receiptView(quote, pay({ method: "momo", note: "network:mtn" }), stages).method).toBe(
+      "Mobile Money (MTN)",
+    );
+    expect(
+      V.receiptView(quote, pay({ method: "momo", note: "network:telecel" }), stages).method,
+    ).toBe("Mobile Money (Telecel)");
+  });
+
+  it("falls back to the plain method name", () => {
+    expect(V.receiptView(quote, pay({ method: "momo" }), stages).method).toBe("Mobile Money");
+    expect(V.receiptView(quote, pay({ method: "card", note: "x" }), stages).method).toBe("Card");
+  });
+});
+
+describe("summarize invoices", () => {
+  it("lists issued stage invoices (due or paid) for the Invoices tab", () => {
+    const q = { ...quote, id: "q1", status: "accepted" };
+    const stages = M.stageStates(q, [], Date.now()).map((s, i) =>
+      i === 0 ? { ...s, state: "paid", paidAt: "2026-10-11T19:01:48Z" } : s,
+    );
+    const s = V.summarize(q, stages);
+    expect(s.invoices).toHaveLength(1);
+    expect(s.invoices[0]).toMatchObject({
+      stageId: stages[0].id,
+      invoiceNumber: stages[0].invoiceNumber,
+      label: stages[0].label,
+      amountMinor: stages[0].amountMinor,
+      state: "paid",
+      paidAt: "2026-10-11T19:01:48Z",
+    });
+  });
+
+  it("has no invoices before any stage is requested", () => {
+    const later = M.stageStates({ ...quote, status: "sent" }, [], Date.now());
+    expect(V.summarize({ ...quote, id: "q1" }, later).invoices).toEqual([]);
+  });
+
+  it("shows optional extras with a display-only total and reads old quotes as empty", () => {
+    const q = {
+      ...quote,
+      optionalItems: [{ id: "o1", description: "SMS", qty: 2, unitMinor: 100, detail: "Opt-in" }],
+    };
+    const v = V.clientQuoteView(q, M.stageStates(q, []), { receiptSecret: "s" });
+    expect(v.optionalTotalMinor).toBe(200);
+    expect(v.optionalItems[0]).toMatchObject({ lineMinor: 200, detail: "Opt-in" });
+    expect(v.totalMinor).toBe(quote.totalMinor);
+    const old = V.clientQuoteView(quote, M.stageStates(quote, []), { receiptSecret: "s" });
+    expect(old).toMatchObject({
+      highlights: [],
+      runningCosts: [],
+      optionalItems: [],
+      optionalTotalMinor: 0,
+      discountLabel: "",
+    });
+    expect(old.items[0].detail).toBe("");
+    expect(old.stages[0].note).toBe("");
   });
 });

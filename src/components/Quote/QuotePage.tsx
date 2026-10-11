@@ -2,6 +2,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading } from "./QuoteShell";
 import QuoteDocument, { TermsAndNotes } from "./QuoteDocument";
 import JourneyBar from "./JourneyBar";
+import { OptionalExtras } from "./ProposalSections";
 import StagePlan from "./StagePlan";
 import QuoteActions from "./QuoteActions";
 import InactiveLink from "./InactiveLink";
@@ -142,6 +143,7 @@ export default function QuotePage() {
       <StagePlan quote={quote} token={token} />
       <TermsAndNotes quote={quote} />
       {quote.status === "sent" && <QuoteActions token={token} quote={quote} onChange={setQuote} />}
+      <OptionalExtras quote={quote} money={(m) => formatMinor(m, quote.currency)} />
     </QuoteShell>
   );
 }

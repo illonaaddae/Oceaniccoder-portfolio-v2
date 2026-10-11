@@ -36,6 +36,10 @@ async function start(svc, body) {
   const email = str(body.email, 254).toLowerCase();
   if (!CHANNELS[method]) throw new HttpError(400, "Choose card, Mobile Money or Apple Pay.");
   if (!EMAIL_RE.test(email)) throw new HttpError(400, "Enter a valid email for your receipt.");
+  // Paystack's window still asks for the number; the network is kept for the receipt.
+  const network = method === "momo" ? str(body.network, 20) : "";
+  if (method === "momo" && !Object.prototype.hasOwnProperty.call(M.MOMO_NETWORKS, network))
+    throw new HttpError(400, "Choose your Mobile Money network.");
 
   const quote = await quoteFor(svc, body.token);
   if (quote.status !== "accepted") throw new HttpError(409, "Accept the quote before paying.");
@@ -53,6 +57,7 @@ async function start(svc, body) {
       p.stageId === stage.id &&
       p.status === "pending" &&
       p.method === method &&
+      (method !== "momo" || p.note === `${M.NETWORK_NOTE}${network}`) &&
       p.clientEmail === email &&
       p.accessCode &&
       now.getTime() - Date.parse(p.createdAt) < REUSE_MS,
@@ -72,6 +77,7 @@ async function start(svc, body) {
       method,
       status: "pending",
       paystackReference: reference,
+      ...(network ? { note: `${M.NETWORK_NOTE}${network}` } : {}),
     }),
   );
   const base = V.siteBase();
@@ -87,6 +93,7 @@ async function start(svc, body) {
         kind: "quote",
         quoteNumber: quote.quoteNumber,
         stageId: stage.id,
+        momoNetwork: network || null,
         cancel_action: `${base}/q/${body.token}/pay/${stage.id}`,
       },
     });

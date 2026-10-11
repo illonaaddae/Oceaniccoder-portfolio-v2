@@ -1,10 +1,29 @@
 import React from "react";
+import { LOGO_PATHS } from "@/components/Navbar/navData";
 
 export interface AnimatedCardProps {
   flipped?: boolean;
+  /** Shown in place of the card number, e.g. "GHS 6,000.00". */
+  amount?: string;
+  /** Who pays; defaults to the brand name. */
+  holder?: string;
+  /** Bottom-right detail, e.g. the quote number; replaces "Valid thru". */
+  reference?: { label: string; value: string };
+  /**
+   * "brand" draws an OceanicCoder card: ocean gradient, our wordmark instead of a
+   * card network's mark, the amount in the page font, and a softer shadow.
+   */
+  variant?: "classic" | "brand";
 }
 
-const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
+const AnimatedCard: React.FC<AnimatedCardProps> = ({
+  flipped = false,
+  amount,
+  holder = "OceanicCoder",
+  reference,
+  variant = "classic",
+}) => {
+  const brand = variant === "brand";
   return (
     <div
       style={{
@@ -47,6 +66,12 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
         .card-shimmer:hover {
           animation-duration: 1.5s;
         }
+        @media (prefers-reduced-motion: reduce) {
+          .animated-card-inner,
+          .card-shimmer {
+            animation: none;
+          }
+        }
       `}</style>
 
       <div
@@ -55,8 +80,12 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
           width: "100%",
           aspectRatio: "1.586",
           borderRadius: "16px",
-          background: "linear-gradient(135deg, #0f4c75 0%, #0C8599 50%, #085866 100%)",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+          background: brand
+            ? "radial-gradient(120% 90% at 85% 0%, rgba(38,169,197,0.35) 0%, transparent 55%), linear-gradient(135deg, #04333B 0%, #085866 100%)"
+            : "linear-gradient(135deg, #0f4c75 0%, #0C8599 50%, #085866 100%)",
+          boxShadow: brand
+            ? "0 10px 24px rgba(4, 51, 59, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.08)"
+            : "0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)",
           position: "relative",
           overflow: "hidden",
           display: flipped ? "none" : "flex",
@@ -123,34 +152,45 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
             />
           </div>
 
-          {/* Visa logo */}
-          <span
-            style={{
-              fontStyle: "italic",
-              fontWeight: "bold",
-              fontSize: "24px",
-              letterSpacing: "-1px",
-              color: "#ffffff",
-              textShadow: "0 1px 3px rgba(0,0,0,0.4)",
-            }}
-          >
-            VISA
-          </span>
+          {brand ? (
+            <img
+              src={LOGO_PATHS.dark}
+              alt=""
+              style={{ height: "22px", width: "auto", filter: "brightness(0) invert(1)" }}
+            />
+          ) : (
+            <>
+              {/* Visa logo */}
+              <span
+                style={{
+                  fontStyle: "italic",
+                  fontWeight: "bold",
+                  fontSize: "24px",
+                  letterSpacing: "-1px",
+                  color: "#ffffff",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                }}
+              >
+                VISA
+              </span>
+            </>
+          )}
         </div>
 
         {/* Card number */}
         <div
           style={{
             fontFamily: "'Courier New', Courier, monospace",
-            fontSize: "20px",
-            letterSpacing: "3px",
+            ...(brand
+              ? { fontSize: "22px", fontWeight: 700, letterSpacing: "3px" }
+              : { fontSize: "20px", letterSpacing: "3px" }),
             color: "#ffffff",
             textShadow: "0 1px 4px rgba(0,0,0,0.5)",
             position: "relative",
             zIndex: 2,
           }}
         >
-          •••• •••• •••• ••••
+          {amount ?? "•••• •••• •••• ••••"}
         </div>
 
         {/* Bottom row: name + valid */}
@@ -183,7 +223,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
                 textTransform: "uppercase",
               }}
             >
-              OceanicCoder
+              {holder}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -196,9 +236,11 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ flipped = false }) => {
                 marginBottom: "2px",
               }}
             >
-              Valid Thru
+              {reference ? reference.label : "Valid Thru"}
             </div>
-            <div style={{ fontSize: "13px", fontWeight: "600" }}>MM/YY</div>
+            <div style={{ fontSize: "13px", fontWeight: "600" }}>
+              {reference ? reference.value : "MM/YY"}
+            </div>
           </div>
         </div>
       </div>

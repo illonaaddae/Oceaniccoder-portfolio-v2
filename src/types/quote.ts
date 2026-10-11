@@ -4,17 +4,25 @@ export type StageState = "paid" | "due" | "later";
 export type PayMethod = "card" | "momo" | "apple_pay";
 export type ManualMethod = "bank" | "momo" | "cash";
 
+export interface RunningCost {
+  service: string;
+  purpose: string;
+  cost: string;
+}
+
 export interface QuoteItem {
   id: string;
   description: string;
   qty: number;
   unitMinor: number;
+  detail?: string;
 }
 
 export interface QuoteStageDef {
   id: string;
   label: string;
   percent: number;
+  note?: string;
 }
 
 export interface QuoteDraft {
@@ -34,6 +42,14 @@ export interface QuoteDraft {
   schedule: QuoteStageDef[];
   validDays: number;
   inquiryId?: string | null;
+  highlights: string[];
+  discountLabel: string;
+  runningCosts: RunningCost[];
+  exclusions: string;
+  assumptions: string;
+  nextSteps: string;
+  optionalTitle: string;
+  optionalItems: QuoteItem[];
 }
 
 /** A stage as the client pages see it. */
@@ -75,7 +91,16 @@ export interface ClientQuote {
   clientName: string;
   clientCompany: string;
   clientEmail: string;
-  items: (QuoteItem & { lineMinor: number })[];
+  items: (QuoteItem & { lineMinor: number; detail: string })[];
+  highlights: string[];
+  discountLabel: string;
+  runningCosts: RunningCost[];
+  exclusions: string;
+  assumptions: string;
+  nextSteps: string;
+  optionalTitle: string;
+  optionalItems: (QuoteItem & { lineMinor: number; detail: string })[];
+  optionalTotalMinor: number;
   subtotalMinor: number;
   discountMinor: number;
   totalMinor: number;
@@ -83,7 +108,7 @@ export interface ClientQuote {
   validUntil: string | null;
   acceptedName: string | null;
   respondedAt: string | null;
-  stages: ClientStage[];
+  stages: (ClientStage & { note: string })[];
   summary: { paidMinor: number; balanceMinor: number; complete: boolean };
   contact: { email: string; whatsapp: string };
 }
@@ -124,6 +149,27 @@ export interface AdminQuote {
   createdAt: string | null;
   updatedAt: string | null;
   hasLink: boolean;
+  highlights?: string[] | null;
+  discountLabel?: string | null;
+  runningCosts?: RunningCost[] | null;
+  exclusions?: string | null;
+  assumptions?: string | null;
+  nextSteps?: string | null;
+  optionalTitle?: string | null;
+  optionalItems?: QuoteItem[] | null;
+}
+
+/** A stage invoice that exists for the client (requested or paid). */
+export interface QuoteStageInvoice {
+  stageId: string;
+  invoiceNumber: string;
+  label: string;
+  percent: number;
+  amountMinor: number;
+  state: "due" | "paid";
+  dueBy: string | null;
+  overdue: boolean;
+  paidAt: string | null;
 }
 
 export interface QuoteSummary {
@@ -140,6 +186,7 @@ export interface QuoteSummary {
   sentAt: string | null;
   viewedAt: string | null;
   updatedAt: string | null;
+  invoices?: QuoteStageInvoice[];
 }
 
 export interface QuotePayment {

@@ -11,6 +11,13 @@ const METHOD_LABELS = {
   bank: "Bank transfer",
   cash: "Cash",
 };
+
+/** "Mobile Money (MTN)" when the client picked a network, else the plain method name. */
+function methodLabel(p) {
+  const base = METHOD_LABELS[p.method] || p.method || "";
+  const network = p.method === "momo" ? M.networkFromNote(p.note) : null;
+  return network ? `${base} (${M.MOMO_NETWORKS[network]})` : base;
+}
 const PROBLEMS = {
   duplicate: "A second payment arrived for a stage that was already paid. Refund it in Paystack.",
   underpaid: "The amount paid is less than the stage amount, so the stage was not marked paid.",
@@ -76,6 +83,7 @@ function stageView(stage, receiptSecret) {
   return {
     id: stage.id,
     label: stage.label,
+    note: stage.note || "",
     percent: stage.percent,
     amountMinor: stage.amountMinor,
     index: stage.index,
@@ -111,7 +119,24 @@ function clientQuoteView(q, stages, { receiptSecret } = {}) {
       qty: i.qty,
       unitMinor: i.unitMinor,
       lineMinor: M.lineMinor(i),
+      detail: i.detail || "",
     })),
+    highlights: q.highlights || [],
+    discountLabel: q.discountLabel || "",
+    runningCosts: q.runningCosts || [],
+    exclusions: q.exclusions || "",
+    assumptions: q.assumptions || "",
+    nextSteps: q.nextSteps || "",
+    optionalTitle: q.optionalTitle || "",
+    optionalItems: (q.optionalItems || []).map((i) => ({
+      id: i.id,
+      description: i.description,
+      qty: i.qty,
+      unitMinor: i.unitMinor,
+      lineMinor: M.lineMinor(i),
+      detail: i.detail || "",
+    })),
+    optionalTotalMinor: M.optionalTotals(q.optionalItems || []).optionalTotalMinor,
     subtotalMinor: q.subtotalMinor,
     discountMinor: q.discountMinor || 0,
     totalMinor: q.totalMinor,
@@ -149,6 +174,14 @@ function adminQuoteView(q) {
     clientPhone: q.clientPhone ?? null,
     clientCompany: q.clientCompany ?? null,
     items: q.items ?? null,
+    highlights: q.highlights ?? null,
+    discountLabel: q.discountLabel ?? null,
+    runningCosts: q.runningCosts ?? null,
+    exclusions: q.exclusions ?? null,
+    assumptions: q.assumptions ?? null,
+    nextSteps: q.nextSteps ?? null,
+    optionalTitle: q.optionalTitle ?? null,
+    optionalItems: q.optionalItems ?? null,
     discountMinor: q.discountMinor ?? null,
     subtotalMinor: q.subtotalMinor ?? null,
     totalMinor: q.totalMinor ?? null,
@@ -188,6 +221,21 @@ function summarize(q, stages) {
     sentAt: q.sentAt || null,
     viewedAt: q.viewedAt || null,
     updatedAt: q.updatedAt || q.createdAt || null,
+    // Stage invoices that exist for the client (requested or paid), for the
+    // dashboard's Invoices tab. "later" stages haven't been invoiced yet.
+    invoices: stages
+      .filter((st) => st.state === "due" || st.state === "paid")
+      .map((st) => ({
+        stageId: st.id,
+        invoiceNumber: st.invoiceNumber,
+        label: st.label,
+        percent: st.percent,
+        amountMinor: st.amountMinor,
+        state: st.state,
+        dueBy: stageDueDate(st),
+        overdue: Boolean(st.overdue),
+        paidAt: st.paidAt || null,
+      })),
   };
 }
 
@@ -219,7 +267,7 @@ function receiptView(q, p, stages) {
     invoiceNumber: stage ? stage.invoiceNumber : p.invoiceNumber,
     amountMinor: p.amountMinor,
     currency: p.currency,
-    method: METHOD_LABELS[p.method] || p.method,
+    method: methodLabel(p),
     reference: p.paystackReference,
     paidAt: p.paidAt,
     balanceMinor: summary.balanceMinor,
@@ -306,7 +354,7 @@ function receiptEmailView(
     title: q.title,
     stageLabel: stage ? stage.label : p.stageId,
     amount: formatMoney(p.amountMinor, p.currency),
-    method: METHOD_LABELS[p.method] || p.method,
+    method: methodLabel(p),
     reference: p.paystackReference,
     paidAt: formatDate(p.paidAt),
     receiptLink: path ? `${base}${path}` : "",
@@ -325,7 +373,7 @@ function alertView(q, p, stages, kind, problem, base = siteBase()) {
     title: q.title,
     stageLabel: stage ? stage.label : p.stageId,
     amount: formatMoney(p.amountMinor, p.currency),
-    method: METHOD_LABELS[p.method] || p.method || "",
+    method: methodLabel(p),
     reference: p.paystackReference,
     balance: stages ? formatMoney(M.paymentSummary(stages).balanceMinor, q.currency) : "",
     adminLink: `${base}/admin/dashboard`,

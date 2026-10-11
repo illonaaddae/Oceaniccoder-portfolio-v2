@@ -27,6 +27,32 @@ async function fillClient() {
 }
 
 describe("QuoteEditor", () => {
+  it("picks the currency from the design-system dropdown, not a native select", async () => {
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    expect(document.querySelector("select")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Currency" }));
+    await userEvent.click(screen.getByRole("option", { name: /USD/ }));
+    expect(screen.getByRole("button", { name: "Currency" })).toHaveTextContent("USD");
+  });
+
+  it("keeps At a glance boxes stable while typing into a later box", async () => {
+    quoteAdmin.mockResolvedValue({
+      quote: { id: "q1", status: "draft" },
+      stages: [],
+      payments: [],
+    });
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await fillClient();
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/project title/i), "Store");
+    await userEvent.type(screen.getByLabelText(/at a glance fact 3/i), "Fast");
+    expect(screen.getByLabelText(/at a glance fact 3/i)).toHaveValue("Fast");
+    expect(screen.getByLabelText(/at a glance fact 1/i)).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    const draft = quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft;
+    expect(draft.highlights).toEqual(["Fast"]);
+  });
+
   it("walks the steps and shows live stage amounts", async () => {
     render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
     await fillClient();
@@ -44,6 +70,73 @@ describe("QuoteEditor", () => {
     await userEvent.type(screen.getByLabelText(/percent for stage 1/i), "50");
     expect(screen.getByRole("alert")).toHaveTextContent(/add up to 90%/);
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+  });
+
+  it("saves highlights, item details, a discount label and stage notes", async () => {
+    quoteAdmin.mockResolvedValue({
+      quote: { id: "q1", status: "draft" },
+      stages: [],
+      payments: [],
+    });
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await fillClient();
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/project title/i), "Store");
+    await userEvent.type(screen.getByLabelText(/at a glance fact 1/i), "Live in 14 weeks");
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/description for item 1/i), "Build");
+    await userEvent.click(screen.getByRole("button", { name: /add what it includes/i }));
+    await userEvent.type(screen.getByLabelText(/what item 1 includes/i), "Pages and checkout");
+    await userEvent.type(screen.getByLabelText(/discount label/i), "First-client discount");
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/when stage 1 is due/i), "To start the project");
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    const draft = quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft;
+    expect(draft.highlights).toEqual(["Live in 14 weeks"]);
+    expect(draft.items[0].detail).toBe("Pages and checkout");
+    expect(draft.discountLabel).toBe("First-client discount");
+    expect(draft.schedule[0].note).toBe("To start the project");
+  });
+
+  it("adds extras that never change the total", async () => {
+    quoteAdmin.mockResolvedValue({
+      quote: { id: "q1", status: "draft" },
+      stages: [],
+      payments: [],
+    });
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await fillClient();
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/project title/i), "Store");
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/description for item 1/i), "Build");
+    await userEvent.clear(screen.getByLabelText(/price for item 1/i));
+    await userEvent.type(screen.getByLabelText(/price for item 1/i), "10000");
+    await userEvent.click(screen.getByRole("button", { name: /next/i })); // stages
+    await userEvent.click(screen.getByRole("button", { name: /next/i })); // extras
+    await userEvent.click(screen.getByRole("button", { name: /add running cost/i }));
+    await userEvent.type(screen.getByLabelText(/service for running cost 1/i), "Appwrite Pro");
+    await userEvent.type(screen.getByLabelText(/estimated cost 1/i), "USD 25 / month");
+    await userEvent.type(screen.getByLabelText(/not included/i), "Logo design");
+    await userEvent.type(screen.getByLabelText(/optional section title/i), "Phase 2");
+    await userEvent.click(screen.getByRole("button", { name: /add optional item/i }));
+    await userEvent.type(screen.getByLabelText(/description for optional item 1/i), "SMS updates");
+    await userEvent.clear(screen.getByLabelText(/price for optional item 1/i));
+    await userEvent.type(screen.getByLabelText(/price for optional item 1/i), "2500");
+    const summary = screen.getByRole("complementary", { name: /quote summary/i });
+    expect(within(summary).getAllByText("GHS 10,000.00")).toHaveLength(2); // total and subtotal
+    expect(summary).not.toHaveTextContent("12,500.00");
+    expect(screen.getByText(/optional extras \(not in total\)/i).parentElement).toHaveTextContent(
+      "GHS 2,500.00",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    const draft = quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft;
+    expect(draft.runningCosts[0]).toMatchObject({
+      service: "Appwrite Pro",
+      cost: "USD 25 / month",
+    });
+    expect(draft.exclusions).toBe("Logo design");
+    expect(draft.optionalItems[0]).toMatchObject({ description: "SMS updates", unitMinor: 250000 });
   });
 
   it("saves a new draft and reports the new id", async () => {
@@ -127,11 +220,11 @@ describe("QuoteEditor", () => {
   it("hides Back on the first step and shows where you are", async () => {
     render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
     expect(screen.queryByRole("button", { name: /^back$/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/step 1 of 6/i)).toBeInTheDocument();
+    expect(screen.getByText(/step 1 of 7/i)).toBeInTheDocument();
     await fillClient();
     await userEvent.click(screen.getByRole("button", { name: /next/i }));
     expect(screen.getByRole("button", { name: /^back$/i })).toBeInTheDocument();
-    expect(screen.getByText(/step 2 of 6/i)).toBeInTheDocument();
+    expect(screen.getByText(/step 2 of 7/i)).toBeInTheDocument();
   });
 
   it("keeps a live summary with the total and stage amounts", () => {
@@ -255,5 +348,103 @@ describe("QuoteEditor", () => {
         expect.objectContaining({ id: "q1", draft: expect.objectContaining({ title: "S" }) }),
       ),
     );
+  });
+  describe("embedded on a quote page", () => {
+    const initial = {
+      clientName: "Kofi",
+      clientEmail: "kofi@example.com",
+      title: "Store",
+      items: [{ id: "item-a", description: "Build", qty: 1, unitMinor: 100000 }],
+    };
+
+    it("drops the page title and close, and saving stays on the page", async () => {
+      quoteAdmin.mockResolvedValue({
+        quote: { id: "q1", status: "draft" },
+        stages: [],
+        payments: [],
+      });
+      const onSaved = vi.fn();
+      const onClose = vi.fn();
+      render(
+        <QuoteEditor
+          theme="dark"
+          embedded
+          quoteId="q1"
+          initial={initial}
+          onClose={onClose}
+          onSaved={onSaved}
+        />,
+      );
+      expect(screen.queryByRole("button", { name: /all quotes/i })).toBeNull();
+      expect(screen.queryByRole("heading", { name: /edit quote|new quote/i })).toBeNull();
+      expect(screen.getByRole("navigation", { name: /quote steps/i })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /3\. line items/i }));
+      await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+      await waitFor(() => expect(onSaved).toHaveBeenCalledWith("q1"));
+      expect(onClose).not.toHaveBeenCalled();
+      // Still on the same step after saving.
+      expect(screen.getByLabelText(/description for item 1/i)).toHaveValue("Build");
+    });
+
+    it("reports the live draft and whether it has unsaved changes", async () => {
+      const onChange = vi.fn();
+      render(
+        <QuoteEditor
+          theme="dark"
+          embedded
+          quoteId="q1"
+          initial={initial}
+          onClose={vi.fn()}
+          onSaved={vi.fn()}
+          onChange={onChange}
+        />,
+      );
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ clientName: "Kofi" }),
+        false,
+      );
+      await userEvent.type(screen.getByLabelText(/client name/i), "!");
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ clientName: "Kofi!" }),
+        true,
+      );
+    });
+  });
+
+  describe("read-only", () => {
+    it("stacks every step with its heading, disabled, with no rail or action bar", () => {
+      render(
+        <QuoteEditor
+          theme="dark"
+          readOnly
+          quoteId="q1"
+          initial={{
+            clientName: "Kofi",
+            title: "Store",
+            items: [{ id: "item-a", description: "Build", qty: 1, unitMinor: 100000 }],
+          }}
+          onClose={vi.fn()}
+          onSaved={vi.fn()}
+        />,
+      );
+      for (const heading of [
+        "Client",
+        "Page content",
+        "Line items",
+        "Payment stages",
+        "Extras",
+        "Terms",
+      ])
+        expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+      expect(screen.getByLabelText(/client name/i)).toBeDisabled();
+      expect(screen.getByLabelText(/client name/i)).toHaveValue("Kofi");
+      expect(screen.getByLabelText(/project title/i)).toBeDisabled();
+      expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
+      expect(screen.getByRole("textbox", { name: "Terms" })).toBeDisabled();
+      expect(screen.queryByRole("navigation", { name: /quote steps/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /save draft/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /^next/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /all quotes/i })).toBeNull();
+    });
   });
 });
