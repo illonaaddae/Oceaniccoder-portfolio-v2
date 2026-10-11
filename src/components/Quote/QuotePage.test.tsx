@@ -138,6 +138,7 @@ describe("QuotePage", () => {
     expect(screen.getAllByText("GHS 10,000.00").length).toBeGreaterThan(0);
     expect(screen.getByText("Catalogue")).toBeInTheDocument();
     expect(screen.getByText(/GHS 6,000.00/)).toBeInTheDocument();
+    expect(screen.queryByText("Standard value")).toBeNull();
   });
 
   it("shows the inactive screen for a dead link", async () => {
@@ -290,7 +291,35 @@ describe("QuotePage", () => {
     expect(screen.getByText("Appwrite Pro")).toBeInTheDocument();
     expect(screen.getByText(/not part of the price above/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/not included in the GHS 10,000.00 above, and not part of these payments/i),
+      screen.getByText(
+        "Not included in the GHS 10,000.00 above, and not part of these payments. Ask for a separate quote when you're ready.",
+      ),
     ).toBeInTheDocument();
+    expect(screen.getByText("Logo design")).toBeInTheDocument();
+    expect(screen.getByText("Content on time")).toBeInTheDocument();
+    const steps = screen.getByRole("heading", { name: /next steps/i }).closest("section")!;
+    expect(within(steps).getByText("Review")).toBeInTheDocument();
+    expect(within(steps).getByText("Accept")).toBeInTheDocument();
+
+    const summary = screen.getByText(/Phase 2 · Not in this quote/);
+    const details = summary.closest("details") as HTMLElement;
+    expect(details).not.toHaveAttribute("open");
+    const accept = screen.getByRole("button", { name: /accept quote/i });
+    expect(
+      accept.compareDocumentPosition(summary) & 4 /* DOCUMENT_POSITION_FOLLOWING */,
+    ).toBeTruthy();
+
+    const optionalAmount = "GHS 2,500.00";
+    const total = screen.getByText("Total", { selector: "dt" }).closest("div") as HTMLElement;
+    expect(total).not.toHaveTextContent(optionalAmount);
+    const plan = screen.getByRole("heading", { name: /how you pay/i }).closest("section")!;
+    expect(plan).not.toHaveTextContent(optionalAmount);
+    expect(details).toHaveTextContent(optionalAmount);
+
+    // Long unbroken item text must wrap inside the card at narrow widths.
+    expect(screen.getByText("Pages, cart and checkout").className).toMatch(
+      /overflow-wrap:anywhere/,
+    );
+    expect(screen.getByText("Store build").className).toMatch(/overflow-wrap:anywhere/);
   });
 });

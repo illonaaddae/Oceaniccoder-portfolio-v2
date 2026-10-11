@@ -59,7 +59,7 @@ export function ItemDetail({ detail }: { detail: string }) {
   return (
     <Disclosure summary="What it includes" className="mt-1.5">
       <p
-        className="text-sm leading-relaxed whitespace-pre-line"
+        className="block min-w-0 text-sm leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere]"
         style={{ color: "var(--text-secondary)" }}
       >
         {detail}
@@ -189,8 +189,7 @@ export function OptionalExtras({
         summary={`${quote.optionalTitle.trim() || "Optional extras for later"} · Not in this quote`}
       >
         <p className="mb-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-          These are not included in the {money(quote.totalMinor)} above, and not part of these
-          payments.
+          {`Not included in the ${money(quote.totalMinor)} above, and not part of these payments. Ask for a separate quote when you're ready.`}
         </p>
         <ul className="divide-y">
           {quote.optionalItems.map((o) => (

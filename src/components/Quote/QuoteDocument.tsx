@@ -58,13 +58,13 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
 
       <QuoteCard>
         <SectionLabel>What's included</SectionLabel>
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="text-left" style={{ color: "var(--text-secondary)" }}>
               <th className="py-2 font-medium">Item</th>
-              <th className="py-2 font-medium text-right hidden sm:table-cell">Qty</th>
-              <th className="py-2 font-medium text-right hidden sm:table-cell">Unit price</th>
-              <th className="py-2 font-medium text-right">Amount</th>
+              <th className="py-2 font-medium text-right hidden sm:table-cell w-16">Qty</th>
+              <th className="py-2 font-medium text-right hidden sm:table-cell w-32">Unit price</th>
+              <th className="py-2 font-medium text-right w-28 sm:w-32">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -74,8 +74,13 @@ export default function QuoteDocument({ quote }: { quote: ClientQuote }) {
                 className="border-t"
                 style={{ borderColor: "var(--border-subtle)" }}
               >
-                <td className="py-3 pr-3" style={{ color: "var(--text-primary)" }}>
-                  <span className="min-w-0 break-words">{item.description}</span>
+                <td
+                  className="min-w-0 py-3 pr-3 align-top"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <span className="block min-w-0 break-words [overflow-wrap:anywhere]">
+                    {item.description}
+                  </span>
                   <ItemDetail detail={item.detail} />
                   <span
                     className="block sm:hidden text-xs mt-1 tabular-nums"
