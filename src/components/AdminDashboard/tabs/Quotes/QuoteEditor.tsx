@@ -304,11 +304,7 @@ export default function QuoteEditor({
               onDone={() => onSaved(sent.id)}
             />
           ) : (
-            <section
-              aria-labelledby="quote-step-title"
-              className="glass-card rounded-2xl"
-              style={{ background: "var(--bg-secondary)" }}
-            >
+            <section aria-labelledby="quote-step-title" className="glass-card rounded-2xl">
               <div className="p-5 sm:p-6">
                 <h3
                   id="quote-step-title"
@@ -336,7 +332,7 @@ export default function QuoteEditor({
               </div>
               <div
                 className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-b-2xl border-t px-5 py-3 sm:px-6"
-                style={{ borderColor: "var(--border-subtle)", background: "var(--bg-secondary)" }}
+                style={{ borderColor: "var(--border-subtle)", background: "inherit" }}
               >
                 <div>
                   {step > 0 && (
@@ -399,10 +395,7 @@ function Summary({ draft }: { draft: QuoteDraft }) {
   const row = "flex min-w-0 justify-between gap-3";
   return (
     <aside aria-label="Quote summary" className="min-w-0 xl:sticky xl:top-24 xl:self-start">
-      <div
-        className="glass-card rounded-2xl overflow-hidden"
-        style={{ background: "var(--bg-secondary)" }}
-      >
+      <div className="glass-card rounded-2xl overflow-hidden">
         <div className="border-b p-5" style={{ borderColor: "var(--border-subtle)" }}>
           <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
             {draft.clientName || "No client yet"}
@@ -477,7 +470,6 @@ function SentPanel({
     <section
       aria-labelledby="quote-sent-title"
       className="glass-card rounded-2xl p-5 sm:p-6 space-y-4"
-      style={{ background: "var(--bg-secondary)" }}
     >
       <h3
         id="quote-sent-title"
