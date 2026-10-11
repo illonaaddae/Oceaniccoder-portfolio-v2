@@ -412,11 +412,12 @@ describe("QuoteEditor", () => {
   });
 
   describe("read-only", () => {
-    it("stacks every step with its heading, disabled, with no rail or action bar", () => {
+    it("walks the steps view-only, with no save or send", async () => {
       render(
         <QuoteEditor
           theme="dark"
           readOnly
+          embedded
           quoteId="q1"
           initial={{
             clientName: "Kofi",
@@ -427,24 +428,26 @@ describe("QuoteEditor", () => {
           onSaved={vi.fn()}
         />,
       );
-      for (const heading of [
-        "Client",
-        "Page content",
-        "Line items",
-        "Payment stages",
-        "Extras",
-        "Terms",
-      ])
-        expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+      const rail = screen.getByRole("navigation", { name: /quote steps/i });
+      expect(within(rail).getAllByRole("button")).toHaveLength(6);
+      expect(within(rail).queryByRole("button", { name: /review/i })).toBeNull();
+      expect(screen.getByRole("heading", { name: "Client" })).toBeInTheDocument();
       expect(screen.getByLabelText(/client name/i)).toBeDisabled();
       expect(screen.getByLabelText(/client name/i)).toHaveValue("Kofi");
-      expect(screen.getByLabelText(/project title/i)).toBeDisabled();
-      expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
-      expect(screen.getByRole("textbox", { name: "Terms" })).toBeDisabled();
-      expect(screen.queryByRole("navigation", { name: /quote steps/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /save draft/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /save and send/i })).toBeNull();
+
+      await userEvent.click(screen.getByRole("button", { name: /^next/i }));
+      expect(screen.getByRole("heading", { name: "Page content" })).toBeInTheDocument();
+      expect(screen.getByLabelText(/project title/i)).toBeDisabled();
+
+      await userEvent.click(within(rail).getByRole("button", { name: /line items/i }));
+      expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
+
+      await userEvent.click(within(rail).getByRole("button", { name: /terms/i }));
+      expect(screen.getByRole("textbox", { name: "Terms" })).toBeDisabled();
       expect(screen.queryByRole("button", { name: /^next/i })).toBeNull();
-      expect(screen.queryByRole("button", { name: /all quotes/i })).toBeNull();
+      expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
     });
   });
 });

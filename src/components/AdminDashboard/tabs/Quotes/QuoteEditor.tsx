@@ -96,8 +96,9 @@ const noop = () => {};
 /**
  * Quote builder: step rail, form on the left, live summary on the right.
  * `embedded` drops the page title, close link and summary so it can sit on a
- * quote's own page, which shows those itself. `readOnly` stacks every step,
- * disabled, with no rail or action bar, for quotes that are no longer drafts.
+ * quote's own page, which shows those itself. `readOnly` walks the same steps
+ * (minus Review) with every control disabled and only Back/Next, for quotes
+ * that are no longer drafts.
  */
 export default function QuoteEditor({
   theme,
@@ -168,9 +169,13 @@ export default function QuoteEditor({
     invalid.size > 0 ||
     draft.items.some((it) => !(it.qty > 0)) ||
     draft.optionalItems.some((it) => !(it.qty > 0));
-  const { Component } = STEPS[step];
+  // A sent quote is viewed step by step too, without the Review (send) step.
+  const steps = readOnly ? STEPS.slice(0, LAST) : STEPS;
+  const lastStep = steps.length - 1;
+  const { Component } = steps[Math.min(step, lastStep)];
   const blocked =
-    hasInvalidInput || (step === STAGES_STEP && scheduleError(draft.schedule) !== null);
+    !readOnly &&
+    (hasInvalidInput || (step === STAGES_STEP && scheduleError(draft.schedule) !== null));
   const hasError = (fields: string[]) =>
     fields.some((f) => Object.keys(errors).some((k) => k === f || k.startsWith(`${f}.`)));
 
@@ -240,28 +245,6 @@ export default function QuoteEditor({
     ? `Hi ${firstName}, here is your quote from OceanicCoder: ${sent.link}`
     : "";
 
-  if (readOnly)
-    return (
-      <fieldset disabled aria-label="Quote content" className="min-w-0 space-y-6">
-        {STEPS.slice(0, LAST).map(({ label, Component: Step }, i) => (
-          <section
-            key={label}
-            aria-labelledby={`quote-view-step-${i}`}
-            className="glass-card rounded-2xl p-5 sm:p-6"
-          >
-            <h3
-              id={`quote-view-step-${i}`}
-              className="text-lg font-bold mb-4"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {label}
-            </h3>
-            <Step draft={draft} setDraft={noop} errors={{}} theme={theme} />
-          </section>
-        ))}
-      </fieldset>
-    );
-
   return (
     <div ref={topRef} className="space-y-6 scroll-mt-24">
       {!embedded && (
@@ -285,8 +268,11 @@ export default function QuoteEditor({
 
       {!sent && (
         <nav aria-label="Quote steps" className="glass-card rounded-2xl p-2">
-          <ol className="grid grid-cols-7 gap-1">
-            {STEPS.map((s, i) => {
+          <ol
+            className="grid gap-1"
+            style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+          >
+            {steps.map((s, i) => {
               const on = i === step;
               const done = i < step;
               return (
@@ -343,7 +329,7 @@ export default function QuoteEditor({
             className="px-3 pb-1 pt-2 text-sm font-semibold lg:hidden"
             style={{ color: "var(--text-primary)" }}
           >
-            Step {step + 1} of {STEPS.length} · {STEPS[step].label}
+            Step {step + 1} of {steps.length} · {steps[step].label}
           </p>
         </nav>
       )}
@@ -378,15 +364,26 @@ export default function QuoteEditor({
                   className="text-lg font-bold mb-4"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {STEPS[step].label}
+                  {steps[step].label}
                 </h3>
-                <Component
-                  draft={draft}
-                  setDraft={setDraft}
-                  errors={errors}
-                  onValidity={onValidity}
-                  theme={theme}
-                />
+                {readOnly ? (
+                  // Disabled controls are dimmed so a sent quote reads as view-only.
+                  <fieldset
+                    disabled
+                    aria-label="Quote content (view only)"
+                    className="min-w-0 [&_input:disabled]:cursor-default [&_input:disabled]:opacity-70 [&_textarea:disabled]:cursor-default [&_textarea:disabled]:opacity-70 [&_button:disabled]:cursor-default [&_button:disabled]:opacity-60"
+                  >
+                    <Component draft={draft} setDraft={noop} errors={{}} theme={theme} />
+                  </fieldset>
+                ) : (
+                  <Component
+                    draft={draft}
+                    setDraft={setDraft}
+                    errors={errors}
+                    onValidity={onValidity}
+                    theme={theme}
+                  />
+                )}
                 {message && (
                   <p
                     role="alert"
@@ -414,16 +411,18 @@ export default function QuoteEditor({
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={busy !== null || hasInvalidInput}
-                    onClick={() => void save()}
-                    className={quietBtn}
-                    style={quietStyle}
-                  >
-                    {busy === "save" ? "Saving…" : "Save draft"}
-                  </button>
-                  {step < LAST ? (
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      disabled={busy !== null || hasInvalidInput}
+                      onClick={() => void save()}
+                      className={quietBtn}
+                      style={quietStyle}
+                    >
+                      {busy === "save" ? "Saving…" : "Save draft"}
+                    </button>
+                  )}
+                  {step < lastStep ? (
                     <button
                       type="button"
                       disabled={blocked}
@@ -433,7 +432,7 @@ export default function QuoteEditor({
                     >
                       Next <FaArrowRight aria-hidden />
                     </button>
-                  ) : (
+                  ) : readOnly ? null : (
                     <button
                       type="button"
                       disabled={busy !== null || hasInvalidInput}
