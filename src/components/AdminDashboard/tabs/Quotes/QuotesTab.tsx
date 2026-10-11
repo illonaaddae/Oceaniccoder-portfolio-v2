@@ -5,6 +5,7 @@ import { formatDate, formatMinor, quoteToDraft } from "@/utils/quoteMath";
 import { FilterPills } from "@/components/ui/FilterPills";
 import QuoteDetail from "./QuoteDetail";
 import QuoteEditor from "./QuoteEditor";
+import { clearPendingQuoteDraft, peekPendingQuoteDraft } from "./quoteHandoff";
 import type { QuoteDetailResponse, QuoteDraft, QuoteStatus, QuoteSummary } from "@/types/quote";
 
 type Filter = "all" | QuoteStatus;
@@ -16,7 +17,13 @@ export default function QuotesTab({ theme }: { theme: string }) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [selected, setSelected] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ id?: string; draft?: QuoteDraft } | null>(null);
+  const [editing, setEditing] = useState<{ id?: string; draft?: Partial<QuoteDraft> } | null>(
+    () => {
+      const handed = peekPendingQuoteDraft();
+      return handed ? { draft: handed } : null;
+    },
+  );
+  useEffect(() => clearPendingQuoteDraft(), []);
 
   const load = useCallback(async () => {
     try {
@@ -40,6 +47,22 @@ export default function QuotesTab({ theme }: { theme: string }) {
 
   const openEditor = (d?: QuoteDetailResponse) =>
     setEditing(d ? { id: d.quote.id, draft: quoteToDraft(d.quote) } : {});
+
+  // The editor takes over the tab as a full page; the list comes back on close.
+  if (editing)
+    return (
+      <QuoteEditor
+        theme={theme}
+        quoteId={editing.id}
+        initial={editing.draft}
+        onClose={() => setEditing(null)}
+        onSaved={(id) => {
+          setEditing(null);
+          setSelected(id);
+          void load();
+        }}
+      />
+    );
 
   return (
     <div className="space-y-6">
@@ -145,20 +168,6 @@ export default function QuotesTab({ theme }: { theme: string }) {
           />
         )}
       </div>
-
-      {editing && (
-        <QuoteEditor
-          theme={theme}
-          quoteId={editing.id}
-          initial={editing.draft}
-          onClose={() => setEditing(null)}
-          onSaved={(id) => {
-            setEditing(null);
-            setSelected(id);
-            void load();
-          }}
-        />
-      )}
     </div>
   );
 }

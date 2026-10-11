@@ -54,8 +54,17 @@ const TEMPLATES = {
     tone: "ok",
     title: (name) => `Great news, ${name}!`,
     body: (pt) =>
-      `I've carefully reviewed your ${pt} project and prepared a detailed proposal and pricing just for you. Check your inbox for the invoice. It includes a full breakdown of deliverables, timeline, and payment options.`,
+      `I've carefully reviewed your ${pt} project and prepared a detailed proposal and pricing just for you. Check your inbox for the quote. It includes a full breakdown of deliverables, timeline, and payment options.`,
     note: "Questions about the proposal? Just reply to this email.",
+  },
+  won: {
+    subject: (pt) => `Your ${pt} Project – We're Going Ahead`,
+    eyebrow: "Confirmed",
+    tone: "ok",
+    title: (name) => `Hi ${name},`,
+    body: (pt) =>
+      `Thank you for choosing OceanicCoder for your ${pt} project. I'm glad we're going ahead. The next step is our project kickoff: I'll be in touch shortly to agree a start date and, if it hasn't been made yet, the first payment.`,
+    note: "If anything comes up before then, just reply to this email.",
   },
   declined: {
     subject: (pt) => `Re: Your ${pt} Inquiry`,

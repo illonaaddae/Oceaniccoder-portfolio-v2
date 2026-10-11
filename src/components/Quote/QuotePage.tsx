@@ -74,6 +74,8 @@ function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
     );
   }
   if (!next) return null;
+  // A one-stage quote is paid in full: no deposit, no balance to come.
+  const single = quote.stages.length === 1;
   return (
     <QuoteCard className="print:hidden">
       <p
@@ -83,15 +85,23 @@ function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
         Next step
       </p>
       <p className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-        {next.index === 0 ? "Your deposit is ready to pay" : `${next.label} is ready to pay`}:{" "}
-        {formatMinor(next.amountMinor, quote.currency)}
+        {single
+          ? "Your payment is ready"
+          : next.index === 0
+            ? "Your deposit is ready to pay"
+            : `${next.label} is ready to pay`}
+        : {formatMinor(next.amountMinor, quote.currency)}
       </p>
       <Link
         to={`/q/${token}/pay/${next.id}`}
         className="inline-flex min-h-12 items-center px-6 rounded-xl font-semibold text-white"
         style={{ background: "var(--quote-cta)" }}
       >
-        {next.index === 0 ? "Pay the deposit" : `Pay the ${next.label.toLowerCase()}`}
+        {single
+          ? "Pay now"
+          : next.index === 0
+            ? "Pay the deposit"
+            : `Pay the ${next.label.toLowerCase()}`}
       </Link>
       <PrintButton className="ml-3" />
     </QuoteCard>

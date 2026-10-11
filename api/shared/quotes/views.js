@@ -246,6 +246,8 @@ function quoteSentView(q, token, base = siteBase()) {
     total: formatMoney(q.totalMinor, q.currency),
     validUntil: formatDate(q.validUntil),
     planSummary: planSummary(q.schedule),
+    // One stage means paying in full: the emails then drop the deposit wording.
+    singleStage: q.schedule.length === 1,
     link: quoteLink(token, base),
   };
 }
@@ -257,6 +259,7 @@ function acceptedView(q, token, stages, base = siteBase()) {
     title: q.title,
     acceptedName: q.acceptedName || q.clientName,
     invoice: stages.length ? invoiceCard(q, stages[0], token, base) : null,
+    singleStage: stages.length === 1,
     link: quoteLink(token, base),
   };
 }

@@ -13,7 +13,6 @@ import {
   FaLayerGroup,
   FaStickyNote,
   FaCalendarAlt,
-  FaPlus,
   FaEye,
   FaFileAlt,
   FaCheckCircle,
@@ -41,6 +40,8 @@ type StatusFilter = "all" | "new" | "reviewed" | "quoted" | "declined" | "won";
 
 interface ClientWorkTabProps {
   theme: "light" | "dark";
+  /** Opens the Quotes tab's full-page editor prefilled from this inquiry. */
+  onCreateQuote?: (inquiry: ProjectInquiry) => void;
 }
 
 const STATUS_CONFIG: Record<
@@ -99,7 +100,7 @@ function formatDate(dateStr?: string) {
   });
 }
 
-export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
+export default function ClientWorkTab({ theme, onCreateQuote }: ClientWorkTabProps) {
   const confirm = useConfirm();
   const [inquiries, setInquiries] = useState<ProjectInquiry[]>([]);
   const [invoicesByInquiry, setInvoicesByInquiry] = useState<Record<string, Invoice[]>>({});
@@ -139,7 +140,10 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
     setInquiries((prev) => prev.map((i) => (i.$id === id ? { ...i, status } : i)));
     await updateInquiry(id, { status });
 
-    if (status === "reviewed" || status === "quoted" || status === "declined") {
+    // Only manual changes here email the client. When the quote flow moves an
+    // inquiry itself (sending a quote → quoted, the client accepting → won),
+    // the quote and quote-accepted emails already tell them, so nothing more goes.
+    if (status === "reviewed" || status === "quoted" || status === "won" || status === "declined") {
       const inq = inquiries.find((i) => i.$id === id);
       if (inq) {
         // Was `void fetch(...)` — the response was discarded, so a failed status
@@ -251,6 +255,20 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
   const { page, setPage, pageItems, totalItems } = usePagination(filtered, PAGE_SIZE);
 
   const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
+
+  // Without a tab switcher (tests, embeds), the editor takes over this tab.
+  if (quoteFor)
+    return (
+      <QuoteEditor
+        theme={theme}
+        initial={draftFromInquiry(quoteFor)}
+        onClose={() => setQuoteFor(null)}
+        onSaved={() => {
+          setQuoteFor(null);
+          setQuoteSaved("Quote saved as a draft. Open the Quotes tab to preview and send it.");
+        }}
+      />
+    );
 
   return (
     <div className="space-y-6">
@@ -537,9 +555,20 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
 
                 {/* Actions */}
                 <div className="px-5 py-3 flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => (onCreateQuote ? onCreateQuote(inq) : setQuoteFor(inq))}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                    style={{
+                      background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+                    }}
+                  >
+                    <FaFileSignature /> Create quote
+                  </button>
+                  {/* New work is quoted, not invoiced. Inquiries billed before quotes
+                      keep their invoice and Edit & Resend, the only resend path. */}
                   {(() => {
-                    const existingInvs = invoicesByInquiry[inq.$id] ?? [];
-                    const latest = existingInvs[0];
+                    const latest = (invoicesByInquiry[inq.$id] ?? [])[0];
                     if (latest) {
                       return (
                         <>
@@ -562,17 +591,6 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                           <button
                             type="button"
                             onClick={() => setInvoiceTarget({ inquiry: inq, existing: latest })}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                            style={{
-                              background:
-                                "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                            }}
-                          >
-                            <FaFileInvoiceDollar /> Edit & Resend
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setInvoiceTarget({ inquiry: inq })}
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
                             style={{
                               background: "var(--bg-primary)",
@@ -580,35 +598,13 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
                               color: "var(--text-secondary)",
                             }}
                           >
-                            <FaPlus className="text-xs" /> New Invoice
+                            <FaFileInvoiceDollar /> Edit & Resend
                           </button>
                         </>
                       );
                     }
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => setInvoiceTarget({ inquiry: inq })}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                        }}
-                      >
-                        <FaFileInvoiceDollar /> Generate Invoice
-                      </button>
-                    );
+                    return null;
                   })()}
-                  <button
-                    type="button"
-                    onClick={() => setQuoteFor(inq)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                    style={{
-                      background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                    }}
-                  >
-                    <FaFileSignature /> Create quote
-                  </button>
                   <a
                     href={`mailto:${inq.email}`}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
@@ -666,17 +662,6 @@ export default function ClientWorkTab({ theme }: ClientWorkTabProps) {
         />
       )}
 
-      {quoteFor && (
-        <QuoteEditor
-          theme={theme}
-          initial={draftFromInquiry(quoteFor)}
-          onClose={() => setQuoteFor(null)}
-          onSaved={() => {
-            setQuoteFor(null);
-            setQuoteSaved("Quote saved as a draft. Open the Quotes tab to preview and send it.");
-          }}
-        />
-      )}
       {quoteSaved && (
         <div
           role="status"
