@@ -14,6 +14,7 @@ import {
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading, SectionLabel } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
 import AnimatedCard from "@/components/Payment/AnimatedCard";
+import { CopyButton } from "@/components/Payment/BankTransfer";
 import MomoNetworkPicker, { type MomoNetwork } from "@/components/Payment/MomoNetworkPicker";
 import { useClientQuote } from "./useClientQuote";
 import { startStagePayment, checkStagePayment } from "@/services/api/quotes";
@@ -220,89 +221,141 @@ export default function CheckoutPage() {
         </div>
       )}
       <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-        <aside className="lg:sticky lg:top-6 quote-on-dark self-start rounded-2xl p-6 bg-[linear-gradient(135deg,#04333B_0%,#085866_100%)]">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#7dd3e0]">
-            Stage {stageNo} of {quote.stages.length} · {stage.invoiceNumber}
-          </p>
-          <p className="mt-2 text-white/75">{quote.title}</p>
-          <p className="mt-4 text-sm text-white/75">
-            {stage.label} ({stage.percent}%)
-          </p>
-          <p className="text-3xl font-bold tabular-nums">{money(stage.amountMinor)}</p>
-          {quote.clientName && (
-            <p className="mt-1 text-sm text-white/75">
-              For {quote.clientName}
-              {quote.clientCompany ? `, ${quote.clientCompany}` : ""}
+        {/* Ocean header for what's being paid now, white body for the plan and
+            totals, like the receipt. */}
+        <aside
+          className="lg:sticky lg:top-6 self-start overflow-hidden rounded-2xl border"
+          style={{ background: "var(--bg-secondary)", borderColor: "var(--border-subtle)" }}
+        >
+          <div className="quote-on-dark p-6 bg-[linear-gradient(135deg,#04333B_0%,#085866_100%)]">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8dd7e7]">
+              You're paying · Stage {stageNo} of {quote.stages.length}
             </p>
-          )}
-          {stage.dueBy && (
-            <p className="mt-2 text-sm">
-              <span className="text-white/75">Due {formatDate(stage.dueBy)}</span>
-              {stage.overdue && (
-                <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-[#04333B]">
-                  Overdue
+            <p className="mt-2 text-4xl font-bold tabular-nums">{money(stage.amountMinor)}</p>
+            <p className="mt-1 text-sm text-white/80">
+              {stage.label} · {stage.percent}% of {money(quote.totalMinor)}
+            </p>
+            {stage.dueBy && (
+              <p className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                <span className="rounded-full bg-white/15 px-2.5 py-0.5">
+                  Due {formatDate(stage.dueBy)}
                 </span>
-              )}
-            </p>
-          )}
-          <ol className="mt-6 space-y-2 text-sm" aria-label="Payment stages">
-            {quote.stages.map((s) => {
-              const current = s.id === stage.id;
-              return (
-                <li
-                  key={s.id}
-                  aria-current={current ? "step" : undefined}
-                  className={`flex items-center gap-2 rounded-xl px-3 py-2 ${
-                    current ? "bg-white/10 ring-1 ring-white/25" : ""
-                  }`}
-                >
-                  <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px]"
-                    style={{
-                      background:
-                        s.state === "paid"
-                          ? "#0C8599"
-                          : current
-                            ? "#ffffff"
-                            : "rgba(255,255,255,.15)",
-                      color: current ? "#04333B" : "#fff",
-                    }}
-                  >
-                    {s.state === "paid" ? <FaCheck aria-hidden /> : s.index + 1}
+                {stage.overdue && (
+                  <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-[#04333B]">
+                    Overdue
                   </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {s.label}
-                    {current && <span className="text-white/75"> · paying now</span>}
-                  </span>
-                  <span className="tabular-nums">
-                    {s.state === "paid" ? "Paid" : money(s.amountMinor)}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-          <dl className="mt-6 border-t border-white/15 pt-4 text-sm tabular-nums space-y-1">
-            <div className="flex justify-between">
-              <dt className="text-white/75">Paid so far</dt>
-              <dd>{money(quote.summary.paidMinor)}</dd>
+                )}
+              </p>
+            )}
+          </div>
+
+          <div className="p-6 space-y-6 text-sm">
+            <dl className="space-y-2">
+              {[
+                ["Invoice", stage.invoiceNumber],
+                ["Project", quote.title],
+                [
+                  "Billed to",
+                  quote.clientName
+                    ? `${quote.clientName}${quote.clientCompany ? `, ${quote.clientCompany}` : ""}`
+                    : "",
+                ],
+              ]
+                .filter(([, value]) => value)
+                .map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <dt style={{ color: "var(--text-secondary)" }}>{label}</dt>
+                    <dd className="text-right font-medium" style={{ color: "var(--text-primary)" }}>
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+
+            <div>
+              <p
+                className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: "var(--accent-teal)" }}
+              >
+                Payment plan
+              </p>
+              <ol className="mt-3" aria-label="Payment stages">
+                {quote.stages.map((s, i) => {
+                  const current = s.id === stage.id;
+                  const paid = s.state === "paid";
+                  const isNext = nextStage?.id === s.id;
+                  const last = i === quote.stages.length - 1;
+                  return (
+                    <li
+                      key={s.id}
+                      aria-current={current ? "step" : undefined}
+                      className="relative flex gap-3 pb-4 last:pb-0"
+                    >
+                      {!last && (
+                        <span
+                          aria-hidden
+                          className="absolute left-3 top-6 bottom-0 w-px"
+                          style={{ background: "var(--border-subtle)" }}
+                        />
+                      )}
+                      <span
+                        className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                        style={{
+                          background: paid || current ? "#085866" : "var(--bg-primary)",
+                          color: paid || current ? "#ffffff" : "var(--text-secondary)",
+                          border: paid || current ? "none" : "1px solid var(--border-subtle)",
+                        }}
+                      >
+                        {paid ? <FaCheck aria-hidden /> : s.index + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between gap-3">
+                          <span
+                            className={current ? "font-semibold" : ""}
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {s.label}
+                          </span>
+                          <span className="tabular-nums" style={{ color: "var(--text-primary)" }}>
+                            {money(s.amountMinor)}
+                          </span>
+                        </div>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                          {paid
+                            ? `Paid${s.paidAt ? ` ${formatDate(s.paidAt)}` : ""}`
+                            : current
+                              ? "Paying now"
+                              : isNext
+                                ? "Next · we'll email you a payment link when it's due"
+                                : "Later"}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-white/75">Balance after this payment</dt>
-              <dd>{money(quote.summary.balanceMinor - stage.amountMinor)}</dd>
-            </div>
-          </dl>
-          {nextStage && (
-            <p className="mt-4 rounded-xl bg-white/10 px-3 py-2.5 text-sm">
-              <span className="block text-xs uppercase tracking-[0.12em] text-[#7dd3e0]">
-                Coming up next
-              </span>
-              {nextStage.label} ·{" "}
-              <span className="tabular-nums">{money(nextStage.amountMinor)}</span>
-              <span className="block text-white/75">
-                We'll email you a payment link when it's due.
-              </span>
-            </p>
-          )}
+
+            <dl
+              className="space-y-1.5 border-t pt-4 tabular-nums"
+              style={{ borderColor: "var(--border-subtle)" }}
+            >
+              <div className="flex justify-between">
+                <dt style={{ color: "var(--text-secondary)" }}>Quote total</dt>
+                <dd style={{ color: "var(--text-primary)" }}>{money(quote.totalMinor)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt style={{ color: "var(--text-secondary)" }}>Paid so far</dt>
+                <dd style={{ color: "var(--text-primary)" }}>{money(quote.summary.paidMinor)}</dd>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <dt style={{ color: "var(--text-primary)" }}>Left after this payment</dt>
+                <dd style={{ color: "var(--text-primary)" }}>
+                  {money(quote.summary.balanceMinor - stage.amountMinor)}
+                </dd>
+              </div>
+            </dl>
+          </div>
         </aside>
 
         <QuoteCard>
@@ -382,6 +435,7 @@ export default function CheckoutPage() {
             {method === "card" && (
               <div className="py-2" aria-hidden>
                 <AnimatedCard
+                  variant="brand"
                   amount={money(stage.amountMinor)}
                   holder={quote.clientName}
                   reference={{ label: "Quote", value: quote.quoteNumber }}
@@ -409,18 +463,7 @@ export default function CheckoutPage() {
                         <dd className="flex items-center gap-2 font-semibold tabular-nums">
                           <span style={{ color: "var(--text-primary)" }}>{value}</span>
                           {label !== "Bank" && label !== "Account name" && (
-                            <button
-                              type="button"
-                              onClick={() => void navigator.clipboard?.writeText(value)}
-                              aria-label={`Copy ${label.toLowerCase()}`}
-                              className="rounded-md border px-2 py-0.5 text-xs font-medium"
-                              style={{
-                                borderColor: "var(--border-subtle)",
-                                color: "var(--text-secondary)",
-                              }}
-                            >
-                              Copy
-                            </button>
+                            <CopyButton text={value} label={`Copy ${label.toLowerCase()}`} />
                           )}
                         </dd>
                       </div>

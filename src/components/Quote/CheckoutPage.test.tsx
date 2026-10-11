@@ -165,7 +165,7 @@ describe("CheckoutPage", () => {
   it("shows the stage position, what comes next and a way back to the quote", async () => {
     renderAt("/q/tok/pay/deposit");
     expect(await screen.findByText(/stage 1 of 2/i)).toBeInTheDocument();
-    expect(screen.getByText(/coming up next/i)).toBeInTheDocument();
+    expect(screen.getByText(/next · we.ll email you a payment link/i)).toBeInTheDocument();
     expect(screen.getByText(/paying now/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /back to the quote/i })).toHaveAttribute(
       "href",
@@ -199,6 +199,16 @@ describe("CheckoutPage", () => {
     checkStagePayment.mockResolvedValue({ state: "paid", receiptPath: "/receipt/R1" });
     await userEvent.click(await screen.findByRole("button", { name: /i've paid, check now/i }));
     expect(await screen.findByText("paid page")).toBeInTheDocument();
+  });
+
+  it("copies a bank detail and confirms it", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    renderAt("/q/tok/pay/deposit");
+    await userEvent.click(await screen.findByRole("radio", { name: /bank transfer/i }));
+    await userEvent.click(screen.getByRole("button", { name: /copy reference/i }));
+    expect(writeText).toHaveBeenCalledWith("Q-2026-0001-INV-1");
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
   });
 
   it("arrow keys move the payment method selection", async () => {
