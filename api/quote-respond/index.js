@@ -98,6 +98,14 @@ async function accept(context, svc, quote, body, req, token) {
     schedule: quote.schedule,
     terms: quote.terms || "",
     validUntil: quote.validUntil || null,
+    highlights: quote.highlights || [],
+    runningCosts: quote.runningCosts || [],
+    exclusions: quote.exclusions || "",
+    assumptions: quote.assumptions || "",
+    nextSteps: quote.nextSteps || "",
+    optionalTitle: quote.optionalTitle || "",
+    optionalItems: quote.optionalItems || [],
+    discountLabel: quote.discountLabel || "",
   });
   const updated = await writeOnce(svc, quote, {
     status: "accepted",

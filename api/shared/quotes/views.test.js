@@ -34,6 +34,15 @@ const quote = {
 };
 
 const CLIENT_KEYS = [
+  "highlights",
+  "discountLabel",
+  "runningCosts",
+  "exclusions",
+  "assumptions",
+  "nextSteps",
+  "optionalTitle",
+  "optionalItems",
+  "optionalTotalMinor",
   "acceptedName",
   "clientCompany",
   "clientEmail",
@@ -61,6 +70,7 @@ const CLIENT_KEYS = [
 ];
 
 const CLIENT_STAGE_KEYS = [
+  "note",
   "amountMinor",
   "dueAt",
   "dueBy",
@@ -76,6 +86,14 @@ const CLIENT_STAGE_KEYS = [
 ];
 
 const ADMIN_KEYS = [
+  "highlights",
+  "discountLabel",
+  "runningCosts",
+  "exclusions",
+  "assumptions",
+  "nextSteps",
+  "optionalTitle",
+  "optionalItems",
   "acceptedName",
   "acceptedUa",
   "clientCompany",
@@ -271,5 +289,26 @@ describe("summarize invoices", () => {
   it("has no invoices before any stage is requested", () => {
     const later = M.stageStates({ ...quote, status: "sent" }, [], Date.now());
     expect(V.summarize({ ...quote, id: "q1" }, later).invoices).toEqual([]);
+  });
+
+  it("shows optional extras with a display-only total and reads old quotes as empty", () => {
+    const q = {
+      ...quote,
+      optionalItems: [{ id: "o1", description: "SMS", qty: 2, unitMinor: 100, detail: "Opt-in" }],
+    };
+    const v = V.clientQuoteView(q, M.stageStates(q, []), { receiptSecret: "s" });
+    expect(v.optionalTotalMinor).toBe(200);
+    expect(v.optionalItems[0]).toMatchObject({ lineMinor: 200, detail: "Opt-in" });
+    expect(v.totalMinor).toBe(quote.totalMinor);
+    const old = V.clientQuoteView(quote, M.stageStates(quote, []), { receiptSecret: "s" });
+    expect(old).toMatchObject({
+      highlights: [],
+      runningCosts: [],
+      optionalItems: [],
+      optionalTotalMinor: 0,
+      discountLabel: "",
+    });
+    expect(old.items[0].detail).toBe("");
+    expect(old.stages[0].note).toBe("");
   });
 });
