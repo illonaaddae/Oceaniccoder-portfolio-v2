@@ -833,3 +833,7 @@ module.exports = async function (context, req) {
     });
   }
 };
+
+// Exported for the admin email previews (api/shared/email/catalog.js).
+module.exports.hostNotificationHtml = hostNotificationHtml;
+module.exports.bookerConfirmationHtml = bookerConfirmationHtml;

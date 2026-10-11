@@ -1,9 +1,9 @@
-// /api/email-preview — admin-only previews of every email template with sample
-// data, plus "send a test to me".
+// /api/email-preview — admin-only previews of every email the site sends, with
+// sample data, plus "send a test to me". The list lives in shared/email/catalog.
 
 const { requireAdmin } = require("../shared/adminAuth");
 const { send, readJson, handleError, HttpError } = require("../shared/http");
-const { SAMPLES } = require("../shared/email/samples");
+const { CATALOG, findEmail } = require("../shared/email/catalog");
 const { sendEmail } = require("../shared/email/send");
 
 function createHandler(deps) {
@@ -16,11 +16,27 @@ function createHandler(deps) {
     try {
       const name = req.method === "POST" ? readJson(req).name : (req.query || {}).name;
       if (req.method !== "POST" && !name)
-        return send(context, 200, { templates: Object.keys(SAMPLES) });
-      if (!Object.prototype.hasOwnProperty.call(SAMPLES, name))
-        throw new HttpError(404, "No such template.");
-      const mail = SAMPLES[name]();
-      if (req.method !== "POST") return send(context, 200, { name, ...mail });
+        return send(context, 200, {
+          from: deps.fromEmail(),
+          templates: CATALOG.map(({ id, group, name: label, when, render }) => ({
+            id,
+            group,
+            name: label,
+            when,
+            subject: render().subject,
+          })),
+        });
+      const entry = findEmail(name);
+      if (!entry) throw new HttpError(404, "No such template.");
+      const mail = entry.render();
+      if (req.method !== "POST")
+        return send(context, 200, {
+          name,
+          group: entry.group,
+          label: entry.name,
+          when: entry.when,
+          ...mail,
+        });
       const to = deps.adminEmail();
       if (!to) throw new HttpError(500, "RESEND_TO_EMAIL is not configured.");
       const result = await deps.send({ to, ...mail, subject: `[Test] ${mail.subject}` });
@@ -36,5 +52,6 @@ module.exports = createHandler({
   requireAdmin,
   send: sendEmail,
   adminEmail: () => process.env.RESEND_TO_EMAIL,
+  fromEmail: () => process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev",
 });
 module.exports.createHandler = createHandler;
