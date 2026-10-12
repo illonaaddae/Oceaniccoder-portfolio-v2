@@ -128,8 +128,8 @@ describe("quoteToDraft", () => {
   });
 
   it("copies extras.needs (never shares it) and defaults it to null", () => {
-    expect(Q.quoteToDraft(null).extras).toEqual({ needs: null });
-    expect(Q.quoteToDraft({ extras: null }).extras).toEqual({ needs: null });
+    expect(Q.quoteToDraft(null).extras).toEqual({ needs: null, maintenance: null });
+    expect(Q.quoteToDraft({ extras: null }).extras).toEqual({ needs: null, maintenance: null });
     const needs = {
       intro: "Hi",
       groups: [
@@ -146,5 +146,42 @@ describe("quoteToDraft", () => {
     const d = Q.quoteToDraft({ extras: { needs } });
     expect(d.extras.needs).toEqual(needs);
     expect(d.extras.needs?.groups[0].rows).not.toBe(needs.groups[0].rows);
+  });
+
+  it("copies extras.maintenance (never shares it)", () => {
+    const maintenance = {
+      freeDays: 30,
+      freeText: "Fixed free.",
+      plans: [
+        { id: "care", name: "Care", priceMinor: 40000, period: "month" as const, includes: "" },
+      ],
+      note: "",
+    };
+    const d = Q.quoteToDraft({ extras: { needs: null, maintenance } });
+    expect(d.extras.maintenance).toEqual(maintenance);
+    expect(d.extras.maintenance?.plans[0]).not.toBe(maintenance.plans[0]);
+  });
+});
+
+describe("maintenance defaults", () => {
+  it("starts with 30 free days and the standard free-period text", () => {
+    expect(Q.defaultMaintenance()).toEqual({
+      freeDays: 30,
+      freeText: "Any defect found is fixed at no cost.",
+      plans: [],
+      note: "",
+    });
+  });
+
+  it("offers the two standard plans with valid, distinct ids", () => {
+    const plans = Q.standardMaintenancePlans();
+    expect(plans.map((p) => [p.name, p.priceMinor, p.period])).toEqual([
+      ["Care", 40000, "month"],
+      ["Care Plus", 90000, "month"],
+    ]);
+    expect(plans[0].includes.split("\n")).toHaveLength(4);
+    expect(plans[1].includes).toContain("Priority response within 1 working day");
+    expect(new Set(plans.map((p) => p.id)).size).toBe(2);
+    for (const p of plans) expect(p.id).toMatch(/^[a-z0-9-]{1,24}$/);
   });
 });

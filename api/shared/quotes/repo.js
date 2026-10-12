@@ -104,6 +104,17 @@ function createQuoteRepo(db) {
       throw new Error("Could not allocate a quote number");
     },
 
+    // Accepted quotes whose maintenance offer hasn't gone out yet. The caller
+    // checks the rest (fully paid, has plans, due date reached).
+    async listMaintenanceCandidates() {
+      const r = await db.listDocuments(DATABASE_ID, QUOTES, [
+        Query.equal("status", ["accepted"]),
+        Query.isNull("maintenanceOfferSentAt"),
+        Query.limit(500),
+      ]);
+      return r.documents.map(toQuote);
+    },
+
     async update(id, patch) {
       return toQuote(await db.updateDocument(DATABASE_ID, QUOTES, id, toDoc(patch)));
     },

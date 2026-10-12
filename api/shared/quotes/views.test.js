@@ -115,6 +115,7 @@ const ADMIN_KEYS = [
   "payState",
   "quoteNumber",
   "requirementsId",
+  "maintenanceOfferSentAt",
   "respondedAt",
   "revision",
   "schedule",
@@ -331,7 +332,7 @@ describe("needs tables in the views", () => {
       },
     ],
   };
-  const q = { ...quote, extras: { needs, maintenance: { plan: "later-key-leak" } } };
+  const q = { ...quote, extras: { needs, futureKey: { plan: "later-key-leak" } } };
 
   it("shows each group and row field by field to the client", () => {
     const v = V.clientQuoteView(q, M.stageStates(q, []), { receiptSecret: "s" });
@@ -349,6 +350,7 @@ describe("needs tables in the views", () => {
           },
         ],
       },
+      maintenance: null,
     });
     const json = JSON.stringify(v);
     for (const leak of ["admin-only-leak", "group-leak", "row-leak", "later-key-leak"])
@@ -359,7 +361,108 @@ describe("needs tables in the views", () => {
     expect(V.adminQuoteView(q).extras).toEqual(
       V.clientQuoteView(q, M.stageStates(q, []), { receiptSecret: "s" }).extras,
     );
-    expect(V.adminQuoteView(quote).extras).toEqual({ needs: null });
-    expect(V.clientQuoteView(quote, M.stageStates(quote, [])).extras).toEqual({ needs: null });
+    expect(V.adminQuoteView(quote).extras).toEqual({ needs: null, maintenance: null });
+    expect(V.clientQuoteView(quote, M.stageStates(quote, [])).extras).toEqual({
+      needs: null,
+      maintenance: null,
+    });
+  });
+});
+
+describe("maintenance in the views", () => {
+  const maintenance = {
+    freeDays: 30,
+    freeText: "Any defect found is fixed at no cost.",
+    secret: "maint-leak",
+    plans: [
+      {
+        id: "care",
+        name: "Care",
+        priceMinor: 40000,
+        period: "month",
+        includes: "- Updates\nMonitoring\n\n",
+        cost: "plan-leak",
+      },
+      { id: "plus", name: "Care Plus", priceMinor: 900000, period: "year", includes: "" },
+    ],
+    note: "Optional.",
+  };
+  const q = { ...quote, extras: { maintenance } };
+
+  it("shows the section field by field and is the same for the admin", () => {
+    const v = V.clientQuoteView(q, M.stageStates(q, []), { receiptSecret: "s" });
+    expect(v.extras.maintenance).toEqual({
+      freeDays: 30,
+      freeText: "Any defect found is fixed at no cost.",
+      plans: [
+        {
+          id: "care",
+          name: "Care",
+          priceMinor: 40000,
+          period: "month",
+          includes: "- Updates\nMonitoring\n\n",
+        },
+        { id: "plus", name: "Care Plus", priceMinor: 900000, period: "year", includes: "" },
+      ],
+      note: "Optional.",
+    });
+    const json = JSON.stringify(v);
+    expect(json).not.toContain("maint-leak");
+    expect(json).not.toContain("plan-leak");
+    expect(V.adminQuoteView(q).extras.maintenance).toEqual(v.extras.maintenance);
+  });
+
+  it("is null when neither a free period nor a plan is set", () => {
+    const empty = { ...quote, extras: { maintenance: { freeDays: 0, plans: [], note: "x" } } };
+    expect(V.adminQuoteView(empty).extras.maintenance).toBeNull();
+  });
+
+  it("gives the admin the sent time and the offer timing", () => {
+    const sent = { ...q, maintenanceOfferSentAt: "2026-12-03T08:00:00.000Z" };
+    expect(V.adminQuoteView(sent).maintenanceOfferSentAt).toBe("2026-12-03T08:00:00.000Z");
+    const payments = [
+      { status: "success", stageId: "deposit", paidAt: "2026-10-02T00:00:00.000Z" },
+      { status: "success", stageId: "balance", paidAt: "2026-11-10T09:00:00.000Z" },
+    ];
+    const due = { ...sent, payState: { due: { balance: "2026-11-01T00:00:00.000Z" } } };
+    expect(V.maintenanceOfferState(due, M.stageStates(due, payments))).toEqual({
+      launchedAt: "2026-11-10T09:00:00.000Z",
+      dueAt: "2026-12-03T09:00:00.000Z",
+      sentAt: "2026-12-03T08:00:00.000Z",
+    });
+    expect(V.maintenanceOfferState(q, M.stageStates(q, []))).toBeNull();
+  });
+
+  it("builds the offer email view with formatted prices, lines and WhatsApp", () => {
+    const payments = [
+      { status: "success", stageId: "deposit", paidAt: "2026-10-02T00:00:00.000Z" },
+      { status: "success", stageId: "balance", paidAt: "2026-11-10T09:00:00.000Z" },
+    ];
+    const done = { ...q, payState: { due: { balance: "2026-11-01T00:00:00.000Z" } } };
+    const stages = M.stageStates(done, payments);
+    const v = V.maintenanceOfferEmailView(done, stages, {
+      now: new Date("2026-12-03T09:00:00.000Z"),
+      whatsapp: V.whatsappLink("+233 24 123 4567"),
+    });
+    expect(v).toMatchObject({
+      clientFirstName: "Kofi",
+      freeEnds: "10 Dec 2026",
+      freeEnded: false,
+      whatsappLink: "https://wa.me/233241234567",
+      note: "Optional.",
+    });
+    expect(v.plans[0]).toEqual({
+      name: "Care",
+      price: "GHS 400.00",
+      period: "month",
+      includes: ["Updates", "Monitoring"],
+    });
+    expect(v.plans[1].period).toBe("year");
+    const later = V.maintenanceOfferEmailView(done, stages, {
+      now: new Date("2026-12-20T00:00:00.000Z"),
+      whatsapp: "",
+    });
+    expect(later).toMatchObject({ freeEnded: true, whatsappLink: "" });
+    expect(V.whatsappLink("")).toBe("");
   });
 });

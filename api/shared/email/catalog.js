@@ -116,6 +116,13 @@ const CATALOG = [
     render: quote("paymentReceipt"),
   },
   {
+    id: "maintenanceOffer",
+    group: "clients",
+    name: "Maintenance offer",
+    when: "A week before a launched project's free support ends",
+    render: quote("maintenanceOffer"),
+  },
+  {
     id: "invoiceSent",
     group: "clients",
     name: "Invoice",

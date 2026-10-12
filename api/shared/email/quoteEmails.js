@@ -1,7 +1,21 @@
 // Quote and payment emails. Each takes a pre-formatted view model from
 // api/shared/quotes/views.js and returns { subject, html, text }.
 
-const { shell, heading, card, button, buttons, steps, notice, small, lines } = require("./ui");
+const {
+  C,
+  esc,
+  safeUrl,
+  multiline,
+  shell,
+  heading,
+  card,
+  button,
+  buttons,
+  steps,
+  notice,
+  small,
+  lines,
+} = require("./ui");
 
 const CLIENT_REASON = "OceanicCoder · Web and app development";
 const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
@@ -274,7 +288,75 @@ function paymentAlert(v) {
   return { subject, html, text };
 }
 
+const PER = { month: "per month", year: "per year" };
+
+// One maintenance plan: name, price per period, and what it includes as a
+// tight list. Same white-on-slate card as the other summaries.
+function planCard(plan) {
+  const items = plan.includes
+    .map(
+      (line) =>
+        `<tr><td style="vertical-align:top;padding:0 8px 6px 0;color:${C.tealDark};font-size:14px;line-height:1.5">&bull;</td><td style="padding:0 0 6px;font-size:14px;line-height:1.5;color:${C.ink2}">${esc(line)}</td></tr>`,
+    )
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 16px">
+<tr><td style="padding:18px 22px 12px">
+<div style="font-size:17px;font-weight:700;color:${C.ink}">${esc(plan.name)}</div>
+<div style="font-size:15px;color:${C.ink3};margin:2px 0 ${items ? 12 : 4}px"><span style="font-size:22px;font-weight:700;color:${C.ink};font-variant-numeric:tabular-nums">${esc(plan.price)}</span> ${esc(PER[plan.period] || PER.month)}</div>
+${items ? `<table role="presentation" cellpadding="0" cellspacing="0">${items}</table>` : ""}
+</td></tr></table>`;
+}
+
+function maintenanceOffer(v) {
+  const free = v.freeEnds
+    ? `Your free support period ${v.freeEnded ? "ended" : "ends"} on ${v.freeEnds}.`
+    : "";
+  const plan = free
+    ? "After that, a plan keeps it safe, up to date and running well."
+    : "A plan keeps it safe, up to date and running well.";
+  const subject = free
+    ? `Keeping ${v.title} running after your free support period`
+    : `Keeping ${v.title} running after launch`;
+  const start = v.whatsappLink
+    ? `<p style="margin:0">Reply to this email or <a href="${esc(safeUrl(v.whatsappLink))}" style="color:${C.tealDark};font-weight:600">message me on WhatsApp</a> to start a plan.</p>`
+    : `<p style="margin:0">Reply to this email to start a plan.</p>`;
+  const html = shell({
+    preview: free || `Keeping ${v.title} running after launch`,
+    meta: { label: "Quote", number: v.quoteNumber },
+    reason: CLIENT_REASON,
+    body:
+      heading({
+        eyebrow: "Maintenance and support",
+        title: "Thank you for launching with me",
+        intro: `Hi ${v.clientFirstName}, ${v.title} is live. ${free ? `${free} ` : ""}${plan}`,
+      }) +
+      v.plans.map(planCard).join("") +
+      (v.note
+        ? `<p style="margin:0 0 16px;font-size:14px;color:${C.ink3}">${multiline(v.note)}</p>`
+        : "") +
+      start,
+  });
+  const text = lines(
+    `Hi ${v.clientFirstName},`,
+    `Thank you for launching ${v.title} with me.`,
+    free,
+    plan,
+    ...v.plans.map((p) =>
+      [
+        `${p.name}: ${p.price} ${PER[p.period] || PER.month}`,
+        ...p.includes.map((l) => `  - ${l}`),
+      ].join("\n"),
+    ),
+    v.note,
+    v.whatsappLink
+      ? `Reply to this email or message me on WhatsApp (${v.whatsappLink}) to start a plan.`
+      : "Reply to this email to start a plan.",
+  );
+  return { subject, html, text };
+}
+
 module.exports = {
+  maintenanceOffer,
   quoteSent,
   quoteAccepted,
   quoteDecisionAlert,

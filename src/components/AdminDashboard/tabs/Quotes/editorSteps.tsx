@@ -1,18 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type React from "react";
 import { FaArrowDown, FaArrowUp, FaPlus, FaTrash } from "react-icons/fa";
-import {
-  computeTotals,
-  formatMinor,
-  fromMinor,
-  newId,
-  scheduleError,
-  stageAmounts,
-  toMinor,
-} from "@/utils/quoteMath";
+import { computeTotals, formatMinor, newId, scheduleError, stageAmounts } from "@/utils/quoteMath";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { QuoteDraft } from "@/types/quote";
 import { NeedsTablesEditor } from "./NeedsTablesEditor";
+import { MaintenanceEditor } from "./MaintenanceEditor";
+import { PriceInput } from "./PriceInput";
 
 export interface StepProps {
   draft: QuoteDraft;
@@ -403,53 +397,6 @@ function ItemDetail({
   );
 }
 
-function PriceInput({
-  id,
-  label,
-  minor,
-  onChange,
-  onValidity,
-  error,
-}: {
-  id: string;
-  label: string;
-  minor: number;
-  onChange: (m: number) => void;
-  onValidity?: (id: string, ok: boolean) => void;
-  error?: string;
-}) {
-  const [text, setText] = useState(minor ? fromMinor(minor) : "");
-  const [bad, setBad] = useState(false);
-  // A box that disappears (item removed) must not keep blocking the editor.
-  useEffect(() => () => onValidity?.(id, true), [id, onValidity]);
-  const shown = bad ? "Enter a valid amount, e.g. 1,250.00" : error;
-  return (
-    <div>
-      <input
-        aria-label={label}
-        aria-invalid={bad || undefined}
-        inputMode="decimal"
-        placeholder={label === "Discount" ? "Discount" : "0.00"}
-        className={inputCls}
-        value={text}
-        onChange={(e) => {
-          const v = e.target.value;
-          setText(v);
-          const m = v.trim() === "" ? 0 : toMinor(v);
-          setBad(m === null);
-          onValidity?.(id, m !== null);
-          if (m !== null) onChange(m);
-        }}
-      />
-      {shown && (
-        <p className="text-xs mt-1" style={{ color: "var(--status-failed-text)" }}>
-          {shown}
-        </p>
-      )}
-    </div>
-  );
-}
-
 /**
  * Fill for controls with white text. Fixed brand teal rather than --accent-teal:
  * dark mode's #26a9c5 gives white text only 2.8:1, #085866 gives 8.1:1.
@@ -624,7 +571,7 @@ const subCardStyle = { borderColor: "var(--border-subtle)" };
 const hintCls = "text-xs";
 const hintStyle = { color: "var(--text-secondary)" };
 
-export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
+export function ExtrasStep({ draft, setDraft, errors, onValidity, theme }: StepProps) {
   const setCost = (i: number, patch: Partial<QuoteDraft["runningCosts"][number]>) =>
     setDraft({
       ...draft,
@@ -717,6 +664,14 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
           </button>
         )}
       </section>
+
+      <MaintenanceEditor
+        draft={draft}
+        setDraft={setDraft}
+        errors={errors}
+        onValidity={onValidity}
+        theme={theme}
+      />
 
       <section className={subCard} style={subCardStyle}>
         <p className={hintCls} style={hintStyle}>

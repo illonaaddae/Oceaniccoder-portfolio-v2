@@ -48,6 +48,20 @@ describe("quote repo", () => {
     expect(old).toMatchObject({ highlights: [], runningCosts: [], optionalItems: [], extras: {} });
   });
 
+  it("lists accepted quotes whose maintenance offer is not sent", async () => {
+    const db = {
+      listDocuments: vi.fn().mockResolvedValue({
+        documents: [{ $id: "q1", status: "accepted", extras: '{"maintenance":{"freeDays":30}}' }],
+      }),
+    };
+    const list = await createQuoteRepo(db).listMaintenanceCandidates();
+    expect(list[0]).toMatchObject({ id: "q1", extras: { maintenance: { freeDays: 30 } } });
+    const queries = JSON.stringify(db.listDocuments.mock.calls[0][2]);
+    expect(queries).toContain("isNull");
+    expect(queries).toContain("maintenanceOfferSentAt");
+    expect(queries).toContain("accepted");
+  });
+
   it("returns null for a missing quote", async () => {
     const db = {
       getDocument: vi.fn().mockRejectedValue(Object.assign(new Error("nf"), { code: 404 })),

@@ -1,6 +1,7 @@
 import type React from "react";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
-import type { ClientQuote, NeedsGroup, NeedsTables } from "@/types/quote";
+import type { ClientQuote, MaintenanceSection, NeedsGroup, NeedsTables } from "@/types/quote";
+import { formatMinor } from "@/utils/quoteMath";
 import { parseNeeds } from "@/utils/needsList";
 import { needsRowCount, visibleRows } from "@/utils/needsTables";
 
@@ -124,6 +125,114 @@ export function RunningCosts({ quote }: { quote: ClientQuote }) {
           </li>
         ))}
       </ul>
+    </QuoteCard>
+  );
+}
+
+/** Lower-cases the first letter so the free-period text reads on after a colon. */
+const continueSentence = (text: string) => {
+  const t = text.trim();
+  if (!t) return "";
+  const body = /^[A-Z][a-z]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t;
+  return /[.!?]$/.test(body) ? body : `${body}.`;
+};
+
+/** The section's opening line, built from the free period and the plans' period. */
+export function maintenanceIntro(m: MaintenanceSection): string {
+  const parts: string[] = [];
+  if (m.freeDays > 0) {
+    const lead =
+      m.freeDays === 1
+        ? "The first day after launch is included free"
+        : `The first ${m.freeDays} days after launch are included free`;
+    const extra = continueSentence(m.freeText);
+    parts.push(extra ? `${lead}: ${extra}` : `${lead}.`);
+  }
+  if (m.plans.length) {
+    const periods = new Set(m.plans.map((p) => p.period));
+    const kind =
+      periods.size > 1
+        ? "a plan"
+        : m.plans[0].period === "year"
+          ? "a yearly plan"
+          : "a monthly plan";
+    const sentence = `${kind} keeps the platform safe and up to date.`;
+    parts.push(
+      m.freeDays > 0
+        ? `After that, ${sentence}`
+        : `${sentence[0].toUpperCase()}${sentence.slice(1)}`,
+    );
+  }
+  return parts.join(" ");
+}
+
+const PER = { month: "month", year: "year" } as const;
+
+/**
+ * "Maintenance and support": the free period after launch and the optional
+ * paid plans as side-by-side cards. Hidden unless there is a free period or a
+ * plan. Always open; each plan card keeps itself whole on a printed page.
+ */
+export function Maintenance({ quote }: { quote: ClientQuote }) {
+  const m = quote.extras?.maintenance;
+  if (!m || (m.freeDays <= 0 && !m.plans.length)) return null;
+  return (
+    <QuoteCard>
+      <SectionLabel>Maintenance and support</SectionLabel>
+      <p
+        className="max-w-prose text-[15px] leading-relaxed break-words"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        {maintenanceIntro(m)}
+      </p>
+      {m.plans.length > 0 && (
+        <>
+          <ul className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr))]">
+            {m.plans.map((p) => (
+              <li
+                key={p.id}
+                className="flex min-w-0 flex-col rounded-xl border p-4 break-inside-avoid"
+                style={{ borderColor: "var(--border-subtle)" }}
+              >
+                <h3
+                  className="text-base font-semibold break-words"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {p.name}
+                </h3>
+                <p className="mt-1 break-words" style={{ color: "var(--text-secondary)" }}>
+                  <span
+                    className="text-lg font-bold tabular-nums"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {formatMinor(p.priceMinor, quote.currency)}
+                  </span>
+                  <span className="text-sm"> / {PER[p.period] ?? "month"}</span>
+                </p>
+                {p.includes.trim() && (
+                  <div
+                    className="mt-3 border-t pt-3 [&_ul]:text-sm"
+                    style={{ borderColor: "var(--border-subtle)" }}
+                  >
+                    <BulletLines text={p.includes} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Optional, and not part of the total above. You can start a plan after launch.
+          </p>
+        </>
+      )}
+      {m.note.trim() && (
+        <p
+          className="mt-2 max-w-prose text-sm leading-relaxed whitespace-pre-line break-words"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {m.note}
+        </p>
+      )}
     </QuoteCard>
   );
 }

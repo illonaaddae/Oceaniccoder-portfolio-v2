@@ -35,9 +35,39 @@ export interface NeedsTables {
   groups: NeedsGroup[];
 }
 
+export type MaintenancePeriod = "month" | "year";
+
+export interface MaintenancePlan {
+  id: string;
+  name: string;
+  /** Price per period in minor units, same currency as the quote. */
+  priceMinor: number;
+  period: MaintenancePeriod;
+  /** One item per line. */
+  includes: string;
+}
+
+/** "Maintenance and support" (stored in `extras.maintenance`). Mirrors parseMaintenance. */
+export interface MaintenanceSection {
+  /** Free days after launch; 0 = no free period. */
+  freeDays: number;
+  freeText: string;
+  plans: MaintenancePlan[];
+  note: string;
+}
+
 /** The `extras` JSON column. Mirrors parseExtras in api/shared/quotes/model.js. */
 export interface QuoteExtras {
   needs: NeedsTables | null;
+  /** Null (or absent on older responses) when the section is off. */
+  maintenance?: MaintenanceSection | null;
+}
+
+/** When the maintenance offer email is due (model.maintenanceOffer); null if it doesn't apply. */
+export interface MaintenanceOfferState {
+  launchedAt: string | null;
+  dueAt: string | null;
+  sentAt: string | null;
 }
 
 export interface QuoteItem {
@@ -191,6 +221,7 @@ export interface AdminQuote {
   optionalTitle?: string | null;
   optionalItems?: QuoteItem[] | null;
   extras?: QuoteExtras | null;
+  maintenanceOfferSentAt?: string | null;
 }
 
 /** A stage invoice that exists for the client (requested or paid). */
@@ -241,6 +272,8 @@ export interface QuoteDetailResponse {
   quote: AdminQuote;
   stages: AdminStage[];
   payments: QuotePayment[];
+  /** Present on responses from quote-admin; null unless the quote is fully paid with plans. */
+  maintenance?: MaintenanceOfferState | null;
   link?: string;
   emailed?: boolean;
 }

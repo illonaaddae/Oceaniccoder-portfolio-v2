@@ -84,6 +84,43 @@ const SAMPLE_VIEWS = {
       complete: false,
     },
   },
+  maintenanceOffer: {
+    template: "maintenanceOffer",
+    view: {
+      clientFirstName: "Kofi",
+      quoteNumber: "Q-2026-0007",
+      title: "Online store with Paystack checkout",
+      freeDays: 30,
+      freeEnds: "20 Dec 2026",
+      freeEnded: false,
+      plans: [
+        {
+          name: "Care",
+          price: "GHS 400.00",
+          period: "month",
+          includes: [
+            "Security and dependency updates",
+            "Uptime monitoring",
+            "Monthly backups check",
+            "Small content edits (up to 1 hour)",
+          ],
+        },
+        {
+          name: "Care Plus",
+          price: "GHS 900.00",
+          period: "month",
+          includes: [
+            "Everything in Care",
+            "Up to 4 hours of changes or small features",
+            "Priority response within 1 working day",
+            "Monthly performance report",
+          ],
+        },
+      ],
+      note: "Plans are optional. You can start or stop at any time.",
+      whatsappLink: "https://wa.me/233241234567",
+    },
+  },
   paymentAlert: {
     template: "paymentAlert",
     view: {

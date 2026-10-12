@@ -1,5 +1,7 @@
 import type {
   AdminQuote,
+  MaintenancePlan,
+  MaintenanceSection,
   QuoteCurrency,
   QuoteDraft,
   QuoteItem,
@@ -24,6 +26,45 @@ export const DEFAULT_TERMS = [
 ].join("\n");
 
 const ID_RE = /^[a-z0-9-]{1,24}$/;
+
+/** Mirrors the maintenance LIMITS in api/shared/quotes/model.js; the server has the final say. */
+export const MAINTENANCE_MAX = {
+  freeDays: 365,
+  freeText: 300,
+  plans: 4,
+  name: 60,
+  includes: 600,
+  note: 600,
+};
+
+export const DEFAULT_MAINTENANCE_FREE_TEXT = "Any defect found is fixed at no cost.";
+
+/** What "Include in this quote" starts with. */
+export function defaultMaintenance(): MaintenanceSection {
+  return { freeDays: 30, freeText: DEFAULT_MAINTENANCE_FREE_TEXT, plans: [], note: "" };
+}
+
+/** "Use my standard plans": amounts are in the quote's currency; edit per client. */
+export function standardMaintenancePlans(): MaintenancePlan[] {
+  return [
+    {
+      id: newId("plan"),
+      name: "Care",
+      priceMinor: 40000,
+      period: "month",
+      includes:
+        "Security and dependency updates\nUptime monitoring\nMonthly backups check\nSmall content edits (up to 1 hour)",
+    },
+    {
+      id: newId("plan"),
+      name: "Care Plus",
+      priceMinor: 90000,
+      period: "month",
+      includes:
+        "Everything in Care\nUp to 4 hours of changes or small features\nPriority response within 1 working day\nMonthly performance report",
+    },
+  ];
+}
 
 export function lineMinor(item: Pick<QuoteItem, "qty" | "unitMinor">): number {
   return Math.round(Number(item.qty) * Number(item.unitMinor));
@@ -137,6 +178,14 @@ export function quoteToDraft(q: Partial<AdminQuote> | null | undefined): QuoteDr
               ...g,
               rows: g.rows.map((r) => ({ ...r })),
             })),
+          }
+        : null,
+      maintenance: q?.extras?.maintenance
+        ? {
+            freeDays: q.extras.maintenance.freeDays ?? 0,
+            freeText: q.extras.maintenance.freeText ?? "",
+            plans: (q.extras.maintenance.plans ?? []).map((p) => ({ ...p })),
+            note: q.extras.maintenance.note ?? "",
           }
         : null,
     },

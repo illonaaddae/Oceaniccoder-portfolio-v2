@@ -93,9 +93,53 @@ describe("quote email templates", () => {
     expect(mail.subject).toBe(`Quote accepted: ${view.title}`);
   });
 
+  describe("maintenanceOffer", () => {
+    const { view } = SAMPLE_VIEWS.maintenanceOffer;
+
+    it("thanks the client, gives the free period end, the plans and how to start", () => {
+      const mail = T.maintenanceOffer(view);
+      expect(mail.subject).toContain(view.title);
+      expect(mail.html).toContain("Thank you for launching with me");
+      expect(mail.html).toContain("ends on 20 Dec 2026");
+      expect(mail.html).toContain("Care Plus");
+      expect(mail.html).toContain("GHS 900.00");
+      expect(mail.html).toContain("per month");
+      expect(mail.html).toContain("Priority response within 1 working day");
+      expect(mail.html).toContain("https://wa.me/233241234567");
+      expect(mail.html).toContain("message me on WhatsApp</a> to start a plan");
+      expect(mail.text).toContain("Care: GHS 400.00 per month");
+      expect(mail.text).toContain("  - Uptime monitoring");
+      expect(mail.text).toContain("ends on 20 Dec 2026");
+    });
+
+    it("has no payment link", () => {
+      const mail = T.maintenanceOffer(view);
+      expect(mail.html).not.toContain("/pay/");
+      expect(mail.text).not.toContain("/pay/");
+      expect(mail.html).not.toMatch(/Pay now/);
+    });
+
+    it("drops WhatsApp when no number is set and says ended for a past period", () => {
+      const mail = T.maintenanceOffer({ ...view, whatsappLink: "", freeEnded: true });
+      expect(mail.html).not.toContain("wa.me");
+      expect(mail.html).not.toContain("WhatsApp");
+      expect(mail.html).toContain("Reply to this email to start a plan.");
+      expect(mail.html).toContain("ended on 20 Dec 2026");
+      expect(mail.text).not.toContain("WhatsApp");
+    });
+
+    it("leaves the free period out when there was none", () => {
+      const mail = T.maintenanceOffer({ ...view, freeDays: 0, freeEnds: "" });
+      expect(mail.html).not.toContain("free support period");
+      expect(mail.html).toContain("A plan keeps it safe");
+      expect(mail.html).toContain("Care Plus");
+    });
+  });
+
   it("covers every template sample", () => {
     expect(Object.keys(SAMPLES).sort()).toEqual(
       [
+        "maintenanceOffer",
         "paymentAlert",
         "paymentAlertProblem",
         "paymentReceipt",
