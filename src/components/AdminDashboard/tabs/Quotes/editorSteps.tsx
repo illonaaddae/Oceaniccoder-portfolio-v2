@@ -759,7 +759,14 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
         </Field>
       </section>
 
-      <section className={subCard} style={subCardStyle} aria-labelledby="q-optional-heading">
+      {/* Dashed like the client's folded "Not in this quote" section, so Phase 2
+          stands apart from what the client is paying for. */}
+      <section
+        className={subCard}
+        style={{ borderColor: "var(--accent-teal)", borderStyle: "dashed", borderWidth: 2 }}
+        aria-labelledby="q-optional-heading"
+        data-testid="optional-extras"
+      >
         <h4
           id="q-optional-heading"
           className="text-sm font-semibold"
