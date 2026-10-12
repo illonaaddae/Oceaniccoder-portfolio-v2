@@ -22,8 +22,25 @@ const SHARED_THROUGHPUT = 1000;
 //   blog_reactions, blog_views   one row per (postId, visitorId)
 //   project_videos,
 //   project_case_studies         one row per projectId
+//
+// `analytics` (page views from /api/visit) is Cosmos-only, so it has no
+// Appwrite table to import (`imported: false`). Partition per UTC day; TTL is
+// on with no default (-1), and each item sets its own `ttl`. Only the fields
+// the analytics queries filter on are indexed, which keeps writes cheap.
+const ANALYTICS_INDEXING_POLICY = {
+  indexingMode: "consistent",
+  includedPaths: [{ path: "/type/?" }, { path: "/day/?" }, { path: "/ts/?" }, { path: "/sid/?" }],
+  excludedPaths: [{ path: "/*" }],
+};
+
 const CONTAINERS = {
   about: { partitionKey: "/id" },
+  analytics: {
+    partitionKey: "/day",
+    defaultTtl: -1,
+    indexingPolicy: ANALYTICS_INDEXING_POLICY,
+    imported: false,
+  },
   blog_posts: { partitionKey: "/id" },
   blog_reactions: { partitionKey: "/postId", uniqueKeys: [["/visitorId"]] },
   blog_views: { partitionKey: "/postId", uniqueKeys: [["/visitorId"]] },
@@ -76,13 +93,17 @@ async function ensureSchema(client) {
     id: DATABASE_ID,
     throughput: SHARED_THROUGHPUT,
   });
-  for (const [id, { partitionKey, uniqueKeys }] of Object.entries(CONTAINERS)) {
+  for (const [id, { partitionKey, uniqueKeys, defaultTtl, indexingPolicy }] of Object.entries(
+    CONTAINERS,
+  )) {
     await db.containers.createIfNotExists({
       id,
       partitionKey: { paths: [partitionKey] },
       ...(uniqueKeys && {
         uniqueKeyPolicy: { uniqueKeys: uniqueKeys.map((paths) => ({ paths })) },
       }),
+      ...(defaultTtl !== undefined && { defaultTtl }),
+      ...(indexingPolicy && { indexingPolicy }),
     });
   }
   return db;
