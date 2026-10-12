@@ -96,28 +96,74 @@ browser ──(fetch /api/*)──▶ Azure Functions (SWA managed API) ──�
 
 The key change: today the browser talks to Appwrite directly, and Appwrite permissions protect the data. Cosmos keys can never go to the browser, so **every read and write goes through a Function**, and the permission table above becomes code.
 
-| Need                | Azure service                                                                                                                                                                                     | Why                                                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Database            | **Cosmos DB for NoSQL, free tier** (1,000 RU/s and 25 GB free, one per subscription), one database with shared throughput, one container per collection (21, under the 25-container shared limit) | Document model maps 1:1 to Appwrite documents, so no schema redesign.                                                                                    |
-| Admin auth          | **Static Web Apps built-in auth** (GitHub or Microsoft provider) plus a custom `admin` role by invitation                                                                                         | No passwords to store, reset or leak; the route rules in `staticwebapp.config.json` are enforced by Azure, not the client. Password recovery disappears. |
-| Realtime (payments) | Poll every 15s while the Payments tab is open                                                                                                                                                     | One admin user, so Web PubSub is overkill. Revisit if needed.                                                                                            |
-| Contact email       | Send it inside the `POST /api/messages` Function (Resend is already in use)                                                                                                                       | Replaces the Appwrite Function.                                                                                                                          |
+| Need                | Azure service                                                                                                                                                                                     | Why                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database            | **Cosmos DB for NoSQL, free tier** (1,000 RU/s and 25 GB free, one per subscription), one database with shared throughput, one container per collection (21, under the 25-container shared limit) | Document model maps 1:1 to Appwrite documents, so no schema redesign.                                                                             |
+| Admin auth          | **Static Web Apps custom auth** with two OpenID Connect providers: GitHub, and email + password through **Microsoft Entra External ID**. Plus a custom `admin` role (decided 2026-10-03)          | We store no passwords; Entra handles sign-up, reset and lockout. Route rules in `staticwebapp.config.json` are enforced by Azure, not the client. |
+| Realtime (payments) | Poll every 15s while the Payments tab is open                                                                                                                                                     | One admin user, so Web PubSub is overkill. Revisit if needed.                                                                                     |
+| Contact email       | Send it inside the `POST /api/messages` Function (Resend is already in use)                                                                                                                       | Replaces the Appwrite Function.                                                                                                                   |
+
+> **Auth note:** any custom provider switches off the SWA built-in ones, so
+> GitHub needs its own OAuth app registration as well as the Entra one. Both
+> need the Standard plan, which the site has.
 
 ### 3.2 Steps
 
-1. **Cosmos setup:** account (free tier on), database `portfolio`, 21 containers. Partition keys: `/id` for content collections; `/postId` for `blog_views` and `blog_reactions`; `/projectId` for `project_videos` and `project_case_studies`. Unique keys where Appwrite had unique indexes (e.g. `project_videos.projectId`).
-2. **Import:** `scripts/import-to-cosmos.mjs` reads the Phase 1 backup and keeps `$id`, `$createdAt` and `$updatedAt` as `id`, `createdAt` and `updatedAt`, so links and slugs don't break. Run it after Phase 2, so the imported documents already have blob URLs.
+1. ✅ **Cosmos setup (2026-10-03):** account `oceaniccoder-db` in Central US (the region the SWA's API runs in), free tier on, database `portfolio` with 1,000 RU/s shared, 21 containers. Layout lives in `api/shared/cosmos.js`. Partition keys: `/id` for content; `/postId` for `blog_views` and `blog_reactions` with a unique key on `/visitorId`; `/projectId` for `project_videos` and `project_case_studies` with a unique key on `/projectId`.
+2. ✅ **Import:** `scripts/import-to-cosmos.mjs` reads the Phase 1 backup and keeps `$id`, `$createdAt` and `$updatedAt` as `id`, `createdAt` and `updatedAt`, so links and slugs don't break. It refuses a backup that still has Appwrite file URLs (taken before the Phase 2 rewrite) and skips `settings.admin_password_hash`.
 3. **Data API** (`api/data/index.js`):
    - `GET /api/data/{collection}` and `/{id}`: public read for the public-read collections only, plus the three public `settings` keys;
    - `POST /api/data/{collection}`: public create for comments, messages, bookings and inquiries, with server-side validation and Cloudflare Turnstile (already used elsewhere);
    - counter endpoints for reactions and views (increment-only);
+   - **Testimonials:** the public "Share your experience" form (`src/components/Testimonials/useTestimonialForm.ts`) has never worked for visitors, because only the admin can create testimonials. Give it a `POST` that saves a pending, unapproved testimonial, and upload the optional photo through the same endpoint (not anonymously to storage), so failed submissions stop leaving orphan photos.
    - `/api/admin/data/{collection}[/{id}]`: full CRUD, `admin` role only (enforced in `staticwebapp.config.json` **and** checked in the Function).
    - Query support: translate the `Query.*` options actually used (`equal`, `orderAsc/Desc`, `limit`, `offset`, `select`) into parameterised Cosmos SQL. Grep every `Query.` in `src/services/api` first and support only those.
 4. **Response shape adapter:** the Functions return `$id`, `$createdAt` and `$updatedAt` exactly as today, so **components don't change**. Only `src/services/api/*` changes, one file per domain. Each file keeps its tests, retargeted at `fetch`.
 5. **Server Functions:** move `get-invoice`, `create-booking`, `send-newsletter` and `paystack-webhook` from `node-appwrite` to `@azure/cosmos`. The webhook is the most sensitive: test the paid-invoice path with Paystack test keys before cutover.
+   - Quotes (added 2026-10-10): containers `quotes`, `locks` and the new `payments`
+     fields. Only `api/shared/quotes/repo.js` and `api/shared/locks.js` talk to
+     the database; swap those two modules (and `api/shared/appwrite.js`) at cutover.
 6. **Auth swap:** replace `auth.ts` (`verifyAdminPassword`, session checks, `createJWT`) with `/.auth/me` plus role checks. The admin login page becomes "Sign in with GitHub". Keep the rule from `CLAUDE.md`: no client-only guards. Routes are protected by SWA config.
 7. **Realtime:** replace `subscribeToPayments` with a polling hook. The function signature stays the same, so callers don't change.
 8. **Remove Appwrite:** delete `src/lib/appwrite.ts` and the `appwrite`/`node-appwrite` dependencies, delete all `VITE_APPWRITE_*` and `APPWRITE_*` variables, and delete the stale `VITE_ADMIN_PASSWORD_HASH` line in `.github/workflows/azure-static-web-apps.yml`. Update the env tables in `CLAUDE.md`.
+
+#### Quote collections as they exist in Appwrite (2026-10-10)
+
+Created in the Appwrite console. The `quotes` and `locks` collections have no permissions (server key only). Long fields use `text`/`mediumtext` because Appwrite caps a row at 65,535 bytes.
+
+- **`quotes`**
+  - `quoteNumber` string(20), required, unique index
+  - `revision` int, required (1–1000)
+  - `inquiryId` string(36)
+  - `clientName` string(120), required; `clientEmail` string(254); `clientPhone` string(40); `clientCompany` string(120)
+  - `currency` enum [GHS, USD], required
+  - `title` string(160), required
+  - `overview`, `scope`, `timeline`, `notes`, `terms` text
+  - `items` mediumtext, required (JSON)
+  - `discountMinor`, `subtotalMinor`, `totalMinor` int
+  - `schedule` text, required (JSON)
+  - `validDays` int (1–90)
+  - `validUntil`, `sentAt`, `viewedAt`, `respondedAt` datetime
+  - `status` enum [draft, sent, accepted, declined, expired, cancelled], required, key index
+  - `tokenHash` string(64), unique index
+  - `acceptedName` string(120); `acceptedIpHash` string(64); `acceptedUa` string(300)
+  - `acceptedSnapshot` mediumtext (JSON)
+  - `declineReason` string(500)
+  - `payState` text (JSON)
+  - `requirementsId` string(36)
+  - Added 2026-10-11 (full proposal): `highlights` text (JSON); `discountLabel` string(60);
+    `runningCosts` text (JSON); `exclusions`, `assumptions`, `nextSteps` text;
+    `optionalTitle` string(80); `optionalItems` mediumtext (JSON)
+  - Added 2026-10-12 (needs and maintenance): `extras` string(100000) (JSON:
+    `{ needs, maintenance }`); `maintenanceOfferSentAt` datetime
+- **`locks`**
+  - `key` string(200), required
+  - Document id is `"s_"` plus the first 34 hex characters of the SHA-256 of the lock key.
+- **`payments`** (new fields)
+  - `kind` string(10); `quoteId` string(36); `quoteNumber` string(20); `stageId` string(24)
+  - `amountMinor` int; `note` string(300); `recordedBy` string(254); `channel` string(40)
+  - `paystackId` string(40); `accessCode` string(100)
+  - Key indexes on `quoteNumber`, `kind` and `paystackReference`.
 
 ### 3.3 Cutover (one evening)
 
