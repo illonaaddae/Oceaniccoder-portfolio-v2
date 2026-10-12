@@ -27,6 +27,12 @@ async function fillClient() {
 }
 
 describe("QuoteEditor", () => {
+  it("outlines the optional extras (Phase 2) area with a dashed border", async () => {
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /extras/i }));
+    expect(screen.getByTestId("optional-extras")).toHaveStyle({ borderStyle: "dashed" });
+  });
+
   it("picks the currency from the design-system dropdown, not a native select", async () => {
     render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
     expect(document.querySelector("select")).toBeNull();
