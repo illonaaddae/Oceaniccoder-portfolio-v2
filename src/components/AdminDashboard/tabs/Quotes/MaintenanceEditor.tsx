@@ -305,7 +305,7 @@ export function MaintenanceEditor({
               rows={2}
               maxLength={MAX.note}
               className={inputCls}
-              placeholder="e.g. Plans are optional. You can start or stop at any time."
+              placeholder="e.g. Plans are optional. You can start or stop at any time. Unused hours don’t roll over."
               value={m.note}
               onChange={(e) => patch({ note: e.target.value })}
             />
