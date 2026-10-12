@@ -27,4 +27,18 @@ describe("TextBlock", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "https://example.com/a");
     expect(container.textContent).toBe("(see https://example.com/a).");
   });
+  it("treats -, • and * markers as bullets even without a space", () => {
+    render(<TextBlock text={"-The 60% / 40% payments\n•Second\n* Third\n*Fourth"} />);
+    const items = screen.getAllByRole("listitem");
+    expect(items.map((li) => li.textContent)).toEqual([
+      "The 60% / 40% payments",
+      "Second",
+      "Third",
+      "Fourth",
+    ]);
+  });
+  it("keeps plain paragraphs as paragraphs", () => {
+    render(<TextBlock text={"Just text - with a dash"} />);
+    expect(screen.queryByRole("listitem")).toBeNull();
+  });
 });

@@ -1,5 +1,4 @@
 import type React from "react";
-import TextBlock from "./TextBlock";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
 import type { ClientQuote } from "@/types/quote";
 
@@ -74,7 +73,7 @@ export function AtAGlance({ quote }: { quote: ClientQuote }) {
   return (
     <QuoteCard>
       <SectionLabel>At a glance</SectionLabel>
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
         {items.map((h, i) => (
           <li
             key={i}
@@ -127,21 +126,41 @@ export function RunningCosts({ quote }: { quote: ClientQuote }) {
   );
 }
 
+/** Strip a leading "-", "•" or "*" marker so notes written either way read the same. */
+const stripMarker = (l: string) => l.replace(/^[-•*]\s*/, "");
+
+/** One tight bullet per non-empty line, matching the bullets in TextBlock. */
+function BulletLines({ text }: { text: string }) {
+  const items = lines(text).map(stripMarker).filter(Boolean);
+  return (
+    <ul
+      className="list-disc pl-5 space-y-1 text-[15px] leading-snug"
+      style={{ color: "var(--text-secondary)" }}
+    >
+      {items.map((l, i) => (
+        <li key={i} className="min-w-0 break-words">
+          {l}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function ScopeNotes({ quote }: { quote: ClientQuote }) {
   const exclusions = quote.exclusions.trim();
   const assumptions = quote.assumptions.trim();
   if (!exclusions && !assumptions) return null;
-  const heading = "text-sm font-semibold mb-1";
+  const heading = "text-sm font-semibold mb-1.5";
   return (
     <QuoteCard>
       <Disclosure summary="Scope notes">
-        <div className="space-y-4">
+        <div className="space-y-5 pt-1">
           {exclusions && (
             <div className="min-w-0 break-words">
               <p className={heading} style={{ color: "var(--text-primary)" }}>
                 Not included
               </p>
-              <TextBlock text={exclusions} />
+              <BulletLines text={exclusions} />
             </div>
           )}
           {assumptions && (
@@ -149,7 +168,7 @@ export function ScopeNotes({ quote }: { quote: ClientQuote }) {
               <p className={heading} style={{ color: "var(--text-primary)" }}>
                 What I need from you
               </p>
-              <TextBlock text={assumptions} />
+              <BulletLines text={assumptions} />
             </div>
           )}
         </div>
@@ -164,7 +183,7 @@ export function NextSteps({ quote }: { quote: ClientQuote }) {
   return (
     <QuoteCard>
       <SectionLabel>Next steps</SectionLabel>
-      <ol className="list-decimal space-y-1.5 pl-5 text-[15px] leading-relaxed">
+      <ol className="list-decimal space-y-1 pl-5 text-[15px] leading-snug">
         {steps.map((s, i) => (
           <li key={i} className="min-w-0 break-words" style={{ color: "var(--text-secondary)" }}>
             {s}
