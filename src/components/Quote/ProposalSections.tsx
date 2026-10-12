@@ -97,7 +97,8 @@ export function RunningCosts({ quote }: { quote: ClientQuote }) {
     <QuoteCard>
       <SectionLabel>Running costs</SectionLabel>
       <p className="mb-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-        These are paid to the providers after launch. They are not part of the price above.
+        You pay these directly to each provider, from the start of the project. They are separate
+        from this quote and not part of the price above.
       </p>
       <ul className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
         {quote.runningCosts.map((c, i) => (

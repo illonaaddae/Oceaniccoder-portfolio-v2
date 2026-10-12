@@ -7,6 +7,7 @@ import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { ManualMethod, QuoteDetailResponse } from "@/types/quote";
 import { waLink } from "./waLink";
 import QuoteClientPreview from "./QuoteClientPreview";
+import { INVALID_AMOUNT } from "./PriceInput";
 
 const btn =
   "px-3 py-2 rounded-lg text-sm font-medium border transition hover:opacity-90 disabled:opacity-50";
@@ -26,6 +27,7 @@ export default function QuoteSidebar({
   data,
   onChanged,
   sendBlocked = false,
+  sendBlockedReason = "unsaved",
   theme = "dark",
 }: {
   data: QuoteDetailResponse;
@@ -33,6 +35,8 @@ export default function QuoteSidebar({
   onChanged: (next: QuoteDetailResponse) => void;
   /** The editor beside it has unsaved changes, so Send would send the old version. */
   sendBlocked?: boolean;
+  /** Why Send is blocked: unsaved edits, or a box (e.g. a price) that can't be saved yet. */
+  sendBlockedReason?: "unsaved" | "invalid";
 }) {
   const confirm = useConfirm();
   const id = data.quote.id;
@@ -423,7 +427,9 @@ export default function QuoteSidebar({
                 className="w-full text-xs"
                 style={{ color: "var(--text-secondary)" }}
               >
-                Save your changes first, so the client gets this version.
+                {sendBlockedReason === "invalid"
+                  ? `${INVALID_AMOUNT} Fix the amount in red, then save.`
+                  : "Save your changes first, so the client gets this version."}
               </p>
             )}
           </>

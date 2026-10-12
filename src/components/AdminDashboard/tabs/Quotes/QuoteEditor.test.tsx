@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const quoteAdmin = vi.fn();
@@ -304,6 +304,89 @@ describe("QuoteEditor", () => {
     expect(screen.getByLabelText(/percent for stage 3/i)).toHaveValue(30);
   });
 
+  it("keeps a stage's note when a preset keeps that stage", async () => {
+    render(
+      <QuoteEditor theme="dark" initial={{ title: "S" }} onClose={vi.fn()} onSaved={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /payment stages/i }));
+    await userEvent.type(screen.getByLabelText(/when stage 1 is due/i), "On signing");
+    await userEvent.type(screen.getByLabelText(/when stage 2 is due/i), "At launch");
+    await userEvent.click(screen.getByRole("button", { name: "50 / 50" }));
+    expect(screen.getByLabelText(/when stage 1 is due/i)).toHaveValue("On signing");
+    expect(screen.getByLabelText(/when stage 2 is due/i)).toHaveValue("At launch");
+    await userEvent.click(screen.getByRole("button", { name: "40 / 30 / 30" }));
+    expect(screen.getByLabelText(/when stage 1 is due/i)).toHaveValue("On signing");
+    // Milestone is new, so it starts empty; Balance keeps its note.
+    expect(screen.getByLabelText(/when stage 2 is due/i)).toHaveValue("");
+    expect(screen.getByLabelText(/when stage 3 is due/i)).toHaveValue("At launch");
+  });
+
+  it("explains that running costs are paid by the client to each provider", async () => {
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /extras/i }));
+    expect(screen.getByText(/paid by the client directly to each provider/i)).toBeInTheDocument();
+  });
+
+  it("stays unsaved when the draft changes while a save is in flight", async () => {
+    let finish: (v: unknown) => void = () => {};
+    quoteAdmin.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const onChange = vi.fn();
+    render(
+      <QuoteEditor
+        theme="dark"
+        quoteId="q1"
+        initial={{ clientName: "Kofi", clientEmail: "kofi@example.com" }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        onChange={onChange}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/client name/i), " M");
+    await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    await userEvent.type(screen.getByLabelText(/client name/i), "ensah");
+    await act(async () => finish({ quote: { id: "q1" }, stages: [], payments: [] }));
+    const [draft, dirty] = onChange.mock.calls[onChange.mock.calls.length - 1];
+    expect(draft.clientName).toBe("Kofi Mensah");
+    expect(dirty).toBe(true);
+  });
+
+  it("runs saves one after another and reuses the id the first one created", async () => {
+    const pending: ((v: unknown) => void)[] = [];
+    quoteAdmin.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+    const onSaved = vi.fn();
+    render(
+      <QuoteEditor
+        theme="dark"
+        initial={{ clientName: "Kofi", clientEmail: "kofi@example.com" }}
+        onClose={vi.fn()}
+        onSaved={onSaved}
+      />,
+    );
+    const save = screen.getByRole("button", { name: /save draft/i });
+    // Two clicks in one batch, before React re-renders the button as disabled.
+    act(() => {
+      save.click();
+      save.click();
+    });
+    await waitFor(() => expect(quoteAdmin).toHaveBeenCalledTimes(1));
+    await act(async () => pending[0]({ quote: { id: "q9" }, stages: [], payments: [] }));
+    await waitFor(() => expect(quoteAdmin).toHaveBeenCalledTimes(2));
+    expect(quoteAdmin.mock.calls[0][0]).toBe("create");
+    expect(quoteAdmin.mock.calls[1]).toEqual(["save", expect.objectContaining({ id: "q9" })]);
+    await act(async () => pending[1]({ quote: { id: "q9" }, stages: [], payments: [] }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith("q9"));
+  });
+
   it("saves the 100% upfront plan as one full-payment stage", async () => {
     quoteAdmin.mockResolvedValue({ quote: { id: "q5" }, stages: [], payments: [] });
     render(
@@ -606,11 +689,13 @@ describe("QuoteEditor", () => {
       expect(onChange).toHaveBeenLastCalledWith(
         expect.objectContaining({ clientName: "Kofi" }),
         false,
+        false,
       );
       await userEvent.type(screen.getByLabelText(/client name/i), "!");
       expect(onChange).toHaveBeenLastCalledWith(
         expect.objectContaining({ clientName: "Kofi!" }),
         true,
+        false,
       );
     });
   });
