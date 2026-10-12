@@ -12,7 +12,7 @@ import {
 } from "@/utils/quoteMath";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { QuoteDraft } from "@/types/quote";
-import { rowsToText, textToRows, type NeedRow } from "@/utils/needsList";
+import { NeedsTablesEditor } from "./NeedsTablesEditor";
 
 export interface StepProps {
   draft: QuoteDraft;
@@ -624,185 +624,6 @@ const subCardStyle = { borderColor: "var(--border-subtle)" };
 const hintCls = "text-xs";
 const hintStyle = { color: "var(--text-secondary)" };
 
-const NEEDS_LIMIT = 3000;
-type NeedSlot = NeedRow & { id: number };
-
-/** Row editor for the client checklist. Rows live here so typing never jumps; the draft gets the serialized text. */
-function NeedsEditor({
-  draft,
-  setDraft,
-  error,
-}: {
-  draft: QuoteDraft;
-  setDraft: (next: QuoteDraft) => void;
-  error?: string;
-}) {
-  const nextId = useRef(0);
-  const withId = (rows: NeedRow[]): NeedSlot[] => rows.map((r) => ({ ...r, id: nextId.current++ }));
-  const [rows, setRows] = useState<NeedSlot[]>(() => withId(textToRows(draft.assumptions)));
-  const [pasting, setPasting] = useState(false);
-  const [pasted, setPasted] = useState("");
-
-  const commit = (next: NeedSlot[]) => {
-    setRows(next);
-    setDraft({ ...draft, assumptions: rowsToText(next) });
-  };
-  const edit = (id: number, text: string) =>
-    commit(rows.map((r) => (r.id === id ? { ...r, text } : r)));
-  const remove = (id: number) => commit(rows.filter((r) => r.id !== id));
-  const move = (i: number, by: -1 | 1) => {
-    const j = i + by;
-    if (j < 0 || j >= rows.length) return;
-    const next = [...rows];
-    [next[i], next[j]] = [next[j], next[i]];
-    commit(next);
-  };
-  const add = (kind: NeedRow["kind"]) => commit([...rows, ...withId([{ kind, text: "" }])]);
-  const addPasted = () => {
-    commit([...rows, ...withId(textToRows(pasted))]);
-    setPasted("");
-    setPasting(false);
-  };
-
-  // Numbers count each kind separately so labels read "Need 1", "Group heading 1".
-  let needN = 0;
-  let headingN = 0;
-  const used = rowsToText(rows).length;
-  const iconBtn =
-    "min-h-11 min-w-11 flex items-center justify-center rounded-lg disabled:opacity-30";
-  const textBtn = "text-sm flex items-center gap-2 min-h-11";
-
-  return (
-    <section className={subCard} style={subCardStyle}>
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-        What I&apos;ll need from you
-      </h3>
-      <p className={hintCls} style={hintStyle}>
-        Things the client must send you, like access, documents and content. Shown as a checklist on
-        their quote.
-      </p>
-      {rows.map((r, i) => {
-        const isHeading = r.kind === "heading";
-        const n = isHeading ? ++headingN : ++needN;
-        return (
-          <div key={r.id} className="flex items-center gap-1">
-            <input
-              aria-label={isHeading ? `Group heading ${n}` : `Need ${n}`}
-              className={`${inputCls} ${isHeading ? "font-semibold" : ""}`}
-              placeholder={isHeading ? "e.g. Access" : "e.g. Logo in SVG or PNG"}
-              value={r.text}
-              onChange={(e) => edit(r.id, e.target.value)}
-            />
-            <button
-              type="button"
-              aria-label={isHeading ? `Move heading ${n} up` : `Move need ${n} up`}
-              className={iconBtn}
-              style={{ color: "var(--text-secondary)" }}
-              disabled={i === 0}
-              onClick={() => move(i, -1)}
-            >
-              <FaArrowUp />
-            </button>
-            <button
-              type="button"
-              aria-label={isHeading ? `Move heading ${n} down` : `Move need ${n} down`}
-              className={iconBtn}
-              style={{ color: "var(--text-secondary)" }}
-              disabled={i === rows.length - 1}
-              onClick={() => move(i, 1)}
-            >
-              <FaArrowDown />
-            </button>
-            <button
-              type="button"
-              aria-label={isHeading ? `Remove heading ${n}` : `Remove need ${n}`}
-              className={iconBtn}
-              style={{ color: "var(--status-failed-text)" }}
-              onClick={() => remove(r.id)}
-            >
-              <FaTrash />
-            </button>
-          </div>
-        );
-      })}
-      <div className="flex flex-wrap gap-x-4">
-        <button
-          type="button"
-          className={textBtn}
-          style={{ color: "var(--accent-teal)" }}
-          onClick={() => add("item")}
-        >
-          <FaPlus /> Add item
-        </button>
-        <button
-          type="button"
-          className={textBtn}
-          style={{ color: "var(--accent-teal)" }}
-          onClick={() => add("heading")}
-        >
-          <FaPlus /> Add group heading
-        </button>
-        {!pasting && (
-          <button
-            type="button"
-            className={textBtn}
-            style={{ color: "var(--accent-teal)" }}
-            onClick={() => setPasting(true)}
-          >
-            Paste a list
-          </button>
-        )}
-      </div>
-      {pasting && (
-        <div className="space-y-2">
-          <textarea
-            aria-label="Paste your list"
-            rows={6}
-            className={inputCls}
-            placeholder={"One per line. Lines ending in a colon become group headings."}
-            value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
-          />
-          <div className="flex gap-4">
-            <button
-              type="button"
-              className={textBtn}
-              style={{ color: "var(--accent-teal)" }}
-              onClick={addPasted}
-            >
-              Add these
-            </button>
-            <button
-              type="button"
-              className={textBtn}
-              style={{ color: "var(--text-secondary)" }}
-              onClick={() => {
-                setPasted("");
-                setPasting(false);
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-      <p
-        className="text-xs"
-        style={{
-          color: used > NEEDS_LIMIT ? "var(--status-failed-text)" : "var(--text-secondary)",
-        }}
-      >
-        {used} / {NEEDS_LIMIT} characters
-      </p>
-      {error && (
-        <p className="text-xs" style={{ color: "var(--status-failed-text)" }}>
-          {error}
-        </p>
-      )}
-    </section>
-  );
-}
-
 export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
   const setCost = (i: number, patch: Partial<QuoteDraft["runningCosts"][number]>) =>
     setDraft({
@@ -913,7 +734,7 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
         </Field>
       </section>
 
-      <NeedsEditor draft={draft} setDraft={setDraft} error={errors.assumptions} />
+      <NeedsTablesEditor draft={draft} setDraft={setDraft} errors={errors} />
 
       <section className={subCard} style={subCardStyle}>
         <p className={hintCls} style={hintStyle}>

@@ -313,3 +313,155 @@ describe("full-proposal fields", () => {
     });
   });
 });
+
+describe("extras.needs", () => {
+  const base = draft();
+  const row = (over = {}) => ({
+    id: "r1",
+    item: "Logo",
+    detail: "Website",
+    when: "Week 1",
+    ...over,
+  });
+  const group = (over = {}) => ({
+    id: "g1",
+    title: "Content",
+    intro: "",
+    detailLabel: "Used for",
+    rows: [row()],
+    footnote: "",
+    ...over,
+  });
+  const withNeeds = (needs) => M.validateDraft({ ...base, extras: { needs } });
+
+  it("parses groups and rows, trims text and drops unknown keys", () => {
+    const r = M.validateDraft({
+      ...base,
+      extras: {
+        needs: { intro: "  Send early. ", groups: [group({ title: " Content ", stray: 1 })] },
+        maintenance: { plan: "later" },
+      },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.value.extras).toEqual({
+      needs: {
+        intro: "Send early.",
+        groups: [
+          {
+            id: "g1",
+            title: "Content",
+            intro: "",
+            detailLabel: "Used for",
+            rows: [{ id: "r1", item: "Logo", detail: "Website", when: "Week 1" }],
+            footnote: "",
+          },
+        ],
+      },
+    });
+  });
+
+  it("drops blank rows and groups with no title and no rows", () => {
+    const r = withNeeds({
+      intro: "",
+      groups: [
+        group({ rows: [row({ item: " ", detail: "", when: "" }), row({ id: "r2" })] }),
+        group({ id: "g2", title: "", rows: [row({ item: "", detail: "", when: "" })] }),
+        group({ id: "g3", title: "Later", rows: [] }),
+      ],
+    });
+    expect(r.ok).toBe(true);
+    expect(r.value.extras.needs.groups.map((g) => g.id)).toEqual(["g1", "g3"]);
+    expect(r.value.extras.needs.groups[0].rows.map((x) => x.id)).toEqual(["r2"]);
+  });
+
+  it("stores nothing when the tables are empty, and reads old drafts", () => {
+    const empty = withNeeds({ intro: " ", groups: [group({ title: "", rows: [] })] });
+    expect(empty.value.extras).toEqual({});
+    expect(M.validateDraft(base).value.extras).toEqual({});
+  });
+
+  it("keys errors by the editor position of the group and row", () => {
+    const r = withNeeds({
+      groups: [
+        group({ title: "", intro: "", rows: [] }),
+        group({
+          title: "",
+          rows: [
+            row({ item: "", detail: "", when: "" }),
+            row(),
+            row({ item: "", detail: "Only a detail" }),
+          ],
+        }),
+      ],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors["needs.groups.1.title"]).toBeDefined();
+    expect(r.errors["needs.groups.1.rows.2.item"]).toMatch(/Name the item/);
+    expect(r.errors["needs.groups.1.rows.0.item"]).toBeUndefined();
+    expect(r.errors["needs.groups.0.title"]).toBeUndefined();
+  });
+
+  it("applies the limits", () => {
+    const L = M.LIMITS;
+    const r = withNeeds({
+      intro: "x".repeat(L.needsIntro + 1),
+      groups: [
+        group({
+          title: "x".repeat(L.needsGroupTitle + 1),
+          intro: "x".repeat(L.needsGroupIntro + 1),
+          footnote: "x".repeat(L.needsFootnote + 1),
+          rows: [
+            row({
+              item: "x".repeat(L.needsItem + 1),
+              detail: "x".repeat(L.needsDetail + 1),
+              when: "x".repeat(L.needsWhen + 1),
+            }),
+          ],
+        }),
+      ],
+    });
+    for (const key of [
+      "needs.intro",
+      "needs.groups.0.title",
+      "needs.groups.0.intro",
+      "needs.groups.0.footnote",
+      "needs.groups.0.rows.0.item",
+      "needs.groups.0.rows.0.detail",
+      "needs.groups.0.rows.0.when",
+    ])
+      expect(r.errors[key], key).toBeDefined();
+
+    const many = withNeeds({
+      groups: [
+        group({ rows: Array.from({ length: L.needsRows + 1 }, (_, i) => row({ id: `r${i}` })) }),
+        ...Array.from({ length: L.needsGroups }, (_, i) => group({ id: `g${i + 2}` })),
+      ],
+    });
+    expect(many.errors["needs.groups"]).toMatch(/8/);
+    expect(many.errors["needs.groups.0.rows"]).toMatch(/30/);
+  });
+
+  it("falls back for an unknown column label and bad ids", () => {
+    const r = withNeeds({
+      groups: [group({ id: "Bad Id!", detailLabel: "Whatever", rows: [row({ id: "" })] })],
+    });
+    const g = r.value.extras.needs.groups[0];
+    expect(g).toMatchObject({ id: "group-1", detailLabel: "Used for" });
+    expect(g.rows[0].id).toBe("row-1");
+    const notes = withNeeds({ groups: [group({ detailLabel: "Notes" })] });
+    expect(notes.value.extras.needs.groups[0].detailLabel).toBe("Notes");
+  });
+
+  it("errors when the serialized extras would not fit the column", () => {
+    const L = M.LIMITS;
+    const fullRow = (i) =>
+      row({ id: `r${i}`, item: "x".repeat(L.needsItem), detail: "y".repeat(L.needsDetail) });
+    const r = withNeeds({
+      groups: Array.from({ length: L.needsGroups }, (_, g) =>
+        group({ id: `g${g}`, rows: Array.from({ length: L.needsRows }, (_, i) => fullRow(i)) }),
+      ),
+    });
+    expect(JSON.stringify(r.value.extras).length).toBeGreaterThan(L.extras);
+    expect(r.errors.extras).toBeDefined();
+  });
+});

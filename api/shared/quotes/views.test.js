@@ -35,6 +35,7 @@ const quote = {
 
 const CLIENT_KEYS = [
   "highlights",
+  "extras",
   "discountLabel",
   "runningCosts",
   "exclusions",
@@ -87,6 +88,7 @@ const CLIENT_STAGE_KEYS = [
 
 const ADMIN_KEYS = [
   "highlights",
+  "extras",
   "discountLabel",
   "runningCosts",
   "exclusions",
@@ -310,5 +312,54 @@ describe("summarize invoices", () => {
     });
     expect(old.items[0].detail).toBe("");
     expect(old.stages[0].note).toBe("");
+  });
+});
+
+describe("needs tables in the views", () => {
+  const needs = {
+    intro: "Send these early.",
+    secretNote: "admin-only-leak",
+    groups: [
+      {
+        id: "g1",
+        title: "Accounts",
+        intro: "",
+        detailLabel: "Notes",
+        internal: "group-leak",
+        rows: [{ id: "r1", item: "Domain access", detail: "", when: "Week 1", extra: "row-leak" }],
+        footnote: "You keep control.",
+      },
+    ],
+  };
+  const q = { ...quote, extras: { needs, maintenance: { plan: "later-key-leak" } } };
+
+  it("shows each group and row field by field to the client", () => {
+    const v = V.clientQuoteView(q, M.stageStates(q, []), { receiptSecret: "s" });
+    expect(v.extras).toEqual({
+      needs: {
+        intro: "Send these early.",
+        groups: [
+          {
+            id: "g1",
+            title: "Accounts",
+            intro: "",
+            detailLabel: "Notes",
+            rows: [{ id: "r1", item: "Domain access", detail: "", when: "Week 1" }],
+            footnote: "You keep control.",
+          },
+        ],
+      },
+    });
+    const json = JSON.stringify(v);
+    for (const leak of ["admin-only-leak", "group-leak", "row-leak", "later-key-leak"])
+      expect(json).not.toContain(leak);
+  });
+
+  it("gives the admin the same needs and old quotes an empty value", () => {
+    expect(V.adminQuoteView(q).extras).toEqual(
+      V.clientQuoteView(q, M.stageStates(q, []), { receiptSecret: "s" }).extras,
+    );
+    expect(V.adminQuoteView(quote).extras).toEqual({ needs: null });
+    expect(V.clientQuoteView(quote, M.stageStates(quote, [])).extras).toEqual({ needs: null });
   });
 });

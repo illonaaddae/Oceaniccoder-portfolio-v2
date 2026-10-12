@@ -35,15 +35,17 @@ describe("quote repo", () => {
         highlights: '["Live in 14 weeks"]',
         runningCosts: '[{"service":"Appwrite","purpose":"Hosting","cost":"USD 25"}]',
         optionalItems: '[{"id":"o1","description":"SMS"}]',
+        extras: '{"needs":{"intro":"Send early","groups":[]}}',
       }),
     };
     const q = await createQuoteRepo(db).get("q1");
     expect(q.highlights).toEqual(["Live in 14 weeks"]);
     expect(q.runningCosts[0].service).toBe("Appwrite");
     expect(q.optionalItems[0].description).toBe("SMS");
+    expect(q.extras).toEqual({ needs: { intro: "Send early", groups: [] } });
     db.getDocument.mockResolvedValue({ $id: "q2" });
     const old = await createQuoteRepo(db).get("q2");
-    expect(old).toMatchObject({ highlights: [], runningCosts: [], optionalItems: [] });
+    expect(old).toMatchObject({ highlights: [], runningCosts: [], optionalItems: [], extras: {} });
   });
 
   it("returns null for a missing quote", async () => {

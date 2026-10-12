@@ -97,6 +97,31 @@ function stageView(stage, receiptSecret) {
   };
 }
 
+// The needs tables, field by field, so nothing unlisted reaches the browser.
+function needsView(n) {
+  if (!n || typeof n !== "object") return null;
+  return {
+    intro: n.intro || "",
+    groups: (Array.isArray(n.groups) ? n.groups : []).map((g) => ({
+      id: g.id,
+      title: g.title || "",
+      intro: g.intro || "",
+      detailLabel: g.detailLabel === "Notes" ? "Notes" : "Used for",
+      rows: (Array.isArray(g.rows) ? g.rows : []).map((r) => ({
+        id: r.id,
+        item: r.item || "",
+        detail: r.detail || "",
+        when: r.when || "",
+      })),
+      footnote: g.footnote || "",
+    })),
+  };
+}
+
+function extrasView(x) {
+  return { needs: needsView(x && x.needs) };
+}
+
 function clientQuoteView(q, stages, { receiptSecret } = {}) {
   const summary = M.paymentSummary(stages);
   return {
@@ -137,6 +162,7 @@ function clientQuoteView(q, stages, { receiptSecret } = {}) {
       detail: i.detail || "",
     })),
     optionalTotalMinor: M.optionalTotals(q.optionalItems || []).optionalTotalMinor,
+    extras: extrasView(q.extras),
     subtotalMinor: q.subtotalMinor,
     discountMinor: q.discountMinor || 0,
     totalMinor: q.totalMinor,
@@ -182,6 +208,7 @@ function adminQuoteView(q) {
     nextSteps: q.nextSteps ?? null,
     optionalTitle: q.optionalTitle ?? null,
     optionalItems: q.optionalItems ?? null,
+    extras: extrasView(q.extras),
     discountMinor: q.discountMinor ?? null,
     subtotalMinor: q.subtotalMinor ?? null,
     totalMinor: q.totalMinor ?? null,

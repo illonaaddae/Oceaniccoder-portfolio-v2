@@ -129,5 +129,16 @@ export function quoteToDraft(q: Partial<AdminQuote> | null | undefined): QuoteDr
     nextSteps: pick(q?.nextSteps, ""),
     optionalTitle: pick(q?.optionalTitle, ""),
     optionalItems: q?.optionalItems ? q.optionalItems.map((i) => ({ ...i })) : [],
+    extras: {
+      needs: q?.extras?.needs
+        ? {
+            intro: q.extras.needs.intro ?? "",
+            groups: (q.extras.needs.groups ?? []).map((g) => ({
+              ...g,
+              rows: g.rows.map((r) => ({ ...r })),
+            })),
+          }
+        : null,
+    },
   };
 }

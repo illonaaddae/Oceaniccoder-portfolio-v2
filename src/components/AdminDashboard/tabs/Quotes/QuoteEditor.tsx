@@ -66,6 +66,8 @@ const STEPS: {
       "nextSteps",
       "optionalTitle",
       "optionalItems",
+      "needs",
+      "extras",
     ],
   },
   {

@@ -393,86 +393,163 @@ describe("QuoteEditor", () => {
   });
 
   describe("What I'll need from you", () => {
-    const SAMPLE = [
-      "- Access to the business email (info@westafricawander.com) during development",
-      "- Business registration certificate (Registrar General's Department)",
-      "- Tax Identification Number (TIN)",
-      "- Trip details: itinerary, inclusions and exclusions, dates, seats, prices, meeting points",
-      "Photos:",
-      "- Photos and videos for each trip and destination",
-    ].join("\n");
+    const lastDraft = () => quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft;
 
-    async function openExtras() {
+    async function openExtras(initial?: Record<string, unknown>) {
       quoteAdmin.mockResolvedValue({
         quote: { id: "q1", status: "draft" },
         stages: [],
         payments: [],
       });
+      render(
+        <QuoteEditor
+          theme="dark"
+          initial={initial}
+          quoteId={initial ? "q1" : undefined}
+          onClose={vi.fn()}
+          onSaved={vi.fn()}
+        />,
+      );
+      if (!initial) await fillClient();
+      await userEvent.click(screen.getByRole("button", { name: /extras/i }));
+    }
+    const savedNeeds = async () => {
+      await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+      return lastDraft().extras.needs;
+    };
+
+    it("adds a group and rows, moves and removes them, and saves extras.needs", async () => {
+      await openExtras();
+      await userEvent.type(screen.getByLabelText("Intro (optional)"), "Send these early.");
+      await userEvent.click(screen.getByRole("button", { name: "Add group" }));
+      await userEvent.type(screen.getByLabelText("Group 1 title"), "Accounts");
+      await userEvent.type(screen.getByLabelText("Item 1 in group 1"), "Domain access");
+      await userEvent.type(screen.getByLabelText("When 1 in group 1"), "Week 1");
+      await userEvent.click(screen.getByRole("button", { name: "Add row to group 1" }));
+      await userEvent.type(screen.getByLabelText("Item 2 in group 1"), "Email access");
+      await userEvent.type(screen.getByLabelText("Used for 2 in group 1"), "Verification");
+      await userEvent.click(screen.getByRole("button", { name: "Move row 2 in group 1 up" }));
+      expect(screen.getByLabelText("Item 1 in group 1")).toHaveValue("Email access");
+      await userEvent.click(screen.getByRole("button", { name: "Notes" }));
+      expect(screen.getByLabelText("Notes 1 in group 1")).toHaveValue("Verification");
+      await userEvent.click(screen.getByRole("button", { name: "Add row to group 1" }));
+      await userEvent.click(screen.getByRole("button", { name: "Remove row 3 in group 1" }));
+
+      const needs = await savedNeeds();
+      expect(needs.intro).toBe("Send these early.");
+      expect(needs.groups).toHaveLength(1);
+      expect(needs.groups[0]).toMatchObject({ title: "Accounts", detailLabel: "Notes" });
+      expect(
+        needs.groups[0].rows.map((r: { item: string; detail: string; when: string }) => [
+          r.item,
+          r.detail,
+          r.when,
+        ]),
+      ).toEqual([
+        ["Email access", "Verification", ""],
+        ["Domain access", "", "Week 1"],
+      ]);
+    });
+
+    it("moves and removes groups", async () => {
+      await openExtras();
+      await userEvent.click(screen.getByRole("button", { name: "Add group" }));
+      await userEvent.type(screen.getByLabelText("Group 1 title"), "First");
+      await userEvent.click(screen.getByRole("button", { name: "Add group" }));
+      await userEvent.type(screen.getByLabelText("Group 2 title"), "Second");
+      await userEvent.click(screen.getByRole("button", { name: "Move group 2 up" }));
+      expect(screen.getByLabelText("Group 1 title")).toHaveValue("Second");
+      await userEvent.click(screen.getByRole("button", { name: "Remove group 2" }));
+      expect(screen.queryByLabelText("Group 2 title")).toBeNull();
+      expect((await savedNeeds()).groups.map((g: { title: string }) => g.title)).toEqual([
+        "Second",
+      ]);
+    });
+
+    it("pastes a table copied from Docs (TABs, header row) or typed with pipes", async () => {
+      await openExtras();
+      await userEvent.click(screen.getByRole("button", { name: "Add group" }));
+      await userEvent.click(screen.getByRole("button", { name: "Paste a table into group 1" }));
+      fireEvent.change(screen.getByLabelText("Paste rows into group 1"), {
+        target: {
+          value: [
+            "Item\tUsed for\tWhen",
+            "Logo\tWebsite, emails\tWeek 1",
+            "",
+            "Photos | Trip pages | Week 4",
+            "Testimonials",
+          ].join("\n"),
+        },
+      });
+      await userEvent.click(screen.getByRole("button", { name: "Add these rows" }));
+      expect(screen.queryByLabelText("Paste rows into group 1")).toBeNull();
+      // The blank starter row is replaced, not kept above the pasted rows.
+      expect(screen.getByLabelText("Item 1 in group 1")).toHaveValue("Logo");
+      expect(screen.getByLabelText("Used for 1 in group 1")).toHaveValue("Website, emails");
+      expect(screen.getByLabelText("When 2 in group 1")).toHaveValue("Week 4");
+      expect(screen.getByLabelText("Item 3 in group 1")).toHaveValue("Testimonials");
+      expect(screen.getByLabelText("When 3 in group 1")).toHaveValue("");
+      expect(screen.queryByLabelText("Item 4 in group 1")).toBeNull();
+    });
+
+    it("fills the template when empty, then hides the button", async () => {
+      await openExtras();
+      await userEvent.click(screen.getByRole("button", { name: "Start from template" }));
+      expect(screen.getByLabelText("Intro (optional)")).toHaveValue(
+        "The timeline depends on these items arriving on time. Accounts and Paystack documents are needed in week 1, because provider approvals take time. Content is needed by week 4.",
+      );
+      expect(screen.getByLabelText("Group 1 title")).toHaveValue("Content and media");
+      expect(screen.getByLabelText("Group 3 title")).toHaveValue("Business documents for Paystack");
+      expect(screen.getByLabelText("Notes 3 in group 3")).toHaveValue("For the business");
+      expect(screen.queryByRole("button", { name: "Start from template" })).toBeNull();
+      const needs = await savedNeeds();
+      expect(needs.groups.map((g: { rows: unknown[] }) => g.rows.length)).toEqual([7, 4, 7]);
+    });
+
+    it("converts the old one-line list into groups and clears it", async () => {
+      await openExtras({
+        clientName: "Kofi",
+        clientEmail: "kofi@example.com",
+        title: "Store",
+        items: [{ id: "item-a", description: "Build", qty: 1, unitMinor: 100000 }],
+        assumptions: [
+          "- Tax Identification Number (TIN)",
+          "- Business registration certificate (Registrar General's Department)",
+          "Photos:",
+          "- Photos and videos for each trip",
+        ].join("\n"),
+      });
+      await userEvent.click(screen.getByRole("button", { name: "Convert the old list" }));
+      expect(screen.queryByRole("button", { name: "Convert the old list" })).toBeNull();
+      expect(screen.getByLabelText("Group 1 title")).toHaveValue("Items");
+      expect(screen.getByLabelText("Item 2 in group 1")).toHaveValue(
+        "Business registration certificate",
+      );
+      expect(screen.getByLabelText("Notes 2 in group 1")).toHaveValue(
+        "Registrar General's Department",
+      );
+      expect(screen.getByLabelText("Group 2 title")).toHaveValue("Photos");
+      expect(screen.getByLabelText("Item 1 in group 2")).toHaveValue(
+        "Photos and videos for each trip",
+      );
+      const needs = await savedNeeds();
+      expect(needs.groups).toHaveLength(2);
+      expect(lastDraft().assumptions).toBe("");
+    });
+
+    it("shows field errors from the server at the matching row", async () => {
       render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
       await fillClient();
       await userEvent.click(screen.getByRole("button", { name: /extras/i }));
-    }
-    const savedAssumptions = async () => {
+      await userEvent.click(screen.getByRole("button", { name: "Add group" }));
+      await userEvent.type(screen.getByLabelText("Group 1 title"), "Accounts");
+      await userEvent.type(screen.getByLabelText("When 1 in group 1"), "Week 1");
+      const failure = new QuoteApiError("Fix the highlighted fields.", 400, {
+        "needs.groups.0.rows.0.item": "Name the item (up to 240 characters).",
+      });
+      rejectWith = () => Promise.reject(failure);
       await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
-      return quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft.assumptions;
-    };
-
-    it("adds, edits and removes items and headings", async () => {
-      await openExtras();
-      expect(screen.queryByLabelText("What I need from you")).toBeNull();
-      await userEvent.click(screen.getByRole("button", { name: "Add group heading" }));
-      await userEvent.type(screen.getByLabelText("Group heading 1"), "Access");
-      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
-      await userEvent.type(screen.getByLabelText("Need 1"), "Email login");
-      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
-      await userEvent.type(screen.getByLabelText("Need 2"), "Domain");
-      expect(screen.getByLabelText("Need 1")).toHaveValue("Email login");
-      await userEvent.click(screen.getByRole("button", { name: "Remove need 1" }));
-      expect(screen.getByLabelText("Need 1")).toHaveValue("Domain");
-      await userEvent.click(screen.getByRole("button", { name: "Remove heading 1" }));
-      expect(screen.queryByLabelText("Group heading 1")).toBeNull();
-      await userEvent.click(screen.getByRole("button", { name: "Add group heading" }));
-      await userEvent.type(screen.getByLabelText("Group heading 1"), "Content");
-      expect(await savedAssumptions()).toBe("Domain\nContent:");
-    });
-
-    it("moves a row up", async () => {
-      await openExtras();
-      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
-      await userEvent.type(screen.getByLabelText("Need 1"), "First");
-      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
-      await userEvent.type(screen.getByLabelText("Need 2"), "Second");
-      await userEvent.click(screen.getByRole("button", { name: "Move need 2 up" }));
-      expect(screen.getByLabelText("Need 1")).toHaveValue("Second");
-      expect(await savedAssumptions()).toBe("Second\nFirst");
-    });
-
-    it("pastes a list into rows and saves headings as Heading: lines", async () => {
-      await openExtras();
-      await userEvent.click(screen.getByRole("button", { name: "Paste a list" }));
-      fireEvent.change(screen.getByLabelText("Paste your list"), { target: { value: SAMPLE } });
-      await userEvent.click(screen.getByRole("button", { name: "Add these" }));
-      expect(screen.queryByLabelText("Paste your list")).toBeNull();
-      expect(screen.getByLabelText("Need 1")).toHaveValue(
-        "Access to the business email (info@westafricawander.com) during development",
-      );
-      expect(screen.getByLabelText("Need 4")).toHaveValue(
-        "Trip details: itinerary, inclusions and exclusions, dates, seats, prices, meeting points",
-      );
-      expect(screen.getByLabelText("Group heading 1")).toHaveValue("Photos");
-      expect(screen.getByLabelText("Need 5")).toHaveValue(
-        "Photos and videos for each trip and destination",
-      );
-      expect(await savedAssumptions()).toBe(
-        [
-          "Access to the business email (info@westafricawander.com) during development",
-          "Business registration certificate (Registrar General's Department)",
-          "Tax Identification Number (TIN)",
-          "Trip details: itinerary, inclusions and exclusions, dates, seats, prices, meeting points",
-          "Photos:",
-          "Photos and videos for each trip and destination",
-        ].join("\n"),
-      );
+      expect(await screen.findByText("Name the item (up to 240 characters).")).toBeInTheDocument();
     });
   });
 
@@ -570,6 +647,10 @@ describe("QuoteEditor", () => {
 
       await userEvent.click(within(rail).getByRole("button", { name: /line items/i }));
       expect(screen.getByLabelText(/description for item 1/i)).toBeDisabled();
+
+      await userEvent.click(within(rail).getByRole("button", { name: /extras/i }));
+      expect(screen.getByRole("button", { name: "Add group" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Start from template" })).toBeDisabled();
 
       await userEvent.click(within(rail).getByRole("button", { name: /terms/i }));
       expect(screen.getByRole("textbox", { name: "Terms" })).toBeDisabled();
