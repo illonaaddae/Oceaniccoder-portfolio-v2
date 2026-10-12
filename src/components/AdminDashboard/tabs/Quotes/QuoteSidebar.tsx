@@ -287,6 +287,57 @@ export default function QuoteSidebar({
         </ul>
       </div>
 
+      {data.maintenance && (
+        <div
+          className="rounded-xl border p-3 space-y-2"
+          style={{ borderColor: "var(--border-subtle)" }}
+          data-testid="maintenance-offer"
+        >
+          <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+            Maintenance offer:{" "}
+            {data.maintenance.sentAt
+              ? `sent ${formatDate(data.maintenance.sentAt)}`
+              : data.maintenance.dueAt
+                ? `due ${formatDate(data.maintenance.dueAt)}`
+                : "not scheduled"}
+          </p>
+          {!data.maintenance.sentAt && (
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              It emails the client the plans a week before the free period ends. Send it now if you
+              want to.
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            className={btn}
+            style={btnStyle}
+            onClick={async () => {
+              const again = Boolean(data.maintenance?.sentAt);
+              if (
+                await confirm({
+                  message: again
+                    ? "Send the maintenance offer again?"
+                    : "Send the maintenance offer?",
+                  description: `${quote.clientName} gets an email with the maintenance plans${
+                    quote.clientEmail ? ` at ${quote.clientEmail}` : ""
+                  }.`,
+                  confirmLabel: again ? "Send again" : "Send",
+                  variant: "success",
+                })
+              )
+                void run(
+                  "sendMaintenanceOffer",
+                  again ? { resend: true } : {},
+                  "Maintenance offer emailed.",
+                );
+            }}
+          >
+            {data.maintenance.sentAt ? "Send again" : "Send maintenance offer"}
+          </button>
+        </div>
+      )}
+
       {manual && (
         <form
           className="rounded-xl border p-4 space-y-3"

@@ -45,6 +45,8 @@ function createNotifier({
           ? { ok: true }
           : { ok: false, error: client.error || admin.error };
       }),
+    maintenanceOffer: (q, stages) =>
+      safe(() => to(q.clientEmail, T.maintenanceOffer(V.maintenanceOfferEmailView(q, stages)))),
     paymentProblem: (q, p, problem) =>
       safe(() => to(adminEmail, T.paymentAlert(V.alertView(q, p, null, "problem", problem, base)))),
   };

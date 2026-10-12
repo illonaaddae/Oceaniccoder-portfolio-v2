@@ -107,6 +107,12 @@ function createFakeRepo({ quotes = [], payments = [] } = {}) {
       q.set(id, doc);
       return toQuote(doc);
     },
+    // Same filter as repo.js: accepted, offer not sent yet.
+    async listMaintenanceCandidates() {
+      return newestFirst(q)
+        .filter((x) => x.status === "accepted" && !x.maintenanceOfferSentAt)
+        .map(toQuote);
+    },
     async update(id, patch) {
       const current = q.get(id);
       if (!current) throw notFound();

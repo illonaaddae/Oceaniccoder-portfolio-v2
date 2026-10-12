@@ -5,6 +5,7 @@ const { HttpError, str } = require("../shared/http");
 const M = require("../shared/quotes/model");
 const V = require("../shared/quotes/views");
 const { newToken, hashToken } = require("../shared/tokens");
+const { sendMaintenanceOffer } = require("../shared/quotes/maintenance");
 
 const MANUAL_METHODS = ["bank", "momo", "cash"];
 
@@ -16,10 +17,12 @@ async function load(svc, id) {
 
 async function detail(svc, quote, extra = {}) {
   const payments = await svc.repo.listPayments(quote.quoteNumber);
+  const stages = M.stageStates(quote, payments, svc.now().getTime());
   return {
     quote: V.adminQuoteView(quote),
-    stages: M.stageStates(quote, payments, svc.now().getTime()),
+    stages,
     payments: payments.map(V.paymentView),
+    maintenance: V.maintenanceOfferState(quote, stages),
     ...extra,
   };
 }
@@ -160,6 +163,30 @@ const actions = {
     );
     const mail = await svc.notify.paymentRequest(updated, after[stage.index], token, after);
     return detail(svc, updated, { link: V.quoteLink(token), emailed: mail.ok });
+  },
+
+  // Emails the maintenance plans now. Only for fully paid quotes with plans;
+  // once sent, it goes again only with { resend: true }.
+  async sendMaintenanceOffer(svc, input) {
+    const quote = await load(svc, input.id);
+    const payments = await svc.repo.listPayments(quote.quoteNumber);
+    const stages = M.stageStates(quote, payments, svc.now().getTime());
+    const offer = M.maintenanceOffer(quote, stages);
+    if (!offer)
+      throw new HttpError(
+        409,
+        "The maintenance offer is for fully paid quotes with at least one maintenance plan.",
+      );
+    if (offer.sentAt && input.resend !== true)
+      throw new HttpError(
+        409,
+        `The maintenance offer was already sent on ${V.formatDate(offer.sentAt)}.`,
+      );
+    if (!quote.clientEmail) throw new HttpError(400, "Add the client's email address first.");
+    const result = await sendMaintenanceOffer(svc, quote, stages);
+    if (!result.ok)
+      throw new HttpError(502, "The maintenance offer email didn't send. Try again later.");
+    return detail(svc, result.quote, { emailed: true });
   },
 
   async recordManual(svc, input, { admin }) {

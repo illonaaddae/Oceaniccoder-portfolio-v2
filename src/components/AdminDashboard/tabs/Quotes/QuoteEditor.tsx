@@ -61,6 +61,7 @@ const STEPS: {
     Component: ExtrasStep,
     fields: [
       "runningCosts",
+      "maintenance",
       "exclusions",
       "assumptions",
       "nextSteps",

@@ -64,10 +64,20 @@ const LIMITS = {
   needsDetail: 240,
   needsWhen: 40,
   needsFootnote: 600,
+  // extras.maintenance: the "Maintenance and support" section.
+  maintenanceFreeDays: 365,
+  maintenanceFreeText: 300,
+  maintenancePlans: 4,
+  maintenancePlanName: 60,
+  maintenancePlanIncludes: 600,
+  maintenanceNote: 600,
   // The Appwrite `extras` column holds at most this many characters of JSON.
   extras: 100000,
 };
 const NEEDS_DETAIL_LABELS = ["Used for", "Notes"];
+const MAINTENANCE_PERIODS = ["month", "year"];
+// The offer email goes out this many days before the free period ends.
+const MAINTENANCE_LEAD_DAYS = 7;
 const REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 function str(v) {
@@ -208,12 +218,65 @@ function parseNeedsTables(raw, errors) {
   return intro || groups.length ? { intro, groups } : null;
 }
 
+// extras.maintenance: a free period after launch and up to four optional
+// paid plans. Blank plan rows are dropped; error keys use the row's position
+// in the editor (e.g. `maintenance.plans.1.priceMinor`). Returns null unless
+// the section is set (a free period or at least one plan).
+function parseMaintenance(raw, errors) {
+  if (!raw || typeof raw !== "object") return null;
+  const tooLong = (key, value, max) => {
+    if (value.length > max) errors[key] = `Keep this under ${max} characters.`;
+  };
+  const freeDays = raw.freeDays == null || raw.freeDays === "" ? 0 : Number(raw.freeDays);
+  if (!Number.isInteger(freeDays) || freeDays < 0 || freeDays > LIMITS.maintenanceFreeDays)
+    errors["maintenance.freeDays"] =
+      `Use a whole number of days from 0 to ${LIMITS.maintenanceFreeDays}.`;
+  const freeText = str(raw.freeText);
+  tooLong("maintenance.freeText", freeText, LIMITS.maintenanceFreeText);
+  const note = str(raw.note);
+  tooLong("maintenance.note", note, LIMITS.maintenanceNote);
+
+  const planRows = keptRows(raw.plans, (p) => ({
+    id: str(p && p.id),
+    name: str(p && p.name),
+    priceMinor: p && p.priceMinor != null && p.priceMinor !== "" ? Number(p.priceMinor) : 0,
+    period: p && p.period,
+    includes: str(p && p.includes),
+  })).filter(({ row: p }) => p.name || p.priceMinor || p.includes);
+  if (planRows.length > LIMITS.maintenancePlans)
+    errors["maintenance.plans"] = `Use up to ${LIMITS.maintenancePlans} plans.`;
+  const plans = planRows.map(({ row: p, index: i }) => {
+    const key = `maintenance.plans.${i}`;
+    if (!p.name || p.name.length > LIMITS.maintenancePlanName)
+      errors[`${key}.name`] = `Name the plan (up to ${LIMITS.maintenancePlanName} characters).`;
+    if (!Number.isInteger(p.priceMinor) || p.priceMinor <= 0 || p.priceMinor > 1e11)
+      errors[`${key}.priceMinor`] = "Enter a price above zero.";
+    const period = p.period == null || p.period === "" ? "month" : p.period;
+    if (!MAINTENANCE_PERIODS.includes(period))
+      errors[`${key}.period`] = "Choose per month or per year.";
+    tooLong(`${key}.includes`, p.includes, LIMITS.maintenancePlanIncludes);
+    return {
+      id: ID_RE.test(p.id) ? p.id : `plan-${i + 1}`,
+      name: p.name,
+      priceMinor: p.priceMinor,
+      period: MAINTENANCE_PERIODS.includes(period) ? period : "month",
+      includes: p.includes,
+    };
+  });
+  const set = (Number.isInteger(freeDays) && freeDays > 0) || plans.length > 0;
+  return set
+    ? { freeDays: Number.isInteger(freeDays) ? freeDays : 0, freeText, plans, note }
+    : null;
+}
+
 // `extras` is one JSON column with one parser per key; unknown keys are dropped.
 function parseExtras(raw, errors) {
   const x = raw && typeof raw === "object" ? raw : {};
   const extras = {};
   const needs = parseNeedsTables(x.needs, errors);
   if (needs) extras.needs = needs;
+  const maintenance = parseMaintenance(x.maintenance, errors);
+  if (maintenance) extras.maintenance = maintenance;
   if (JSON.stringify(extras).length > LIMITS.extras)
     errors.extras = "These tables are too long to save. Shorten some rows.";
   return extras;
@@ -400,6 +463,35 @@ function paymentSummary(stages) {
   };
 }
 
+/** The maintenance plans stored on a quote (none when the section is unset). */
+function maintenancePlans(quote) {
+  const m = quote && quote.extras && quote.extras.maintenance;
+  return m && Array.isArray(m.plans) ? m.plans : [];
+}
+
+/**
+ * When the maintenance offer email is due. Only fully paid ("completed")
+ * accepted quotes with at least one plan get an offer; anything else is null.
+ * Launch is when the last stage was paid; the offer goes out a week before
+ * the free period ends (at launch if the free period is a week or less).
+ */
+function maintenanceOffer(quote, stages) {
+  if (!quote || quote.status !== "accepted" || !maintenancePlans(quote).length) return null;
+  if (!paymentSummary(stages).complete) return null;
+  const paidTimes = stages.map((s) => Date.parse(s.paidAt)).filter((t) => !Number.isNaN(t));
+  const launchMs = paidTimes.length ? Math.max(...paidTimes) : NaN;
+  const freeDays = Number(quote.extras.maintenance.freeDays) || 0;
+  const at = (days) =>
+    Number.isNaN(launchMs) ? null : new Date(launchMs + days * DAY_MS).toISOString();
+  return {
+    launchedAt: at(0),
+    freeDays,
+    freeEndsAt: at(freeDays),
+    dueAt: at(Math.max(freeDays - MAINTENANCE_LEAD_DAYS, 0)),
+    sentAt: quote.maintenanceOfferSentAt || null,
+  };
+}
+
 function isExpired(quote, nowMs = Date.now()) {
   return (
     quote.status === "sent" && Boolean(quote.validUntil) && Date.parse(quote.validUntil) < nowMs
@@ -451,6 +543,11 @@ module.exports = {
   LIMITS,
   NEEDS_DETAIL_LABELS,
   parseNeedsTables,
+  MAINTENANCE_PERIODS,
+  MAINTENANCE_LEAD_DAYS,
+  parseMaintenance,
+  maintenancePlans,
+  maintenanceOffer,
   computeTotals,
   stageAmounts,
   scheduleError,

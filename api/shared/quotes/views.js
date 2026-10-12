@@ -118,8 +118,30 @@ function needsView(n) {
   };
 }
 
+// The maintenance section, field by field. Null unless it is set (a free
+// period or at least one plan), matching parseMaintenance.
+function maintenanceView(m) {
+  if (!m || typeof m !== "object") return null;
+  const freeDays = Number.isInteger(m.freeDays) ? m.freeDays : 0;
+  const plans = (Array.isArray(m.plans) ? m.plans : []).map((p) => ({
+    id: p.id,
+    name: p.name || "",
+    priceMinor: Number(p.priceMinor) || 0,
+    period: p.period === "year" ? "year" : "month",
+    includes: p.includes || "",
+  }));
+  if (freeDays <= 0 && !plans.length) return null;
+  return { freeDays, freeText: m.freeText || "", plans, note: m.note || "" };
+}
+
 function extrasView(x) {
-  return { needs: needsView(x && x.needs) };
+  return { needs: needsView(x && x.needs), maintenance: maintenanceView(x && x.maintenance) };
+}
+
+/** The admin's view of the maintenance offer timing (see model.maintenanceOffer). */
+function maintenanceOfferState(quote, stages) {
+  const o = M.maintenanceOffer(quote, stages);
+  return o ? { launchedAt: o.launchedAt, dueAt: o.dueAt, sentAt: o.sentAt } : null;
 }
 
 function clientQuoteView(q, stages, { receiptSecret } = {}) {
@@ -224,6 +246,7 @@ function adminQuoteView(q) {
     declineReason: q.declineReason ?? null,
     payState: q.payState ?? null,
     requirementsId: q.requirementsId ?? null,
+    maintenanceOfferSentAt: q.maintenanceOfferSentAt ?? null,
     createdAt: q.createdAt ?? null,
     updatedAt: q.updatedAt ?? null,
     hasLink: Boolean(q.tokenHash),
@@ -390,6 +413,40 @@ function receiptEmailView(
   };
 }
 
+/** wa.me link for CONTACT_WHATSAPP, or "" when it is not set. */
+function whatsappLink(number = process.env.CONTACT_WHATSAPP) {
+  const digits = String(number || "").replace(/\D/g, "");
+  return digits ? `https://wa.me/${digits}` : "";
+}
+
+const lineList = (text) =>
+  String(text || "")
+    .split("\n")
+    .map((l) => l.trim().replace(/^[-•*]\s*/, ""))
+    .filter(Boolean);
+
+function maintenanceOfferEmailView(q, stages, { now = new Date(), whatsapp } = {}) {
+  const m = maintenanceView(q.extras && q.extras.maintenance) || { plans: [], freeDays: 0 };
+  const offer = M.maintenanceOffer(q, stages);
+  const freeEndsAt = offer && offer.freeDays > 0 ? offer.freeEndsAt : null;
+  return {
+    clientFirstName: firstName(q.clientName),
+    quoteNumber: q.quoteNumber,
+    title: q.title,
+    freeDays: m.freeDays,
+    freeEnds: formatDate(freeEndsAt),
+    freeEnded: Boolean(freeEndsAt) && Date.parse(freeEndsAt) <= now.getTime(),
+    plans: m.plans.map((p) => ({
+      name: p.name,
+      price: formatMoney(p.priceMinor, q.currency),
+      period: p.period,
+      includes: lineList(p.includes),
+    })),
+    note: m.note || "",
+    whatsappLink: whatsapp === undefined ? whatsappLink() : whatsapp,
+  };
+}
+
 function alertView(q, p, stages, kind, problem, base = siteBase()) {
   const stage = stages ? stages.find((x) => x.id === p.stageId) : null;
   return {
@@ -428,4 +485,7 @@ module.exports = {
   requestView,
   receiptEmailView,
   alertView,
+  maintenanceOfferState,
+  maintenanceOfferEmailView,
+  whatsappLink,
 };

@@ -3,6 +3,7 @@ import { QuoteCard, SectionLabel } from "./QuoteShell";
 import {
   AtAGlance,
   ItemDetail,
+  Maintenance,
   NeedsFromYou,
   NextSteps,
   RunningCosts,
@@ -142,6 +143,7 @@ export function TermsAndNotes({ quote }: { quote: ClientQuote }) {
   return (
     <>
       <RunningCosts quote={quote} />
+      <Maintenance quote={quote} />
       <ScopeNotes quote={quote} />
       <NeedsFromYou quote={quote} />
       <NextSteps quote={quote} />

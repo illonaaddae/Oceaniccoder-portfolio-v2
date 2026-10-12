@@ -1,0 +1,25 @@
+name: Maintenance offers
+
+# Once a day, asks the site to email any maintenance offers that are due
+# (a week before a launched project's free support period ends).
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send due maintenance offers
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::notice::CRON_SECRET is not set, so no maintenance offers were sent."
+            exit 0
+          fi
+          curl -fsS -X POST -H "x-cron-key: ${CRON_SECRET}" https://oceaniccoder.dev/api/quote-maintenance-due

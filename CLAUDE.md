@@ -121,6 +121,7 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `SITE_URL`               | Base URL in quote emails and Paystack callbacks (default `https://oceaniccoder.dev`) |
 | `CONTACT_WHATSAPP`       | Optional WhatsApp number shown on client quote pages (digits, with country code)     |
 | `ANTHROPIC_API_KEY`      | Claude API key for the AI quote drafter (PR 1b)                                      |
+| `CRON_SECRET`            | Lets the daily GitHub Action trigger maintenance offer emails                        |
 
 > `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
 > sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent
