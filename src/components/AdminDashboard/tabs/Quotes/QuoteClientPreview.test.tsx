@@ -166,6 +166,27 @@ describe("Preview as client", () => {
     expect(quoteAdmin).toHaveBeenCalledTimes(1);
   });
 
+  it("renders on <body>, outside the dashboard, so nothing behind it shows through", async () => {
+    const { container } = renderSidebar();
+    await userEvent.click(screen.getByRole("button", { name: /preview as client/i }));
+    const dialog = await screen.findByRole("dialog", { name: /client preview/i });
+    expect(dialog.parentElement).toBe(document.body);
+    expect(container.contains(dialog)).toBe(false);
+  });
+
+  it("keeps Tab focus inside the preview", async () => {
+    renderSidebar();
+    await userEvent.click(screen.getByRole("button", { name: /preview as client/i }));
+    const dialog = await screen.findByRole("dialog", { name: /client preview/i });
+    await within(dialog).findByRole("heading", { name: "Booking site" });
+    const close = within(dialog).getByRole("button", { name: /close preview/i });
+    expect(close).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    for (let i = 0; i < 15; i++) await userEvent.tab();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   it("closes on Escape", async () => {
     renderSidebar();
     await userEvent.click(screen.getByRole("button", { name: /preview as client/i }));
