@@ -21,10 +21,48 @@ export default function QuoteShell({
   children: React.ReactNode;
 }) {
   const max = WIDTHS[width];
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  // Tailwind sizes are rem-based, so scale the root while a quote page is open
+  // (about +6%). Restored on unmount; print resets it in index.css.
+  React.useEffect(() => {
+    const el = document.documentElement;
+    const previous = el.style.fontSize;
+    el.style.fontSize = "106.25%";
+    return () => {
+      el.style.fontSize = previous;
+    };
+  }, []);
+  // Collapsed <details> are left out of print and PDF, so open them for it.
+  React.useEffect(() => {
+    const closed: Array<{ open: boolean }> = [];
+    const before = () => {
+      rootRef.current?.querySelectorAll("details").forEach((d) => {
+        if (!d.open) {
+          closed.push(d);
+          d.open = true;
+        }
+      });
+    };
+    const after = () => {
+      closed.splice(0).forEach((d) => {
+        d.open = false;
+      });
+    };
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+    };
+  }, []);
   const { theme, toggleTheme } = useTheme();
   const next = theme === "dark" ? "light" : "dark";
   return (
-    <div className="quote-ui min-h-dvh print:bg-white" style={{ background: "var(--bg-primary)" }}>
+    <div
+      ref={rootRef}
+      className="quote-ui min-h-dvh print:bg-white"
+      style={{ background: "var(--bg-primary)" }}
+    >
       <Helmet>
         <title>{`${title} · OceanicCoder`}</title>
         <meta name="robots" content="noindex, nofollow" />

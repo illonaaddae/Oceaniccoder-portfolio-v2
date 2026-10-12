@@ -553,6 +553,9 @@ textarea:focus {
   color: #ffffff !important;
 }
 @media print {
+  html {
+    font-size: 100% !important;
+  }
   .quote-ui,
   [data-theme="dark"] .quote-ui {
     --bg-primary: #ffffff;

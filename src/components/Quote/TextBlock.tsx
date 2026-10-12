@@ -1,7 +1,7 @@
 import React from "react";
 
 // Quote text is plain text written by the admin: blank lines split
-// paragraphs, "- " starts a bullet, and https links become clickable. Nothing
+// paragraphs, "-", "•" or "*" starts a bullet, and https links become clickable. Nothing
 // is ever rendered as HTML.
 
 function linkify(line: string) {
@@ -45,8 +45,10 @@ export default function TextBlock({ text }: { text: string }) {
   };
   for (const raw of text.split("\n")) {
     const line = raw.trimEnd();
-    if (line.startsWith("- ")) {
-      bullets.push(line.slice(2));
+    // "-", "•" or "*" starts a bullet, with or without a space after it.
+    const marker = /^[-•*]\s*/.exec(line);
+    if (marker && line.slice(marker[0].length).trim()) {
+      bullets.push(line.slice(marker[0].length));
       continue;
     }
     flush();
