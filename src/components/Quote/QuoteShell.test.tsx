@@ -51,8 +51,10 @@ describe("QuoteShell", () => {
     expect(screen.getAllByRole("listitem").map((l) => l.textContent)).toEqual([
       "Logo design",
       "Copywriting",
-      "Photos",
     ]);
-    expect(screen.getByText("Not included")).toHaveClass("font-semibold");
+    // Its own open section: a heading, no folded "Scope notes" wrapper.
+    expect(screen.getByRole("heading", { name: "Not included" })).toBeInTheDocument();
+    expect(screen.queryByText("Scope notes")).toBeNull();
+    expect(document.querySelector("details")).toBeNull();
   });
 });

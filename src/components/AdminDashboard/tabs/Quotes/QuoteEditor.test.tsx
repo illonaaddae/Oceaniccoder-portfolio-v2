@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const quoteAdmin = vi.fn();
@@ -391,6 +391,91 @@ describe("QuoteEditor", () => {
       ),
     );
   });
+
+  describe("What I'll need from you", () => {
+    const SAMPLE = [
+      "- Access to the business email (info@westafricawander.com) during development",
+      "- Business registration certificate (Registrar General's Department)",
+      "- Tax Identification Number (TIN)",
+      "- Trip details: itinerary, inclusions and exclusions, dates, seats, prices, meeting points",
+      "Photos:",
+      "- Photos and videos for each trip and destination",
+    ].join("\n");
+
+    async function openExtras() {
+      quoteAdmin.mockResolvedValue({
+        quote: { id: "q1", status: "draft" },
+        stages: [],
+        payments: [],
+      });
+      render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+      await fillClient();
+      await userEvent.click(screen.getByRole("button", { name: /extras/i }));
+    }
+    const savedAssumptions = async () => {
+      await userEvent.click(screen.getByRole("button", { name: /save draft/i }));
+      return quoteAdmin.mock.calls[quoteAdmin.mock.calls.length - 1][1].draft.assumptions;
+    };
+
+    it("adds, edits and removes items and headings", async () => {
+      await openExtras();
+      expect(screen.queryByLabelText("What I need from you")).toBeNull();
+      await userEvent.click(screen.getByRole("button", { name: "Add group heading" }));
+      await userEvent.type(screen.getByLabelText("Group heading 1"), "Access");
+      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
+      await userEvent.type(screen.getByLabelText("Need 1"), "Email login");
+      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
+      await userEvent.type(screen.getByLabelText("Need 2"), "Domain");
+      expect(screen.getByLabelText("Need 1")).toHaveValue("Email login");
+      await userEvent.click(screen.getByRole("button", { name: "Remove need 1" }));
+      expect(screen.getByLabelText("Need 1")).toHaveValue("Domain");
+      await userEvent.click(screen.getByRole("button", { name: "Remove heading 1" }));
+      expect(screen.queryByLabelText("Group heading 1")).toBeNull();
+      await userEvent.click(screen.getByRole("button", { name: "Add group heading" }));
+      await userEvent.type(screen.getByLabelText("Group heading 1"), "Content");
+      expect(await savedAssumptions()).toBe("Domain\nContent:");
+    });
+
+    it("moves a row up", async () => {
+      await openExtras();
+      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
+      await userEvent.type(screen.getByLabelText("Need 1"), "First");
+      await userEvent.click(screen.getByRole("button", { name: "Add item" }));
+      await userEvent.type(screen.getByLabelText("Need 2"), "Second");
+      await userEvent.click(screen.getByRole("button", { name: "Move need 2 up" }));
+      expect(screen.getByLabelText("Need 1")).toHaveValue("Second");
+      expect(await savedAssumptions()).toBe("Second\nFirst");
+    });
+
+    it("pastes a list into rows and saves headings as Heading: lines", async () => {
+      await openExtras();
+      await userEvent.click(screen.getByRole("button", { name: "Paste a list" }));
+      fireEvent.change(screen.getByLabelText("Paste your list"), { target: { value: SAMPLE } });
+      await userEvent.click(screen.getByRole("button", { name: "Add these" }));
+      expect(screen.queryByLabelText("Paste your list")).toBeNull();
+      expect(screen.getByLabelText("Need 1")).toHaveValue(
+        "Access to the business email (info@westafricawander.com) during development",
+      );
+      expect(screen.getByLabelText("Need 4")).toHaveValue(
+        "Trip details: itinerary, inclusions and exclusions, dates, seats, prices, meeting points",
+      );
+      expect(screen.getByLabelText("Group heading 1")).toHaveValue("Photos");
+      expect(screen.getByLabelText("Need 5")).toHaveValue(
+        "Photos and videos for each trip and destination",
+      );
+      expect(await savedAssumptions()).toBe(
+        [
+          "Access to the business email (info@westafricawander.com) during development",
+          "Business registration certificate (Registrar General's Department)",
+          "Tax Identification Number (TIN)",
+          "Trip details: itinerary, inclusions and exclusions, dates, seats, prices, meeting points",
+          "Photos:",
+          "Photos and videos for each trip and destination",
+        ].join("\n"),
+      );
+    });
+  });
+
   describe("embedded on a quote page", () => {
     const initial = {
       clientName: "Kofi",

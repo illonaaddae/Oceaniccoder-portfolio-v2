@@ -243,6 +243,7 @@ describe("QuotePage", () => {
     for (const t of [
       /at a glance/i,
       /running costs/i,
+      /not included/i,
       /scope notes/i,
       /next steps/i,
       /optional extras/i,
