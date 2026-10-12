@@ -152,16 +152,10 @@ export function ScopeNotes({ quote }: { quote: ClientQuote }) {
   if (!exclusions) return null;
   return (
     <QuoteCard>
-      <Disclosure summary="Scope notes">
-        <div className="space-y-5 pt-1">
-          <div className="min-w-0 break-words">
-            <p className="text-sm font-semibold mb-1.5" style={{ color: "var(--text-primary)" }}>
-              Not included
-            </p>
-            <BulletLines text={exclusions} />
-          </div>
-        </div>
-      </Disclosure>
+      <SectionLabel>Not included</SectionLabel>
+      <div className="min-w-0 break-words">
+        <BulletLines text={exclusions} />
+      </div>
     </QuoteCard>
   );
 }

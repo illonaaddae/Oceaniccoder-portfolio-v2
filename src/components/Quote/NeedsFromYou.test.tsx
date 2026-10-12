@@ -87,6 +87,6 @@ describe("ScopeNotes without needs", () => {
 
   it("is hidden when only assumptions are set", () => {
     wrap(<ScopeNotes quote={q("Photos")} />);
-    expect(screen.queryByText("Scope notes")).toBeNull();
+    expect(screen.queryByText("Not included")).toBeNull();
   });
 });
