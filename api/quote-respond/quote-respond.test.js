@@ -191,6 +191,7 @@ describe("quote-respond double submits and races", () => {
       exclusions: "No hosting",
       runningCosts: [{ service: "A", purpose: "B", cost: "C" }],
       optionalItems: [{ id: "o1", description: "SMS", qty: 1, unitMinor: 1, detail: "" }],
+      extras: { needs: { intro: "Send early", groups: [] } },
     });
     await t.call({ action: "accept", name: "Kofi Mensah", agree: true });
     expect(JSON.parse(t.repo.quotes.get("q1").acceptedSnapshot)).toMatchObject({
@@ -200,6 +201,7 @@ describe("quote-respond double submits and races", () => {
       optionalItems: [{ id: "o1", description: "SMS", qty: 1, unitMinor: 1, detail: "" }],
       assumptions: "",
       nextSteps: "",
+      extras: { needs: { intro: "Send early", groups: [] } },
     });
   });
 

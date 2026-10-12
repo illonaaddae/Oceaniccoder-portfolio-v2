@@ -106,6 +106,7 @@ async function accept(context, svc, quote, body, req, token) {
     optionalTitle: quote.optionalTitle || "",
     optionalItems: quote.optionalItems || [],
     discountLabel: quote.discountLabel || "",
+    extras: quote.extras || {},
   });
   const updated = await writeOnce(svc, quote, {
     status: "accepted",

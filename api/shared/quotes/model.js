@@ -54,7 +54,20 @@ const LIMITS = {
   optionalItems: 30,
   itemDetail: 600,
   stageNote: 80,
+  // extras.needs: the "What I'll need from you" tables.
+  needsIntro: 600,
+  needsGroups: 8,
+  needsGroupTitle: 80,
+  needsGroupIntro: 600,
+  needsRows: 30,
+  needsItem: 240,
+  needsDetail: 240,
+  needsWhen: 40,
+  needsFootnote: 600,
+  // The Appwrite `extras` column holds at most this many characters of JSON.
+  extras: 100000,
 };
+const NEEDS_DETAIL_LABELS = ["Used for", "Notes"];
 const REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 function str(v) {
@@ -135,6 +148,77 @@ function keptRows(list, parse) {
   return (Array.isArray(list) ? list : []).map((raw, index) => ({ row: parse(raw), index }));
 }
 
+// extras.needs: grouped tables of what the client must send. Blank rows and
+// groups with no title and no rows are dropped; error keys use the row's
+// position in the editor (e.g. `needs.groups.0.rows.2.item`). Returns null
+// when nothing is left, so an empty editor stores no needs at all.
+function parseNeedsTables(raw, errors) {
+  const n = raw && typeof raw === "object" ? raw : {};
+  const tooLong = (key, value, max) => {
+    if (value.length > max) errors[key] = `Keep this under ${max} characters.`;
+  };
+  const intro = str(n.intro);
+  tooLong("needs.intro", intro, LIMITS.needsIntro);
+
+  const groupRows = keptRows(n.groups, (g) => (g && typeof g === "object" ? g : {}));
+  if (groupRows.length > LIMITS.needsGroups)
+    errors["needs.groups"] = `Use up to ${LIMITS.needsGroups} groups.`;
+
+  const groups = [];
+  for (const { row: g, index: gi } of groupRows) {
+    const key = `needs.groups.${gi}`;
+    const rows = keptRows(g.rows, (r) => ({
+      id: str(r && r.id),
+      item: str(r && r.item),
+      detail: str(r && r.detail),
+      when: str(r && r.when),
+    })).filter(({ row: r }) => r.item || r.detail || r.when);
+    const title = str(g.title);
+    if (!title && !rows.length) continue;
+
+    if (!title) errors[`${key}.title`] = "Give this group a title.";
+    tooLong(`${key}.title`, title, LIMITS.needsGroupTitle);
+    const groupIntro = str(g.intro);
+    tooLong(`${key}.intro`, groupIntro, LIMITS.needsGroupIntro);
+    const footnote = str(g.footnote);
+    tooLong(`${key}.footnote`, footnote, LIMITS.needsFootnote);
+    if (rows.length > LIMITS.needsRows)
+      errors[`${key}.rows`] = `Use up to ${LIMITS.needsRows} rows in a group.`;
+    rows.forEach(({ row: r, index: ri }) => {
+      const rk = `${key}.rows.${ri}`;
+      if (!r.item || r.item.length > LIMITS.needsItem)
+        errors[`${rk}.item`] = `Name the item (up to ${LIMITS.needsItem} characters).`;
+      tooLong(`${rk}.detail`, r.detail, LIMITS.needsDetail);
+      tooLong(`${rk}.when`, r.when, LIMITS.needsWhen);
+    });
+
+    const id = str(g.id);
+    groups.push({
+      id: ID_RE.test(id) ? id : `group-${gi + 1}`,
+      title,
+      intro: groupIntro,
+      detailLabel: NEEDS_DETAIL_LABELS.includes(g.detailLabel) ? g.detailLabel : "Used for",
+      rows: rows.map(({ row: r, index: ri }) => ({
+        ...r,
+        id: ID_RE.test(r.id) ? r.id : `row-${ri + 1}`,
+      })),
+      footnote,
+    });
+  }
+  return intro || groups.length ? { intro, groups } : null;
+}
+
+// `extras` is one JSON column with one parser per key; unknown keys are dropped.
+function parseExtras(raw, errors) {
+  const x = raw && typeof raw === "object" ? raw : {};
+  const extras = {};
+  const needs = parseNeedsTables(x.needs, errors);
+  if (needs) extras.needs = needs;
+  if (JSON.stringify(extras).length > LIMITS.extras)
+    errors.extras = "These tables are too long to save. Shorten some rows.";
+  return extras;
+}
+
 function validateDraft(input) {
   const d = input || {};
   const errors = {};
@@ -180,6 +264,7 @@ function validateDraft(input) {
     nextSteps: str(d.nextSteps),
     optionalTitle: str(d.optionalTitle),
     optionalItems: optionalRows.map((r) => r.row),
+    extras: parseExtras(d.extras, errors),
   };
 
   if (!value.clientName || value.clientName.length > 120) {
@@ -364,6 +449,8 @@ module.exports = {
   lineMinor,
   optionalTotals,
   LIMITS,
+  NEEDS_DETAIL_LABELS,
+  parseNeedsTables,
   computeTotals,
   stageAmounts,
   scheduleError,

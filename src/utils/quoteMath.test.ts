@@ -126,4 +126,25 @@ describe("quoteToDraft", () => {
       optionalTitle: "Phase 2",
     });
   });
+
+  it("copies extras.needs (never shares it) and defaults it to null", () => {
+    expect(Q.quoteToDraft(null).extras).toEqual({ needs: null });
+    expect(Q.quoteToDraft({ extras: null }).extras).toEqual({ needs: null });
+    const needs = {
+      intro: "Hi",
+      groups: [
+        {
+          id: "g1",
+          title: "Access",
+          intro: "",
+          detailLabel: "Used for" as const,
+          rows: [{ id: "r1", item: "Domain", detail: "", when: "Week 1" }],
+          footnote: "",
+        },
+      ],
+    };
+    const d = Q.quoteToDraft({ extras: { needs } });
+    expect(d.extras.needs).toEqual(needs);
+    expect(d.extras.needs?.groups[0].rows).not.toBe(needs.groups[0].rows);
+  });
 });

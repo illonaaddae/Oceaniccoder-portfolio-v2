@@ -10,6 +10,36 @@ export interface RunningCost {
   cost: string;
 }
 
+/** Second column heading of a needs table. */
+export type NeedsDetailLabel = "Used for" | "Notes";
+
+export interface NeedsRow {
+  id: string;
+  item: string;
+  detail: string;
+  when: string;
+}
+
+export interface NeedsGroup {
+  id: string;
+  title: string;
+  intro: string;
+  detailLabel: NeedsDetailLabel;
+  rows: NeedsRow[];
+  footnote: string;
+}
+
+/** "What I'll need from you" as grouped tables (stored in `extras.needs`). */
+export interface NeedsTables {
+  intro: string;
+  groups: NeedsGroup[];
+}
+
+/** The `extras` JSON column. Mirrors parseExtras in api/shared/quotes/model.js. */
+export interface QuoteExtras {
+  needs: NeedsTables | null;
+}
+
 export interface QuoteItem {
   id: string;
   description: string;
@@ -50,6 +80,7 @@ export interface QuoteDraft {
   nextSteps: string;
   optionalTitle: string;
   optionalItems: QuoteItem[];
+  extras: QuoteExtras;
 }
 
 /** A stage as the client pages see it. */
@@ -101,6 +132,8 @@ export interface ClientQuote {
   optionalTitle: string;
   optionalItems: (QuoteItem & { lineMinor: number; detail: string })[];
   optionalTotalMinor: number;
+  /** Absent on responses from before the column existed. */
+  extras?: QuoteExtras;
   subtotalMinor: number;
   discountMinor: number;
   totalMinor: number;
@@ -157,6 +190,7 @@ export interface AdminQuote {
   nextSteps?: string | null;
   optionalTitle?: string | null;
   optionalItems?: QuoteItem[] | null;
+  extras?: QuoteExtras | null;
 }
 
 /** A stage invoice that exists for the client (requested or paid). */

@@ -17,6 +17,7 @@ const JSON_FIELDS = {
   highlights: [],
   runningCosts: [],
   optionalItems: [],
+  extras: {},
 };
 const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
 

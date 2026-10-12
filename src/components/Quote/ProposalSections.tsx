@@ -1,7 +1,8 @@
 import type React from "react";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
-import type { ClientQuote } from "@/types/quote";
+import type { ClientQuote, NeedsGroup, NeedsTables } from "@/types/quote";
 import { parseNeeds } from "@/utils/needsList";
+import { needsRowCount, visibleRows } from "@/utils/needsTables";
 
 const lines = (text: string) =>
   text
@@ -160,21 +161,163 @@ export function ScopeNotes({ quote }: { quote: ClientQuote }) {
   );
 }
 
-/** What the client must send before work starts, as an open checklist (printable, never folded). */
+function NeedsHeading({ count }: { count: number }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 [&>h2]:mb-0">
+      <SectionLabel>What I&apos;ll need from you</SectionLabel>
+      <span
+        className="rounded-full border px-2 py-0.5 text-xs font-medium"
+        style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+      >
+        {count} {count === 1 ? "item" : "items"}
+      </span>
+    </div>
+  );
+}
+
+const cellCls =
+  "min-w-0 align-top break-words [overflow-wrap:anywhere] sm:table-cell sm:py-3 sm:pr-4 sm:last:pr-0";
+
+/**
+ * One group as a table. On sm+ it is a real table (Item | detail | When); on
+ * phones the same markup stacks each row: item, detail underneath, then the
+ * "when" pill. Explicit roles keep the table semantics when rows display as
+ * blocks. The When column is left out when no row has a time.
+ */
+function NeedsTable({ group }: { group: NeedsGroup }) {
+  const hasWhen = group.rows.some((r) => r.when.trim());
+  const thCls =
+    "pb-2 pr-4 text-left text-xs font-semibold uppercase tracking-[0.08em] last:pr-0 align-bottom";
+  return (
+    <table role="table" className="block w-full text-[15px] sm:table sm:table-fixed">
+      {/* Explicit roles: the rows display as blocks on phones, which drops
+          the implicit table semantics in some screen readers. */}
+      {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- see above */}
+      <thead role="rowgroup" className="sr-only sm:not-sr-only sm:table-header-group">
+        <tr role="row" className="border-b" style={{ borderColor: "var(--border-subtle)" }}>
+          <th role="columnheader" scope="col" className={`${thCls} sm:w-[44%]`}>
+            <span style={{ color: "var(--text-secondary)" }}>Item</span>
+          </th>
+          <th role="columnheader" scope="col" className={thCls}>
+            <span style={{ color: "var(--text-secondary)" }}>{group.detailLabel}</span>
+          </th>
+          {hasWhen && (
+            <th role="columnheader" scope="col" className={`${thCls} sm:w-44`}>
+              <span style={{ color: "var(--text-secondary)" }}>When</span>
+            </th>
+          )}
+        </tr>
+      </thead>
+      {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- see the thead comment */}
+      <tbody role="rowgroup" className="block sm:table-row-group">
+        {group.rows.map((r) => (
+          <tr
+            key={r.id}
+            role="row"
+            className="block break-inside-avoid border-b py-3 last:border-b-0 sm:table-row sm:py-0"
+            style={{ borderColor: "var(--border-subtle)" }}
+          >
+            <td
+              role="cell"
+              className={`${cellCls} block font-medium leading-snug`}
+              style={{ color: "var(--text-primary)" }}
+            >
+              {r.item}
+            </td>
+            <td
+              role="cell"
+              className={`${cellCls} mt-0.5 text-sm leading-snug sm:mt-0 sm:text-[15px] ${r.detail ? "block" : "hidden"}`}
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {r.detail}
+            </td>
+            {hasWhen && (
+              <td role="cell" className={`${cellCls} ${r.when ? "mt-2 block sm:mt-0" : "hidden"}`}>
+                {r.when && (
+                  <span
+                    className="inline-block max-w-full rounded-full border px-2.5 py-0.5 text-xs font-medium leading-snug"
+                    style={{ borderColor: "var(--border-subtle)", color: "var(--accent-teal)" }}
+                  >
+                    {r.when}
+                  </span>
+                )}
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** The grouped tables from `extras.needs`. Always open; rows never split across printed pages. */
+function NeedsTablesCard({ needs }: { needs: NeedsTables }) {
+  const groups = needs.groups
+    .map((g) => ({ ...g, rows: visibleRows(g) }))
+    .filter((g) => g.rows.length > 0);
+  const count = groups.reduce((n, g) => n + g.rows.length, 0);
+  return (
+    // Long tables may run over a printed page; rows keep themselves whole instead.
+    <QuoteCard className="print:![break-inside:auto]">
+      <NeedsHeading count={count} />
+      {needs.intro.trim() && (
+        <p
+          className="max-w-prose text-[15px] leading-relaxed whitespace-pre-line break-words"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {needs.intro}
+        </p>
+      )}
+      {groups.map((g) => (
+        <div key={g.id} className="mt-6 min-w-0">
+          <h3
+            className="mb-1 text-base font-semibold break-words"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {g.title}
+          </h3>
+          {g.intro.trim() && (
+            <p
+              className="mb-2 max-w-prose text-sm leading-relaxed whitespace-pre-line break-words"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {g.intro}
+            </p>
+          )}
+          <div className="mt-2 min-w-0">
+            <NeedsTable group={g} />
+          </div>
+          {g.footnote.trim() && (
+            <p
+              className="mt-3 break-inside-avoid border-l-2 pl-3 text-sm leading-relaxed whitespace-pre-line break-words"
+              style={{ borderColor: "var(--accent-teal)", color: "var(--text-secondary)" }}
+            >
+              {g.footnote}
+            </p>
+          )}
+        </div>
+      ))}
+    </QuoteCard>
+  );
+}
+
+/**
+ * What the client must send before work starts. Quotes with `extras.needs`
+ * show grouped tables; older quotes fall back to the plain-text checklist in
+ * `assumptions`. Printable and never folded.
+ */
 export function NeedsFromYou({ quote }: { quote: ClientQuote }) {
-  const { groups, count } = parseNeeds(quote.assumptions);
+  const needs = quote.extras?.needs;
+  if (needs && needsRowCount(needs) > 0) return <NeedsTablesCard needs={needs} />;
+  return <LegacyNeeds text={quote.assumptions ?? ""} />;
+}
+
+function LegacyNeeds({ text }: { text: string }) {
+  const { groups, count } = parseNeeds(text);
   if (!count) return null;
   return (
     <QuoteCard>
-      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 [&>h2]:mb-0">
-        <SectionLabel>What I&apos;ll need from you</SectionLabel>
-        <span
-          className="rounded-full border px-2 py-0.5 text-xs font-medium"
-          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
-        >
-          {count} {count === 1 ? "item" : "items"}
-        </span>
-      </div>
+      <NeedsHeading count={count} />
       <p className="mb-2 text-sm" style={{ color: "var(--text-secondary)" }}>
         Send these by email or WhatsApp when you can. Work on each part starts once its items
         arrive.
