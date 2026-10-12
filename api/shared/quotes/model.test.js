@@ -253,6 +253,33 @@ describe("full-proposal fields", () => {
     expect(r.errors["runningCosts.0.service"]).toBeDefined();
   });
 
+  it("reports running-cost errors at the editor row, not the filtered position", () => {
+    const r = M.validateDraft({
+      ...base,
+      runningCosts: [
+        { service: "", purpose: "", cost: "" },
+        { service: "Vercel", purpose: "", cost: "" },
+      ],
+    });
+    expect(r.errors["runningCosts.1.cost"]).toBeDefined();
+    expect(r.errors["runningCosts.0.cost"]).toBeUndefined();
+    expect(r.value.runningCosts).toEqual([{ service: "Vercel", purpose: "", cost: "" }]);
+  });
+
+  it("reports optional-item errors at the editor row, not the filtered position", () => {
+    const r = M.validateDraft({
+      ...base,
+      optionalItems: [
+        { id: "o1", description: "", qty: 1, unitMinor: 0 },
+        { id: "o2", description: "SMS", qty: 1, unitMinor: 250000 },
+        { id: "o3", description: "", qty: 1, unitMinor: 5000 },
+      ],
+    });
+    expect(r.errors["optionalItems.2.description"]).toBeDefined();
+    expect(r.errors["optionalItems.1.description"]).toBeUndefined();
+    expect(r.value.optionalItems.map((i) => i.id)).toEqual(["o2", "o3"]);
+  });
+
   it("never lets optional items change the price", () => {
     const withOpt = M.validateDraft({
       ...base,
