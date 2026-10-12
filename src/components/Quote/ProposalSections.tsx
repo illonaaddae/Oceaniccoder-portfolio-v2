@@ -1,6 +1,7 @@
 import type React from "react";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
 import type { ClientQuote } from "@/types/quote";
+import { parseNeeds } from "@/utils/needsList";
 
 const lines = (text: string) =>
   text
@@ -148,31 +149,75 @@ function BulletLines({ text }: { text: string }) {
 
 export function ScopeNotes({ quote }: { quote: ClientQuote }) {
   const exclusions = quote.exclusions.trim();
-  const assumptions = quote.assumptions.trim();
-  if (!exclusions && !assumptions) return null;
-  const heading = "text-sm font-semibold mb-1.5";
+  if (!exclusions) return null;
   return (
     <QuoteCard>
       <Disclosure summary="Scope notes">
         <div className="space-y-5 pt-1">
-          {exclusions && (
-            <div className="min-w-0 break-words">
-              <p className={heading} style={{ color: "var(--text-primary)" }}>
-                Not included
-              </p>
-              <BulletLines text={exclusions} />
-            </div>
-          )}
-          {assumptions && (
-            <div className="min-w-0 break-words">
-              <p className={heading} style={{ color: "var(--text-primary)" }}>
-                What I need from you
-              </p>
-              <BulletLines text={assumptions} />
-            </div>
-          )}
+          <div className="min-w-0 break-words">
+            <p className="text-sm font-semibold mb-1.5" style={{ color: "var(--text-primary)" }}>
+              Not included
+            </p>
+            <BulletLines text={exclusions} />
+          </div>
         </div>
       </Disclosure>
+    </QuoteCard>
+  );
+}
+
+/** What the client must send before work starts, as an open checklist (printable, never folded). */
+export function NeedsFromYou({ quote }: { quote: ClientQuote }) {
+  const { groups, count } = parseNeeds(quote.assumptions);
+  if (!count) return null;
+  return (
+    <QuoteCard>
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 [&>h2]:mb-0">
+        <SectionLabel>What I&apos;ll need from you</SectionLabel>
+        <span
+          className="rounded-full border px-2 py-0.5 text-xs font-medium"
+          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+        >
+          {count} {count === 1 ? "item" : "items"}
+        </span>
+      </div>
+      <p className="mb-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+        Send these by email or WhatsApp when you can. Work on each part starts once its items
+        arrive.
+      </p>
+      {groups.map((g, gi) => (
+        <div key={gi} className="min-w-0">
+          {g.heading && (
+            <h3
+              className="mt-4 mb-1 text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {g.heading}
+            </h3>
+          )}
+          <ul className="space-y-2.5 pt-1.5">
+            {g.items.map((it, i) => (
+              <li key={i} className="flex min-w-0 items-start gap-3">
+                <span
+                  aria-hidden
+                  className="mt-[3px] h-4 w-4 shrink-0 rounded-full border-2"
+                  style={{ borderColor: "var(--quote-cta, var(--accent-teal))" }}
+                />
+                <div className="min-w-0 break-words [overflow-wrap:anywhere]">
+                  <p className="text-[15px] leading-snug" style={{ color: "var(--text-primary)" }}>
+                    {it.text}
+                  </p>
+                  {it.note && (
+                    <p className="text-sm leading-snug" style={{ color: "var(--text-secondary)" }}>
+                      {it.note}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </QuoteCard>
   );
 }

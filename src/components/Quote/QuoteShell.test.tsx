@@ -51,7 +51,6 @@ describe("QuoteShell", () => {
     expect(screen.getAllByRole("listitem").map((l) => l.textContent)).toEqual([
       "Logo design",
       "Copywriting",
-      "Photos",
     ]);
     expect(screen.getByText("Not included")).toHaveClass("font-semibold");
   });

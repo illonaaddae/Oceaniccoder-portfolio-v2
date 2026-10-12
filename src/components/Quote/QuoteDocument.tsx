@@ -1,6 +1,13 @@
 import TextBlock from "./TextBlock";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
-import { AtAGlance, ItemDetail, NextSteps, RunningCosts, ScopeNotes } from "./ProposalSections";
+import {
+  AtAGlance,
+  ItemDetail,
+  NeedsFromYou,
+  NextSteps,
+  RunningCosts,
+  ScopeNotes,
+} from "./ProposalSections";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ClientQuote } from "@/types/quote";
 
@@ -136,6 +143,7 @@ export function TermsAndNotes({ quote }: { quote: ClientQuote }) {
     <>
       <RunningCosts quote={quote} />
       <ScopeNotes quote={quote} />
+      <NeedsFromYou quote={quote} />
       <NextSteps quote={quote} />
       {quote.notes.trim() && (
         <QuoteCard>
