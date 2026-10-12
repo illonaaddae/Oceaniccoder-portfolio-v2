@@ -131,9 +131,23 @@ function scheduleError(schedule) {
   return null;
 }
 
+function keptRows(list, parse) {
+  return (Array.isArray(list) ? list : []).map((raw, index) => ({ row: parse(raw), index }));
+}
+
 function validateDraft(input) {
   const d = input || {};
   const errors = {};
+  // Blank rows are dropped, but each kept row remembers its position in the
+  // editor so field errors point at the row the admin actually typed in.
+  const runningCostRows = keptRows(d.runningCosts, (r) => ({
+    service: str(r && r.service),
+    purpose: str(r && r.purpose),
+    cost: str(r && r.cost),
+  })).filter(({ row: r }) => r.service || r.purpose || r.cost);
+  const optionalRows = keptRows(d.optionalItems, parseItem).filter(
+    ({ row: i }) => i.description || i.unitMinor || i.detail,
+  );
   const value = {
     clientName: str(d.clientName),
     clientEmail: str(d.clientEmail).toLowerCase(),
@@ -160,20 +174,12 @@ function validateDraft(input) {
     inquiryId: str(d.inquiryId) || null,
     highlights: (Array.isArray(d.highlights) ? d.highlights : []).map(str).filter(Boolean),
     discountLabel: str(d.discountLabel),
-    runningCosts: (Array.isArray(d.runningCosts) ? d.runningCosts : [])
-      .map((r) => ({
-        service: str(r && r.service),
-        purpose: str(r && r.purpose),
-        cost: str(r && r.cost),
-      }))
-      .filter((r) => r.service || r.purpose || r.cost),
+    runningCosts: runningCostRows.map((r) => r.row),
     exclusions: str(d.exclusions),
     assumptions: str(d.assumptions),
     nextSteps: str(d.nextSteps),
     optionalTitle: str(d.optionalTitle),
-    optionalItems: (Array.isArray(d.optionalItems) ? d.optionalItems : [])
-      .map(parseItem)
-      .filter((i) => i.description || i.unitMinor || i.detail),
+    optionalItems: optionalRows.map((r) => r.row),
   };
 
   if (!value.clientName || value.clientName.length > 120) {
@@ -219,7 +225,7 @@ function validateDraft(input) {
     errors.discountLabel = `Keep the label under ${LIMITS.discountLabel} characters.`;
   if (value.runningCosts.length > LIMITS.runningCosts)
     errors.runningCosts = `Use up to ${LIMITS.runningCosts} rows.`;
-  value.runningCosts.forEach((r, i) => {
+  runningCostRows.forEach(({ row: r, index: i }) => {
     if (!r.service || r.service.length > LIMITS.rcService)
       errors[`runningCosts.${i}.service`] = "Name the service (up to 60 characters).";
     if (r.purpose.length > LIMITS.rcPurpose)
@@ -232,7 +238,7 @@ function validateDraft(input) {
   }
   if (value.optionalItems.length > LIMITS.optionalItems)
     errors.optionalItems = `Use up to ${LIMITS.optionalItems} optional items.`;
-  value.optionalItems.forEach((it, i) => itemErrors(it, `optionalItems.${i}`, errors));
+  optionalRows.forEach(({ row, index }) => itemErrors(row, `optionalItems.${index}`, errors));
 
   if (!Number.isInteger(value.discountMinor) || value.discountMinor < 0) {
     errors.discountMinor = "Enter a valid discount.";

@@ -10,7 +10,7 @@ import { useClientQuote } from "./useClientQuote";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ClientQuote } from "@/types/quote";
 
-function StatusBanner({ quote }: { quote: ClientQuote }) {
+export function StatusBanner({ quote }: { quote: ClientQuote }) {
   const banners: Partial<Record<ClientQuote["status"], [string, string]>> = {
     accepted: [
       `Accepted by ${quote.acceptedName} on ${formatDate(quote.respondedAt)}.`,

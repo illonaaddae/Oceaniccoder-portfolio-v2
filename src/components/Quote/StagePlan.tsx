@@ -20,7 +20,40 @@ const PILL: Record<ClientStage["state"], { label: string; style: React.CSSProper
   },
 };
 
-export default function StagePlan({ quote, token }: { quote: ClientQuote; token: string }) {
+/** In the admin's preview the stage buttons are shown but can't be clicked. */
+function PreviewButton({
+  children,
+  solid = false,
+}: {
+  children: React.ReactNode;
+  solid?: boolean;
+}) {
+  return (
+    <span
+      aria-disabled="true"
+      title="Disabled in preview"
+      className={`px-4 py-2 rounded-lg text-sm cursor-not-allowed opacity-60 ${solid ? "font-semibold text-white" : "border"}`}
+      style={
+        solid
+          ? { background: "var(--quote-cta)" }
+          : { borderColor: "var(--border-subtle)", color: "var(--text-primary)" }
+      }
+    >
+      {children}
+    </span>
+  );
+}
+
+export default function StagePlan({
+  quote,
+  token,
+  preview = false,
+}: {
+  quote: ClientQuote;
+  token: string;
+  /** Admin preview: show the buttons the client would see, but disabled. */
+  preview?: boolean;
+}) {
   return (
     <QuoteCard>
       <SectionLabel>How you pay</SectionLabel>
@@ -106,32 +139,44 @@ export default function StagePlan({ quote, token }: { quote: ClientQuote; token:
               {PILL[s.state].label}
             </span>
             <div className="flex gap-2 w-full sm:w-auto print:hidden">
-              {s.state === "due" && quote.status === "accepted" && (
-                <Link
-                  to={`/q/${token}/pay/${s.id}`}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
-                  style={{ background: "var(--quote-cta)" }}
-                >
-                  Pay now
-                </Link>
-              )}
-              {s.state !== "later" && (
-                <Link
-                  to={`/q/${token}/invoice/${s.id}`}
-                  className="px-4 py-2 rounded-lg text-sm border"
-                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
-                >
-                  Invoice
-                </Link>
-              )}
-              {s.receiptPath && (
-                <Link
-                  to={s.receiptPath}
-                  className="px-4 py-2 rounded-lg text-sm border"
-                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
-                >
-                  Receipt
-                </Link>
+              {preview ? (
+                <>
+                  {s.state === "due" && quote.status === "accepted" && (
+                    <PreviewButton solid>Pay now</PreviewButton>
+                  )}
+                  {s.state !== "later" && <PreviewButton>Invoice</PreviewButton>}
+                  {s.receiptPath && <PreviewButton>Receipt</PreviewButton>}
+                </>
+              ) : (
+                <>
+                  {s.state === "due" && quote.status === "accepted" && (
+                    <Link
+                      to={`/q/${token}/pay/${s.id}`}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
+                      style={{ background: "var(--quote-cta)" }}
+                    >
+                      Pay now
+                    </Link>
+                  )}
+                  {s.state !== "later" && (
+                    <Link
+                      to={`/q/${token}/invoice/${s.id}`}
+                      className="px-4 py-2 rounded-lg text-sm border"
+                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+                    >
+                      Invoice
+                    </Link>
+                  )}
+                  {s.receiptPath && (
+                    <Link
+                      to={s.receiptPath}
+                      className="px-4 py-2 rounded-lg text-sm border"
+                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+                    >
+                      Receipt
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           </li>
