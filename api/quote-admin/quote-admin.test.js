@@ -91,6 +91,48 @@ describe("quote-admin", () => {
     expect(r.body.emailed).toBe(true);
   });
 
+  it("clientView previews a draft as the client page without sending it", async () => {
+    const t = setup();
+    const created = await t.call({ action: "create", draft });
+    const r = await t.call({ action: "clientView", id: created.body.quote.id });
+    expect(r.status).toBe(200);
+    expect(r.body.quote).toMatchObject({
+      quoteNumber: "Q-2026-0001",
+      status: "draft",
+      title: "Online store",
+      totalMinor: 1000000,
+      issuedAt: null,
+      validUntil: null,
+    });
+    expect(r.body.quote.stages.map((s) => s.state)).toEqual(["later", "later"]);
+    expect(r.body.quote).not.toHaveProperty("tokenHash");
+    expect(r.body.quote).not.toHaveProperty("id");
+    expect(r.body).not.toHaveProperty("link");
+    expect(t.notify.quoteSent).not.toHaveBeenCalled();
+    expect((await t.repo.get(created.body.quote.id)).status).toBe("draft");
+  });
+
+  it("clientView shows paid stages for an accepted quote and 404s for unknown ids", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    await t.repo.createPayment({
+      kind: "quote",
+      quoteNumber: "Q-2026-0001",
+      stageId: "deposit",
+      status: "success",
+      paystackReference: "Q-2026-0001-1-ABCDEFGH",
+    });
+    const r = await t.call({ action: "clientView", id });
+    expect(r.status).toBe(200);
+    expect(r.body.quote.status).toBe("accepted");
+    expect(r.body.quote.issuedAt).toBe(NOW.toISOString());
+    expect(r.body.quote.stages[0].state).toBe("paid");
+    expect(r.body.quote.summary.paidMinor).toBe(600000);
+    expect((await t.call({ action: "clientView", id: "nope" })).status).toBe(404);
+  });
+
   it("only edits drafts", async () => {
     const t = setup();
     const sent = await sentQuote(t);

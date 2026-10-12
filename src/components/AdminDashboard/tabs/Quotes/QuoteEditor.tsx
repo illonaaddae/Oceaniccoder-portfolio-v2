@@ -57,7 +57,7 @@ const STEPS: {
   { label: "Payment stages", hint: "When they pay", Component: StagesStep, fields: ["schedule"] },
   {
     label: "Extras",
-    hint: "Costs, scope, next steps",
+    hint: "Running costs, Phase 2",
     Component: ExtrasStep,
     fields: [
       "runningCosts",

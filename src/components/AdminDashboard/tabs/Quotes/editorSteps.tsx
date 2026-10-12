@@ -108,6 +108,13 @@ export function ClientStep({ draft, setDraft, errors, theme }: StepProps) {
   );
 }
 
+const HIGHLIGHT_EXAMPLES = [
+  "e.g. Live in about 14 weeks",
+  "e.g. You own the code, data and domain",
+  "e.g. Pay in 2 parts",
+  "e.g. 30 days of support after launch",
+];
+
 export function ContentStep({ draft, setDraft, errors }: StepProps) {
   const set =
     (k: keyof QuoteDraft) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -135,7 +142,8 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
           At a glance (optional)
         </legend>
         <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          Up to four short facts shown at the top of the quote, such as "Live in 14 weeks".
+          Up to four short facts shown as tiles at the top of the client's quote, so they see the
+          key points first.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {[0, 1, 2, 3].map((n) => (
@@ -149,6 +157,7 @@ export function ContentStep({ draft, setDraft, errors }: StepProps) {
                 id={`q-hl-${n + 1}`}
                 className={inputCls}
                 maxLength={80}
+                placeholder={HIGHLIGHT_EXAMPLES[n]}
                 value={slots[n]}
                 onChange={(e) => {
                   const next = [...slots];
@@ -650,6 +659,7 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
                 aria-label={`Service for running cost ${i + 1}`}
                 className={inputCls}
                 placeholder="Service"
+                maxLength={60}
                 value={c.service}
                 onChange={(e) => setCost(i, { service: e.target.value })}
               />
@@ -660,6 +670,7 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
                 aria-label={`What running cost ${i + 1} is for`}
                 className={inputCls}
                 placeholder="What it is for"
+                maxLength={120}
                 value={c.purpose}
                 onChange={(e) => setCost(i, { purpose: e.target.value })}
               />
@@ -670,6 +681,7 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
                 aria-label={`Estimated cost ${i + 1}`}
                 className={inputCls}
                 placeholder="USD 25 / month"
+                maxLength={60}
                 value={c.cost}
                 onChange={(e) => setCost(i, { cost: e.target.value })}
               />
@@ -747,13 +759,24 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity }: StepProps) {
         </Field>
       </section>
 
-      <section className={subCard} style={subCardStyle}>
+      <section className={subCard} style={subCardStyle} aria-labelledby="q-optional-heading">
+        <h4
+          id="q-optional-heading"
+          className="text-sm font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Optional extras (e.g. Phase 2)
+        </h4>
+        <p className={hintCls} style={hintStyle}>
+          Shown to the client in a folded section after the decision, marked &lsquo;Not in this
+          quote&rsquo;. Not part of the price or payments.
+        </p>
         <Field id="q-optional-title" label="Optional section title" error={errors.optionalTitle}>
           <input
             id="q-optional-title"
             className={inputCls}
             maxLength={80}
-            placeholder="Optional extras for later"
+            placeholder="e.g. Phase 2: growth features"
             value={draft.optionalTitle}
             onChange={(e) => setDraft({ ...draft, optionalTitle: e.target.value })}
           />

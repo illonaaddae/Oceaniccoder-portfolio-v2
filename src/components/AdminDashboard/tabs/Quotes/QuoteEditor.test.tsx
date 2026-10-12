@@ -139,6 +139,42 @@ describe("QuoteEditor", () => {
     expect(draft.optionalItems[0]).toMatchObject({ description: "SMS updates", unitMinor: 250000 });
   });
 
+  it("explains At a glance and where Phase 2 goes", async () => {
+    render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
+    expect(screen.getByText("Running costs, Phase 2")).toBeInTheDocument();
+    await fillClient();
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    expect(
+      screen.getByText(/shown as tiles at the top of the client's quote/i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/at a glance fact 1/i)).toHaveAttribute(
+      "placeholder",
+      "e.g. Live in about 14 weeks",
+    );
+    expect(screen.getByLabelText(/at a glance fact 4/i)).toHaveAttribute(
+      "placeholder",
+      "e.g. 30 days of support after launch",
+    );
+    await userEvent.type(screen.getByLabelText(/project title/i), "Store");
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await userEvent.type(screen.getByLabelText(/description for item 1/i), "Build");
+    await userEvent.click(screen.getByRole("button", { name: /next/i })); // stages
+    await userEvent.click(screen.getByRole("button", { name: /next/i })); // extras
+    const optional = screen.getByRole("region", { name: "Optional extras (e.g. Phase 2)" });
+    expect(optional).toHaveTextContent(/Not in this quote/);
+    expect(within(optional).getByLabelText(/optional section title/i)).toHaveAttribute(
+      "placeholder",
+      "e.g. Phase 2: growth features",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /add running cost/i }));
+    expect(screen.getByLabelText(/service for running cost 1/i)).toHaveAttribute("maxLength", "60");
+    expect(screen.getByLabelText(/what running cost 1 is for/i)).toHaveAttribute(
+      "maxLength",
+      "120",
+    );
+    expect(screen.getByLabelText(/estimated cost 1/i)).toHaveAttribute("maxLength", "60");
+  });
+
   it("saves a new draft and reports the new id", async () => {
     quoteAdmin.mockResolvedValue({ quote: { id: "q9" }, stages: [], payments: [] });
     const onSaved = vi.fn();

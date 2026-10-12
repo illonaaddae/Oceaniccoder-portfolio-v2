@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck } from "react-icons/fa";
+import { FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck, FaEye } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { useConfirm } from "../../ConfirmContext";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import type { ManualMethod, QuoteDetailResponse } from "@/types/quote";
 import { waLink } from "./waLink";
+import QuoteClientPreview from "./QuoteClientPreview";
 
 const btn =
   "px-3 py-2 rounded-lg text-sm font-medium border transition hover:opacity-90 disabled:opacity-50";
@@ -38,6 +39,7 @@ export default function QuoteSidebar({
   const [link, setLink] = useState<string | null>(data.link ?? null);
   const linkRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [manual, setManual] = useState<{
     stageId: string;
@@ -126,6 +128,31 @@ export default function QuoteSidebar({
         )}
         {quote.declineReason && <li>Declined: {quote.declineReason}</li>}
       </ul>
+
+      <div>
+        <button
+          type="button"
+          className={`${btn} inline-flex items-center gap-2`}
+          style={btnStyle}
+          onClick={() => setPreviewing(true)}
+        >
+          <FaEye aria-hidden />
+          Preview as client
+        </button>
+        {sendBlocked && (
+          <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+            The preview shows the saved version. Save to include your latest changes.
+          </p>
+        )}
+      </div>
+      {previewing && (
+        <QuoteClientPreview
+          id={id}
+          theme={theme}
+          unsaved={sendBlocked}
+          onClose={() => setPreviewing(false)}
+        />
+      )}
 
       {message && (
         <p

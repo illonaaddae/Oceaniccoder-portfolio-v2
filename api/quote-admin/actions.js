@@ -55,6 +55,16 @@ const actions = {
     return detail(svc, await load(svc, input.id));
   },
 
+  // The client page exactly as the client would see it, for any status
+  // (drafts included). Read-only: nothing is sent and no link is issued.
+  async clientView(svc, input) {
+    const quote = await load(svc, input.id);
+    const payments = await svc.repo.listPayments(quote.quoteNumber);
+    const stages = M.stageStates(quote, payments, svc.now().getTime());
+    const receiptSecret = svc.receiptSecret ?? process.env.RECEIPT_SIGNING_SECRET;
+    return { quote: V.clientQuoteView(quote, stages, { receiptSecret }) };
+  },
+
   async create(svc, input) {
     const fields = validated(input.draft);
     const quote = await svc.repo.create({
