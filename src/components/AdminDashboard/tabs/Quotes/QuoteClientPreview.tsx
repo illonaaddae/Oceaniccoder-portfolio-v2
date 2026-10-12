@@ -110,7 +110,9 @@ export default function QuoteClientPreview({
   // column, and `position: sticky` starts a new stacking context, so a z-index
   // set here only counted inside that column. The admin sidebar and the
   // editor's action bar painted over the preview. z-[180] sits above the
-  // sidebar and chatbot (z-60 and below) and under toasts (z-200).
+  // sidebar and chatbot (z-60 and below) and under toasts (z-200). The solid
+  // background matters: the banner's tint is see-through, and without it the
+  // dashboard header showed through behind the banner text.
   return createPortal(
     <div
       ref={dialogRef}
@@ -119,6 +121,7 @@ export default function QuoteClientPreview({
       aria-label="Client preview"
       data-theme={theme === "light" ? "light" : "dark"}
       className="fixed inset-0 z-[180] flex flex-col"
+      style={{ background: "var(--bg-primary)" }}
     >
       <div
         className="shrink-0 flex flex-wrap items-center gap-3 px-4 py-3 border-b"
