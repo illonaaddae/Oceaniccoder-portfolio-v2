@@ -53,7 +53,7 @@ export function standardMaintenancePlans(): MaintenancePlan[] {
       priceMinor: 40000,
       period: "month",
       includes:
-        "Security and dependency updates\nUptime monitoring\nMonthly backups check\nSmall content edits (up to 1 hour)",
+        "Security and dependency updates\nUptime monitoring\nMonthly backups check\nUp to 3 hours a month for changes, such as new sections, layout tweaks or fixes",
     },
     {
       id: newId("plan"),
@@ -61,7 +61,7 @@ export function standardMaintenancePlans(): MaintenancePlan[] {
       priceMinor: 90000,
       period: "month",
       includes:
-        "Everything in Care\nUp to 4 hours of changes or small features\nPriority response within 1 working day\nMonthly performance report",
+        "Everything in Care\nUp to 8 hours a month for changes and small new features\nPriority response within 1 working day\nMonthly performance report",
     },
   ];
 }
