@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_DATA_BACKEND?: string;
   /** Cloudflare Turnstile site key for visitor forms (public). */
   readonly VITE_TURNSTILE_SITE_KEY?: string;
+  /** "true" sends first-party page views to /api/visit; anything else sends none. */
+  readonly VITE_ANALYTICS_ENABLED?: string;
 }
 
 interface ImportMeta {
