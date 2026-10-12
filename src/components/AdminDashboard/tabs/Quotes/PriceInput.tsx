@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { fromMinor, toMinor } from "@/utils/quoteMath";
 
+/** Shown under a price box holding text that isn't an amount; the sidebar reuses it. */
+export const INVALID_AMOUNT = "Enter a valid amount, e.g. 1,250.00.";
+
 const inputCls = "glass-input w-full rounded-lg px-3 py-2 min-h-11";
 
 /**
@@ -26,7 +29,7 @@ export function PriceInput({
   const [bad, setBad] = useState(false);
   // A box that disappears (item removed) must not keep blocking the editor.
   useEffect(() => () => onValidity?.(id, true), [id, onValidity]);
-  const shown = bad ? "Enter a valid amount, e.g. 1,250.00" : error;
+  const shown = bad ? INVALID_AMOUNT : error;
   return (
     <div>
       <input

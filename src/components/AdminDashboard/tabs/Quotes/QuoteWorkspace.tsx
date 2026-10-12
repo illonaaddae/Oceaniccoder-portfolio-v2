@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { quoteToDraft } from "@/utils/quoteMath";
@@ -31,18 +31,31 @@ export default function QuoteWorkspace({
 }) {
   const [data, setData] = useState<QuoteDetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [live, setLive] = useState<{ draft: QuoteDraft; dirty: boolean } | null>(null);
+  const [live, setLive] = useState<{
+    draft: QuoteDraft;
+    dirty: boolean;
+    invalid: boolean;
+  } | null>(null);
+  // The newest client link from any action (send, New link). `get` never
+  // returns one, so it is kept here for the editor's "Quote sent" panel.
+  const [link, setLink] = useState<string | null>(null);
   // Keeps the editor (and its "Quote sent" panel) up after Save and send.
   const [showSent, setShowSent] = useState(false);
   // Bumped when a sidebar action changes the status, so the editor starts
   // again from the server's copy (e.g. after Revise).
   const [generation, setGeneration] = useState(0);
 
+  // Two saves in a row start two reloads; only the newest may land.
+  const loads = useRef(0);
   const load = useCallback(async () => {
+    const ticket = ++loads.current;
     try {
-      setData(await quoteAdmin<QuoteDetailResponse>("get", { id }));
+      const next = await quoteAdmin<QuoteDetailResponse>("get", { id });
+      if (ticket !== loads.current) return;
+      setData(next);
       setError(null);
     } catch (e) {
+      if (ticket !== loads.current) return;
       setError(e instanceof Error ? e.message : "Couldn't load the quote.");
     }
   }, [id]);
@@ -50,12 +63,13 @@ export default function QuoteWorkspace({
     void load();
   }, [load]);
 
-  const onChange = useCallback((draft: QuoteDraft, dirty: boolean) => {
-    setLive({ draft, dirty });
+  const onChange = useCallback((draft: QuoteDraft, dirty: boolean, invalid: boolean) => {
+    setLive({ draft, dirty, invalid });
   }, []);
 
   const editable = data ? data.quote.status === "draft" || showSent : false;
   const dirty = editable && !!live?.dirty;
+  const invalid = editable && !!live?.invalid;
 
   const back = () => {
     if (dirty && !window.confirm("Discard your unsaved changes?")) return;
@@ -122,6 +136,7 @@ export default function QuoteWorkspace({
               readOnly={!editable}
               onChange={onChange}
               onClose={back}
+              link={link}
               onSent={() => {
                 setShowSent(true);
                 void load();
@@ -138,8 +153,10 @@ export default function QuoteWorkspace({
               key={quote.id}
               data={data}
               theme={theme}
-              sendBlocked={dirty}
+              sendBlocked={dirty || invalid}
+              sendBlockedReason={invalid ? "invalid" : "unsaved"}
               onChanged={(next) => {
+                if (next.link) setLink(next.link);
                 if (next.quote.status !== quote.status) {
                   setShowSent(false);
                   setGeneration((g) => g + 1);

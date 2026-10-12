@@ -113,6 +113,7 @@ export default function QuoteEditor({
   readOnly = false,
   onChange,
   onSent,
+  link,
 }: {
   theme: string;
   quoteId?: string;
@@ -121,10 +122,15 @@ export default function QuoteEditor({
   onSaved: (id: string) => void;
   embedded?: boolean;
   readOnly?: boolean;
-  /** Called with the live draft and whether it has unsaved changes. */
-  onChange?: (draft: QuoteDraft, dirty: boolean) => void;
+  /**
+   * Called with the live draft, whether it has unsaved changes, and whether a
+   * box holds input that can't be saved (e.g. a price that isn't a number).
+   */
+  onChange?: (draft: QuoteDraft, dirty: boolean, invalid: boolean) => void;
   /** Called once "Save and send" has sent the quote, while the sent panel shows. */
   onSent?: (id: string) => void;
+  /** The client link the page holds now; replaces the sent link after "New link". */
+  link?: string | null;
 }) {
   const [draft, setDraftState] = useState<QuoteDraft>(() => quoteToDraft(initial));
   const [step, setStep] = useState(0);
@@ -134,9 +140,17 @@ export default function QuoteEditor({
   const [dirty, setDirty] = useState(false);
   const [savedId, setSavedId] = useState<string | undefined>(quoteId);
   const [sent, setSent] = useState<{ id: string; link?: string; emailed?: boolean } | null>(null);
-  const [copied, setCopied] = useState(false);
+  // The link that was copied, so "Copied" turns back to "Copy link" by itself
+  // when the link changes.
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [invalid, setInvalid] = useState<ReadonlySet<string>>(new Set());
   const topRef = useRef<HTMLDivElement>(null);
+  // Saves run one at a time against the latest draft and id. `revision` counts
+  // edits, so a save only clears "unsaved" if nothing changed while it ran.
+  const draftRef = useRef(draft);
+  const savedIdRef = useRef(savedId);
+  const revision = useRef(0);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   const onValidity = useCallback((id: string, ok: boolean) => {
     setInvalid((prev) => {
@@ -158,11 +172,9 @@ export default function QuoteEditor({
     topRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
   }, [step, sent]);
 
-  useEffect(() => {
-    onChange?.(draft, dirty);
-  }, [onChange, draft, dirty]);
-
   const setDraft = (next: QuoteDraft) => {
+    draftRef.current = next;
+    revision.current += 1;
     setDraftState(next);
     setDirty(true);
     // Server errors describe the old values; clear them once the user edits.
@@ -172,6 +184,13 @@ export default function QuoteEditor({
     invalid.size > 0 ||
     draft.items.some((it) => !(it.qty > 0)) ||
     draft.optionalItems.some((it) => !(it.qty > 0));
+
+  useEffect(() => {
+    onChange?.(draft, dirty, hasInvalidInput);
+  }, [onChange, draft, dirty, hasInvalidInput]);
+
+  // After "New link" the page passes the fresh link; the old one is dead.
+  const shownLink = link || sent?.link;
   // A sent quote is viewed step by step too, without the Review (send) step.
   const steps = readOnly ? STEPS.slice(0, LAST) : STEPS;
   const lastStep = steps.length - 1;
@@ -182,14 +201,29 @@ export default function QuoteEditor({
   const hasError = (fields: string[]) =>
     fields.some((f) => Object.keys(errors).some((k) => k === f || k.startsWith(`${f}.`)));
 
-  /** Creates or updates the draft; returns its id, or null after showing what went wrong. */
-  const persist = async (): Promise<string | null> => {
+  /**
+   * Creates or updates the draft; returns its id, or null after showing what
+   * went wrong. Calls queue behind each other, so a second save never races
+   * the first (and never creates the quote twice).
+   */
+  const persist = (): Promise<string | null> => {
+    const run = queue.current.then(persistNow);
+    queue.current = run;
+    return run;
+  };
+
+  const persistNow = async (): Promise<string | null> => {
+    const sentRevision = revision.current;
+    const id = savedIdRef.current;
+    const body = draftRef.current;
     try {
-      const result = savedId
-        ? await quoteAdmin<QuoteDetailResponse>("save", { id: savedId, draft })
-        : await quoteAdmin<QuoteDetailResponse>("create", { draft });
-      setDirty(false);
+      const result = id
+        ? await quoteAdmin<QuoteDetailResponse>("save", { id, draft: body })
+        : await quoteAdmin<QuoteDetailResponse>("create", { draft: body });
+      savedIdRef.current = result.quote.id;
       setSavedId(result.quote.id);
+      // Edits made while this save ran are not in it, so they stay unsaved.
+      if (revision.current === sentRevision) setDirty(false);
       return result.quote.id;
     } catch (err) {
       if (err instanceof QuoteApiError && err.fields) {
@@ -244,8 +278,8 @@ export default function QuoteEditor({
   };
 
   const firstName = draft.clientName.trim().split(/\s+/)[0] || "there";
-  const shareText = sent?.link
-    ? `Hi ${firstName}, here is your quote from OceanicCoder: ${sent.link}`
+  const shareText = shownLink
+    ? `Hi ${firstName}, here is your quote from OceanicCoder: ${shownLink}`
     : "";
 
   return (
@@ -345,16 +379,17 @@ export default function QuoteEditor({
         <div className="min-w-0">
           {sent ? (
             <SentPanel
-              sent={sent}
+              sent={{ ...sent, link: shownLink }}
               draft={draft}
               shareText={shareText}
-              copied={copied}
+              copied={!!shownLink && copiedLink === shownLink}
               onCopy={async () => {
+                const copying = shownLink ?? "";
                 try {
-                  await navigator.clipboard.writeText(sent.link ?? "");
-                  setCopied(true);
+                  await navigator.clipboard.writeText(copying);
+                  setCopiedLink(copying);
                 } catch {
-                  setCopied(false);
+                  setCopiedLink(null);
                 }
               }}
               onDone={() => onSaved(sent.id)}

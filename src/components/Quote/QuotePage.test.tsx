@@ -290,7 +290,10 @@ describe("QuotePage", () => {
     expect(screen.getByText("Pages, cart and checkout")).toBeInTheDocument();
     expect(screen.getByText("To start the project")).toBeInTheDocument();
     expect(screen.getByText("Appwrite Pro")).toBeInTheDocument();
-    expect(screen.getByText(/not part of the price above/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/directly to each provider, from the start of the project/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/paid to the providers after launch/i)).toBeNull();
     expect(
       screen.getByText(
         "Not included in the GHS 10,000.00 above, and not part of these payments. Ask for a separate quote when you're ready.",

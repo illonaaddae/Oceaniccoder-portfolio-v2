@@ -439,6 +439,19 @@ export const PAYMENT_PRESETS: { name: string; schedule: StageDef[] }[] = [
   },
 ];
 
+/**
+ * A preset's stages, keeping the note of any current stage it keeps (same id,
+ * else same name). Stages the preset adds start with no note.
+ */
+export function applyPreset(current: StageDef[], preset: StageDef[]): StageDef[] {
+  const key = (label: string) => label.trim().toLowerCase();
+  return preset.map((s) => {
+    const kept =
+      current.find((c) => c.id === s.id) ?? current.find((c) => key(c.label) === key(s.label));
+    return kept?.note ? { ...s, note: kept.note } : { ...s };
+  });
+}
+
 const samePlan = (a: StageDef[], b: StageDef[]) =>
   a.length === b.length && a.every((s, i) => s.percent === b[i].percent);
 
@@ -465,7 +478,9 @@ export function StagesStep({ draft, setDraft, errors }: StepProps) {
               key={p.name}
               type="button"
               aria-pressed={on}
-              onClick={() => setDraft({ ...draft, schedule: p.schedule.map((s) => ({ ...s })) })}
+              onClick={() =>
+                setDraft({ ...draft, schedule: applyPreset(draft.schedule, p.schedule) })
+              }
               className="min-h-10 rounded-full border px-4 text-sm font-semibold transition-colors"
               style={
                 on
@@ -598,6 +613,10 @@ export function ExtrasStep({ draft, setDraft, errors, onValidity, theme }: StepP
         <h4 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
           Running costs
         </h4>
+        <p className={hintCls} style={hintStyle}>
+          Paid by the client directly to each provider, from the start of the project. Separate from
+          this quote.
+        </p>
         {errorText("runningCosts")}
         {draft.runningCosts.map((c, i) => (
           // eslint-disable-next-line react/no-array-index-key -- running costs have no id; the inputs are controlled
