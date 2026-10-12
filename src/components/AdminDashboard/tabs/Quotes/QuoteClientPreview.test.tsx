@@ -145,6 +145,8 @@ describe("Preview as client", () => {
     await userEvent.click(screen.getByRole("button", { name: /preview as client/i }));
 
     const dialog = await screen.findByRole("dialog", { name: /client preview/i });
+    // The banner tint is see-through; the dialog itself must hide the dashboard.
+    expect(dialog.style.background).toBe("var(--bg-primary)");
     expect(quoteAdmin).toHaveBeenCalledWith("clientView", { id: "q2" });
     expect(
       within(dialog).getByText(/Preview — this is what your client sees\. Nothing is sent\./),
