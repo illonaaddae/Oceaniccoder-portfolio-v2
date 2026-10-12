@@ -158,8 +158,18 @@ export default function CheckoutPage() {
     // Privacy browsers can block Paystack's checkout window after its script
     // loads, and then no callback ever fires. Unless Paystack says the window
     // loaded, offer its own page after a moment and go there after a while.
+    // The clock starts before the script loads, so a stalled load is covered too.
     let loaded = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    const timers = [
+      setTimeout(() => {
+        if (!attempt.stopped && !loaded) setHostedUrl(started.authorizationUrl);
+      }, SLOW_WINDOW_MS),
+      setTimeout(() => {
+        if (attempt.stopped || loaded) return;
+        attempt.stopped = true;
+        window.location.assign(started.authorizationUrl);
+      }, HOSTED_FALLBACK_MS),
+    ];
     const settle = () => {
       loaded = true;
       timers.forEach(clearTimeout);
@@ -168,16 +178,6 @@ export default function CheckoutPage() {
     try {
       const popup = await loadPaystackV2();
       if (attempt.stopped) return;
-      timers.push(
-        setTimeout(() => {
-          if (!attempt.stopped && !loaded) setHostedUrl(started.authorizationUrl);
-        }, SLOW_WINDOW_MS),
-        setTimeout(() => {
-          if (attempt.stopped || loaded) return;
-          attempt.stopped = true;
-          window.location.assign(started.authorizationUrl);
-        }, HOSTED_FALLBACK_MS),
-      );
       popup.resumeTransaction(started.accessCode, {
         onLoad: settle,
         onSuccess: () => {

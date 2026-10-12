@@ -9,8 +9,9 @@
 //
 // Current v2 builds expose only that `PaystackPop` class (older ones also set a
 // `Paystack` global). So: snapshot `PaystackPop`, load v2, keep v2's class for
-// ourselves, and put `PaystackPop` back exactly as it was (deleting it if it
-// was never there).
+// ourselves, and put `PaystackPop` back as it was. Today's build declares it
+// with a top-level `var`, which can't be deleted, so "never there" becomes
+// `undefined`; a throw there once left checkout stuck with no fallback.
 
 export interface PaystackTransactionCallbacks {
   onSuccess?: (transaction: { reference?: string }) => void;
@@ -60,6 +61,8 @@ export function loadPaystackV2(): Promise<PaystackV2> {
     const previousPaystackPop = w.PaystackPop;
     const restorePaystackPop = () => {
       if (hadPaystackPop) w.PaystackPop = previousPaystackPop;
+      else if (Object.getOwnPropertyDescriptor(w, "PaystackPop")?.configurable === false)
+        w.PaystackPop = undefined;
       else delete w.PaystackPop;
     };
 
@@ -68,7 +71,12 @@ export function loadPaystackV2(): Promise<PaystackV2> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      fn();
+      // Never leave the promise hanging: callers fall back on a rejection.
+      try {
+        fn();
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error("Loading Paystack failed"));
+      }
     };
     const timer = setTimeout(
       () =>

@@ -15,7 +15,7 @@ class V2Pop {
 const V1Pop = { setup: () => ({ openIframe() {} }) };
 
 /** Intercepts the injected <script> and plays out what the network does. */
-function stubScript(outcome: "v2" | "legacy" | "error" | "hang") {
+function stubScript(outcome: "v2" | "v2-var" | "legacy" | "error" | "hang") {
   const append = document.body.appendChild.bind(document.body);
   type ScriptLike = {
     tagName: string;
@@ -28,6 +28,16 @@ function stubScript(outcome: "v2" | "legacy" | "error" | "hang") {
     setTimeout(() => {
       if (outcome === "v2") {
         w.PaystackPop = V2Pop;
+        el.onload?.(new Event("load"));
+      } else if (outcome === "v2-var") {
+        // Today's build opens with `var PaystackPop = ...`: a global that can
+        // be reassigned but never deleted.
+        Object.defineProperty(w, "PaystackPop", {
+          value: V2Pop,
+          writable: true,
+          enumerable: true,
+          configurable: false,
+        });
         el.onload?.(new Event("load"));
       } else if (outcome === "legacy") {
         w.Paystack = V2Pop;
@@ -48,7 +58,10 @@ async function load() {
 
 beforeEach(() => {
   delete w.Paystack;
-  delete w.PaystackPop;
+  // The "v2-var" case leaves a global that can't be deleted.
+  if (Object.getOwnPropertyDescriptor(w, "PaystackPop")?.configurable === false)
+    w.PaystackPop = undefined;
+  else delete w.PaystackPop;
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -88,5 +101,14 @@ describe("loadPaystackV2", () => {
     const settled = expect(pending).rejects.toThrow(/timed out/i);
     await vi.advanceTimersByTimeAsync(10_000);
     await settled;
+  });
+
+  // Runs last: it leaves a PaystackPop global that can't be deleted.
+  it("resolves when v2 declares PaystackPop with var, so it can't be deleted", async () => {
+    stubScript("v2-var");
+    const popup = await (await load())();
+    expect(typeof popup.resumeTransaction).toBe("function");
+    // v1's `if (window.PaystackPop)` check must not see v2's class.
+    expect(w.PaystackPop).toBeUndefined();
   });
 });
