@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { FaTimes } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatMinor } from "@/utils/quoteMath";
@@ -43,6 +44,7 @@ export default function QuoteClientPreview({
     { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; quote: ClientQuote }
   >({ kind: "loading" });
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   // Kept in a ref so a new onClose from the parent doesn't re-run the
   // focus and scroll-lock effect below.
   const onCloseRef = useRef(onClose);
@@ -73,7 +75,26 @@ export default function QuoteClientPreview({
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      // Keep Tab inside the preview so focus can't land on the editor behind it.
+      if (e.key !== "Tab" || !dialogRef.current) return;
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !dialogRef.current.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !dialogRef.current.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -85,16 +106,22 @@ export default function QuoteClientPreview({
 
   const quote = state.kind === "ready" ? state.quote : null;
 
-  return (
+  // Portalled to <body>: the sidebar lives in the workspace's sticky
+  // column, and `position: sticky` starts a new stacking context, so a z-index
+  // set here only counted inside that column. The admin sidebar and the
+  // editor's action bar painted over the preview. z-[180] sits above the
+  // sidebar and chatbot (z-60 and below) and under toasts (z-200).
+  return createPortal(
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="Client preview"
       data-theme={theme === "light" ? "light" : "dark"}
-      className="fixed inset-0 z-[150] flex flex-col"
+      className="fixed inset-0 z-[180] flex flex-col"
     >
       <div
-        className="flex flex-wrap items-center gap-3 px-4 py-3 border-b"
+        className="shrink-0 flex flex-wrap items-center gap-3 px-4 py-3 border-b"
         style={{
           background: "var(--status-pending-bg)",
           color: "var(--status-pending-text)",
@@ -119,7 +146,10 @@ export default function QuoteClientPreview({
           <FaTimes aria-hidden /> Close preview
         </button>
       </div>
-      <div className="quote-ui flex-1 overflow-y-auto" style={{ background: "var(--bg-primary)" }}>
+      <div
+        className="quote-ui min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        style={{ background: "var(--bg-primary)" }}
+      >
         <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-6">
           {state.kind === "loading" && <QuoteLoading />}
           {state.kind === "error" && <QuoteError message={state.message} onRetry={load} />}
@@ -136,6 +166,7 @@ export default function QuoteClientPreview({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
