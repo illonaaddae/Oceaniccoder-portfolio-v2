@@ -6,6 +6,7 @@ import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import MainLayout from "./components/MainLayout";
 import AnimatedRoutes from "./components/AnimatedRoutes";
 import RouteChangeHandler from "./components/RouteChangeHandler";
+import PageViewTracker from "./components/PageViewTracker";
 import TerminalLoader from "./components/TerminalLoader";
 import Chatbot from "./components/Chatbot";
 import useTheme from "./hooks/useTheme";
@@ -17,6 +18,7 @@ import {
 } from "./services/api";
 import { prefetchRoutes } from "./utils/prefetchRoutes";
 import { PREFETCHABLE_ROUTES } from "./routes/lazyComponents";
+import { optOutOfTracking } from "./utils/analytics/consent";
 
 // Client documents (quotes, invoices, receipts) are for reading and paying; the
 // floating chat bubble sat beside their actions and pulled focus from them.
@@ -45,7 +47,10 @@ function App() {
   useEffect(() => {
     hasAppwriteSession().then((hasSession) => {
       setIsAdminLoggedIn(hasSession);
-      if (!hasSession) {
+      if (hasSession) {
+        // The owner's browser: never count its page views.
+        optOutOfTracking();
+      } else {
         localStorage.removeItem("adminAuth");
         localStorage.removeItem("adminHash"); // clean up stale legacy key
       }
@@ -60,6 +65,7 @@ function App() {
         // auth state. localStorage.adminAuth kept only as a UI hint for legacy
         // code paths that haven't been migrated yet — it's no longer a secret.
         localStorage.setItem("adminAuth", "authenticated");
+        optOutOfTracking();
         setIsAdminLoggedIn(true);
       } else {
         // eslint-disable-next-line no-alert
@@ -111,6 +117,7 @@ function App() {
                     onAdminLogout={handleAdminLogout}
                   />
                   <RouteChangeHandler />
+                  <PageViewTracker />
                   <SiteChatbot />
                 </React.Suspense>
               </MainLayout>
