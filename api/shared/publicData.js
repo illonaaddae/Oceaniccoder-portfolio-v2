@@ -8,7 +8,9 @@
 //
 // Only collections in PUBLIC_COLLECTIONS are readable. Each can hide rows
 // (drafts, hidden images, unapproved comments) and fields (commenter emails)
-// on the server, so a visitor can't get them by editing the request.
+// on the server, so a visitor can't get them by editing the request. A
+// collection with `fields` returns only those fields; `omit` drops named ones.
+// /api/comments uses the same comment rule for its Appwrite reads.
 
 const { MIGRATED_SETTINGS_KEYS } = require("./cosmos");
 
@@ -25,7 +27,13 @@ const PUBLIC_COLLECTIONS = {
   about: {},
   blog_posts: { where: unlessFalse("published") },
   certifications: {},
-  comments: { where: unlessFalse("isApproved"), omit: ["authorEmail"] },
+  comments: {
+    where: unlessFalse("isApproved"),
+    // What the blog shows. Anything added to the collection later stays
+    // private until it is listed here.
+    fields: ["$id", "$createdAt", "postId", "authorName", "content", "parentId", "isApproved"],
+    omit: ["authorEmail"],
+  },
   education: { where: unlessFalse("isVisible") },
   gallery: { where: unlessFalse("isPublic") },
   journey: {},
@@ -43,7 +51,8 @@ class BadRequest extends Error {}
 // on it would tell a visitor what it holds (e.g. whether an email commented).
 function cosmosField(name, collection) {
   if (!FIELD_NAME.test(name)) throw new BadRequest(`Invalid field name: ${name}`);
-  if (PUBLIC_COLLECTIONS[collection]?.omit?.includes(name)) {
+  const rule = PUBLIC_COLLECTIONS[collection];
+  if (rule?.omit?.includes(name) || (rule?.fields && !rule.fields.includes(name))) {
     throw new BadRequest(`Field not available: ${name}`);
   }
   return SYSTEM_FIELDS[name] || name;
@@ -125,10 +134,12 @@ function sortRows(rows, field, dir) {
 
 /** Removes fields visitors must not see. */
 function stripPrivate(collection, row) {
-  const omit = PUBLIC_COLLECTIONS[collection].omit;
-  if (!omit) return row;
-  const copy = { ...row };
-  for (const field of omit) delete copy[field];
+  const { fields, omit } = PUBLIC_COLLECTIONS[collection];
+  if (!fields && !omit) return row;
+  const copy = fields
+    ? Object.fromEntries(fields.filter((f) => f in row).map((f) => [f, row[f]]))
+    : { ...row };
+  for (const field of omit || []) delete copy[field];
   return copy;
 }
 

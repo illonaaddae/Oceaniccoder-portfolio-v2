@@ -30,6 +30,14 @@ describe("parseListQuery", () => {
     expect(() => parseListQuery({ orderBy: "authorEmail" }, "comments")).toThrow(BadRequest);
   });
 
+  it("refuses to filter on a comment field that isn't on the public list", () => {
+    const byUser = { where: JSON.stringify({ userId: "u1" }) };
+    expect(() => parseListQuery(byUser, "comments")).toThrow(BadRequest);
+    expect(parseListQuery({ where: JSON.stringify({ postId: "p1" }) }, "comments").where).toEqual([
+      { field: "postId", value: "p1" },
+    ]);
+  });
+
   it("allows a field that is only hidden in another collection", () => {
     const options = parseListQuery({ orderBy: "authorEmail" }, "projects");
     expect(options.orderBy).toBe("authorEmail");
@@ -105,6 +113,34 @@ describe("stripPrivate", () => {
   it("removes commenter emails", () => {
     const row = { $id: "c1", authorName: "Ada", authorEmail: "ada@example.com" };
     expect(stripPrivate("comments", row)).toEqual({ $id: "c1", authorName: "Ada" });
+  });
+
+  it("keeps only the public comment fields, whatever else the row holds", () => {
+    const row = {
+      $id: "c1",
+      $createdAt: "2026-10-01T10:00:00.000Z",
+      $updatedAt: "2026-10-02T10:00:00.000Z",
+      $permissions: ['read("any")'],
+      $databaseId: "db",
+      $collectionId: "comments",
+      postId: "p1",
+      userId: "u1",
+      authorName: "Ada",
+      authorEmail: "ada@example.com",
+      content: "Nice post",
+      parentId: "c0",
+      isApproved: true,
+      _rid: "cosmos-internal",
+    };
+    expect(stripPrivate("comments", row)).toEqual({
+      $id: "c1",
+      $createdAt: "2026-10-01T10:00:00.000Z",
+      postId: "p1",
+      authorName: "Ada",
+      content: "Nice post",
+      parentId: "c0",
+      isApproved: true,
+    });
   });
 
   it("leaves other collections unchanged", () => {
