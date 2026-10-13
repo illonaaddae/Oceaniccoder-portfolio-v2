@@ -1,4 +1,5 @@
 const https = require("https");
+const { clientIp } = require("../shared/turnstile");
 
 const SYSTEM_PROMPT = `You are Illona's portfolio assistant, a friendly, knowledgeable AI helper on Illona Addae's developer portfolio website (oceaniccoder.dev).
 
@@ -101,11 +102,9 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const clientIp =
-    (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
-    req.headers["client-ip"] ||
-    "unknown";
-  if (isRateLimited(clientIp)) {
+  // Keyed on the address Static Web Apps appended, not the left-most entry,
+  // which the client controls and could change on every request.
+  if (isRateLimited(clientIp(req) || "unknown")) {
     context.res = {
       status: 429,
       headers: CORS,
