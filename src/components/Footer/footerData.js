@@ -31,7 +31,7 @@ export const socialLinks = [
   },
   {
     Icon: FaEnvelope,
-    href: "mailto:illona@oceaniccoder.dev",
+    href: "mailto:hello@oceaniccoder.dev",
     label: "Email",
   },
 ];

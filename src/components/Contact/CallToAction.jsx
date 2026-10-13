@@ -11,7 +11,7 @@ const CallToAction = React.memo(({ resumeUrl }) => (
       </p>
       <div className="flex flex-wrap gap-4 justify-center">
         <a
-          href="mailto:illona@oceaniccoder.dev"
+          href="mailto:hello@oceaniccoder.dev"
           className="glass-btn bg-gradient-to-r from-oceanic-600 to-oceanic-900 text-white px-6 py-3 font-medium hover:scale-105 transition-transform duration-300 flex items-center gap-2"
         >
           <FaEnvelope className="w-4 h-4" />
