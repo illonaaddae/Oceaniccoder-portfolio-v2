@@ -1,312 +1,286 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { FaCreditCard, FaSync, FaCheckCircle, FaMoneyBillWave } from "react-icons/fa";
-import { getPayments, subscribeToPayments, type Payment } from "@/services/api/payments";
+import React, { useMemo, useState } from "react";
+import { FaCreditCard } from "react-icons/fa";
+import type { Payment } from "@/services/api/payments";
+import { quoteAdmin } from "@/services/api/quotes";
+import { TabHeader } from "@/components/ui/TabHeader";
+import { FilterPills } from "@/components/ui/FilterPills";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/hooks/usePagination";
+import { useConfirm } from "../ConfirmContext";
+import { usePaymentsFeed } from "./Payments/usePaymentsFeed";
+import { PaymentsTable } from "./Payments/PaymentsTable";
+import type { RowAction } from "./shared/RowActions";
+import { CountWithTotals, KpiCard, MoneyTotals } from "./shared/KpiCard";
+import { ErrorBanner, RefreshControl, SearchField, SelectField } from "./shared/controls";
+import { canArchive } from "./Payments/paymentStatus";
+import {
+  FILTER_LABELS,
+  METHOD_OPTIONS,
+  computeKpis,
+  inFilter,
+  matchesSearch,
+  toRows,
+  type MethodFilter,
+  type PaymentFilter,
+  type PaymentRow,
+} from "./Payments/paymentView";
+
+const PAGE_SIZE = 15;
+const FILTERS: PaymentFilter[] = ["all", "paid", "pending", "failed", "abandoned", "archived"];
 
 interface PaymentsTabProps {
   theme: "light" | "dark";
+  /** Opens a quote in the Quotes tab, same handoff as the Invoices tab. */
+  onOpenQuote?: (quoteId: string) => void;
 }
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  GHS: "₵",
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  NGN: "₦",
-  KES: "KSh",
-};
+type ArchiveResponse = { payment: { id: string; archivedAt: string | null } };
 
-const METHOD_LABEL: Record<string, string> = {
-  card: "Card",
-  momo: "Mobile Money",
-  bank: "Bank Transfer",
-  apple_pay: "Apple Pay",
-};
+const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 
-// Theme-adaptive so the pill text stays legible on white. The previous
-// green-400 / amber-400 / red-400 Tailwind classes were picked for the dark
-// theme and washed out badly in light mode; these tokens deepen to the -700
-// range on light, which passes AA. Same approach as --accent-amber (see #104).
-const STATUS_PILL: Record<string, React.CSSProperties> = {
-  success: {
-    background: "var(--status-success-bg)",
-    color: "var(--status-success-text)",
-    borderColor: "var(--status-success-border)",
-  },
-  pending: {
-    background: "var(--status-pending-bg)",
-    color: "var(--status-pending-text)",
-    borderColor: "var(--status-pending-border)",
-  },
-  failed: {
-    background: "var(--status-failed-bg)",
-    color: "var(--status-failed-text)",
-    borderColor: "var(--status-failed-border)",
-  },
-};
+export default function PaymentsTab({ theme, onOpenQuote }: PaymentsTabProps) {
+  const confirm = useConfirm();
+  const feed = usePaymentsFeed();
+  const { payments, setPayments } = feed;
+  const [filter, setFilter] = useState<PaymentFilter>("all");
+  const [method, setMethod] = useState<MethodFilter>("all");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
 
-function formatDateTime(dateStr?: string) {
-  if (!dateStr) return "N/A";
-  return new Date(dateStr).toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+  // Abandonment depends on the clock, so re-derive whenever the list reloads
+  // (at least every poll) rather than once.
+  const rows = useMemo(
+    () => toRows(payments, (feed.updatedAt ?? new Date()).getTime()),
+    [payments, feed.updatedAt],
+  );
+  const kpis = useMemo(
+    () => computeKpis(rows, feed.updatedAt ?? new Date()),
+    [rows, feed.updatedAt],
+  );
 
-export default function PaymentsTab({ theme }: PaymentsTabProps) {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [live, setLive] = useState(false);
+  const searched = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          (method === "all" || r.payment.method === method) && matchesSearch(r.payment, search),
+      ),
+    [rows, method, search],
+  );
+  const shown = useMemo(() => searched.filter((r) => inFilter(r, filter)), [searched, filter]);
+  const { page, setPage, pageItems, totalItems } = usePagination(shown, PAGE_SIZE);
 
-  // `quiet` skips the loading state. Realtime refetches must not blank the
-  // table and flash "Loading..." every time a payment lands.
-  const fetchPayments = useCallback(async (quiet = false) => {
-    if (!quiet) setLoading(true);
-    try {
-      setPayments(await getPayments());
-    } finally {
-      if (!quiet) setLoading(false);
-    }
-  }, []);
-
-  const load = useCallback(() => {
-    void fetchPayments(false);
-  }, [fetchPayments]);
-
-  useEffect(() => {
-    void fetchPayments(false);
-  }, [fetchPayments]);
-
-  // Realtime: /api/paystack-webhook writes payment records server-side, so
-  // without this the browser has no way to learn about a payment until the
-  // admin hits Refresh. Falls back silently to manual refresh if the websocket
-  // cannot be established — the button is always there.
-  useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-    try {
-      unsubscribe = subscribeToPayments(() => {
-        void fetchPayments(true);
-      });
-      setLive(true);
-    } catch {
-      setLive(false);
-    }
-    return () => {
-      unsubscribe?.();
-      setLive(false);
+  // usePagination only clamps the page; a new filter or search starts at page 1.
+  const withPageReset =
+    <T,>(set: (v: T) => void) =>
+    (v: T) => {
+      set(v);
+      setPage(1);
     };
-  }, [fetchPayments]);
+  const changeFilter = withPageReset(setFilter);
+  const changeMethod = withPageReset(setMethod);
+  const changeSearch = withPageReset(setSearch);
 
-  const totalReceived = payments
-    .filter((p) => p.status === "success")
-    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-  const successCount = payments.filter((p) => p.status === "success").length;
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const applyArchive = (res: ArchiveResponse) =>
+    setPayments((prev: Payment[]) =>
+      prev.map((p) =>
+        p.$id === res.payment.id ? { ...p, archivedAt: res.payment.archivedAt } : p,
+      ),
+    );
+
+  const archive = async (p: Payment) => {
+    const ok = await confirm({
+      message: "Archive this payment attempt?",
+      description:
+        "It moves to the Archived filter and stops counting in the totals. You can restore it at any time.",
+      confirmLabel: "Archive",
+    });
+    if (!ok) return;
+    setBusy(p.$id);
+    setActionError(null);
+    try {
+      applyArchive(await quoteAdmin<ArchiveResponse>("archivePayment", { id: p.$id }));
+      setNotice(`Archived ${p.paystackReference || p.invoiceNumber}.`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Couldn't archive the payment.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const restore = async (p: Payment) => {
+    setBusy(p.$id);
+    setActionError(null);
+    try {
+      applyArchive(await quoteAdmin<ArchiveResponse>("restorePayment", { id: p.$id }));
+      setNotice(`Restored ${p.paystackReference || p.invoiceNumber}.`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Couldn't restore the payment.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const copyReference = async (ref: string) => {
+    try {
+      await navigator.clipboard.writeText(ref);
+      setNotice(`Copied ${ref}.`);
+    } catch {
+      setActionError(
+        "Couldn't copy to the clipboard. Select the reference in the details instead.",
+      );
+    }
+  };
+
+  const actionsFor = (row: PaymentRow): { actions: RowAction[]; note?: string } => {
+    const p = row.payment;
+    const actions: RowAction[] = [
+      { label: expanded.has(p.$id) ? "Hide details" : "Details", onSelect: () => toggle(p.$id) },
+    ];
+    const quoteId = p.quoteId;
+    if (quoteId && onOpenQuote)
+      actions.push({ label: "Open quote", onSelect: () => onOpenQuote(quoteId) });
+    if (p.paystackReference) {
+      const ref = p.paystackReference;
+      actions.push({ label: "Copy reference", onSelect: () => void copyReference(ref) });
+    }
+    if (busy === p.$id) return { actions, note: "Saving…" };
+    if (row.archived) actions.push({ label: "Restore", onSelect: () => void restore(p) });
+    else if (canArchive(p)) actions.push({ label: "Archive", onSelect: () => void archive(p) });
+    else if (row.status === "paid")
+      return { actions, note: "Paid payments stay on record and can't be archived." };
+    else
+      return {
+        actions,
+        note: "Money was taken on this payment (refund or follow-up owed), so it stays on record.",
+      };
+    return { actions };
+  };
+
+  const count = (f: PaymentFilter) => searched.filter((r) => inFilter(r, f)).length;
+  const rate = kpis.successRate === null ? "None yet" : `${Math.round(kpis.successRate * 100)}%`;
+  const firstLoad = feed.loading && !feed.updatedAt;
+  const error = actionError ?? feed.error;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1
-            className={`text-2xl sm:text-3xl font-bold ${
-              theme === "dark" ? "text-white" : "text-slate-900"
-            }`}
-          >
-            Payments
-          </h1>
-          <p
-            className={`text-sm sm:text-base ${
-              theme === "dark" ? "text-gray-200" : "text-slate-600"
-            }`}
-          >
-            Records of successful and pending payments
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {live && (
-            <span
-              className="flex items-center gap-1.5 text-xs font-medium"
-              style={{ color: "var(--status-success-text)" }}
-              title="New payments appear automatically"
-            >
-              <span
-                className="w-2 h-2 rounded-full animate-pulse"
-                style={{ background: "var(--status-success-text)" }}
-              />
-              Live
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={load}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              theme === "dark"
-                ? "bg-brand-link hover:bg-brand-accent-strong text-white"
-                : "bg-brand-link hover:bg-brand-accent-strong text-white"
-            }`}
-          >
-            <FaSync /> Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-card p-4 flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-green-500/15">
-            <FaCheckCircle className="text-green-400 text-xl" />
-          </div>
-          <div>
-            <p className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-slate-500"}`}>
-              Successful
-            </p>
-            <p
-              className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}
-            >
-              {successCount}
-            </p>
-          </div>
-        </div>
-        <div className="glass-card p-4 flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-brand-link/15">
-            <FaMoneyBillWave className="text-brand-link dark:text-oceanic-400 text-xl" />
-          </div>
-          <div>
-            <p className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-slate-500"}`}>
-              Total Received (mixed currency)
-            </p>
-            <p
-              className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}
-            >
-              {totalReceived.toLocaleString()}
-            </p>
-          </div>
-        </div>
-        <div className="glass-card p-4 flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-amber-500/15">
-            <FaCreditCard className="text-amber-400 text-xl" />
-          </div>
-          <div>
-            <p className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-slate-500"}`}>
-              Total Records
-            </p>
-            <p
-              className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}
-            >
-              {payments.length}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <div className="text-center py-12">
-          <p className={theme === "dark" ? "text-gray-200" : "text-slate-600"}>Loading...</p>
-        </div>
-      ) : payments.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <FaCreditCard
-            className={`text-4xl mx-auto mb-4 ${
-              theme === "dark" ? "text-gray-200" : "text-slate-400"
-            }`}
+    <div className="space-y-6">
+      <TabHeader
+        theme={theme}
+        title="Payments"
+        subtitle="Every payment and checkout attempt, newest first."
+        customAction={
+          <RefreshControl
+            updatedAt={feed.updatedAt}
+            stale={feed.stale}
+            loading={feed.loading}
+            onRefresh={feed.refresh}
           />
-          <p className={theme === "dark" ? "text-gray-200" : "text-slate-600"}>
-            No payment records yet
+        }
+      />
+
+      {error && (
+        <ErrorBanner
+          message={error}
+          onDismiss={() => {
+            setActionError(null);
+            feed.clearError();
+          }}
+        />
+      )}
+      <p className="sr-only" role="status" aria-live="polite">
+        {notice}
+      </p>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Received this month">
+          <MoneyTotals totals={kpis.thisMonth} />
+        </KpiCard>
+        <KpiCard label="Received all time">
+          <MoneyTotals totals={kpis.allTime} />
+        </KpiCard>
+        <KpiCard label="Awaiting payment">
+          <CountWithTotals
+            count={kpis.awaitingCount}
+            noun={["payment", "payments"]}
+            totals={kpis.awaiting}
+          />
+        </KpiCard>
+        <KpiCard label="Success rate">
+          <p className="mt-1 text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            {rate}
           </p>
-        </div>
+          <p className="text-xs" style={muted}>
+            Paid out of paid, failed and abandoned
+          </p>
+        </KpiCard>
+      </div>
+
+      <FilterPills
+        tabs={FILTERS.map((f) => ({ key: f, label: FILTER_LABELS[f], count: count(f) }))}
+        active={filter}
+        onChange={(k) => changeFilter(k as PaymentFilter)}
+        theme={theme}
+      />
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <SearchField
+          label="Search payments"
+          value={search}
+          onChange={changeSearch}
+          placeholder="Client, email, reference, invoice or quote number"
+        />
+        <SelectField
+          label="Method"
+          value={method}
+          options={METHOD_OPTIONS}
+          onChange={changeMethod}
+        />
+      </div>
+
+      {firstLoad ? (
+        <p className="py-12 text-center" style={muted}>
+          Loading payments…
+        </p>
+      ) : shown.length === 0 ? (
+        <EmptyState
+          theme={theme}
+          icon={FaCreditCard}
+          message={
+            payments.length === 0
+              ? "No payments yet. They appear here when a client starts a checkout."
+              : search || method !== "all"
+                ? "No payments match your search."
+                : filter === "all"
+                  ? "Nothing here. Abandoned and archived attempts are under their own filters."
+                  : `No ${FILTER_LABELS[filter].toLowerCase()} payments.`
+          }
+        />
       ) : (
-        <div className="glass-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr
-                className={`text-left border-b ${
-                  theme === "dark"
-                    ? "border-white/10 text-gray-200"
-                    : "border-slate-200 text-slate-600"
-                }`}
-              >
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Invoice #</th>
-                <th className="px-4 py-3 font-medium">Client</th>
-                <th className="px-4 py-3 font-medium">Method</th>
-                <th className="px-4 py-3 font-medium text-right">Amount</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Reference</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => {
-                const sym = CURRENCY_SYMBOLS[p.currency] ?? p.currency;
-                return (
-                  <tr
-                    key={p.$id}
-                    className={`border-b ${
-                      theme === "dark" ? "border-white/5" : "border-slate-100"
-                    }`}
-                  >
-                    <td
-                      className={`px-4 py-3 ${
-                        theme === "dark" ? "text-gray-200" : "text-slate-700"
-                      }`}
-                    >
-                      {formatDateTime(p.paidAt || p.$createdAt)}
-                    </td>
-                    <td
-                      className={`px-4 py-3 font-mono ${
-                        theme === "dark" ? "text-white" : "text-slate-900"
-                      }`}
-                    >
-                      {p.invoiceNumber}
-                    </td>
-                    <td
-                      className={`px-4 py-3 ${theme === "dark" ? "text-white" : "text-slate-900"}`}
-                    >
-                      <div>{p.clientName}</div>
-                      <div
-                        className={`text-xs ${
-                          theme === "dark" ? "text-gray-200" : "text-slate-500"
-                        }`}
-                      >
-                        {p.clientEmail}
-                      </div>
-                    </td>
-                    <td
-                      className={`px-4 py-3 ${
-                        theme === "dark" ? "text-gray-200" : "text-slate-700"
-                      }`}
-                    >
-                      {METHOD_LABEL[p.method] ?? p.method}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-semibold ${
-                        theme === "dark" ? "text-white" : "text-slate-900"
-                      }`}
-                    >
-                      {sym}
-                      {Number(p.amount).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="inline-block px-2 py-0.5 rounded-full text-xs border font-medium"
-                        style={STATUS_PILL[p.status ?? "success"] ?? STATUS_PILL.success}
-                      >
-                        {p.status ?? "success"}
-                      </span>
-                    </td>
-                    <td
-                      className={`px-4 py-3 font-mono text-xs ${
-                        theme === "dark" ? "text-gray-200" : "text-slate-500"
-                      }`}
-                    >
-                      {p.paystackReference ?? "N/A"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div>
+          <PaymentsTable
+            rows={pageItems}
+            expanded={expanded}
+            onToggle={toggle}
+            actionsFor={actionsFor}
+          />
+          <Pagination
+            page={page}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            theme={theme}
+          />
         </div>
       )}
     </div>
