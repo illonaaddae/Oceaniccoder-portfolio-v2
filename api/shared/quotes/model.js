@@ -520,6 +520,30 @@ function paymentRow(quote, stage, fields) {
 const MOMO_NETWORKS = { mtn: "MTN", telecel: "Telecel", airteltigo: "AirtelTigo" };
 const NETWORK_NOTE = "network:";
 
+// settle.js writes this prefix when Paystack itself reports the charge failed.
+const PAYSTACK_FAILURE_NOTE = "Paystack: ";
+
+/**
+ * Whether the admin may archive (hide) a payment row. Only attempts where no
+ * money was taken qualify:
+ *   - pending and abandoned checkouts;
+ *   - failed rows with no Paystack transaction id (checkout never started,
+ *     e.g. initialize failed), or whose note is Paystack's own failure.
+ * Everything else may hold captured money and stays visible: success (and
+ * legacy rows with no status), duplicate (paid twice, refund owed), refunded,
+ * and failed rows that settle wrote after a captured charge (amount or
+ * currency mismatch, quote not found, mode mismatch). Those carry a
+ * paystackId and a note other than the Paystack failure prefix.
+ * src/components/AdminDashboard/tabs/Payments/paymentStatus.ts mirrors this.
+ */
+function canArchivePayment(p) {
+  if (!p) return false;
+  if (p.status === "pending" || p.status === "abandoned") return true;
+  if (p.status !== "failed") return false;
+  if (!p.paystackId) return true;
+  return typeof p.note === "string" && p.note.startsWith(PAYSTACK_FAILURE_NOTE);
+}
+
 /** The network stored on a payment's note at checkout, if any. */
 function networkFromNote(note) {
   if (typeof note !== "string" || !note.startsWith(NETWORK_NOTE)) return null;
@@ -531,6 +555,8 @@ module.exports = {
   MOMO_NETWORKS,
   NETWORK_NOTE,
   networkFromNote,
+  PAYSTACK_FAILURE_NOTE,
+  canArchivePayment,
   CURRENCIES,
   STATUSES,
   DEFAULT_SCHEDULE,

@@ -70,6 +70,98 @@ describe("settleQuotePayment", () => {
     expect(notify.paymentReceived).toHaveBeenCalledTimes(1);
   });
 
+  it("un-archives an archived attempt that the client goes on to pay", async () => {
+    const { repo, run } = setup({
+      payments: [pending({ archivedAt: "2026-10-01T12:00:00Z" })],
+    });
+    expect((await run()).state).toBe("success");
+    expect(repo.payments.get("p1")).toMatchObject({ status: "success", archivedAt: null });
+  });
+
+  it("does not write archivedAt when settling a row that was never archived", async () => {
+    const { repo, run } = setup();
+    const spy = vi.spyOn(repo, "updatePayment");
+    await run();
+    expect(spy.mock.calls.at(-1)[1]).not.toHaveProperty("archivedAt");
+  });
+
+  it("clears an archive that lands between reading the row and settling it", async () => {
+    const t = setup();
+    const verify = t.verify;
+    // The admin archives the attempt while Paystack is being asked.
+    t.verify.mockImplementation(async () => {
+      t.repo.payments.get("p1").archivedAt = "2026-10-02T00:00:00Z";
+      return tx();
+    });
+    expect((await t.run()).state).toBe("success");
+    expect(verify).toHaveBeenCalled();
+    expect(t.repo.payments.get("p1")).toMatchObject({ status: "success", archivedAt: null });
+  });
+
+  it("still records the payment and sends the receipt when the late un-archive write fails", async () => {
+    const t = setup();
+    t.verify.mockImplementation(async () => {
+      t.repo.payments.get("p1").archivedAt = "2026-10-02T00:00:00Z";
+      return tx();
+    });
+    const real = t.repo.updatePayment.bind(t.repo);
+    t.repo.updatePayment = vi.fn(async (id, patch) => {
+      if (Object.keys(patch).length === 1 && "archivedAt" in patch) throw new Error("down");
+      return real(id, patch);
+    });
+    expect((await t.run()).state).toBe("success");
+    expect(t.repo.payments.get("p1").status).toBe("success");
+    expect(t.notify.paymentReceived).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears an archive seen at read time in the status write itself", async () => {
+    const t = setup({ payments: [pending({ archivedAt: "2026-10-01T12:00:00Z" })] });
+    const spy = vi.spyOn(t.repo, "updatePayment");
+    await t.run();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][1]).toMatchObject({ status: "success", archivedAt: null });
+  });
+
+  it("un-archives an archived attempt that settles as a duplicate (both branches)", async () => {
+    const archivedAt = "2026-10-01T12:00:00Z";
+    // Stage already paid by an earlier row: the stageStates branch.
+    const paid = setup({
+      payments: [
+        pending({ id: "p0", paystackReference: "REF0", status: "success", paidAt: "2026-10-01" }),
+        pending({ archivedAt }),
+      ],
+    });
+    expect((await paid.run("REF1")).state).toBe("duplicate");
+    expect(paid.repo.payments.get("p1")).toMatchObject({ status: "duplicate", archivedAt: null });
+
+    // Stage lock already held by a concurrent winner: the lock branch.
+    const locked = setup({ payments: [pending({ archivedAt })] });
+    await locked.locks.take("stage:q1:deposit");
+    expect((await locked.run()).state).toBe("duplicate");
+    expect(locked.repo.payments.get("p1")).toMatchObject({ status: "duplicate", archivedAt: null });
+  });
+
+  it("un-archives an archived attempt whose captured amount doesn't match", async () => {
+    const { repo, run } = setup({
+      payments: [pending({ archivedAt: "2026-10-01T12:00:00Z" })],
+      verifyResult: tx({ amount: 5999 }),
+    });
+    expect((await run()).state).toBe("failed");
+    expect(repo.payments.get("p1")).toMatchObject({ note: "underpaid", archivedAt: null });
+  });
+
+  it("leaves an archived attempt archived when Paystack reports a plain failure", async () => {
+    const { repo, run } = setup({
+      payments: [pending({ archivedAt: "2026-10-01T12:00:00Z" })],
+      verifyResult: tx({ status: "failed", gateway_response: "Declined" }),
+    });
+    await run();
+    expect(repo.payments.get("p1")).toMatchObject({
+      note: "Paystack: Declined",
+      archivedAt: "2026-10-01T12:00:00Z",
+    });
+  });
+
   it("keeps an abandoned Mobile Money charge pending without taking the lock", async () => {
     const { repo, locks, run } = setup({ verifyResult: tx({ status: "abandoned" }) });
     expect((await run()).state).toBe("pending");

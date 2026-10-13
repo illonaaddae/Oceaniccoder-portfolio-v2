@@ -154,6 +154,14 @@ describe("stageStates", () => {
     ];
     expect(M.stageStates(base, payments, now)[0].state).toBe("due");
   });
+  // Archiving is admin bookkeeping. Only success rows settle a stage, and
+  // success rows can't be archived, so an archived attempt changes nothing.
+  it("is unaffected by an archived pending attempt", () => {
+    const archived = [
+      { stageId: "deposit", status: "pending", archivedAt: "2026-10-02T00:00:00.000Z" },
+    ];
+    expect(M.stageStates(base, archived, now)).toEqual(M.stageStates(base, [], now));
+  });
   it("shows everything as later before acceptance", () => {
     expect(
       M.stageStates({ ...base, status: "sent" }, [], now).every((s) => s.state === "later"),
@@ -463,5 +471,22 @@ describe("extras.needs", () => {
     });
     expect(JSON.stringify(r.value.extras).length).toBeGreaterThan(L.extras);
     expect(r.errors.extras).toBeDefined();
+  });
+});
+
+describe("canArchivePayment", () => {
+  it("allows only attempts where no money was taken", () => {
+    const can = (p) => M.canArchivePayment(p);
+    expect(can({ status: "pending" })).toBe(true);
+    expect(can({ status: "abandoned" })).toBe(true);
+    expect(can({ status: "failed", note: "initialize: down" })).toBe(true);
+    expect(can({ status: "failed", paystackId: "9", note: "Paystack: Declined" })).toBe(true);
+    expect(can({ status: "success" })).toBe(false);
+    expect(can({})).toBe(false);
+    expect(can(null)).toBe(false);
+    expect(can({ status: "duplicate", paystackId: "9" })).toBe(false);
+    expect(can({ status: "refunded" })).toBe(false);
+    expect(can({ status: "failed", paystackId: "9", note: "underpaid" })).toBe(false);
+    expect(can({ status: "failed", paystackId: "9" })).toBe(false);
   });
 });

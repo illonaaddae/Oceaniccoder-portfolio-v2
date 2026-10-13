@@ -260,6 +260,7 @@ function summarize(q, stages) {
     quoteNumber: q.quoteNumber,
     title: q.title,
     clientName: q.clientName,
+    clientEmail: q.clientEmail || "",
     status: q.status,
     currency: q.currency,
     totalMinor: q.totalMinor,
@@ -282,6 +283,8 @@ function summarize(q, stages) {
         percent: st.percent,
         amountMinor: st.amountMinor,
         state: st.state,
+        // When the stage was requested (the deposit: when the quote was accepted).
+        issuedAt: st.dueAt || null,
         dueBy: stageDueDate(st),
         overdue: Boolean(st.overdue),
         paidAt: st.paidAt || null,

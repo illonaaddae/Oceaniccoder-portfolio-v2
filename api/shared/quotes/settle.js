@@ -36,6 +36,29 @@ async function settleQuotePayment({
     return { state: current.status, payment: current };
   }
 
+  // Every branch below except a plain Paystack failure means money may have
+  // been captured, so the row must stay visible (M.canArchivePayment refuses
+  // to archive it). If the admin archived the attempt, clear that:
+  //   1. in the status write itself when the row we read was archived;
+  //   2. again if the row as written is still archived (an archive that
+  //      landed between our read and our write).
+  // The second write is best effort and never throws: the money is already
+  // recorded, and the receipt emails after it must still go out. The Payments
+  // tab never shows a money row as archived anyway. archivedAt is only sent
+  // when set, so a database without the column still records payments.
+  const recordCaptured = async (patch) => {
+    const p = await repo.updatePayment(payment.id, {
+      ...patch,
+      ...(payment.archivedAt ? { archivedAt: null } : {}),
+    });
+    if (!p || !p.archivedAt) return p;
+    try {
+      return await repo.updatePayment(payment.id, { archivedAt: null });
+    } catch {
+      return p;
+    }
+  };
+
   let stageKey = null;
   try {
     const quote = await repo.get(payment.quoteId);
@@ -46,7 +69,7 @@ async function settleQuotePayment({
     };
 
     if (!quote) {
-      const p = await repo.updatePayment(payment.id, {
+      const p = await recordCaptured({
         ...gateway,
         status: "failed",
         note: "quote not found",
@@ -58,13 +81,13 @@ async function settleQuotePayment({
       const p = await repo.updatePayment(payment.id, {
         ...gateway,
         status: "failed",
-        note: `Paystack: ${tx.gateway_response || tx.status}`.slice(0, 300),
+        note: `${M.PAYSTACK_FAILURE_NOTE}${tx.gateway_response || tx.status}`.slice(0, 300),
       });
       return { state: "failed", payment: p };
     }
 
     if (tx.domain && tx.domain !== S.keyMode(secretKey)) {
-      const p = await repo.updatePayment(payment.id, {
+      const p = await recordCaptured({
         ...gateway,
         status: "failed",
         note: "mode-mismatch",
@@ -77,7 +100,7 @@ async function settleQuotePayment({
     const stage = M.stageStates(quote, payments).find((s) => s.id === payment.stageId);
     if (stage && stage.state === "paid") {
       // Already recorded by another payment (or by hand): never record twice.
-      const p = await repo.updatePayment(payment.id, {
+      const p = await recordCaptured({
         ...gateway,
         status: "duplicate",
         note: "stage already paid",
@@ -92,7 +115,7 @@ async function settleQuotePayment({
       paidCurrency: tx.currency,
     });
     if (!check.ok) {
-      const p = await repo.updatePayment(payment.id, {
+      const p = await recordCaptured({
         ...gateway,
         status: "failed",
         note: check.reason,
@@ -104,7 +127,7 @@ async function settleQuotePayment({
     stageKey = `stage:${quote.id}:${stage.id}`;
     if (!(await locks.take(stageKey))) {
       stageKey = null; // held by the earlier payment; not ours to release
-      const p = await repo.updatePayment(payment.id, {
+      const p = await recordCaptured({
         ...gateway,
         status: "duplicate",
         note: "stage already paid",
@@ -113,7 +136,9 @@ async function settleQuotePayment({
       return { state: "duplicate", payment: p };
     }
 
-    const p = await repo.updatePayment(payment.id, {
+    // An attempt the admin archived can still be paid if the client finishes
+    // checkout later; recordCaptured un-archives it.
+    const p = await recordCaptured({
       ...gateway,
       status: "success",
       paidAt: tx.paid_at || now(),
