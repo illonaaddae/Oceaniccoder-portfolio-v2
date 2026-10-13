@@ -194,17 +194,16 @@ Nothing in the browser reads the `comments` collection as a visitor any more,
 so once that deploy is live:
 
 1. Appwrite console → Databases → `comments` → Settings → Permissions.
-2. Read: remove `Any`, keep or add `Users` (the admin's session, which the
-   Comments tab and dashboard notifications use to see emails).
+2. Read: remove `Any` only. Do **not** add `Users`: it grants read to any
+   signed-in Appwrite account, and anyone can sign up through the browser SDK
+   unless sign-up is disabled, which would re-open the leak. The admin keeps
+   its own explicit `user:<admin id>` read (Comments tab, notifications).
+   `/api/comments` uses the server key and ignores collection permissions.
 3. Create: leave `Any` as it is, so visitors can still post comments.
 4. Leave update and delete as they are.
-5. Smoke test: open a blog post (comments load), post a comment (it appears,
-   no error toast), open the admin Comments tab (emails show).
-
-`Users` means any signed-in Appwrite account, so it's only "admin only" while
-the admin is the sole account and public sign-up stays off (Auth → Settings).
-The code works before and after this change: `/api/comments` ignores
-collection permissions, and the admin reads with a session.
+5. Smoke test (required, straight after the change): open a blog post as a
+   guest (comments load), post a comment as a guest (it appears, no error
+   toast), open the admin Comments tab (emails show).
 
 ### 3.3 Cutover (one evening)
 
