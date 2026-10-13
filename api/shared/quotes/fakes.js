@@ -63,9 +63,10 @@ function freshId(map, prefix) {
   return id;
 }
 
-function createFakeRepo({ quotes = [], payments = [] } = {}) {
+function createFakeRepo({ quotes = [], payments = [], invoices = [] } = {}) {
   const q = new Map(quotes.map((x) => [x.id, clone(x)]));
   const p = new Map(payments.map((x) => [x.id, clone(x)]));
+  const inv = new Map(invoices.map((x) => [x.id, clone(x)]));
   const inquiryStatus = {};
 
   // Next sequence for a year: highest existing NNNN for that year, plus one.
@@ -86,6 +87,7 @@ function createFakeRepo({ quotes = [], payments = [] } = {}) {
   return {
     quotes: q,
     payments: p,
+    invoices: inv,
     inquiryStatus,
     async get(id) {
       return toQuote(q.get(id));
@@ -130,8 +132,19 @@ function createFakeRepo({ quotes = [], payments = [] } = {}) {
         .filter((x) => x.kind === "quote")
         .map(toPayment);
     },
+    // Like Appwrite, Query.equal with an undefined value is rejected.
+    async listInvoicePayments(invoiceNumber) {
+      if (invoiceNumber === undefined || invoiceNumber === null)
+        throw Object.assign(new Error("Invalid query: Value must not be empty"), { code: 400 });
+      return newestFirst(p)
+        .filter((x) => x.invoiceNumber === invoiceNumber)
+        .map(toPayment);
+    },
     async findPaymentByReference(ref) {
       return toPayment([...p.values()].find((x) => x.paystackReference === ref));
+    },
+    async getPayment(id) {
+      return toPayment(p.get(id));
     },
     async createPayment(fields) {
       const id = freshId(p, "p");
@@ -145,6 +158,16 @@ function createFakeRepo({ quotes = [], payments = [] } = {}) {
       const doc = { ...current, ...cleanPatch(patch) };
       p.set(id, doc);
       return toPayment(doc);
+    },
+    async getInvoice(id) {
+      return inv.has(id) ? clone(inv.get(id)) : null;
+    },
+    async updateInvoice(id, patch) {
+      const current = inv.get(id);
+      if (!current) throw notFound();
+      const doc = { ...current, ...cleanPatch(patch) };
+      inv.set(id, doc);
+      return clone(doc);
     },
     async setInquiryStatus(id, status) {
       if (id) inquiryStatus[id] = status;

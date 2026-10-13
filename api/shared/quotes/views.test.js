@@ -279,6 +279,8 @@ describe("summarize invoices", () => {
     );
     const s = V.summarize(q, stages);
     expect(s.invoices).toHaveLength(1);
+    expect(s.clientEmail).toBe(q.clientEmail || "");
+    expect(s.invoices[0].issuedAt).toBe(stages[0].dueAt);
     expect(s.invoices[0]).toMatchObject({
       stageId: stages[0].id,
       invoiceNumber: stages[0].invoiceNumber,

@@ -9,7 +9,9 @@
 //
 // Source of truth for revenue charts in AnalyticsTab is still the `invoices`
 // collection (status === "paid"). This `payments` collection is the audit log.
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query, client } from "./client";
+// Archive and restore go through quoteAdmin (/api/quote-admin), not here.
+import { databases, DATABASE_ID, COLLECTIONS, ID, client } from "./client";
+import { listAllDocuments } from "./listAll";
 
 export interface PaymentRecord {
   invoiceNumber: string;
@@ -41,29 +43,45 @@ export async function createPayment(payment: PaymentRecord) {
   return databases.createDocument(DATABASE_ID, COLLECTIONS.PAYMENTS, ID.unique(), data);
 }
 
+/** A stored row. The fields after PaymentRecord's are set server-side, mostly on quote payments. */
 export interface Payment extends PaymentRecord {
   $id: string;
   $createdAt: string;
+  quoteId?: string;
+  /** Free text: "network:mtn" at checkout, the failure reason, or the admin's note. */
+  note?: string;
+  /** Paystack's channel string, e.g. "mobile_money". */
+  channel?: string;
+  paystackId?: string;
+  /** Admin email on manually recorded payments. */
+  recordedBy?: string;
+  /** Set when the admin archives the row; null or absent means not archived. */
+  archivedAt?: string | null;
 }
 
+/** Every payment row, newest first (Appwrite's 25-row default dropped older ones). */
 export async function getPayments(): Promise<Payment[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PAYMENTS, [
-    Query.orderDesc("$createdAt"),
-  ]);
-  return response.documents as unknown as Payment[];
+  return listAllDocuments<Payment>(COLLECTIONS.PAYMENTS);
 }
 
-export const PAYMENTS_CHANNEL = `databases.${DATABASE_ID}.collections.${COLLECTIONS.PAYMENTS}.documents`;
+// Appwrite 1.8 (TablesDB) emits row events on the tables channel; older
+// servers and documents-API writes use the collections channel. Subscribing to
+// both means a webhook write is seen whichever API wrote it.
+export const PAYMENTS_CHANNELS = [
+  `databases.${DATABASE_ID}.collections.${COLLECTIONS.PAYMENTS}.documents`,
+  `databases.${DATABASE_ID}.tables.${COLLECTIONS.PAYMENTS}.rows`,
+];
 
 /**
- * Subscribes to any create/update/delete on the payments collection and invokes
+ * Subscribes to any create/update/delete on the payments table and invokes
  * `onChange`. Returns the unsubscribe function.
  *
  * This is what makes a webhook-written payment appear without hitting Refresh:
  * /api/paystack-webhook writes server-side, so the browser has no other way to
  * learn about it. Realtime honours collection permissions, so this only
- * delivers to an authenticated admin session.
+ * delivers to an authenticated admin session. It can also fail silently, so
+ * PaymentsTab polls as well.
  */
 export function subscribeToPayments(onChange: () => void): () => void {
-  return client.subscribe(PAYMENTS_CHANNEL, () => onChange());
+  return client.subscribe(PAYMENTS_CHANNELS, () => onChange());
 }

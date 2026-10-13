@@ -18,8 +18,8 @@ const draft = {
   inquiryId: "inq-1",
 };
 
-function setup({ admin = true, quotes = [], payments = [] } = {}) {
-  const repo = createFakeRepo({ quotes, payments });
+function setup({ admin = true, quotes = [], payments = [], invoices = [] } = {}) {
+  const repo = createFakeRepo({ quotes, payments, invoices });
   const locks = createFakeLocks();
   const notify = {
     quoteSent: vi.fn().mockResolvedValue({ ok: true }),
@@ -287,5 +287,155 @@ describe("quote-admin", () => {
     const id = sent.body.quote.id;
     await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
     expect((await t.call({ action: "requestStage", id, stageId: "nope" })).status).toBe(404);
+  });
+});
+
+describe("quote-admin archive and restore", () => {
+  const attempt = (over = {}) => ({
+    id: "p1",
+    kind: "quote",
+    quoteNumber: "Q-2026-0001",
+    stageId: "deposit",
+    status: "pending",
+    ...over,
+  });
+
+  it.each([
+    ["pending", {}],
+    ["abandoned", {}],
+    ["failed before checkout (no Paystack id)", { status: "failed", note: "initialize: down" }],
+    ["failed by Paystack", { status: "failed", paystackId: "99", note: "Paystack: Declined" }],
+  ])("archives a %s attempt", async (name, over) => {
+    const t = setup({ payments: [attempt({ status: name, ...over })] });
+    const r = await t.call({ action: "archivePayment", id: "p1" });
+    expect(r.status).toBe(200);
+    expect(r.body.payment).toEqual({ id: "p1", archivedAt: NOW.toISOString() });
+    expect(t.repo.payments.get("p1").archivedAt).toBe(NOW.toISOString());
+  });
+
+  it.each([
+    ["successful", { status: "success" }],
+    ["duplicate (refund owed)", { status: "duplicate", paystackId: "99" }],
+    ["refunded", { status: "refunded", paystackId: "99" }],
+    ["underpaid capture", { status: "failed", paystackId: "99", note: "underpaid" }],
+    [
+      "currency mismatch capture",
+      { status: "failed", paystackId: "99", note: "currency-mismatch" },
+    ],
+    ["mode mismatch", { status: "failed", paystackId: "99", note: "mode-mismatch" }],
+  ])("refuses to archive a %s payment", async (_name, over) => {
+    const t = setup({ payments: [attempt(over)] });
+    const r = await t.call({ action: "archivePayment", id: "p1" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/can't be archived/i);
+    expect(t.repo.payments.get("p1").archivedAt).toBeUndefined();
+  });
+
+  it("undoes the archive when the row was settled between the read and the write", async () => {
+    const t = setup({ payments: [attempt()] });
+    const realUpdate = t.repo.updatePayment.bind(t.repo);
+    // The webhook settles the row just before the archive write lands.
+    t.repo.updatePayment = vi.fn(async (id, patch) => {
+      if (patch.archivedAt) t.repo.payments.get(id).status = "success";
+      return realUpdate(id, patch);
+    });
+    const r = await t.call({ action: "archivePayment", id: "p1" });
+    expect(r.status).toBe(409);
+    expect(t.repo.payments.get("p1")).toMatchObject({ status: "success", archivedAt: null });
+  });
+
+  it("refuses to archive a part-paid invoice but allows one with only failed attempts", async () => {
+    const t = setup({
+      invoices: [
+        { id: "inv1", invoiceNumber: "INV-2026-0042", status: "sent" },
+        { id: "inv2", invoiceNumber: "INV-2026-0043", status: "sent" },
+      ],
+      payments: [
+        { id: "p1", invoiceNumber: "INV-2026-0042", status: "success", amount: 100 },
+        { id: "p2", invoiceNumber: "INV-2026-0043", status: "failed" },
+      ],
+    });
+    const r = await t.call({ action: "archiveInvoice", id: "inv1" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/payment recorded against it/i);
+    expect(t.repo.invoices.get("inv1").archivedAt).toBeUndefined();
+    expect((await t.call({ action: "archiveInvoice", id: "inv2" })).status).toBe(200);
+  });
+
+  it("archives an invoice with no invoice number without querying its payments", async () => {
+    const t = setup({ invoices: [{ id: "inv1", status: "sent" }] });
+    const lookup = vi.spyOn(t.repo, "listInvoicePayments");
+    const r = await t.call({ action: "archiveInvoice", id: "inv1" });
+    expect(r.status).toBe(200);
+    expect(lookup).not.toHaveBeenCalled();
+    // The fake behaves like Appwrite for an undefined value.
+    await expect(t.repo.listInvoicePayments(undefined)).rejects.toMatchObject({ code: 400 });
+  });
+
+  it("refuses to archive a paid invoice, including one paid mid-archive", async () => {
+    const paid = setup({ invoices: [{ id: "inv1", status: "paid" }] });
+    const r = await paid.call({ action: "archiveInvoice", id: "inv1" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/paid invoices can't be archived/i);
+    expect(paid.repo.invoices.get("inv1").archivedAt).toBeUndefined();
+
+    const racing = setup({ invoices: [{ id: "inv1", status: "sent" }] });
+    const realUpdate = racing.repo.updateInvoice.bind(racing.repo);
+    racing.repo.updateInvoice = vi.fn(async (id, patch) => {
+      if (patch.archivedAt) racing.repo.invoices.get(id).status = "paid";
+      return realUpdate(id, patch);
+    });
+    expect((await racing.call({ action: "archiveInvoice", id: "inv1" })).status).toBe(409);
+    expect(racing.repo.invoices.get("inv1")).toMatchObject({ status: "paid", archivedAt: null });
+  });
+
+  it("treats a legacy row with no status as successful and refuses to archive it", async () => {
+    const t = setup({ payments: [attempt({ status: undefined })] });
+    expect((await t.call({ action: "archivePayment", id: "p1" })).status).toBe(409);
+  });
+
+  it("restores an archived payment", async () => {
+    const t = setup({ payments: [attempt({ archivedAt: "2026-10-01T00:00:00.000Z" })] });
+    const r = await t.call({ action: "restorePayment", id: "p1" });
+    expect(r.status).toBe(200);
+    expect(r.body.payment).toEqual({ id: "p1", archivedAt: null });
+    expect(t.repo.payments.get("p1").archivedAt).toBeNull();
+  });
+
+  it("archives and restores a one-off invoice", async () => {
+    const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042", status: "sent" }] });
+    const archived = await t.call({ action: "archiveInvoice", id: "inv1" });
+    expect(archived.status).toBe(200);
+    expect(archived.body.invoice).toEqual({ id: "inv1", archivedAt: NOW.toISOString() });
+    const restored = await t.call({ action: "restoreInvoice", id: "inv1" });
+    expect(restored.body.invoice).toEqual({ id: "inv1", archivedAt: null });
+    expect(t.repo.invoices.get("inv1")).toMatchObject({ status: "sent", archivedAt: null });
+  });
+
+  it.each(["archivePayment", "restorePayment", "archiveInvoice", "restoreInvoice"])(
+    "%s returns 404 for an unknown id and 400 for a missing or unsafe one",
+    async (action) => {
+      const t = setup();
+      const getPayment = vi.spyOn(t.repo, "getPayment");
+      const getInvoice = vi.spyOn(t.repo, "getInvoice");
+      expect((await t.call({ action, id: "nope" })).status).toBe(404);
+      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(37), 42];
+      for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
+      // Only the well-formed id reached the repo.
+      expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
+    },
+  );
+
+  it("keeps stage state unchanged after archiving an attempt", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    await t.repo.createPayment(attempt({ id: undefined }));
+    const before = await t.call({ action: "get", id });
+    const paymentId = [...t.repo.payments.keys()][0];
+    await t.call({ action: "archivePayment", id: paymentId });
+    const after = await t.call({ action: "get", id });
+    expect(after.body.stages).toEqual(before.body.stages);
   });
 });

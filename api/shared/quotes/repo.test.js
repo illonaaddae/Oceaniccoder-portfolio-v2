@@ -171,6 +171,55 @@ describe("quote repo, additional paths", () => {
     expect(await repo.updatePayment("p1", { amount: 1.5 })).toMatchObject({ amountMinor: 150 });
   });
 
+  it("getPayment and getInvoice return the row, or null on a 404", async () => {
+    const db = {
+      getDocument: vi
+        .fn()
+        .mockResolvedValueOnce({ $id: "p1", amount: 2 })
+        .mockResolvedValueOnce({ $id: "inv1", $createdAt: "2026-09-01T00:00:00Z" }),
+    };
+    const repo = createQuoteRepo(db);
+    expect(await repo.getPayment("p1")).toMatchObject({ id: "p1", amountMinor: 200 });
+    expect(db.getDocument.mock.calls[0].slice(1)).toEqual(["payments", "p1"]);
+    expect(await repo.getInvoice("inv1")).toMatchObject({
+      id: "inv1",
+      createdAt: "2026-09-01T00:00:00Z",
+    });
+    expect(db.getDocument.mock.calls[1].slice(1)).toEqual(["invoices", "inv1"]);
+    const missing = {
+      getDocument: vi.fn().mockImplementation(async () => {
+        throw Object.assign(new Error("nf"), { code: 404 });
+      }),
+    };
+    expect(await createQuoteRepo(missing).getPayment("x")).toBeNull();
+    expect(await createQuoteRepo(missing).getInvoice("x")).toBeNull();
+  });
+
+  it("updateInvoice writes the patch to the invoices collection", async () => {
+    const db = {
+      updateDocument: vi
+        .fn()
+        .mockImplementation(async (_d, _c, id, data) => ({ $id: id, ...data })),
+    };
+    const inv = await createQuoteRepo(db).updateInvoice("inv1", { archivedAt: null });
+    expect(db.updateDocument.mock.calls[0].slice(1)).toEqual([
+      "invoices",
+      "inv1",
+      { archivedAt: null },
+    ]);
+    expect(inv).toMatchObject({ id: "inv1", archivedAt: null });
+  });
+
+  it("listInvoicePayments queries payments by invoice number", async () => {
+    const db = {
+      listDocuments: vi.fn().mockResolvedValue({ documents: [{ $id: "p1", amount: 5 }] }),
+    };
+    const [p] = await createQuoteRepo(db).listInvoicePayments("INV-1");
+    expect(p).toMatchObject({ id: "p1", amountMinor: 500 });
+    expect(db.listDocuments.mock.calls[0][1]).toBe("payments");
+    expect(JSON.stringify(db.listDocuments.mock.calls[0][2])).toContain("INV-1");
+  });
+
   it("findPaymentByReference returns null when nothing matches", async () => {
     const db = { listDocuments: vi.fn().mockResolvedValue({ documents: [] }) };
     expect(await createQuoteRepo(db).findPaymentByReference("ref")).toBeNull();

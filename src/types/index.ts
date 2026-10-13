@@ -248,6 +248,8 @@ export interface Invoice {
   status: "draft" | "sent" | "paid";
   dueDate?: string;
   estimatedDelivery?: string;
+  /** Set when the admin archives the invoice; null or absent means not archived. */
+  archivedAt?: string | null;
   $createdAt?: string;
   $updatedAt?: string;
 }

@@ -15,6 +15,36 @@ async function load(svc, id) {
   return quote;
 }
 
+// Appwrite document ids. node-appwrite puts the id into the URL path without
+// encoding it, so anything else ("../", "?", "/") is refused before the call.
+const ROW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,35}$/;
+
+function rowId(id) {
+  if (typeof id !== "string" || !ROW_ID.test(id)) throw new HttpError(400, "Invalid id.");
+  return id;
+}
+
+async function loadPayment(svc, id) {
+  const payment = await svc.repo.getPayment(rowId(id));
+  if (!payment) throw new HttpError(404, "Payment not found.");
+  return payment;
+}
+
+async function loadInvoice(svc, id) {
+  const invoice = await svc.repo.getInvoice(rowId(id));
+  if (!invoice) throw new HttpError(404, "Invoice not found.");
+  return invoice;
+}
+
+const PAYMENT_KEEP =
+  "This payment can't be archived: money was taken (paid, duplicate or a mismatched charge), so it stays on record.";
+const INVOICE_KEEP = "Paid invoices can't be archived. They're your record of money received.";
+const INVOICE_PART_PAID =
+  "This invoice has a payment recorded against it, so it can't be archived. Money received stays on record.";
+
+// Archive is a soft delete: the row stays, the admin lists hide it.
+const archiveView = (row) => ({ id: row.id, archivedAt: row.archivedAt || null });
+
 async function detail(svc, quote, extra = {}) {
   const payments = await svc.repo.listPayments(quote.quoteNumber);
   const stages = M.stageStates(quote, payments, svc.now().getTime());
@@ -226,6 +256,60 @@ const actions = {
       throw err;
     }
     return { ...(await detail(svc, quote)), emailed: mail.ok };
+  },
+
+  // Hides an attempt where no money was taken (see M.canArchivePayment).
+  async archivePayment(svc, input) {
+    const payment = await loadPayment(svc, input.id);
+    if (!M.canArchivePayment(payment)) throw new HttpError(409, PAYMENT_KEEP);
+    const updated = await svc.repo.updatePayment(payment.id, {
+      archivedAt: svc.now().toISOString(),
+    });
+    // The webhook may have settled the row between our read and our write.
+    // The write returns the row as stored, so undo the archive if it is now
+    // money received.
+    if (!M.canArchivePayment(updated)) {
+      await svc.repo.updatePayment(payment.id, { archivedAt: null });
+      throw new HttpError(409, PAYMENT_KEEP);
+    }
+    return { payment: archiveView(updated) };
+  },
+
+  async restorePayment(svc, input) {
+    const payment = await loadPayment(svc, input.id);
+    const updated = await svc.repo.updatePayment(payment.id, { archivedAt: null });
+    return { payment: archiveView(updated) };
+  },
+
+  // Unpaid one-off invoices only. Quote stage invoices are derived from the
+  // quote and have no row to archive; paid invoices are money received.
+  async archiveInvoice(svc, input) {
+    const invoice = await loadInvoice(svc, input.id);
+    if (invoice.status === "paid") throw new HttpError(409, INVOICE_KEEP);
+    // A part-payment leaves the invoice open, but it is still money received
+    // (the webhook un-archives on any payment for the same reason). Rows with
+    // no status predate the field and were all successful. With no number
+    // there is nothing to match (and Appwrite rejects equal on undefined).
+    const payments = invoice.invoiceNumber
+      ? await svc.repo.listInvoicePayments(invoice.invoiceNumber)
+      : [];
+    if (payments.some((p) => !p.status || p.status === "success"))
+      throw new HttpError(409, INVOICE_PART_PAID);
+    const updated = await svc.repo.updateInvoice(invoice.id, {
+      archivedAt: svc.now().toISOString(),
+    });
+    // Same race as archivePayment: the webhook may have marked it paid.
+    if (updated.status === "paid") {
+      await svc.repo.updateInvoice(invoice.id, { archivedAt: null });
+      throw new HttpError(409, INVOICE_KEEP);
+    }
+    return { invoice: archiveView(updated) };
+  },
+
+  async restoreInvoice(svc, input) {
+    const invoice = await loadInvoice(svc, input.id);
+    const updated = await svc.repo.updateInvoice(invoice.id, { archivedAt: null });
+    return { invoice: archiveView(updated) };
   },
 };
 

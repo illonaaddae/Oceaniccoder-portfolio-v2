@@ -232,6 +232,8 @@ export interface QuoteStageInvoice {
   percent: number;
   amountMinor: number;
   state: "due" | "paid";
+  /** When the stage was requested; absent from older API responses. */
+  issuedAt?: string | null;
   dueBy: string | null;
   overdue: boolean;
   paidAt: string | null;
@@ -242,6 +244,8 @@ export interface QuoteSummary {
   quoteNumber: string;
   title: string;
   clientName: string;
+  /** Absent from older API responses. */
+  clientEmail?: string;
   status: QuoteStatus;
   currency: QuoteCurrency;
   totalMinor: number;

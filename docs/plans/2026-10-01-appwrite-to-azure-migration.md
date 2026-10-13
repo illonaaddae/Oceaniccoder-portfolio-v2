@@ -137,7 +137,7 @@ The key change: today the browser talks to Appwrite directly, and Appwrite permi
      fields. Only `api/shared/quotes/repo.js` and `api/shared/locks.js` talk to
      the database; swap those two modules (and `api/shared/appwrite.js`) at cutover.
 6. **Auth swap:** replace `auth.ts` (`verifyAdminPassword`, session checks, `createJWT`) with `/.auth/me` plus role checks. The admin login page becomes "Sign in with GitHub". Keep the rule from `CLAUDE.md`: no client-only guards. Routes are protected by SWA config.
-7. **Realtime:** replace `subscribeToPayments` with a polling hook. The function signature stays the same, so callers don't change.
+7. **Realtime:** replace `subscribeToPayments` with a polling hook. The function signature stays the same, so callers don't change. (Since 2026-10-12 the Payments tab already polls every 15s while visible, in `tabs/Payments/usePaymentsFeed.ts`, so dropping the subscription only loses the instant update.)
 8. **Remove Appwrite:** delete `src/lib/appwrite.ts` and the `appwrite`/`node-appwrite` dependencies, delete all `VITE_APPWRITE_*` and `APPWRITE_*` variables, and delete the stale `VITE_ADMIN_PASSWORD_HASH` line in `.github/workflows/azure-static-web-apps.yml`. Update the env tables in `CLAUDE.md`.
 
 #### Quote collections as they exist in Appwrite (2026-10-10)
@@ -177,6 +177,14 @@ Created in the Appwrite console. The `quotes` and `locks` collections have no pe
   - `amountMinor` int; `note` string(300); `recordedBy` string(254); `channel` string(40)
   - `paystackId` string(40); `accessCode` string(100)
   - Key indexes on `quoteNumber`, `kind` and `paystackReference`.
+  - Added 2026-10-12 (archive): `archivedAt` datetime, optional. Null means not
+    archived. Set and cleared only by `/api/quote-admin` (`archivePayment`,
+    `restorePayment`); successful payments are never archived, and settling an
+    archived attempt clears it.
+- **`invoices`** (new field)
+  - Added 2026-10-12 (archive): `archivedAt` datetime, optional. Null means not
+    archived. Set and cleared by `/api/quote-admin` (`archiveInvoice`,
+    `restoreInvoice`). Replaces the old permanent delete from the Invoices tab.
 
 ### 3.3 Cutover (one evening)
 

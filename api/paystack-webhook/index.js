@@ -383,11 +383,29 @@ module.exports = async function (context, req) {
           );
         }
 
+        // An invoice the admin archived can still be paid from its /pay/ link.
+        // Any money received against it (a part-payment too) must not be
+        // hidden, so un-archive it. archivedAt is only sent when set, so a
+        // database without the column still records the payment. This
+        // best-effort write never blocks the payment record below.
+        const unarchive = async () => {
+          try {
+            await db.updateDocument(DATABASE_ID, COLLECTION_ID, doc.$id, { archivedAt: null });
+          } catch (err) {
+            context.log.error(
+              `paystack-webhook: could not un-archive invoice ${invoiceNumber}: ${err.message}`,
+            );
+          }
+        };
         if (settles) {
-          await db.updateDocument(DATABASE_ID, COLLECTION_ID, doc.$id, {
+          const written = await db.updateDocument(DATABASE_ID, COLLECTION_ID, doc.$id, {
             status: "paid",
+            ...(doc.archivedAt ? { archivedAt: null } : {}),
           });
           context.log.info(`paystack-webhook: invoice ${invoiceNumber} marked as paid`);
+          // Still archived as written: the admin archived it between our read
+          // and our write.
+          if (written && written.archivedAt) await unarchive();
         } else {
           context.log.error(
             `paystack-webhook: invoice ${invoiceNumber} NOT marked paid — ` +
@@ -395,6 +413,7 @@ module.exports = async function (context, req) {
                 ? `paid in ${paidCurrency} but invoiced in ${invoiceCurrency}`
                 : `paid ${sym}${amountPaid.toFixed(2)} against a total of ${sym}${expected.toFixed(2)}`),
           );
+          if (doc.archivedAt) await unarchive();
         }
 
         // Create payment record (audit log)
