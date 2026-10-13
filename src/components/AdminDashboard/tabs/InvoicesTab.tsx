@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaFileInvoiceDollar } from "react-icons/fa";
 import { getInvoices, updateInvoice } from "@/services/api/invoices";
-import { createPayment } from "@/services/api/payments";
+import { createPayment, getPaymentsForInvoice } from "@/services/api/payments";
 import { apiUrl } from "@/utils/apiUrl";
 import { adminHeaders } from "@/services/api/adminHeaders";
 import type { Invoice } from "@/types";
@@ -16,6 +16,8 @@ import { usePagination } from "@/hooks/usePagination";
 import { CountWithTotals, KpiCard, MoneyTotals } from "./shared/KpiCard";
 import { ErrorBanner, RefreshControl, SearchField, SelectField } from "./shared/controls";
 import { muted, type RowMenu } from "./shared/DataTable";
+import { formatMoney } from "./shared/money";
+import { invoiceBalance } from "./Analytics/metrics/revenue";
 import type { RowAction } from "./shared/RowActions";
 import { InvoicesTable } from "./Invoices/InvoicesTable";
 import {
@@ -126,14 +128,37 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   }, [load]);
 
   const handleMarkPaid = async (inv: Invoice) => {
+    // Part of the invoice may already be recorded (a part payment through the
+    // pay page). Only the balance is recorded here, or the ledger counts the
+    // part payment twice.
+    let paid: number;
+    let balance: number;
+    try {
+      ({ paid, balance } = invoiceBalance(inv, await getPaymentsForInvoice(inv.invoiceNumber)));
+    } catch (err) {
+      setPaymentError(
+        `Couldn't check the payments already recorded for ${inv.invoiceNumber}: ` +
+          `${err instanceof Error ? err.message : "unknown error"}. Nothing was changed; try again.`,
+      );
+      return;
+    }
+    const money = (amount: number) => formatMoney(amount, inv.currency);
+    const recording =
+      balance <= 0
+        ? `${money(paid)} is already recorded, so no new payment is added.`
+        : paid > 0
+          ? `Records the balance of ${money(balance)} (${money(paid)} is already recorded).`
+          : `Records a payment of ${money(balance)}.`;
     const ok = await confirm({
       message: `Mark ${inv.invoiceNumber} as paid?`,
-      description: `This will update the invoice status and send a payment confirmation email to ${inv.clientEmail}.`,
+      description: `${recording} The invoice status is updated and a payment confirmation email goes to ${inv.clientEmail}.`,
       confirmLabel: "Mark as Paid",
       variant: "success",
-      choiceLabel: "How was this paid?",
-      choices: MANUAL_PAYMENT_METHODS,
-      defaultChoice: "bank",
+      ...(balance > 0 && {
+        choiceLabel: "How was this paid?",
+        choices: MANUAL_PAYMENT_METHODS,
+        defaultChoice: "bank",
+      }),
     });
     if (!ok) return;
 
@@ -152,16 +177,17 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
       // server-side by /api/paystack-webhook, which derives the method from the
       // Paystack channel instead.
       try {
-        await createPayment({
-          invoiceNumber: inv.invoiceNumber,
-          clientName: inv.clientName,
-          clientEmail: inv.clientEmail,
-          amount: inv.total,
-          currency: inv.currency,
-          method,
-          paidAt: new Date().toISOString(),
-          status: "success",
-        });
+        if (balance > 0)
+          await createPayment({
+            invoiceNumber: inv.invoiceNumber,
+            clientName: inv.clientName,
+            clientEmail: inv.clientEmail,
+            amount: balance,
+            currency: inv.currency,
+            method,
+            paidAt: new Date().toISOString(),
+            status: "success",
+          });
       } catch (payErr) {
         // Don't block flow if payment record fails — invoice update already succeeded.
         // Surface it though: a swallowed failure here leaves the invoice paid with no

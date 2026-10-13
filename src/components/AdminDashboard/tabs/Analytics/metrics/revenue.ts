@@ -68,3 +68,20 @@ export function buildLedger(payments: Payment[], invoices: Invoice[]): LedgerEnt
   }
   return ledger;
 }
+
+/**
+ * What is already recorded against a one-off invoice and what is left: the
+ * successful payment rows with its number, in its currency. Marking it paid
+ * records only the balance, so a part payment taken online isn't counted twice.
+ */
+export function invoiceBalance(
+  inv: Pick<Invoice, "invoiceNumber" | "total" | "currency">,
+  payments: Payment[],
+): { paid: number; balance: number } {
+  const cents = payments
+    .filter((p) => p.invoiceNumber === inv.invoiceNumber && p.currency === inv.currency)
+    .filter(isSuccess)
+    .reduce((sum, p) => sum + Math.round(paymentAmount(p) * 100), 0);
+  const totalCents = Math.round((Number(inv.total) || 0) * 100);
+  return { paid: cents / 100, balance: Math.max(totalCents - cents, 0) / 100 };
+}

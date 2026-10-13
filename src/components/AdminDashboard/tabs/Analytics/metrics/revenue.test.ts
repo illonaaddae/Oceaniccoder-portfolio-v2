@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildLedger, paymentAmount } from "./revenue";
+import { buildLedger, invoiceBalance, paymentAmount } from "./revenue";
 import type { Payment } from "@/services/api/payments";
 import type { Invoice } from "@/types";
 
@@ -109,6 +109,18 @@ describe("buildLedger", () => {
     expect(ledger[0].estimated).toBe(false);
   });
 
+  it("sums a part payment and the manual balance row to the invoice total", () => {
+    const ledger = buildLedger(
+      [
+        pay({ $id: "web", amount: 200, paidAt: "2026-10-01T00:00:00Z" }),
+        pay({ $id: "manual", amount: 300, method: "bank", paidAt: "2026-10-09T00:00:00Z" }),
+      ],
+      [invoice({ total: 500 })],
+    );
+    expect(ledger.map((e) => e.id)).toEqual(["web", "manual"]);
+    expect(ledger.reduce((sum, e) => sum + e.amount, 0)).toBe(500);
+  });
+
   it("still estimates an invoice whose only payment row failed", () => {
     const ledger = buildLedger([pay({ status: "failed" })], [invoice({})]);
     expect(ledger).toHaveLength(1);
@@ -126,5 +138,31 @@ describe("paymentAmount", () => {
   it("reads major units", () => {
     expect(paymentAmount({ amount: 5, amountMinor: 501 })).toBe(5.01);
     expect(paymentAmount({ amount: Number.NaN })).toBe(0);
+  });
+});
+
+describe("invoiceBalance", () => {
+  const inv = { invoiceNumber: "INV-1", total: 500, currency: "GHS" };
+  const row = (over: Record<string, unknown>) =>
+    ({ invoiceNumber: "INV-1", amount: 0, currency: "GHS", status: "success", ...over }) as never;
+
+  it("subtracts successful payments in the invoice's currency only", () => {
+    expect(
+      invoiceBalance(inv, [
+        row({ amount: 150.1 }),
+        row({ amount: 49.9, status: undefined }), // predates the field: successful
+        row({ amount: 100, status: "failed" }),
+        row({ amount: 100, currency: "USD" }),
+        row({ amount: 100, invoiceNumber: "INV-2" }),
+      ]),
+    ).toEqual({ paid: 200, balance: 300 });
+  });
+
+  it("uses exact minor units and never goes below zero", () => {
+    expect(invoiceBalance(inv, [row({ amount: 0, amountMinor: 50001 })])).toEqual({
+      paid: 500.01,
+      balance: 0,
+    });
+    expect(invoiceBalance(inv, [])).toEqual({ paid: 0, balance: 500 });
   });
 });
