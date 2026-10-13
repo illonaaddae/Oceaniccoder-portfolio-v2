@@ -110,5 +110,13 @@ export default defineConfig({
     // them doubled the suite and pushed jsdom tests past the 5s default.
     exclude: [...configDefaults.exclude, ".claude/**", ".agents/**"],
     testTimeout: 15000,
+    // invoiceView.test.ts sets process.env.TZ to check a browser west of
+    // UTC. Node only applies that in a child process (and the node
+    // environment), not in a worker thread. The second glob is for agent
+    // worktrees under .claude/, since ** doesn't cross dot folders.
+    poolMatchGlobs: [
+      ["**/Invoices/invoiceView.test.ts", "forks"],
+      ["**/.claude/**/Invoices/invoiceView.test.ts", "forks"],
+    ],
   },
 });
