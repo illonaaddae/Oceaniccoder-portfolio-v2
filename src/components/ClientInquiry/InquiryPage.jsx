@@ -849,8 +849,8 @@ export default function InquiryPage() {
               <div className="text-sm space-y-1">
                 <p className="text-red-400">
                   Something went wrong and your enquiry was not sent. Please try again, or email{" "}
-                  <a href="mailto:illona@oceaniccoder.dev" className="underline">
-                    illona@oceaniccoder.dev
+                  <a href="mailto:hello@oceaniccoder.dev" className="underline">
+                    hello@oceaniccoder.dev
                   </a>{" "}
                   directly so your details are not lost.
                 </p>
