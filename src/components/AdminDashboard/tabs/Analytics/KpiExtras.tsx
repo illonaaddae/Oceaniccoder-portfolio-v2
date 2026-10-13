@@ -9,8 +9,17 @@ import {
   ratesNote,
 } from "./metrics/format";
 import type { Delta } from "./metrics/range";
+import type { MoneyUnit } from "./metrics/revenue";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
+
+const leavesOut = (missing: string[]) => `(leaves out ${missing.join(", ")}: no rate set)`;
+
+/** Currencies in any of the totals that the approx. unit can't convert. */
+export function unconverted(unit: MoneyUnit, ...totals: CurrencyTotals[]): string[] {
+  if (unit.kind !== "approx") return [];
+  return [...new Set(totals.flatMap((t) => approxTotal(t).missing))].sort();
+}
 
 /**
  * The change on the previous period. `upIsGood` colours a rise as good
@@ -20,11 +29,14 @@ export function DeltaLine({
   delta,
   unitLabel,
   upIsGood = true,
+  missing = [],
 }: {
   delta: Delta;
   /** What the delta is measured in, e.g. "GHS" or "approx. GHS". */
   unitLabel: string;
   upIsGood?: boolean;
+  /** Currencies left out of an approx. delta because they have no rate. */
+  missing?: string[];
 }) {
   const rising = delta.kind === "change" && delta.ratio > 0;
   const falling = delta.kind === "change" && delta.ratio < 0;
@@ -45,6 +57,7 @@ export function DeltaLine({
         {" "}
         vs previous period ({unitLabel})
       </span>
+      {missing.length > 0 && <span style={muted}>{` ${leavesOut(missing)}`}</span>}
     </p>
   );
 }
@@ -59,7 +72,7 @@ export function ApproxLine({ totals }: { totals: CurrencyTotals }) {
   return (
     <p className="mt-1 text-xs tabular-nums" style={muted}>
       {formatApproxGHS(amount)} combined, {ratesNote()}
-      {missing.length > 0 && ` (leaves out ${missing.join(", ")}: no rate set)`}
+      {missing.length > 0 && ` ${leavesOut(missing)}`}
     </p>
   );
 }

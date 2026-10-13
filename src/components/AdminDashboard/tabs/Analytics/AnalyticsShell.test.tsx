@@ -221,6 +221,27 @@ describe("AnalyticsShell revenue", () => {
     expect(screen.getAllByText("Ama Owusu").length).toBeGreaterThan(0);
   });
 
+  it("says which currencies an approx. delta leaves out", async () => {
+    getPayments.mockReset().mockResolvedValue([
+      ...PAYMENTS,
+      payment({
+        $id: "p5",
+        invoiceNumber: "INV-5",
+        amount: 1000,
+        currency: "XOF",
+        paidAt: "2026-10-11T09:00:00Z",
+      }),
+    ]);
+    await renderShell();
+    const cash = () => card("Cash collected");
+    expect(within(cash()).queryByText(/vs previous period.*leaves out/)).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Charts in"), "approx");
+    const delta = within(cash())
+      .getByText(/vs previous period \(approx\. GHS\)/)
+      .closest("p");
+    expect(delta).toHaveTextContent("(leaves out XOF: no rate set)");
+  });
+
   it("breaks money down by method in the chosen unit", async () => {
     await renderShell();
     await userEvent.selectOptions(screen.getByLabelText("Charts in"), "approx");

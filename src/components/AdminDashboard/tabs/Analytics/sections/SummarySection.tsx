@@ -2,7 +2,7 @@ import type React from "react";
 import { useMemo } from "react";
 import type { Expense } from "@/types";
 import { KpiCard, MoneyTotals, CountWithTotals } from "../../shared/KpiCard";
-import { ApproxLine, DeltaLine } from "../KpiExtras";
+import { ApproxLine, DeltaLine, unconverted } from "../KpiExtras";
 import { delta, type DateRange } from "../metrics/range";
 import {
   cashByCurrency,
@@ -60,6 +60,9 @@ export function SummarySection({
       cash,
       spent,
       net,
+      cashMissing: unconverted(unit, cash, cashBefore),
+      spentMissing: unconverted(unit, spent, spentBefore),
+      netMissing: unconverted(unit, net, netBefore),
       cashDelta: delta(totalIn(unit, cash), totalIn(unit, cashBefore)),
       spentDelta: delta(totalIn(unit, spent), totalIn(unit, spentBefore)),
       netDelta: delta(totalIn(unit, net), totalIn(unit, netBefore)),
@@ -82,7 +85,11 @@ export function SummarySection({
           <>
             <MoneyTotals totals={figures.cash} />
             <ApproxLine totals={figures.cash} />
-            <DeltaLine delta={figures.cashDelta} unitLabel={unitLabel} />
+            <DeltaLine
+              delta={figures.cashDelta}
+              unitLabel={unitLabel}
+              missing={figures.cashMissing}
+            />
             {errors.invoices && (
               <p className="mt-1 text-xs" style={muted}>
                 Leaves out paid invoices with no payment record: invoices couldn&rsquo;t load.
@@ -114,7 +121,12 @@ export function SummarySection({
           <>
             <MoneyTotals totals={figures.spent} />
             <ApproxLine totals={figures.spent} />
-            <DeltaLine delta={figures.spentDelta} unitLabel={unitLabel} upIsGood={false} />
+            <DeltaLine
+              delta={figures.spentDelta}
+              unitLabel={unitLabel}
+              upIsGood={false}
+              missing={figures.spentMissing}
+            />
           </>
         )}
       </KpiCard>
@@ -127,7 +139,11 @@ export function SummarySection({
           <>
             <MoneyTotals totals={figures.net} />
             <ApproxLine totals={figures.net} />
-            <DeltaLine delta={figures.netDelta} unitLabel={unitLabel} />
+            <DeltaLine
+              delta={figures.netDelta}
+              unitLabel={unitLabel}
+              missing={figures.netMissing}
+            />
           </>
         )}
       </KpiCard>
