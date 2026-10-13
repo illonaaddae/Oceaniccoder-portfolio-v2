@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const { verifyTurnstile, clientIp } = await import("./turnstile.js");
+const { verifyTurnstile, clientIp, platformClientIp } = await import("./turnstile.js");
 
 const respond = (body) => vi.fn().mockResolvedValue({ json: async () => body });
 
@@ -61,5 +61,26 @@ describe("clientIp", () => {
     ["", undefined],
   ])("%j → %j", (header, ip) => {
     expect(clientIp({ headers: { "x-forwarded-for": header } })).toBe(ip);
+  });
+});
+
+describe("platformClientIp", () => {
+  it.each([
+    ["203.0.113.7:51234", "203.0.113.7"],
+    // A forged left-most entry is ignored; the platform's appended one wins.
+    ["8.8.8.8, 203.0.113.7:51234", "203.0.113.7"],
+    ["1.1.1.1, 9.9.9.9, [2001:db8::1]:443", "2001:db8::1"],
+    // An internal hop after the client is skipped.
+    ["203.0.113.7, 10.0.0.4", "203.0.113.7"],
+    ["203.0.113.7, 172.16.0.2, fd00::1", "203.0.113.7"],
+    ["10.0.0.4", "10.0.0.4"],
+    ["", undefined],
+  ])("%j → %j", (header, ip) => {
+    expect(platformClientIp({ headers: { "x-forwarded-for": header } })).toBe(ip);
+  });
+
+  it("returns undefined without the header", () => {
+    expect(platformClientIp({ headers: {} })).toBeUndefined();
+    expect(platformClientIp({})).toBeUndefined();
   });
 });

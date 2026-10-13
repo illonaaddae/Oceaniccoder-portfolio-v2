@@ -55,15 +55,15 @@ const fiveViews = {
   events: Array.from({ length: 5 }, () => ({ t: "pv", path: "/" })),
 };
 
-function setup({ env = {}, container = fakeContainer() } = {}) {
+function setup({ env = {}, container = fakeContainer(), now = () => NOW } = {}) {
   const handler = createHandler({
     container: () => container,
-    now: () => NOW,
+    now,
     env,
     random: () => 1, // never sample drop logs in tests
   });
   const call = async ({ method = "POST", headers = {}, body, rawBody } = {}) => {
-    const context = { log: Object.assign(vi.fn(), { error: vi.fn() }) };
+    const context = { log: Object.assign(vi.fn(), { error: vi.fn(), warn: vi.fn() }) };
     const payload =
       body === undefined
         ? { v: 1, sid: SID, tz: "Africa/Accra", lang: "en-GB", events: [entryView] }
@@ -231,13 +231,75 @@ describe("POST /api/visit", () => {
     expect(t.container.docs).toHaveLength(300);
   });
 
-  it("stops writing raw events once the day's ceiling is reached", async () => {
+  it("ignores forged left-most X-Forwarded-For entries when rate limiting", async () => {
+    const t = setup();
+    for (let i = 0; i < 14; i += 1) {
+      await t.call({
+        body: fiveViews,
+        headers: { "x-forwarded-for": `10.9.${i}.1, 198.51.100.${i}, ${IP}:5${i}` },
+      });
+    }
+    expect(t.container.docs).toHaveLength(60);
+  });
+
+  it("hashes the platform-seen IP, so a forged entry can't mint new visitors", async () => {
+    const t = setup();
+    await t.call({ headers: { "x-forwarded-for": `198.51.100.1, ${IP}` } });
+    await t.call({ headers: { "x-forwarded-for": `198.51.100.2, ${IP}` } });
+    expect(t.container.docs[0].vh).toBe(t.container.docs[1].vh);
+  });
+
+  it("applies the per-IP cap before the shared budget, so one source can't drain it", async () => {
+    const t = setup();
+    for (let i = 0; i < 100; i += 1) await t.call({ body: fiveViews }); // only 60 count
+    for (let i = 0; i < 48; i += 1) {
+      await t.call({ body: fiveViews, headers: { "x-forwarded-for": `198.51.100.${i}` } });
+    }
+    expect(t.container.docs).toHaveLength(300);
+  });
+
+  it("logs once when the instance budget trips", async () => {
+    const t = setup();
+    const warnings = [];
+    for (let i = 0; i < 65; i += 1) {
+      const r = await t.call({
+        body: fiveViews,
+        headers: { "x-forwarded-for": `198.51.100.${i}` },
+      });
+      warnings.push(...r.context.log.warn.mock.calls.map(([m]) => m));
+    }
+    expect(warnings).toEqual([expect.stringContaining("per-instance budget")]);
+  });
+
+  it("stops writing raw events once the day's ceiling is reached, and logs it once", async () => {
     const container = fakeContainer();
     container.meta.set("count:2026-10-20", { id: "count:2026-10-20", n: 49998 });
     const t = setup({ container });
-    await t.call({ body: fiveViews }); // first sync: 49998 + 5 > 50000 → dropped
+    const first = await t.call({ body: fiveViews }); // first sync: 49998 + 5 > 50000 → dropped
+    expect(first.context.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("daily ceiling of 50000 events reached for 2026-10-20"),
+    );
+    const again = await t.call({ body: fiveViews, headers: { "x-forwarded-for": "198.51.100.1" } });
+    expect(again.context.log.warn).not.toHaveBeenCalled();
     await t.call(); // one event: fits
     expect(t.container.docs).toHaveLength(1);
+  });
+
+  it("counts only events that were actually written toward the day", async () => {
+    const container = fakeContainer();
+    const create = container.items.create;
+    container.items.create = vi.fn(async (doc) => {
+      if (doc.type === "pv" && doc.path === "/") throw throttled();
+      return create(doc);
+    });
+    // Two minutes apart, so each request flushes whatever it recorded.
+    let clock = NOW.getTime();
+    const t = setup({ container, now: () => new Date((clock += 2 * 60_000)) });
+    await t.call({ body: fiveViews }); // every write fails
+    await t.call({ body: fiveViews, headers: { "x-forwarded-for": "198.51.100.1" } });
+    expect(container.meta.get("count:2026-10-20").n).toBe(0);
+    await t.call(); // one /blog/my-post view is stored
+    expect(container.meta.get("count:2026-10-20").n).toBe(1);
   });
 
   it("still answers 204 and logs when Cosmos fails", async () => {
@@ -288,34 +350,49 @@ describe("createRateLimiter", () => {
 describe("createDailyCeiling", () => {
   const DAY = "2026-10-20";
 
+  // check, then record what was written, like the handler does.
+  const allowAndWrite = async (ceiling, day, count, nowMs) => {
+    if (!(await ceiling.check(day, count, nowMs))) return false;
+    await ceiling.record(day, count, nowMs);
+    return true;
+  };
+
   it("creates the day's counter, then batches increments", async () => {
     const container = fakeContainer();
-    const allow = createDailyCeiling(container, { limit: 100, flushEvery: 3 });
-    expect(await allow(DAY, 1, 1000)).toBe(true); // first of the day: syncs first
+    const ceiling = createDailyCeiling(container, { limit: 100, flushEvery: 3 });
+    expect(await allowAndWrite(ceiling, DAY, 1, 1000)).toBe(true); // syncs first
     expect(container.meta.get(`count:${DAY}`)).toMatchObject({
       type: "count",
       day: DAY,
       n: 0,
       ttl: 2 * 86400,
     });
-    expect(await allow(DAY, 1, 2000)).toBe(true);
+    expect(await allowAndWrite(ceiling, DAY, 1, 2000)).toBe(true);
     expect(container.meta.get(`count:${DAY}`).n).toBe(0);
-    expect(await allow(DAY, 1, 3000)).toBe(true); // 3 pending → flush
+    expect(await allowAndWrite(ceiling, DAY, 1, 3000)).toBe(true); // 3 pending → flush
     expect(container.meta.get(`count:${DAY}`).n).toBe(3);
-    expect(await allow(DAY, 1, 4000)).toBe(true);
+    expect(await allowAndWrite(ceiling, DAY, 1, 4000)).toBe(true);
     expect(container.meta.get(`count:${DAY}`).n).toBe(3);
-    expect(await allow(DAY, 1, 64_000)).toBe(true); // a minute later → flush
+    expect(await allowAndWrite(ceiling, DAY, 1, 64_000)).toBe(true); // a minute later
     expect(container.meta.get(`count:${DAY}`).n).toBe(5);
   });
 
   it("learns other instances' writes from the counter and refuses past the limit", async () => {
     const container = fakeContainer();
     container.meta.set(`count:${DAY}`, { id: `count:${DAY}`, n: 8 });
-    const allow = createDailyCeiling(container, { limit: 10, flushEvery: 50 });
-    expect(await allow(DAY, 1, 1000)).toBe(true); // syncs: total 9
-    expect(await allow(DAY, 1, 2000)).toBe(true); // 9 + 1 pending = 10
-    expect(await allow(DAY, 1, 3000)).toBe(false);
-    expect(await allow("2026-10-21", 1, 4000)).toBe(true); // a new day starts over
+    const ceiling = createDailyCeiling(container, { limit: 10, flushEvery: 50 });
+    expect(await allowAndWrite(ceiling, DAY, 1, 1000)).toBe(true); // syncs: 8, then 9
+    expect(await allowAndWrite(ceiling, DAY, 1, 2000)).toBe(true); // 10
+    expect(await allowAndWrite(ceiling, DAY, 1, 3000)).toBe(false);
+    expect(await allowAndWrite(ceiling, "2026-10-21", 1, 4000)).toBe(true); // new day
+  });
+
+  it("doesn't count a checked event that was never recorded", async () => {
+    const container = fakeContainer();
+    container.meta.set(`count:${DAY}`, { id: `count:${DAY}`, n: 9 });
+    const ceiling = createDailyCeiling(container, { limit: 10 });
+    expect(await ceiling.check(DAY, 1, 1000)).toBe(true); // the write then failed
+    expect(await ceiling.check(DAY, 1, 2000)).toBe(true); // still room for one
   });
 
   it("keeps the count for the next flush when the counter is throttled", async () => {
@@ -333,12 +410,14 @@ describe("createDailyCeiling", () => {
         },
       };
     };
-    const allow = createDailyCeiling(container, { limit: 100, flushEvery: 2 });
-    await expect(allow(DAY, 1, 1000)).rejects.toThrow("Request rate is large");
+    const ceiling = createDailyCeiling(container, { limit: 100, flushEvery: 2 });
+    // The check can't sync; the handler writes anyway and records the event.
+    await expect(ceiling.check(DAY, 1, 1000)).rejects.toThrow("Request rate is large");
+    await ceiling.record(DAY, 1, 1000);
     fail = false;
-    expect(await allow(DAY, 1, 2000)).toBe(true); // sync carries the first event
+    expect(await allowAndWrite(ceiling, DAY, 1, 2000)).toBe(true); // sync carries the first
     expect(container.meta.get(`count:${DAY}`).n).toBe(1);
-    expect(await allow(DAY, 1, 3000)).toBe(true); // 2 pending → flush
+    expect(await allowAndWrite(ceiling, DAY, 1, 3000)).toBe(true); // 2 pending → flush
     expect(container.meta.get(`count:${DAY}`).n).toBe(3);
   });
 });

@@ -44,18 +44,47 @@ async function verifyTurnstile(token, remoteip) {
   }
 }
 
-/** The visitor's IP from Static Web Apps' forwarding header, if present. */
-function clientIp(req) {
-  const forwarded = (req.headers && req.headers["x-forwarded-for"]) || "";
-  // Strip a port from IPv4 ("1.2.3.4:5678") and from bracketed IPv6
-  // ("[2001:db8::1]:443"); a bare IPv6 address contains colons, so it's kept whole.
-  return (
-    forwarded
-      .split(",")[0]
-      .trim()
-      .replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, "$1")
-      .replace(/^\[([0-9a-fA-F:.]+)\](?::\d+)?$/, "$1") || undefined
-  );
+function forwardedFor(req) {
+  const header = (req.headers && req.headers["x-forwarded-for"]) || "";
+  return header.split(",").map((entry) => entry.trim());
 }
 
-module.exports = { verifyTurnstile, clientIp };
+// Strip a port from IPv4 ("1.2.3.4:5678") and from bracketed IPv6
+// ("[2001:db8::1]:443"); a bare IPv6 address contains colons, so it's kept whole.
+function stripPort(entry) {
+  return entry
+    .replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, "$1")
+    .replace(/^\[([0-9a-fA-F:.]+)\](?::\d+)?$/, "$1");
+}
+
+/**
+ * The visitor's IP from Static Web Apps' forwarding header, if present: the
+ * left-most entry. A client can put anything there, so this is only a hint
+ * (Turnstile's optional `remoteip`); never use it to rate-limit.
+ */
+function clientIp(req) {
+  const [first] = forwardedFor(req);
+  return (first && stripPort(first)) || undefined;
+}
+
+const PRIVATE_IP =
+  /^(?:10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|::1$|f[cd][0-9a-f]{2}:|fe80:)/i;
+
+/**
+ * The IP the platform saw the request come from, for rate limiting: the
+ * right-most public X-Forwarded-For entry. Proxies append to the header, so
+ * entries to the left of the platform's own are whatever the client sent and
+ * can be forged per request. Private and loopback entries are skipped in
+ * case an internal hop appends its own address after the client's. Static
+ * Web Apps documents no dedicated client-IP header, so this is the best
+ * signal available.
+ */
+function platformClientIp(req) {
+  const entries = forwardedFor(req).filter(Boolean).map(stripPort);
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    if (!PRIVATE_IP.test(entries[i])) return entries[i];
+  }
+  return entries[entries.length - 1];
+}
+
+module.exports = { verifyTurnstile, clientIp, platformClientIp };
