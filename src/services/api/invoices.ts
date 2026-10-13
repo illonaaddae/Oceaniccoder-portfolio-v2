@@ -1,12 +1,10 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
+import { listAllDocuments } from "./listAll";
 import type { Invoice } from "../../types";
 
+/** Every invoice, newest first, archived ones included (callers filter on archivedAt). */
 export async function getInvoices(): Promise<Invoice[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.INVOICES, [
-    Query.orderDesc("$createdAt"),
-    Query.limit(100),
-  ]);
-  return response.documents as unknown as Invoice[];
+  return listAllDocuments<Invoice>(COLLECTIONS.INVOICES);
 }
 
 export async function createInvoice(
