@@ -167,4 +167,4 @@ function validateSubmission(collection, body) {
   return { ...doc, ...schema.server };
 }
 
-module.exports = { SCHEMAS, Invalid, validateSubmission };
+module.exports = { SCHEMAS, DOC_ID, Invalid, validateSubmission };
