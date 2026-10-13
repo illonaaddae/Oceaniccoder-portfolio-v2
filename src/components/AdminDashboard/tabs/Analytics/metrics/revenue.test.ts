@@ -235,14 +235,14 @@ describe("amountIn and totalIn", () => {
   it("keeps one currency, or converts everything to approx. GHS", () => {
     expect(amountIn(GHS, 5, "GHS")).toBe(5);
     expect(amountIn(GHS, 5, "USD")).toBeNull();
-    expect(amountIn(APPROX, 2, "USD")).toBe(31); // 15.5 per USD in fxRates.ts
+    expect(amountIn(APPROX, 2, "USD")).toBeCloseTo(23.54); // 11.77 per USD in fxRates.ts
     expect(amountIn(APPROX, 2, "XOF")).toBeNull();
     expect(
       totalIn(APPROX, [
         { currency: "GHS", amount: 100 },
         { currency: "USD", amount: 2 },
       ]),
-    ).toBe(131);
+    ).toBeCloseTo(123.54);
   });
 });
 
@@ -250,7 +250,7 @@ describe("defaultCurrency", () => {
   it("picks the currency with the most revenue in range, comparing at approx. rates", () => {
     const ledger = [
       entry({ currency: "GHS", amount: 100 }),
-      entry({ currency: "USD", amount: 10 }), // ≈ GHS 155
+      entry({ currency: "USD", amount: 10 }), // ≈ GHS 117.70
     ];
     expect(defaultCurrency(ledger, OCT)).toBe("USD");
   });
@@ -294,7 +294,7 @@ describe("cashSeries", () => {
       r,
       APPROX,
     );
-    expect(point.total).toBe(41);
+    expect(point.total).toBeCloseTo(33.54);
   });
 });
 

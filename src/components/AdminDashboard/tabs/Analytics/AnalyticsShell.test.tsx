@@ -146,9 +146,9 @@ describe("AnalyticsShell summary", () => {
     // Not the 1 Sep payment (previous period) or the failed one.
     expect(within(cash).getByText("GHS 550.00")).toBeInTheDocument();
     expect(within(cash).getByText("USD 100.00")).toBeInTheDocument();
-    // 550 + 100 × 15.5 at the fxRates.ts rates.
+    // 550 + 100 × 11.77 at the fxRates.ts rates.
     expect(
-      within(cash).getByText(/≈ GHS 2,100.00 approx\. combined, at rates as of/),
+      within(cash).getByText(/≈ GHS 1,727.00 approx\. combined, at rates as of/),
     ).toBeInTheDocument();
   });
 
@@ -191,7 +191,7 @@ describe("AnalyticsShell summary", () => {
 describe("AnalyticsShell revenue", () => {
   it("defaults the charts to the currency with the most revenue, compared at approx. rates", async () => {
     await renderShell();
-    // USD 100 ≈ GHS 1,550 beats GHS 550.
+    // USD 100 ≈ GHS 1,177 beats GHS 550.
     expect(screen.getByLabelText("Charts in")).toHaveValue("USD");
   });
 
@@ -208,7 +208,7 @@ describe("AnalyticsShell revenue", () => {
     await userEvent.selectOptions(screen.getByLabelText("Charts in"), "approx");
     const methods = screen.getByRole("table", { name: "Money received by payment method" });
     expect(within(methods).getByRole("rowheader", { name: /Card/ })).toBeInTheDocument();
-    expect(within(methods).getByText("≈ GHS 1,550.00")).toBeInTheDocument();
+    expect(within(methods).getByText("≈ GHS 1,177.00")).toBeInTheDocument();
   });
 });
 
