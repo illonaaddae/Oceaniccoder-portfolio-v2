@@ -8,7 +8,7 @@ import { formatMoney } from "../shared/money";
 import { ErrorBanner } from "../shared/controls";
 import { EXPENSE_CATEGORY_LABELS } from "./metrics/revenue";
 import { formatDay } from "./metrics/format";
-import { todayUTC } from "./metrics/range";
+import { dayOf, todayUTC } from "./metrics/range";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 const strong: React.CSSProperties = { color: "var(--text-primary)" };
@@ -240,7 +240,8 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: Expens
                   {exp.description}
                 </p>
                 <p className="mt-0.5 text-xs" style={muted}>
-                  {EXPENSE_CATEGORY_LABELS[exp.category] ?? exp.category} · {formatDay(exp.date)}
+                  {EXPENSE_CATEGORY_LABELS[exp.category] ?? exp.category} ·{" "}
+                  {formatDay(dayOf(exp.date) ?? exp.date)}
                 </p>
               </div>
               <p className="flex-shrink-0 text-sm font-semibold tabular-nums" style={strong}>

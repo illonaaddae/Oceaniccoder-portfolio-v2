@@ -265,6 +265,14 @@ describe("AnalyticsShell expenses", () => {
     expect(within(card("Expenses")).getByText("GHS 200.00")).toBeInTheDocument();
   });
 
+  it("formats dates stored as timestamps", async () => {
+    getExpenses
+      .mockReset()
+      .mockResolvedValue([{ ...EXPENSES[0], date: "2026-10-05T00:00:00.000+00:00" }]);
+    await renderShell();
+    expect(screen.getByText("Hosting · 5 Oct 2026")).toBeInTheDocument();
+  });
+
   it("deletes an expense after confirming", async () => {
     await renderShell();
     await userEvent.click(screen.getByRole("button", { name: "Delete Hosting" }));
