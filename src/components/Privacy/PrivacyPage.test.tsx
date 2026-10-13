@@ -88,6 +88,28 @@ describe("PrivacyPage", () => {
     expect(within(processors).getByText(/through the site's forms/)).toBeInTheDocument();
   });
 
+  it("promises commenters' emails stay private, without a hedge", () => {
+    renderPage();
+    const forms = screen.getByRole("region", { name: "Forms you fill in" });
+    expect(
+      within(forms).getByText(/never shown publicly or sent to other visitors/),
+    ).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/leave it blank/i);
+  });
+
+  // The visitor testimonial form is hidden until the Azure cutover.
+  it("says testimonials are added by us, not collected through a form", () => {
+    renderPage();
+    const forms = screen.getByRole("region", { name: "Forms you fill in" });
+    expect(
+      within(forms).getByText(/isn't collecting testimonials through a form right now/),
+    ).toBeInTheDocument();
+    expect(
+      within(forms).getByText(/added by us, with the client's permission/),
+    ).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/optional photo/i);
+  });
+
   it("sets the document title", async () => {
     renderPage();
     await waitFor(() => expect(document.title).toBe("Privacy · OceanicCoder"));

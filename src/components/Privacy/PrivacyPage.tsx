@@ -6,14 +6,18 @@ import { Helmet } from "react-helmet-async";
  * code does today; check the matching code before changing a claim, and update
  * this page (and LAST_UPDATED) when data handling changes.
  *
- * Production builds leave VITE_DATA_BACKEND unset, so visitor forms, comments,
- * testimonials and blog counts are written to Appwrite and Turnstile is off.
+ * Production builds leave VITE_DATA_BACKEND unset, so visitor forms, comments
+ * and blog counts are written to Appwrite, Turnstile is off and the visitor
+ * testimonial form is hidden.
  *
  * TODO(OC-0): when lead attribution ships (first-visit source kept in the
  * browser for 30 days and sent with forms), describe it under "Forms".
  * TODO(OC-0): when VITE_DATA_BACKEND=cosmos ships, re-add the Cloudflare
  * Turnstile spam check (forms section and processor list) and update where
  * form data is stored.
+ * TODO(OC-0): at the Azure cutover, when the testimonial form is back, restore
+ * its form text: name, role, company (optional), text, rating and an optional
+ * photo; submitted testimonials and photos stay hidden until approved.
  */
 
 const CONTACT_EMAIL = "hello@oceaniccoder.dev";
@@ -181,12 +185,13 @@ const PrivacyPage: React.FC = () => (
           <li>
             <strong className="text-[var(--text-primary)]">Blog comments:</strong> your name, an
             optional email and your comment. Your name and comment are shown publicly on the post.
-            Your email is not displayed, but leave it blank if you&apos;d rather not share it.
+            Your email is never shown publicly or sent to other visitors; we use it only if we need
+            to reply to you.
           </li>
           <li>
-            <strong className="text-[var(--text-primary)]">Testimonials:</strong> your name, role,
-            company (optional), text, rating and an optional photo. They appear on the site only
-            after we approve them.
+            <strong className="text-[var(--text-primary)]">Testimonials:</strong> the site
+            isn&apos;t collecting testimonials through a form right now. The testimonials you see
+            are added by us, with the client&apos;s permission.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Newsletter:</strong> your email address
@@ -248,8 +253,8 @@ const PrivacyPage: React.FC = () => (
         <List>
           <li>
             <strong className="text-[var(--text-primary)]">Appwrite</strong> stores what you send
-            through the site&apos;s forms (messages, bookings, inquiries, comments and
-            testimonials), blog read and reaction counts, quotes, invoices and payment records.
+            through the site&apos;s forms (messages, bookings, inquiries and comments),
+            testimonials, blog read and reaction counts, quotes, invoices and payment records.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Microsoft Azure</strong> hosts the site
