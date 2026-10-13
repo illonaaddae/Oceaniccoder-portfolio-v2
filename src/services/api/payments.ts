@@ -7,8 +7,8 @@
 //
 // Reads: PaymentsTab in admin dashboard.
 //
-// Source of truth for revenue charts in AnalyticsTab is still the `invoices`
-// collection (status === "paid"). This `payments` collection is the audit log.
+// Revenue in AnalyticsTab is this ledger (successful rows, dated by paidAt),
+// plus paid invoices that have no payment row yet (Analytics/metrics/revenue.ts).
 // Archive and restore go through quoteAdmin (/api/quote-admin), not here.
 import { databases, DATABASE_ID, COLLECTIONS, ID, client } from "./client";
 import { listAllDocuments } from "./listAll";
@@ -48,6 +48,8 @@ export interface Payment extends PaymentRecord {
   $id: string;
   $createdAt: string;
   quoteId?: string;
+  /** Exact amount in minor units; set on quote payments, absent on older rows. */
+  amountMinor?: number;
   /** Free text: "network:mtn" at checkout, the failure reason, or the admin's note. */
   note?: string;
   /** Paystack's channel string, e.g. "mobile_money". */

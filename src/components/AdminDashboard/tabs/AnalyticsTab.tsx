@@ -26,7 +26,7 @@ import {
 import { getInvoices } from "@/services/api/invoices";
 import { isArchivedInvoice } from "./invoiceArchive";
 import { getPayments } from "@/services/api/payments";
-import { quotePaymentsAsRevenue } from "./quoteRevenue";
+import { buildLedger, type LedgerEntry } from "./Analytics/metrics/revenue";
 import { getExpenses, createExpense, deleteExpense } from "@/services/api/expenses";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import { BlogReadershipSection } from "./Analytics/BlogReadershipSection";
@@ -83,18 +83,20 @@ function getMondayOfCurrentWeek(): Date {
   return monday;
 }
 
-function buildChartData(invoices: Invoice[], period: Period) {
-  const paid = invoices.filter((i) => i.status === "paid" && i.$createdAt);
+// Revenue is bucketed by when the money arrived (the ledger's date), not by
+// when the invoice was created.
+function buildChartData(ledger: LedgerEntry[], period: Period) {
+  const paid = ledger.filter((e) => e.date);
 
   if (period === "weekly") {
     const monday = getMondayOfCurrentWeek();
     const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const amounts = [0, 0, 0, 0, 0, 0, 0];
-    for (const inv of paid) {
-      const d = new Date(inv.$createdAt!);
+    for (const entry of paid) {
+      const d = new Date(entry.date);
       d.setHours(0, 0, 0, 0);
       const diff = Math.round((d.getTime() - monday.getTime()) / 86400000);
-      if (diff >= 0 && diff <= 6) amounts[diff] += toGHS(inv.total, inv.currency);
+      if (diff >= 0 && diff <= 6) amounts[diff] += toGHS(entry.amount, entry.currency);
     }
     return DAY_LABELS.map((label, i) => ({ label, amount: parseFloat(amounts[i].toFixed(2)) }));
   }
@@ -112,10 +114,10 @@ function buildChartData(invoices: Invoice[], period: Period) {
         amount: 0,
       });
     }
-    for (const inv of paid) {
-      const isoDate = new Date(inv.$createdAt!).toISOString().slice(0, 10);
-      const entry = days.find((d) => d.isoDate === isoDate);
-      if (entry) entry.amount += toGHS(inv.total, inv.currency);
+    for (const entry of paid) {
+      const isoDate = new Date(entry.date).toISOString().slice(0, 10);
+      const day = days.find((d) => d.isoDate === isoDate);
+      if (day) day.amount += toGHS(entry.amount, entry.currency);
     }
     return days.map(({ label, amount }) => ({ label, amount: parseFloat(amount.toFixed(2)) }));
   }
@@ -137,10 +139,10 @@ function buildChartData(invoices: Invoice[], period: Period) {
       "Dec",
     ];
     const amounts = new Array(12).fill(0) as number[];
-    for (const inv of paid) {
-      const d = new Date(inv.$createdAt!);
+    for (const entry of paid) {
+      const d = new Date(entry.date);
       if (d.getFullYear() === currentYear) {
-        amounts[d.getMonth()] += toGHS(inv.total, inv.currency);
+        amounts[d.getMonth()] += toGHS(entry.amount, entry.currency);
       }
     }
     return MONTH_LABELS.map((label, i) => ({ label, amount: parseFloat(amounts[i].toFixed(2)) }));
@@ -150,24 +152,23 @@ function buildChartData(invoices: Invoice[], period: Period) {
   const currentYear = new Date().getFullYear();
   const earliestYear =
     paid.length > 0
-      ? Math.min(...paid.map((inv) => new Date(inv.$createdAt!).getFullYear()), currentYear - 2)
+      ? Math.min(...paid.map((entry) => new Date(entry.date).getFullYear()), currentYear - 2)
       : currentYear - 2;
   const years: number[] = [];
   for (let y = earliestYear; y <= currentYear; y++) years.push(y);
   const yearAmounts: Record<number, number> = {};
   for (const y of years) yearAmounts[y] = 0;
-  for (const inv of paid) {
-    const y = new Date(inv.$createdAt!).getFullYear();
-    if (y in yearAmounts) yearAmounts[y] += toGHS(inv.total, inv.currency);
+  for (const entry of paid) {
+    const y = new Date(entry.date).getFullYear();
+    if (y in yearAmounts) yearAmounts[y] += toGHS(entry.amount, entry.currency);
   }
   return years.map((y) => ({ label: String(y), amount: parseFloat(yearAmounts[y].toFixed(2)) }));
 }
 
-function buildCurrencyPieData(invoices: Invoice[]) {
-  const paid = invoices.filter((i) => i.status === "paid");
+function buildCurrencyPieData(ledger: LedgerEntry[]) {
   const grouped: Record<string, number> = {};
-  for (const inv of paid) {
-    grouped[inv.currency] = (grouped[inv.currency] ?? 0) + inv.total;
+  for (const entry of ledger) {
+    grouped[entry.currency] = (grouped[entry.currency] ?? 0) + entry.amount;
   }
   return Object.entries(grouped).map(([currency, value]) => ({
     name: currency,
@@ -208,6 +209,7 @@ const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
 
 export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("monthly");
@@ -230,7 +232,8 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
         getExpenses(),
         getPayments().catch(() => []),
       ]);
-      setInvoices([...invs, ...quotePaymentsAsRevenue(pays)]);
+      setInvoices(invs);
+      setLedger(buildLedger(pays, invs));
       setExpenses(exps);
       if (exps.length === 0) setExpensesUnavailable(false);
     } finally {
@@ -243,20 +246,19 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
   }, [load]);
 
   // --- Computed values ---
-  const paidInvoices = invoices.filter((i) => i.status === "paid");
   // Archived unpaid invoices are set aside, not owed; paid ones stay revenue.
   const pendingInvoices = invoices.filter((i) => i.status === "sent" && !isArchivedInvoice(i));
 
-  const totalEarnedGHS = paidInvoices.reduce((s, i) => s + toGHS(i.total, i.currency), 0);
+  const totalEarnedGHS = ledger.reduce((s, e) => s + toGHS(e.amount, e.currency), 0);
   const totalPendingGHS = pendingInvoices.reduce((s, i) => s + toGHS(i.total, i.currency), 0);
   const totalExpensesGHS = expenses.reduce((s, e) => s + toGHS(e.amount, e.currency), 0);
   const netIncomeGHS = totalEarnedGHS - totalExpensesGHS;
-  const avgProjectGHS = paidInvoices.length > 0 ? totalEarnedGHS / paidInvoices.length : 0;
+  const avgPaymentGHS = ledger.length > 0 ? totalEarnedGHS / ledger.length : 0;
 
   // Earnings by currency for visa card
   const earnedByCurrency: Record<string, number> = {};
-  for (const inv of paidInvoices) {
-    earnedByCurrency[inv.currency] = (earnedByCurrency[inv.currency] ?? 0) + inv.total;
+  for (const entry of ledger) {
+    earnedByCurrency[entry.currency] = (earnedByCurrency[entry.currency] ?? 0) + entry.amount;
   }
   const primaryCurrencyEntry = Object.entries(earnedByCurrency).sort(
     ([, a], [, b]) =>
@@ -265,12 +267,12 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
   )[0];
 
   const sinceYear =
-    paidInvoices.length > 0
-      ? Math.min(...paidInvoices.map((i) => new Date(i.$createdAt ?? Date.now()).getFullYear()))
+    ledger.length > 0
+      ? Math.min(...ledger.map((e) => new Date(e.date || Date.now()).getFullYear()))
       : new Date().getFullYear();
 
-  const chartData = buildChartData(invoices, period);
-  const currencyPieData = buildCurrencyPieData(invoices);
+  const chartData = buildChartData(ledger, period);
+  const currencyPieData = buildCurrencyPieData(ledger);
   const expensePieData = buildExpensePieData(expenses);
 
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -423,9 +425,9 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
                 ))}
               </div>
             )}
-            {paidInvoices.length === 0 && (
+            {ledger.length === 0 && (
               <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-                No paid invoices yet
+                No payments yet
               </p>
             )}
           </div>
@@ -471,7 +473,7 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
             icon: <FaMoneyBillWave className="text-success-400" />,
             label: "Total Earned",
             value: formatGHS(totalEarnedGHS),
-            sub: `${paidInvoices.length} paid invoice${paidInvoices.length !== 1 ? "s" : ""}`,
+            sub: `${ledger.length} payment${ledger.length !== 1 ? "s" : ""}`,
             color: "#22c55e",
           },
           {
@@ -483,16 +485,16 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
           },
           {
             icon: <FaProjectDiagram className="text-[var(--accent-teal)]" />,
-            label: "Projects Done",
-            value: paidInvoices.length.toString(),
-            sub: "completed & paid",
+            label: "Payments",
+            value: ledger.length.toString(),
+            sub: "received",
             color: "var(--accent-teal)",
           },
           {
             icon: <FaWallet className="text-oceanic-400" />,
-            label: "Avg. Project",
-            value: formatGHS(avgProjectGHS),
-            sub: "per paid invoice",
+            label: "Avg. Payment",
+            value: formatGHS(avgPaymentGHS),
+            sub: "per payment received",
             color: "#26a9c5",
           },
         ].map((stat) => (
@@ -579,7 +581,7 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
             className="h-48 flex items-center justify-center"
             style={{ color: "var(--text-secondary)" }}
           >
-            No paid invoices to chart yet.
+            No payments to chart yet.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={240}>
