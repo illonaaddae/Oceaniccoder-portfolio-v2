@@ -32,10 +32,12 @@ const blankForm = () => ({
 interface ExpenseLogProps {
   expenses: Expense[];
   setExpenses: (update: (prev: Expense[]) => Expense[]) => void;
+  /** The list couldn't be read; adding still works. */
+  loadFailed?: boolean;
 }
 
 /** Every logged expense, latest date first, with add and delete. */
-export function ExpenseLog({ expenses, setExpenses }: ExpenseLogProps) {
+export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: ExpenseLogProps) {
   const confirm = useConfirm();
   const formId = useId();
   const [showForm, setShowForm] = useState(false);
@@ -225,7 +227,9 @@ export function ExpenseLog({ expenses, setExpenses }: ExpenseLogProps) {
 
       {expenses.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm" style={muted}>
-          No expenses logged yet. Track domains, hosting, tools and other costs here.
+          {loadFailed
+            ? "Expenses couldn't load, so the log may be incomplete. Refresh to try again."
+            : "No expenses logged yet. Track domains, hosting, tools and other costs here."}
         </p>
       ) : (
         <ul className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>

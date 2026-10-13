@@ -53,10 +53,18 @@ describe("getExpenses ordering and failure", () => {
     expect((await getExpenses()).map((e) => e.$id)).toEqual(["b", "c", "a"]);
   });
 
-  it("returns an empty list when the table can't be read", async () => {
+  it("passes a read error on instead of returning an empty list", async () => {
     vi.spyOn(databases, "listDocuments").mockImplementation(async () => {
       throw new Error("Collection not found");
     });
+    await expect(getExpenses()).rejects.toThrow("Collection not found");
+  });
+
+  it("returns an empty list for an empty table", async () => {
+    vi.spyOn(databases, "listDocuments").mockResolvedValueOnce({
+      total: 0,
+      documents: [],
+    } as never);
     expect(await getExpenses()).toEqual([]);
   });
 });

@@ -38,6 +38,8 @@ interface ExpensesSectionProps {
   unit: MoneyUnit;
   unitLabel: string;
   loading: boolean;
+  /** Set when the expenses couldn't be read. */
+  error?: string;
 }
 
 /** Spending in the range by period and category, and the expense log. */
@@ -49,7 +51,9 @@ export function ExpensesSection({
   unit,
   unitLabel,
   loading,
+  error,
 }: ExpensesSectionProps) {
+  const failed = error ? `Expenses couldn't load: ${error}` : null;
   const currency = unitCurrency(unit);
   const approx = unit.kind === "approx";
   const money = (amount: number) => `${approx ? "≈ " : ""}${formatMoney(amount, currency)}`;
@@ -105,6 +109,7 @@ export function ExpensesSection({
           title="Expenses over time"
           description={`Expenses per ${bucket} by their date, in ${unitLabel}. The dashed line is the same slot of the previous period.`}
           loading={loading && expenses.length === 0}
+          error={failed}
           empty={hasSpend ? null : `No expenses in ${unitLabel} in this range or the one before.`}
           table={table}
         >
@@ -154,6 +159,7 @@ export function ExpensesSection({
           title="By category"
           description={`Expenses in the range by category, in ${unitLabel}.`}
           loading={loading && expenses.length === 0}
+          error={failed}
         >
           <BreakdownTable
             caption="Expenses by category"
@@ -165,7 +171,7 @@ export function ExpensesSection({
           />
         </ChartCard>
       </div>
-      <ExpenseLog expenses={expenses} setExpenses={setExpenses} />
+      <ExpenseLog expenses={expenses} setExpenses={setExpenses} loadFailed={Boolean(error)} />
     </div>
   );
 }

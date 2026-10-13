@@ -108,13 +108,21 @@ export function SummarySection({
         )}
       </KpiCard>
       <KpiCard label="Expenses">
-        <MoneyTotals totals={figures.spent} />
-        <ApproxLine totals={figures.spent} />
-        <DeltaLine delta={figures.spentDelta} unitLabel={unitLabel} upIsGood={false} />
+        {errors.expenses ? (
+          <Unavailable>Expenses couldn&rsquo;t load.</Unavailable>
+        ) : (
+          <>
+            <MoneyTotals totals={figures.spent} />
+            <ApproxLine totals={figures.spent} />
+            <DeltaLine delta={figures.spentDelta} unitLabel={unitLabel} upIsGood={false} />
+          </>
+        )}
       </KpiCard>
       <KpiCard label="Net (collected minus expenses)">
-        {errors.payments ? (
-          <Unavailable>Needs payments, which couldn&rsquo;t load.</Unavailable>
+        {errors.payments || errors.expenses ? (
+          <Unavailable>
+            Needs {errors.payments ? "payments" : "expenses"}, which couldn&rsquo;t load.
+          </Unavailable>
         ) : (
           <>
             <MoneyTotals totals={figures.net} />

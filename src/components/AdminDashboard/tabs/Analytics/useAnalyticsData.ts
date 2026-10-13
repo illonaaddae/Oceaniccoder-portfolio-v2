@@ -14,7 +14,7 @@ export interface AnalyticsSources {
 }
 
 /** One message per source that failed on the last load. */
-export type SourceErrors = Partial<Record<"payments" | "invoices" | "quotes", string>>;
+export type SourceErrors = Partial<Record<"payments" | "invoices" | "quotes" | "expenses", string>>;
 
 const EMPTY: AnalyticsSources = { payments: [], invoices: [], quotes: [], expenses: [] };
 
@@ -38,7 +38,6 @@ export function useAnalyticsData() {
       getPayments(),
       getInvoices(),
       quoteAdmin<{ quotes: QuoteSummary[] }>("list").then((r) => r.quotes ?? []),
-      // Resolves to [] when the expenses table can't be read.
       getExpenses(),
     ]);
     if (!active.current) return;
@@ -48,6 +47,8 @@ export function useAnalyticsData() {
     if (invoices.status === "rejected")
       next.invoices = message(invoices.reason, "Couldn't load invoices.");
     if (quotes.status === "rejected") next.quotes = message(quotes.reason, "Couldn't load quotes.");
+    if (expenses.status === "rejected")
+      next.expenses = message(expenses.reason, "Couldn't load expenses.");
     setData((prev) => ({
       payments: payments.status === "fulfilled" ? payments.value : prev.payments,
       invoices: invoices.status === "fulfilled" ? invoices.value : prev.invoices,

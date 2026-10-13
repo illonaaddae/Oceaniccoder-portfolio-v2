@@ -231,6 +231,19 @@ describe("AnalyticsShell revenue", () => {
 });
 
 describe("AnalyticsShell expenses", () => {
+  it("says expenses couldn't load instead of showing none", async () => {
+    getExpenses.mockReset().mockRejectedValue(new Error("Expenses down"));
+    await renderShell();
+    expect(screen.getByRole("alert")).toHaveTextContent("Expenses down");
+    expect(within(card("Expenses")).getByText(/Expenses couldn.t load/)).toBeInTheDocument();
+    expect(
+      within(card("Net (collected minus expenses)")).getByText(/Needs expenses/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/No expenses logged yet/)).not.toBeInTheDocument();
+    // Cash collected is unaffected.
+    expect(within(card("Cash collected")).getByText("GHS 550.00")).toBeInTheDocument();
+  });
+
   it("logs a new expense", async () => {
     createExpense.mockResolvedValue({
       $id: "e3",
