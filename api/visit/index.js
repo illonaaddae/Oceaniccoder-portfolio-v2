@@ -12,11 +12,11 @@
 // be able to starve the rest of the site. Writes are capped three ways, in
 // this order:
 //   1. 60 events a minute per client IP, per instance. The IP is the one the
-//      platform appended to X-Forwarded-For (platformClientIp), not the
+//      platform appended to X-Forwarded-For (clientIp), not the
 //      left-most entry a client can forge per request;
 //   2. 300 events a minute in total, per instance;
-//   3. 50,000 events stored per UTC day across all instances (a counter doc,
-//      see createDailyCeiling), counting only events actually written.
+//   3. 50,000 events per UTC day across all instances, reserved up front with
+//      one atomic counter patch per request (see createDailyCeiling).
 // The container handle never retries a 429, so throttling drops events
 // instead of queueing them (getAnalyticsContainer in shared/cosmos.js).
 //
@@ -33,7 +33,7 @@
 // after ANALYTICS_RAW_TTL_DAYS (default 90) through the item's `ttl`.
 
 const { getAnalyticsContainer, newId } = require("../shared/cosmos");
-const { platformClientIp } = require("../shared/turnstile");
+const { clientIp } = require("../shared/turnstile");
 const {
   MAX_BODY_BYTES,
   allowedHosts,
@@ -85,29 +85,20 @@ function createRateLimiter({ limit, windowMs = MINUTE_MS, maxKeys = RATE_MAX_KEY
 }
 
 /**
- * Stops raw writes once `limit` events have been stored in a UTC day, across
- * all instances. The shared total lives in a `count:<day>` doc (2-day ttl).
- * Patching it on every request would double the RU cost of a page view, so
- * each instance counts what it actually wrote (`record`) and adds that with
- * one `incr` patch every `flushEvery` events or `flushMs`, learning the global
- * total from the reply. The first `check` of a day on an instance syncs before
- * answering, so a new instance starts from the real total. Overshoot is
- * bounded by the unflushed counts of the live instances.
+ * Caps raw writes at `limit` events per UTC day across all instances. Each
+ * request reserves its events first with one atomic `incr` patch on the
+ * `count:<day>` doc (2-day ttl, created on the first request of the day, with
+ * a 409 race falling back to the patch) and writes only what the returned
+ * total leaves room for. One patch per request, never per event; the
+ * per-IP and per-instance caps in front keep it from being hammered, and
+ * once the day is full this instance stops patching until the next day.
  *
- * Both methods reject when the counter can't be reached; the caller then
- * writes anyway (the per-minute caps still hold) and the count is retried on
- * the next flush.
+ * Reserved events whose write then fails still count, so the day can end a
+ * little under the limit; never over it. Rejects when the counter can't be
+ * reached; the caller then writes anyway, since the per-minute caps still hold.
  */
-function createDailyCeiling(
-  container,
-  { limit = DAILY_LIMIT, flushEvery = 100, flushMs = MINUTE_MS } = {},
-) {
-  let day = null;
-  let synced = false;
-  let known = 0;
-  let pending = 0;
-  let lastFlush = 0;
-  let flushing = null;
+function createDailyCeiling(container, { limit = DAILY_LIMIT } = {}) {
+  let fullDay = null;
 
   const incr = (id, forDay, delta) =>
     container.item(id, forDay).patch([{ op: "incr", path: "/n", value: delta }]);
@@ -134,54 +125,18 @@ function createDailyCeiling(
     }
   }
 
-  async function flush(nowMs) {
-    const forDay = day;
-    const delta = pending;
-    pending = 0;
-    lastFlush = nowMs;
-    try {
-      const total = await addToCounter(forDay, delta);
-      if (day === forDay) known = Math.max(known, total);
-    } catch (err) {
-      if (day === forDay) pending += delta;
-      throw err;
-    }
-  }
-
-  function startFlush(nowMs) {
-    flushing ??= flush(nowMs).finally(() => {
-      flushing = null;
-    });
-    return flushing;
-  }
-
-  function startDay(forDay) {
-    if (forDay === day) return;
-    day = forDay;
-    synced = false;
-    known = 0;
-    pending = 0;
-    lastFlush = 0;
-  }
-
-  /** True while `count` more events still fit under today's limit. */
-  async function check(forDay, count, nowMs) {
-    startDay(forDay);
-    if (!synced) {
-      await startFlush(nowMs);
-      synced = day === forDay;
-    }
-    return known + pending + count <= limit;
-  }
-
-  /** Adds events that were actually stored to today's count. */
-  async function record(forDay, written, nowMs) {
-    startDay(forDay);
-    pending += written;
-    if (pending >= flushEvery || nowMs - lastFlush >= flushMs) await startFlush(nowMs);
-  }
-
-  return { check, record };
+  /**
+   * Reserves room for `count` events and returns how many of them may be
+   * written (0..count). The patch is atomic, so the returned total is this
+   * request's own position in the day: concurrent requests at the boundary
+   * can't all slip under the limit.
+   */
+  return async function reserve(forDay, count) {
+    if (fullDay === forDay) return 0;
+    const total = await addToCounter(forDay, count);
+    if (total >= limit) fullDay = forDay;
+    return Math.max(0, Math.min(count, count - (total - limit)));
+  };
 }
 
 /** Logs a message once per key (a minute, a day), so a flood can't spam the logs. */
@@ -261,7 +216,7 @@ function createHandler(deps) {
     const ts = at.toISOString();
     const day = ts.slice(0, 10);
     const count = payload.events.length;
-    const ip = platformClientIp(req);
+    const ip = clientIp(req);
 
     // Per-IP first: a request over its own cap never touches the shared budgets.
     // Requests without a forwarded IP share one bucket rather than going unlimited.
@@ -279,18 +234,20 @@ function createHandler(deps) {
       const container = deps.container();
       getSalt ??= createSaltStore(container);
       ceiling ??= createDailyCeiling(container);
-      const underCap = await ceiling.check(day, count, nowMs).catch((err) => {
+      // Reserve before writing: the counter's atomic reply decides how many fit.
+      const allowed = await ceiling(day, count).catch((err) => {
         logError("daily counter unavailable: ", err);
-        return true;
+        return count;
       });
-      if (!underCap) {
+      if (allowed < count) {
         alertOnce(
           warn,
           `daily:${day}`,
           `visit: daily ceiling of ${DAILY_LIMIT} events reached for ${day}; dropping page views`,
         );
-        return drop("daily-cap");
       }
+      if (allowed === 0) return drop("daily-cap");
+      const events = payload.events.slice(0, allowed);
       const vh = visitorHash(await getSalt(day), { ip, ua, host });
 
       const base = {
@@ -304,16 +261,10 @@ function createHandler(deps) {
         lang: payload.lang,
       };
       const results = await Promise.allSettled(
-        payload.events.map((event) => container.items.create(toDocument(event, base))),
+        events.map((event) => container.items.create(toDocument(event, base))),
       );
-      const written = results.filter((r) => r.status === "fulfilled").length;
-      const failed = results.find((r) => r.status === "rejected");
-      if (written) {
-        await ceiling.record(day, written, nowMs).catch((err) => {
-          logError("daily counter not updated: ", err);
-        });
-      }
       // A lost page view is acceptable; an error page for the visitor is not.
+      const failed = results.find((r) => r.status === "rejected");
       if (failed) logError("write failed: ", failed.reason);
     } catch (err) {
       logError("", err);
