@@ -44,4 +44,27 @@ describe("quotePaymentsAsRevenue", () => {
       $createdAt: "2026-09-01T00:00:00Z",
     });
   });
+
+  // Only non-success attempts can be archived, so archiving never moves revenue.
+  it("ignores archived attempts", () => {
+    const rows = quotePaymentsAsRevenue([
+      { kind: "quote", status: "success", amount: 10, currency: "GHS" },
+      {
+        kind: "quote",
+        status: "abandoned",
+        amount: 10,
+        currency: "GHS",
+        archivedAt: "2026-10-01T00:00:00Z",
+      },
+      {
+        kind: "quote",
+        status: "pending",
+        amount: 10,
+        currency: "GHS",
+        archivedAt: "2026-10-01T00:00:00Z",
+      },
+    ] as never);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].total).toBe(10);
+  });
 });

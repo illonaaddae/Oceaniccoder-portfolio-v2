@@ -125,7 +125,15 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
           }}
         />
       )}
-      {activeTab === "payments" && !isReadOnly && <PaymentsTab theme={theme} />}
+      {activeTab === "payments" && !isReadOnly && (
+        <PaymentsTab
+          theme={theme}
+          onOpenQuote={(id) => {
+            setPendingQuoteOpen(id);
+            props.onTabChange("quotes");
+          }}
+        />
+      )}
       {activeTab === "analytics" && !isReadOnly && <AnalyticsTab theme={theme} />}
       {activeTab === "settings" && !isReadOnly && <SettingsTab theme={theme} />}
       {activeTab === "storage" && !isReadOnly && <StorageCleanupTab theme={theme} />}
