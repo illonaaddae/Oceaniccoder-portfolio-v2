@@ -71,6 +71,23 @@ describe("PrivacyPage", () => {
     expect(document.body.textContent).not.toMatch(/registered/i);
   });
 
+  // Turnstile only runs when VITE_DATA_BACKEND=cosmos, which production doesn't set.
+  it("does not claim a spam check the live site doesn't run", () => {
+    renderPage();
+    expect(document.body.textContent).not.toMatch(/turnstile|cloudflare/i);
+  });
+
+  it("says form data is stored with Appwrite", () => {
+    renderPage();
+    const processors = screen.getByRole("region", {
+      name: "Where your data is stored and who processes it",
+    });
+    expect(
+      within(processors).getByText(/stored with Appwrite and Microsoft Azure/),
+    ).toBeInTheDocument();
+    expect(within(processors).getByText(/through the site's forms/)).toBeInTheDocument();
+  });
+
   it("sets the document title", async () => {
     renderPage();
     await waitFor(() => expect(document.title).toBe("Privacy · OceanicCoder"));

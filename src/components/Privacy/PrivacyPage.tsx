@@ -6,8 +6,14 @@ import { Helmet } from "react-helmet-async";
  * code does today; check the matching code before changing a claim, and update
  * this page (and LAST_UPDATED) when data handling changes.
  *
+ * Production builds leave VITE_DATA_BACKEND unset, so visitor forms, comments,
+ * testimonials and blog counts are written to Appwrite and Turnstile is off.
+ *
  * TODO(OC-0): when lead attribution ships (first-visit source kept in the
  * browser for 30 days and sent with forms), describe it under "Forms".
+ * TODO(OC-0): when VITE_DATA_BACKEND=cosmos ships, re-add the Cloudflare
+ * Turnstile spam check (forms section and processor list) and update where
+ * form data is stored.
  */
 
 const CONTACT_EMAIL = "hello@oceaniccoder.dev";
@@ -174,8 +180,8 @@ const PrivacyPage: React.FC = () => (
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Blog comments:</strong> your name, an
-            optional email and your comment. Your name and comment are shown publicly on the post;
-            your email is not.
+            optional email and your comment. Your name and comment are shown publicly on the post.
+            Your email is not displayed, but leave it blank if you&apos;d rather not share it.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Testimonials:</strong> your name, role,
@@ -187,11 +193,6 @@ const PrivacyPage: React.FC = () => (
             only, so we can send you new posts.
           </li>
         </List>
-        <p>
-          To keep out spam, the contact, booking, inquiry, comment and testimonial forms use
-          Cloudflare Turnstile. It runs a check in your browser, and our server sends your IP
-          address to Cloudflare once to confirm the result.
-        </p>
       </Section>
 
       <Section id="quotes-payments" title="Quotes and payments">
@@ -240,15 +241,19 @@ const PrivacyPage: React.FC = () => (
       </Section>
 
       <Section id="processors" title="Where your data is stored and who processes it">
+        <p>
+          Your data is stored with Appwrite and Microsoft Azure. We are moving it from Appwrite to
+          Azure, so while that happens a record may be held with either.
+        </p>
         <List>
           <li>
-            <strong className="text-[var(--text-primary)]">Microsoft Azure</strong> hosts the site
-            and our server code, and stores form submissions, site content, blog counts, page-view
-            records and uploaded images.
+            <strong className="text-[var(--text-primary)]">Appwrite</strong> stores what you send
+            through the site&apos;s forms (messages, bookings, inquiries, comments and
+            testimonials), blog read and reaction counts, quotes, invoices and payment records.
           </li>
           <li>
-            <strong className="text-[var(--text-primary)]">Appwrite</strong> stores quotes, invoices
-            and payment records, and some form submissions while we finish moving to Azure.
+            <strong className="text-[var(--text-primary)]">Microsoft Azure</strong> hosts the site
+            and our server code, and stores the site&apos;s images and the page-view records.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Paystack</strong> processes payments.
@@ -256,10 +261,6 @@ const PrivacyPage: React.FC = () => (
           <li>
             <strong className="text-[var(--text-primary)]">Resend</strong> sends our emails and
             holds the newsletter list.
-          </li>
-          <li>
-            <strong className="text-[var(--text-primary)]">Cloudflare</strong> runs the Turnstile
-            spam check.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">OpenAI</strong> writes the chat
