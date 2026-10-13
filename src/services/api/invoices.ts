@@ -30,6 +30,5 @@ export async function updateInvoice(
   ) as unknown as Invoice;
 }
 
-export async function deleteInvoice(id: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.INVOICES, id);
-}
+// No delete: invoices are archived through quoteAdmin("archiveInvoice") so
+// they can be restored.

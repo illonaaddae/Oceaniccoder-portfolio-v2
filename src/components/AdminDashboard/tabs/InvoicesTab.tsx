@@ -1,27 +1,41 @@
-import React, { useEffect, useState, useCallback } from "react";
-import {
-  FaFileInvoiceDollar,
-  FaSync,
-  FaCheckCircle,
-  FaEnvelope,
-  FaTrash,
-  FaClock,
-  FaMoneyBillWave,
-} from "react-icons/fa";
-import { getInvoices, updateInvoice, deleteInvoice } from "@/services/api/invoices";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FaFileInvoiceDollar } from "react-icons/fa";
+import { getInvoices, updateInvoice } from "@/services/api/invoices";
 import { createPayment } from "@/services/api/payments";
 import { apiUrl } from "@/utils/apiUrl";
 import { adminHeaders } from "@/services/api/adminHeaders";
 import type { Invoice } from "@/types";
+import type { QuoteSummary } from "@/types/quote";
+import { quoteAdmin } from "@/services/api/quotes";
 import { useConfirm } from "../ConfirmContext";
+import { TabHeader } from "@/components/ui/TabHeader";
+import { FilterPills } from "@/components/ui/FilterPills";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/hooks/usePagination";
-import { FilterPills } from "@/components/ui/FilterPills";
-import { quoteAdmin } from "@/services/api/quotes";
-import { formatMinor } from "@/utils/quoteMath";
-import type { QuoteStageInvoice, QuoteSummary } from "@/types/quote";
+import { CountWithTotals, KpiCard, MoneyTotals } from "./shared/KpiCard";
+import { ErrorBanner, RefreshControl, SearchField, SelectField } from "./shared/controls";
+import { muted, type RowMenu } from "./shared/DataTable";
+import type { RowAction } from "./shared/RowActions";
+import { InvoicesTable } from "./Invoices/InvoicesTable";
+import {
+  INVOICE_FILTER_LABELS,
+  SOURCE_OPTIONS,
+  computeInvoiceKpis,
+  inInvoiceFilter,
+  inSource,
+  matchesInvoiceSearch,
+  parseItems,
+  quoteRows,
+  toInvoiceRows,
+  type InvoiceFilter,
+  type InvoiceRow,
+  type QuoteInvoiceRow,
+  type SourceFilter,
+} from "./Invoices/invoiceView";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 15;
+const FILTERS: InvoiceFilter[] = ["all", "draft", "due", "overdue", "paid", "archived"];
 
 // Methods an admin can record when marking an invoice paid by hand. Apple Pay
 // is deliberately absent — it can only arrive through Paystack, which records
@@ -34,42 +48,7 @@ const MANUAL_PAYMENT_METHODS: { value: ManualPaymentMethod; label: string }[] = 
   { value: "card", label: "Card" },
 ];
 
-type StatusFilter = "all" | "sent" | "paid";
-type SourceFilter = "all" | "oneoff" | "quotes";
-
-/** A quote stage invoice, read-only here; it's managed from the quote. */
-interface QuoteInvoiceRow extends QuoteStageInvoice {
-  quoteId: string;
-  quoteNumber: string;
-  title: string;
-  clientName: string;
-  currency: string;
-}
-
-type Entry =
-  | { kind: "invoice"; key: string; status: "sent" | "paid"; at: string; inv: Invoice }
-  | { kind: "quote"; key: string; status: "sent" | "paid"; at: string; row: QuoteInvoiceRow };
-
-/** Quote stage invoices, flattened from the admin quote list. */
-function quoteRows(quotes: QuoteSummary[]): QuoteInvoiceRow[] {
-  return quotes.flatMap((q) =>
-    (q.invoices || []).map((inv) => ({
-      ...inv,
-      quoteId: q.id,
-      quoteNumber: q.quoteNumber,
-      title: q.title,
-      clientName: q.clientName,
-      currency: q.currency,
-    })),
-  );
-}
-
-interface InvoicesTabProps {
-  theme: "light" | "dark";
-  /** Opens a quote in the Quotes tab (quote invoices are managed there). */
-  onOpenQuote?: (quoteId: string) => void;
-}
-
+// Only for the payment confirmation email payload; the tab shows "GHS 500.00".
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GHS: "₵",
   USD: "$",
@@ -79,52 +58,49 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   KES: "KSh",
 };
 
-const STATUS_CONFIG: Record<string, { label: string; pill: string; dot: string }> = {
-  sent: {
-    label: "Sent",
-    pill: "bg-warning-400/10 text-warning-400 border-warning-400/30",
-    dot: "bg-warning-400",
-  },
-  paid: {
-    label: "Paid",
-    pill: "bg-success-400/10 text-success-400 border-success-400/30",
-    dot: "bg-success-400",
-  },
-  overdue: {
-    label: "Overdue",
-    pill: "bg-error-400/10 text-error-400 border-error-400/30",
-    dot: "bg-error-400",
-  },
-};
+type ArchiveResponse = { invoice: { id: string; archivedAt: string | null } };
 
-function formatDate(dateStr?: string) {
-  if (!dateStr) return "N/A";
-  return new Date(dateStr).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+interface InvoicesTabProps {
+  theme: "light" | "dark";
+  /** Opens a quote in the Quotes tab (quote invoices are managed there). */
+  onOpenQuote?: (quoteId: string) => void;
 }
 
 export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   const confirm = useConfirm();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [quoteInvoices, setQuoteInvoices] = useState<QuoteInvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [confirming, setConfirming] = useState<Record<string, boolean>>({});
   const [emailError, setEmailError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
-  const [activeSource, setActiveSource] = useState<SourceFilter>("all");
-  const [quoteInvoices, setQuoteInvoices] = useState<QuoteInvoiceRow[]>([]);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<InvoiceFilter>("all");
+  const [source, setSource] = useState<SourceFilter>("all");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // Quote invoices come from the quote list; a failure there shouldn't hide
-      // the one-off invoices.
+      // The two sources load independently: a failure in one shows its own
+      // banner and leaves the other's invoices on screen.
       const [list, quotes] = await Promise.all([
-        getInvoices(),
+        getInvoices().then(
+          (rows) => {
+            setInvoiceError(null);
+            return rows;
+          },
+          (e: unknown) => {
+            setInvoiceError(e instanceof Error ? e.message : "Couldn't load invoices.");
+            return null;
+          },
+        ),
         quoteAdmin<{ quotes: QuoteSummary[] }>("list").then(
           (r) => {
             setQuoteError(null);
@@ -136,8 +112,10 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
           },
         ),
       ]);
-      setInvoices(list);
+      // Keep what was on screen if the one-off list failed to reload.
+      if (list) setInvoices(list);
       setQuoteInvoices(quoteRows(quotes));
+      setUpdatedAt(new Date());
     } finally {
       setLoading(false);
     }
@@ -196,8 +174,7 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
         );
       }
 
-      const items: { description: string; quantity: number; unitPrice: number }[] =
-        typeof inv.items === "string" ? (JSON.parse(inv.items) as typeof items) : [];
+      const items = parseItems(inv.items);
       const sym = CURRENCY_SYMBOLS[inv.currency] ?? inv.currency;
 
       setEmailError(null);
@@ -243,366 +220,234 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  // Archive replaces the old permanent delete: the row stays and can be restored.
+  const setArchivedAt = (res: ArchiveResponse) =>
+    setInvoices((prev) =>
+      prev.map((i) =>
+        i.$id === res.invoice.id ? { ...i, archivedAt: res.invoice.archivedAt } : i,
+      ),
+    );
+
+  const handleArchive = async (inv: Invoice) => {
     const ok = await confirm({
-      message: "Delete invoice?",
-      description: "This will permanently remove the invoice record.",
+      message: `Archive ${inv.invoiceNumber}?`,
+      description:
+        "It moves to the Archived filter and stops counting in the totals. You can restore it at any time.",
+      confirmLabel: "Archive",
     });
     if (!ok) return;
-    await deleteInvoice(id);
-    setInvoices((prev) => prev.filter((i) => i.$id !== id));
+    setBusy(inv.$id);
+    setActionError(null);
+    try {
+      setArchivedAt(await quoteAdmin<ArchiveResponse>("archiveInvoice", { id: inv.$id }));
+      setNotice(`Archived ${inv.invoiceNumber}.`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Couldn't archive the invoice.");
+    } finally {
+      setBusy(null);
+    }
   };
 
-  const entries: Entry[] = [
-    ...invoices.map((inv) => ({
-      kind: "invoice" as const,
-      key: inv.$id,
-      status: (inv.status === "paid" ? "paid" : "sent") as "sent" | "paid",
-      at: inv.$createdAt || "",
-      inv,
-    })),
-    ...quoteInvoices.map((row) => ({
-      kind: "quote" as const,
-      key: `${row.quoteId}:${row.stageId}`,
-      status: (row.state === "paid" ? "paid" : "sent") as "sent" | "paid",
-      at: row.paidAt || row.dueBy || "",
-      row,
-    })),
-  ].sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0));
+  const handleRestore = async (inv: Invoice) => {
+    setBusy(inv.$id);
+    setActionError(null);
+    try {
+      setArchivedAt(await quoteAdmin<ArchiveResponse>("restoreInvoice", { id: inv.$id }));
+      setNotice(`Restored ${inv.invoiceNumber}.`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Couldn't restore the invoice.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
-  const amountOf = (e: Entry) =>
-    e.kind === "invoice" ? Number(e.inv.total || 0) : e.row.amountMinor / 100;
-  const bySource = entries.filter(
-    (e) =>
-      activeSource === "all" ||
-      (activeSource === "quotes" ? e.kind === "quote" : e.kind === "invoice"),
+  const copyNumber = async (number: string) => {
+    try {
+      await navigator.clipboard.writeText(number);
+      setNotice(`Copied ${number}.`);
+    } catch {
+      setActionError("Couldn't copy to the clipboard. Select the invoice number instead.");
+    }
+  };
+
+  // Overdue depends on the clock, so derive again whenever the data reloads.
+  const rows = useMemo(
+    () => toInvoiceRows(invoices, quoteInvoices, updatedAt ?? new Date()),
+    [invoices, quoteInvoices, updatedAt],
   );
-  const paidCount = bySource.filter((e) => e.status === "paid").length;
-  const pendingCount = bySource.filter((e) => e.status === "sent").length;
+  const kpis = useMemo(() => computeInvoiceKpis(rows), [rows]);
+  const searched = useMemo(
+    () => rows.filter((r) => inSource(r, source) && matchesInvoiceSearch(r, search)),
+    [rows, source, search],
+  );
+  const shown = useMemo(
+    () => searched.filter((r) => inInvoiceFilter(r, filter)),
+    [searched, filter],
+  );
+  const { page, setPage, pageItems, totalItems } = usePagination(shown, PAGE_SIZE);
 
-  const sumBy = (pred: (e: Entry) => boolean) =>
-    bySource.filter(pred).reduce((s, e) => s + amountOf(e), 0);
-  // Dominant currency for the summary figures (invoices are almost always one currency).
-  const domCurrency =
-    Object.entries(
-      entries.reduce<Record<string, number>>((acc, e) => {
-        const c = e.kind === "invoice" ? e.inv.currency : e.row.currency;
-        acc[c] = (acc[c] || 0) + 1;
-        return acc;
-      }, {}),
-    ).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "GHS";
-  const symD = CURRENCY_SYMBOLS[domCurrency] ?? domCurrency;
-  const fmtMoney = (n: number) =>
-    `${symD}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // usePagination only clamps the page; a new filter or search starts at page 1.
+  const withPageReset =
+    <T,>(set: (v: T) => void) =>
+    (v: T) => {
+      set(v);
+      setPage(1);
+    };
+  const changeFilter = withPageReset(setFilter);
+  const changeSource = withPageReset(setSource);
+  const changeSearch = withPageReset(setSearch);
 
-  const statCards = [
-    {
-      key: "all" as const,
-      label: "Total Invoices",
-      count: bySource.length,
-      amount: sumBy(() => true),
-      icon: FaFileInvoiceDollar,
-      grad: "from-oceanic-500 to-oceanic-700",
-    },
-    {
-      key: "paid" as const,
-      label: "Paid",
-      count: paidCount,
-      amount: sumBy((e) => e.status === "paid"),
-      icon: FaCheckCircle,
-      grad: "from-success-500 to-success-700",
-    },
-    {
-      key: "sent" as const,
-      label: "Pending",
-      count: pendingCount,
-      amount: sumBy((e) => e.status === "sent"),
-      icon: FaClock,
-      grad: "from-warning-500 to-warning-700",
-    },
-  ];
+  const toggle = (key: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
-  const tabs: { key: StatusFilter; label: string; count: number }[] = [
-    { key: "all", label: "All", count: bySource.length },
-    { key: "sent", label: "Pending", count: pendingCount },
-    { key: "paid", label: "Paid", count: paidCount },
-  ];
-  const sourceTabs: { key: SourceFilter; label: string; count: number }[] = [
-    { key: "all", label: "All sources", count: entries.length },
-    { key: "quotes", label: "Quotes", count: quoteInvoices.length },
-    { key: "oneoff", label: "One-off", count: invoices.length },
-  ];
+  const actionsFor = (row: InvoiceRow): RowMenu => {
+    const actions: RowAction[] = [
+      {
+        label: expanded.has(row.key) ? "Hide details" : "Details",
+        onSelect: () => toggle(row.key),
+      },
+    ];
+    const copy: RowAction = {
+      label: "Copy invoice number",
+      onSelect: () => void copyNumber(row.number),
+    };
+    if (row.kind === "quote") {
+      const quoteId = row.stage.quoteId;
+      if (onOpenQuote) actions.push({ label: "Open quote", onSelect: () => onOpenQuote(quoteId) });
+      actions.push(copy);
+      return { actions, note: "Managed from its quote." };
+    }
+    const inv = row.invoice;
+    actions.push({
+      label: "View pay page",
+      onSelect: () =>
+        window.open(
+          `/pay/${encodeURIComponent(inv.invoiceNumber)}`,
+          "_blank",
+          "noopener,noreferrer",
+        ),
+    });
+    const unpaid = row.status !== "paid";
+    // Mark as paid stays hidden on archived invoices: restore first.
+    if (unpaid && !row.archived && !confirming[inv.$id])
+      actions.push({ label: "Mark as paid", onSelect: () => void handleMarkPaid(inv) });
+    actions.push(copy);
+    if (busy === inv.$id || confirming[inv.$id]) return { actions, note: "Saving…" };
+    if (row.archived) actions.push({ label: "Restore", onSelect: () => void handleRestore(inv) });
+    // Paid invoices are money received: no archive (the server refuses too).
+    else if (unpaid) actions.push({ label: "Archive", onSelect: () => void handleArchive(inv) });
+    return { actions };
+  };
 
-  const filtered =
-    activeStatus === "all" ? bySource : bySource.filter((e) => e.status === activeStatus);
-  const { page, setPage, pageItems, totalItems } = usePagination(filtered, PAGE_SIZE);
-
-  const subText = theme === "dark" ? "text-slate-400" : "text-slate-500";
+  const count = (f: InvoiceFilter) => searched.filter((r) => inInvoiceFilter(r, f)).length;
+  const firstLoad = loading && !updatedAt;
 
   return (
     <div className="space-y-6">
-      {emailError && (
-        <div
-          className="rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-between gap-3"
-          style={{
-            background: "rgba(239,68,68,0.1)",
-            border: "1px solid rgba(239,68,68,0.4)",
-            color: "#f87171",
-          }}
-        >
-          <span>{emailError}</span>
-          <button
-            type="button"
-            onClick={() => setEmailError(null)}
-            className="text-xs opacity-70 hover:opacity-100"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      <TabHeader
+        theme={theme}
+        title="Invoices"
+        subtitle="Quote stage invoices and one-off invoices, newest first."
+        customAction={<RefreshControl updatedAt={updatedAt} loading={loading} onRefresh={load} />}
+      />
+
+      {emailError && <ErrorBanner message={emailError} onDismiss={() => setEmailError(null)} />}
       {paymentError && (
-        <div
-          className="rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-between gap-3"
-          style={{
-            background: "rgba(239,68,68,0.1)",
-            border: "1px solid rgba(239,68,68,0.4)",
-            color: "#f87171",
-          }}
-        >
-          <span>{paymentError}</span>
-          <button
-            type="button"
-            onClick={() => setPaymentError(null)}
-            className="text-xs opacity-70 hover:opacity-100"
-          >
-            ✕
-          </button>
-        </div>
+        <ErrorBanner message={paymentError} onDismiss={() => setPaymentError(null)} />
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-            <FaFileInvoiceDollar className="text-brand-link dark:text-oceanic-400" /> Invoices
-          </h2>
-          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-            Track and manage client invoices
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={load}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-          style={{ background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)" }}
-        >
-          <FaSync className={loading ? "animate-spin" : ""} /> Refresh
-        </button>
+      {actionError && <ErrorBanner message={actionError} onDismiss={() => setActionError(null)} />}
+      {invoiceError && (
+        <ErrorBanner
+          message={`One-off invoices couldn't load: ${invoiceError}`}
+          onDismiss={() => setInvoiceError(null)}
+        />
+      )}
+      {quoteError && (
+        <ErrorBanner
+          message={`Quote invoices couldn't load: ${quoteError}`}
+          onDismiss={() => setQuoteError(null)}
+        />
+      )}
+      <p className="sr-only" role="status" aria-live="polite">
+        {notice}
+      </p>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Invoiced">
+          <MoneyTotals totals={kpis.invoiced} />
+        </KpiCard>
+        <KpiCard label="Paid">
+          <MoneyTotals totals={kpis.paid} />
+        </KpiCard>
+        <KpiCard label="Outstanding">
+          <CountWithTotals
+            count={kpis.outstandingCount}
+            noun={["invoice", "invoices"]}
+            totals={kpis.outstanding}
+          />
+        </KpiCard>
+        <KpiCard label="Overdue">
+          <CountWithTotals
+            count={kpis.overdueCount}
+            noun={["invoice", "invoices"]}
+            totals={kpis.overdue}
+          />
+        </KpiCard>
       </div>
 
-      {!loading && invoices.length > 0 && (
-        <>
-          {/* Summary stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {statCards.map((s) => {
-              const Icon = s.icon;
-              return (
-                <div key={s.key} className="glass-card p-4 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p
-                      className={`text-[11px] font-bold uppercase tracking-wider truncate ${subText}`}
-                    >
-                      {s.label}
-                    </p>
-                    <p className="text-2xl font-bold mt-1 text-[var(--text-primary)]">{s.count}</p>
-                    <p className={`text-xs mt-0.5 truncate ${subText}`}>{fmtMoney(s.amount)}</p>
-                  </div>
-                  <div
-                    className={`p-2.5 rounded-xl bg-gradient-to-br ${s.grad} shadow-lg flex-shrink-0`}
-                  >
-                    <Icon className="text-white text-lg" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <FilterPills
+        tabs={FILTERS.map((f) => ({ key: f, label: INVOICE_FILTER_LABELS[f], count: count(f) }))}
+        active={filter}
+        onChange={(k) => changeFilter(k as InvoiceFilter)}
+        theme={theme}
+      />
 
-          {/* Status tabs */}
-          <div className="flex flex-wrap items-center gap-3">
-            <FilterPills
-              tabs={tabs}
-              active={activeStatus}
-              onChange={(k) => setActiveStatus(k as StatusFilter)}
-              theme={theme}
-            />
-            <FilterPills
-              tabs={sourceTabs}
-              active={activeSource}
-              onChange={(k) => setActiveSource(k as SourceFilter)}
-              theme={theme}
-            />
-          </div>
-          {quoteError && (
-            <p className="text-sm" style={{ color: "var(--status-failed-text)" }}>
-              Quote invoices couldn't load: {quoteError}
-            </p>
-          )}
-        </>
-      )}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <SearchField
+          label="Search invoices"
+          value={search}
+          onChange={changeSearch}
+          placeholder="Invoice number, client, email or quote number"
+        />
+        <SelectField
+          label="Source"
+          value={source}
+          options={SOURCE_OPTIONS}
+          onChange={changeSource}
+        />
+      </div>
 
-      {loading ? (
-        <div className="text-center py-16" style={{ color: "var(--text-secondary)" }}>
-          Loading…
-        </div>
-      ) : entries.length === 0 ? (
-        <div className="text-center py-16">
-          <FaFileInvoiceDollar
-            className="text-5xl mx-auto mb-4"
-            style={{ color: "var(--text-secondary)" }}
-          />
-          <p className="font-semibold text-[var(--text-primary)] mb-1">No invoices yet</p>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Invoices appear here when you send a quote or a one-off invoice.
-          </p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="glass-card text-center py-12">
-          <p className={subText}>No invoices in this view.</p>
-        </div>
+      {firstLoad ? (
+        <p className="py-12 text-center" style={muted}>
+          Loading invoices…
+        </p>
+      ) : shown.length === 0 ? (
+        <EmptyState
+          theme={theme}
+          icon={FaFileInvoiceDollar}
+          message={
+            rows.length === 0
+              ? "No invoices yet. They appear here when you send a quote or a one-off invoice."
+              : search || source !== "all"
+                ? "No invoices match your search."
+                : filter === "all"
+                  ? "Nothing here. Archived invoices are under their own filter."
+                  : `No ${INVOICE_FILTER_LABELS[filter].toLowerCase()} invoices.`
+          }
+        />
       ) : (
-        <div className="space-y-3">
-          {pageItems.map((entry) => {
-            if (entry.kind === "quote")
-              return (
-                <QuoteInvoiceCard
-                  key={entry.key}
-                  row={entry.row}
-                  onOpen={onOpenQuote ? () => onOpenQuote(entry.row.quoteId) : undefined}
-                />
-              );
-            const inv = entry.inv;
-            const sc = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.sent;
-            const sym = CURRENCY_SYMBOLS[inv.currency] ?? inv.currency;
-            const isPaid = inv.status === "paid";
-            const isConfirming = confirming[inv.$id];
-
-            return (
-              <div
-                key={inv.$id}
-                className="glass-card overflow-hidden"
-                style={{
-                  borderLeft: isPaid ? "4px solid #22c55e" : "4px solid var(--accent-teal)",
-                }}
-              >
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    {/* Left: invoice info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap mb-1">
-                        <h3 className="text-base font-bold text-[var(--text-primary)]">
-                          {inv.invoiceNumber}
-                        </h3>
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${sc.pill}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-                          {sc.label}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {inv.clientName}
-                      </p>
-                      <a
-                        href={`mailto:${inv.clientEmail}`}
-                        className="text-xs hover:text-[var(--accent-teal)] transition flex items-center gap-1 mt-0.5"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        <FaEnvelope className="text-brand-link dark:text-oceanic-400" />{" "}
-                        {inv.clientEmail}
-                      </a>
-                    </div>
-
-                    {/* Right: amount */}
-                    <div className="text-right flex-shrink-0">
-                      <p
-                        className="text-xl font-extrabold"
-                        style={{ color: isPaid ? "#22c55e" : "var(--accent-teal)" }}
-                      >
-                        {sym}
-                        {Number(inv.total).toFixed(2)}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                        {inv.currency}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Meta row */}
-                  <div
-                    className="flex items-center gap-4 mt-3 text-xs flex-wrap"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    <span className="flex items-center gap-1">
-                      <FaClock className="text-brand-link dark:text-oceanic-400" /> Sent{" "}
-                      {formatDate(inv.$createdAt)}
-                    </span>
-                    {inv.dueDate && (
-                      <span className="flex items-center gap-1">
-                        <FaMoneyBillWave className="text-brand-link dark:text-oceanic-400" /> Due{" "}
-                        {formatDate(inv.dueDate)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div
-                  className="px-5 py-3 flex items-center gap-2 flex-wrap"
-                  style={{ borderTop: "1px solid var(--border-subtle)" }}
-                >
-                  {!isPaid && (
-                    <button
-                      type="button"
-                      onClick={() => handleMarkPaid(inv)}
-                      disabled={isConfirming}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                      style={{
-                        background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
-                      }}
-                    >
-                      <FaCheckCircle />
-                      {isConfirming ? "Confirming…" : "Mark as Paid"}
-                    </button>
-                  )}
-                  {isPaid && (
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-success-400">
-                      <FaCheckCircle /> Payment Confirmed
-                    </span>
-                  )}
-                  <a
-                    href={`/pay/${inv.invoiceNumber}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:text-[var(--text-primary)]"
-                    style={{
-                      background: "var(--bg-primary)",
-                      border: "1px solid var(--border-subtle)",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    View Pay Page
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(inv.$id)}
-                    className="ml-auto p-2 rounded-lg text-error-400 hover:bg-error-500/10 transition"
-                    title="Delete invoice"
-                  >
-                    <FaTrash />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+        <div>
+          <InvoicesTable
+            rows={pageItems}
+            expanded={expanded}
+            onToggle={toggle}
+            actionsFor={actionsFor}
+          />
           <Pagination
             page={page}
             totalItems={totalItems}
@@ -612,65 +457,6 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
           />
         </div>
       )}
-    </div>
-  );
-}
-
-/** A quote stage invoice: read-only, opens the quote where it's managed. */
-function QuoteInvoiceCard({ row, onOpen }: { row: QuoteInvoiceRow; onOpen?: () => void }) {
-  const paid = row.state === "paid";
-  const status = paid ? "paid" : row.overdue ? "overdue" : "sent";
-  const sc = STATUS_CONFIG[status];
-  return (
-    <div
-      className="glass-card overflow-hidden"
-      style={{ borderLeft: paid ? "4px solid #22c55e" : "4px solid var(--accent-teal)" }}
-    >
-      <div className="p-5 flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap mb-1">
-            <h3 className="text-base font-bold text-[var(--text-primary)]">{row.invoiceNumber}</h3>
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${sc.pill}`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-              {paid ? "Paid" : row.overdue ? "Overdue" : "Due"}
-            </span>
-            <span
-              className="px-2 py-0.5 rounded-full text-xs font-medium border"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
-            >
-              Quote · {row.quoteNumber}
-            </span>
-          </div>
-          <p className="text-sm text-[var(--text-primary)] truncate">
-            {row.clientName} · {row.title}
-          </p>
-          <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-            {row.label} ({row.percent}%)
-            {paid
-              ? ` · Paid ${formatDate(row.paidAt || undefined)}`
-              : row.dueBy
-                ? ` · Due ${formatDate(row.dueBy)}`
-                : ""}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className="text-lg font-bold tabular-nums text-[var(--text-primary)]">
-            {formatMinor(row.amountMinor, row.currency as "GHS" | "USD")}
-          </span>
-          {onOpen && (
-            <button
-              type="button"
-              onClick={onOpen}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
-            >
-              Open quote
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
