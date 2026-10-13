@@ -64,6 +64,28 @@ function toInvoice(doc) {
 
 const isCode = (err, code) => Boolean(err) && err.code === code;
 
+const PAGE = 100;
+// Safety cap so a runaway table can't stall a request; far above today's rows.
+const LIST_ALL_CAP = 5000;
+
+// Every matching row, newest first, by following the cursor. Appwrite returns
+// at most 100 rows a page, so a single capped read silently drops older rows.
+async function listAll(db, collection, queries, cap = LIST_ALL_CAP) {
+  const rows = [];
+  let cursor = null;
+  while (rows.length < cap) {
+    const limit = Math.min(PAGE, cap - rows.length);
+    const page = [...queries, Query.orderDesc("$createdAt"), Query.limit(limit)];
+    if (cursor) page.push(Query.cursorAfter(cursor));
+    const { documents } = await db.listDocuments(DATABASE_ID, collection, page);
+    rows.push(...documents);
+    if (documents.length < limit) return rows;
+    cursor = documents[documents.length - 1].$id;
+  }
+  console.warn(`listAll: stopped at ${cap} rows in "${collection}"; older rows may be missing.`);
+  return rows;
+}
+
 function createQuoteRepo(db) {
   return {
     async get(id) {
@@ -83,12 +105,9 @@ function createQuoteRepo(db) {
       return toQuote(r.documents[0]);
     },
 
+    // Every quote, newest first (the old single read stopped at 100).
     async list() {
-      const r = await db.listDocuments(DATABASE_ID, QUOTES, [
-        Query.orderDesc("$createdAt"),
-        Query.limit(100),
-      ]);
-      return r.documents.map(toQuote);
+      return (await listAll(db, QUOTES, [])).map(toQuote);
     },
 
     // Numbers are sequential per year. The unique index on quoteNumber turns
@@ -135,12 +154,9 @@ function createQuoteRepo(db) {
       return r.documents.map(toPayment);
     },
 
+    // Every quote payment row, newest first (the old single read stopped at 500).
     async listQuotePayments() {
-      const r = await db.listDocuments(DATABASE_ID, PAYMENTS, [
-        Query.equal("kind", ["quote"]),
-        Query.limit(500),
-      ]);
-      return r.documents.map(toPayment);
+      return (await listAll(db, PAYMENTS, [Query.equal("kind", ["quote"])])).map(toPayment);
     },
 
     // Payment rows recorded against one invoice number (one-off invoices).
