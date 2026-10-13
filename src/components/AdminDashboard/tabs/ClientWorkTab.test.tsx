@@ -50,6 +50,22 @@ describe("ClientWorkTab", () => {
     expect(screen.getByRole("button", { name: /edit & resend/i })).toBeInTheDocument();
   });
 
+  it("skips an archived invoice when showing an inquiry's latest invoice", async () => {
+    getInvoices.mockResolvedValue([
+      {
+        $id: "i2",
+        inquiryId: "inq1",
+        invoiceNumber: "INV-2026-0002",
+        status: "sent",
+        archivedAt: "2026-10-11T00:00:00Z",
+      },
+      { $id: "i1", inquiryId: "inq1", invoiceNumber: "INV-2026-0001", status: "sent" },
+    ]);
+    render(<ClientWorkTab theme="dark" onCreateQuote={vi.fn()} />);
+    expect(await screen.findByText("INV-2026-0001")).toBeInTheDocument();
+    expect(screen.queryByText("INV-2026-0002")).toBeNull();
+  });
+
   it("emails the client when an inquiry is marked won", async () => {
     render(<ClientWorkTab theme="dark" onCreateQuote={vi.fn()} />);
     await userEvent.click(await screen.findByRole("button", { name: /change status/i }));

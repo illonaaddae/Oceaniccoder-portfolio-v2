@@ -22,6 +22,7 @@ import {
 } from "react-icons/fa";
 import { getInquiries, updateInquiry, deleteInquiry } from "@/services/api/inquiries";
 import { getInvoices } from "@/services/api/invoices";
+import { isArchivedInvoice } from "./invoiceArchive";
 import type { ProjectInquiry, Invoice } from "@/types";
 import InvoiceModal from "./ClientWork/InvoiceModal";
 import QuoteEditor from "./Quotes/QuoteEditor";
@@ -122,7 +123,8 @@ export default function ClientWorkTab({ theme, onCreateQuote }: ClientWorkTabPro
       setInquiries(inqs);
       const map: Record<string, Invoice[]> = {};
       for (const inv of invs) {
-        if (inv.inquiryId) {
+        // Archived (unpaid) invoices are set aside; a paid one always counts.
+        if (inv.inquiryId && !isArchivedInvoice(inv)) {
           map[inv.inquiryId] = [...(map[inv.inquiryId] ?? []), inv];
         }
       }

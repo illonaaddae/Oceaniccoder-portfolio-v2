@@ -24,6 +24,7 @@ import {
   Legend,
 } from "recharts";
 import { getInvoices } from "@/services/api/invoices";
+import { isArchivedInvoice } from "./invoiceArchive";
 import { getPayments } from "@/services/api/payments";
 import { quotePaymentsAsRevenue } from "./quoteRevenue";
 import { getExpenses, createExpense, deleteExpense } from "@/services/api/expenses";
@@ -243,7 +244,8 @@ export default function AnalyticsTab({ theme }: AnalyticsTabProps) {
 
   // --- Computed values ---
   const paidInvoices = invoices.filter((i) => i.status === "paid");
-  const pendingInvoices = invoices.filter((i) => i.status === "sent");
+  // Archived unpaid invoices are set aside, not owed; paid ones stay revenue.
+  const pendingInvoices = invoices.filter((i) => i.status === "sent" && !isArchivedInvoice(i));
 
   const totalEarnedGHS = paidInvoices.reduce((s, i) => s + toGHS(i.total, i.currency), 0);
   const totalPendingGHS = pendingInvoices.reduce((s, i) => s + toGHS(i.total, i.currency), 0);
