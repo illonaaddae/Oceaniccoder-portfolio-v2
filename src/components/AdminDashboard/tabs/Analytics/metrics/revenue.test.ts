@@ -426,11 +426,6 @@ describe("outstandingSummary", () => {
       { currency: "USD", amount: 500 },
       { currency: "GHS", amount: 40 },
     ]);
-    expect(s.ageing.map((b) => [b.key, b.count])).toEqual([
-      ["0-30", 2],
-      ["31-60", 0],
-      ["61+", 1],
-    ]);
     // Due 20 Oct is 7 days out; 1 Oct was 12 days ago.
     expect(s.items.map((i) => [i.number, i.dueInDays])).toEqual([
       ["Q-2026-0001-2", -59],

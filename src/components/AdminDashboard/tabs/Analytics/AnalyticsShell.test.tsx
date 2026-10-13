@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const getPayments = vi.fn();
@@ -110,7 +110,10 @@ const EXPENSES = [
   },
 ];
 
-const card = (name: string) => screen.getByRole("region", { name });
+const card = (name: string | RegExp) => screen.getByRole("region", { name });
+// Scoped: role queries over the whole tab are slow on a loaded machine.
+const log = () => within(card(/^Expense log/));
+const figure = (name: string) => screen.getByRole("group", { name });
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -141,7 +144,7 @@ async function renderShell() {
 describe("AnalyticsShell summary", () => {
   it("shows cash collected per currency for the range, with an approx. GHS total", async () => {
     await renderShell();
-    const cash = card("Cash collected");
+    const cash = figure("Cash collected");
     // GHS 500 paid 10 Oct + GHS 50 estimated 2 Oct; USD 100 on 1 Oct.
     // Not the 1 Sep payment (previous period) or the failed one.
     expect(within(cash).getByText("GHS 550.00")).toBeInTheDocument();
@@ -154,30 +157,37 @@ describe("AnalyticsShell summary", () => {
 
   it("shows what is owed now, net and expenses in their own currencies", async () => {
     await renderShell();
-    expect(within(card("Owed to you now")).getByText("1 invoice")).toBeInTheDocument();
-    expect(within(card("Owed to you now")).getByText("GHS 300.00")).toBeInTheDocument();
-    expect(within(card("Owed to you now")).getByText(/1 overdue/)).toBeInTheDocument();
-    expect(within(card("Expenses")).getByText("GHS 80.00")).toBeInTheDocument();
-    const net = card("Net (collected minus expenses)");
+    const owed = figure("Owed to you");
+    expect(
+      within(owed).getByText(/1 invoice, 1 overdue\. Not limited to the range\./),
+    ).toBeInTheDocument();
+    expect(within(owed).getByText("GHS 300.00")).toBeInTheDocument();
+    expect(within(owed).getByText("Now")).toBeInTheDocument();
+    expect(within(figure("Expenses")).getByText("GHS 80.00")).toBeInTheDocument();
+    const net = figure("Net");
     expect(within(net).getByText("GHS 470.00")).toBeInTheDocument();
     expect(within(net).getByText("USD 100.00")).toBeInTheDocument();
   });
 
-  it("flags paid invoices whose date is estimated", async () => {
+  it("flags paid invoices whose date is estimated, with the fix behind an info tip", async () => {
     await renderShell();
-    expect(screen.getByText(/1 paid invoice has no payment record/)).toBeInTheDocument();
-    expect(screen.getByText(/1 paid invoice has no payment record/).textContent).toMatch(
+    expect(screen.getByText(/1 paid invoice has an estimated date\./)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Why the dates are estimated" }),
+    ).toHaveAccessibleDescription(
       /Running the payments backfill script \(scripts\/backfill-payments\.mjs\) fixes this\.$/,
     );
     // No source file names in the copy.
-    expect(screen.getByText(/at reference exchange rates as of 13 Oct 2026\./)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "About days and currencies" }),
+    ).toHaveAccessibleDescription(/at reference exchange rates as of 13 Oct 2026\./);
     expect(screen.queryByText(/fxRates/)).not.toBeInTheDocument();
   });
 
   it("recomputes for a new range and remembers it", async () => {
     await renderShell();
-    await userEvent.click(screen.getByRole("button", { name: "7 days" }));
-    const cash = card("Cash collected");
+    await userEvent.click(screen.getByRole("button", { name: /7 days/ }));
+    const cash = figure("Cash collected");
     expect(within(cash).getByText("GHS 500.00")).toBeInTheDocument();
     expect(within(cash).queryByText("USD 100.00")).not.toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem(RANGE_STORAGE_KEY) ?? "{}")).toEqual({ preset: "7d" });
@@ -187,15 +197,70 @@ describe("AnalyticsShell summary", () => {
     getPayments.mockReset().mockRejectedValue(new Error("Network down"));
     await renderShell();
     expect(screen.getByRole("alert")).toHaveTextContent("Network down");
-    expect(within(card("Cash collected")).getByText(/Payments couldn.t load/)).toBeInTheDocument();
-    expect(within(card("Cash collected")).queryByText("0.00")).not.toBeInTheDocument();
-    // No payment stats, and no "estimated" warning built from missing rows.
     expect(
-      within(card("Payments received")).getByText(/Payments couldn.t load/),
+      within(figure("Cash collected")).getByText(/Payments couldn.t load/),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/no payment record/)).not.toBeInTheDocument();
+    expect(within(figure("Cash collected")).queryByText("0.00")).not.toBeInTheDocument();
+    // No payment stats, and no "estimated" warning built from missing rows.
+    expect(within(figure("Cash collected")).queryByText(/payments, avg/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/estimated date/)).not.toBeInTheDocument();
     // Other sources still show.
-    expect(within(card("Expenses")).getByText("GHS 80.00")).toBeInTheDocument();
+    expect(within(figure("Expenses")).getByText("GHS 80.00")).toBeInTheDocument();
+  });
+});
+
+describe("AnalyticsShell key figures", () => {
+  it("shows the change on the previous period as a chip, worded for screen readers", async () => {
+    await renderShell();
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    const cash = figure("Cash collected");
+    // GHS 550 now against GHS 200 on 1 Sep: up 175%.
+    expect(within(cash).getByText("▲ 175%").closest(".analytics-chip")).toHaveAttribute(
+      "data-tone",
+      "good",
+    );
+    expect(within(cash).getByText("up 175% on the previous period, in GHS")).toBeInTheDocument();
+    expect(within(cash).getByText(/3 payments, avg GHS 275\.00, USD 100\.00/)).toBeInTheDocument();
+  });
+
+  it("counts expenses going down as good", async () => {
+    getExpenses
+      .mockReset()
+      .mockResolvedValue([
+        ...EXPENSES,
+        { ...EXPENSES[0], $id: "e0", amount: 100, date: "2026-09-01" },
+      ]);
+    await renderShell();
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    const spent = figure("Expenses");
+    expect(within(spent).getByText("▼ 20%").closest(".analytics-chip")).toHaveAttribute(
+      "data-tone",
+      "good",
+    );
+    expect(within(spent).getByText("down 20% on the previous period, in GHS")).toBeInTheDocument();
+  });
+});
+
+describe("AnalyticsShell info tips", () => {
+  const tip = () => screen.getByRole("button", { name: "How revenue is counted" });
+
+  it("describes the button and shows on focus until Escape", async () => {
+    await renderShell();
+    expect(tip()).toHaveAccessibleDescription(/Failed, pending, abandoned/);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    act(() => tip().focus());
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/dated when the money arrived/);
+    userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(tip()).toHaveFocus();
+  });
+
+  it("shows on hover and hides when the pointer leaves", async () => {
+    await renderShell();
+    userEvent.hover(tip());
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/dated when the money arrived/);
+    userEvent.unhover(tip());
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 });
 
@@ -203,7 +268,7 @@ describe("AnalyticsShell when invoices fail", () => {
   it("says cash collected leaves out the estimated invoice rows", async () => {
     getInvoices.mockReset().mockRejectedValue(new Error("Invoices down"));
     await renderShell();
-    const cash = card("Cash collected");
+    const cash = figure("Cash collected");
     // Only the GHS 500 payment row; the estimated GHS 50 invoice is unknown.
     expect(within(cash).getByText("GHS 500.00")).toBeInTheDocument();
     expect(
@@ -216,12 +281,12 @@ describe("AnalyticsShell revenue", () => {
   it("defaults the charts to the currency with the most revenue, compared at approx. rates", async () => {
     await renderShell();
     // USD 100 ≈ GHS 1,177 beats GHS 550.
-    expect(screen.getByLabelText("Charts in")).toHaveValue("USD");
+    expect(screen.getByLabelText("Show in")).toHaveValue("USD");
   });
 
   it("lists the payments behind a period from the data table", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Charts in"), "GHS");
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
     await userEvent.click(screen.getByRole("button", { name: "Show payments for 10 Oct" }));
     expect(screen.getByRole("heading", { name: "Payments, 10 Oct 2026" })).toBeInTheDocument();
     expect(screen.getAllByText("Ama Owusu").length).toBeGreaterThan(0);
@@ -239,9 +304,9 @@ describe("AnalyticsShell revenue", () => {
       }),
     ]);
     await renderShell();
-    const cash = () => card("Cash collected");
+    const cash = () => figure("Cash collected");
     expect(within(cash()).queryByText(/vs previous period.*leaves out/)).not.toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("Charts in"), "approx");
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
     const delta = within(cash())
       .getByText(/vs previous period \(approx\. GHS\)/)
       .closest("p");
@@ -250,10 +315,53 @@ describe("AnalyticsShell revenue", () => {
 
   it("breaks money down by method in the chosen unit", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Charts in"), "approx");
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
     const methods = screen.getByRole("table", { name: "Money received by payment method" });
     expect(within(methods).getByRole("rowheader", { name: /Card/ })).toBeInTheDocument();
     expect(within(methods).getByText("≈ GHS 1,177.00")).toBeInTheDocument();
+  });
+
+  it("gives each method its icon and colour, and an unrecorded one the neutral style", async () => {
+    await renderShell();
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
+    const rows = card("By payment method").querySelectorAll("li[data-method]");
+    // USD 100 card ≈ GHS 1,177, GHS 500 momo, GHS 50 estimated with no method.
+    expect([...rows].map((r) => [r.getAttribute("data-method"), r.textContent])).toEqual([
+      ["card", expect.stringMatching(/^Card1/)],
+      ["momo", expect.stringMatching(/^Mobile Money1/)],
+      ["other", expect.stringMatching(/^Not recorded1/)],
+    ]);
+    expect(within(card("By payment method")).getByText("3")).toBeInTheDocument();
+  });
+
+  it("lists what is owed with a worded status for each item", async () => {
+    getInvoices.mockReset().mockResolvedValue([
+      ...INVOICES,
+      invoice({
+        $id: "i3",
+        invoiceNumber: "INV-SOON",
+        clientName: "Kofi Boateng",
+        total: 120,
+        dueDate: "2026-10-16",
+      }),
+      invoice({
+        $id: "i4",
+        invoiceNumber: "INV-SENT",
+        total: 75,
+        $createdAt: "2026-10-02T09:00:00Z",
+      }),
+    ]);
+    await renderShell();
+    const owed = card("Owed to you now");
+    const rows = within(owed).getAllByRole("row").slice(1);
+    expect(rows.map((r) => within(r).getAllByRole("cell")[1].textContent)).toEqual([
+      "●Overdue 13 days",
+      "◐Due in 3 days",
+      "○Sent 2 Oct 2026",
+    ]);
+    expect(within(rows[1]).getByText("INV-SOON")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("GHS 120.00")).toBeInTheDocument();
+    expect(within(owed).getByText("1 overdue")).toBeInTheDocument();
   });
 });
 
@@ -262,13 +370,30 @@ describe("AnalyticsShell expenses", () => {
     getExpenses.mockReset().mockRejectedValue(new Error("Expenses down"));
     await renderShell();
     expect(screen.getByRole("alert")).toHaveTextContent("Expenses down");
-    expect(within(card("Expenses")).getByText(/Expenses couldn.t load/)).toBeInTheDocument();
-    expect(
-      within(card("Net (collected minus expenses)")).getByText(/Needs expenses/),
-    ).toBeInTheDocument();
+    expect(within(figure("Expenses")).getByText(/Expenses couldn.t load/)).toBeInTheDocument();
+    expect(within(figure("Net")).getByText(/Needs expenses/)).toBeInTheDocument();
     expect(screen.queryByText(/No expenses logged yet/)).not.toBeInTheDocument();
     // Cash collected is unaffected.
-    expect(within(card("Cash collected")).getByText("GHS 550.00")).toBeInTheDocument();
+    expect(within(figure("Cash collected")).getByText("GHS 550.00")).toBeInTheDocument();
+  });
+
+  it("lists the three largest expenses in the range, each in its own currency", async () => {
+    getExpenses
+      .mockReset()
+      .mockResolvedValue([
+        ...EXPENSES,
+        { ...EXPENSES[0], $id: "e3", description: "Laptop stand", amount: 40, currency: "USD" },
+        { ...EXPENSES[0], $id: "e4", description: "Domain", amount: 120, category: "domain" },
+        { ...EXPENSES[0], $id: "e5", description: "Cables", amount: 20 },
+      ]);
+    await renderShell();
+    const largest = within(card("Largest this range")).getAllByRole("listitem");
+    // USD 40 ≈ GHS 471 beats GHS 120 and GHS 80; GHS 20 and the June expense miss out.
+    expect(largest.map((li) => li.textContent)).toEqual([
+      "Laptop standHosting · 5 Oct 2026USD 40.00",
+      "DomainDomain · 5 Oct 2026GHS 120.00",
+      "HostingHosting · 5 Oct 2026GHS 80.00",
+    ]);
   });
 
   it("logs a new expense", async () => {
@@ -281,15 +406,15 @@ describe("AnalyticsShell expenses", () => {
       date: "2026-10-12",
     });
     await renderShell();
-    await userEvent.click(screen.getByRole("button", { name: "Add expense" }));
-    await userEvent.type(screen.getByLabelText("Description"), "Domain");
-    await userEvent.type(screen.getByLabelText("Amount"), "120");
-    await userEvent.click(screen.getByRole("button", { name: "Log expense" }));
+    await userEvent.click(log().getByRole("button", { name: "Add expense" }));
+    await userEvent.type(log().getByLabelText("Description"), "Domain");
+    await userEvent.type(log().getByLabelText("Amount"), "120");
+    await userEvent.click(log().getByRole("button", { name: "Log expense" }));
     expect(createExpense).toHaveBeenCalledWith(
       expect.objectContaining({ description: "Domain", amount: 120, currency: "GHS" }),
     );
-    expect(await screen.findByRole("button", { name: "Delete Domain" })).toBeInTheDocument();
-    expect(within(card("Expenses")).getByText("GHS 200.00")).toBeInTheDocument();
+    expect(await log().findByRole("button", { name: "Delete Domain" })).toBeInTheDocument();
+    expect(within(figure("Expenses")).getByText("GHS 200.00")).toBeInTheDocument();
   });
 
   it("formats dates stored as timestamps", async () => {
@@ -297,7 +422,7 @@ describe("AnalyticsShell expenses", () => {
       .mockReset()
       .mockResolvedValue([{ ...EXPENSES[0], date: "2026-10-05T00:00:00.000+00:00" }]);
     await renderShell();
-    expect(screen.getByText("Hosting · 5 Oct 2026")).toBeInTheDocument();
+    expect(log().getByText("Hosting · 5 Oct 2026")).toBeInTheDocument();
   });
 
   it("pages the log 15 at a time and goes back to page 1 after a change", async () => {
@@ -320,21 +445,21 @@ describe("AnalyticsShell expenses", () => {
       date: "2026-10-13",
     });
     await renderShell();
-    const deletes = () => screen.getAllByRole("button", { name: /^Delete / });
+    const deletes = () => log().getAllByRole("button", { name: /^Delete / });
     expect(deletes()).toHaveLength(15);
-    await userEvent.click(screen.getByRole("button", { name: "Page 3" }));
+    await userEvent.click(log().getByRole("button", { name: "Page 3" }));
     expect(deletes()).toHaveLength(2);
 
-    await userEvent.click(screen.getByRole("button", { name: "Add expense" }));
-    await userEvent.type(screen.getByLabelText("Description"), "Brand new");
-    await userEvent.type(screen.getByLabelText("Amount"), "5");
-    await userEvent.click(screen.getByRole("button", { name: "Log expense" }));
-    expect(await screen.findByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
+    await userEvent.click(log().getByRole("button", { name: "Add expense" }));
+    await userEvent.type(log().getByLabelText("Description"), "Brand new");
+    await userEvent.type(log().getByLabelText("Amount"), "5");
+    await userEvent.click(log().getByRole("button", { name: "Log expense" }));
+    expect(await log().findByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
     expect(deletes()).toHaveLength(15);
 
-    await userEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    await userEvent.click(log().getByRole("button", { name: "Page 2" }));
     await userEvent.click(deletes()[0]);
-    expect(await screen.findByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
+    expect(await log().findByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
   });
 
   it("deletes an expense after confirming", async () => {

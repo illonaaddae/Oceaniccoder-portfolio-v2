@@ -239,7 +239,7 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false, theme }:
             : "No expenses logged yet. Track domains, hosting, tools and other costs here."}
         </p>
       ) : (
-        <ul className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
+        <ul className="divide-y divide-[var(--analytics-line)]">
           {pageItems.map((exp) => (
             <li key={exp.$id} className="flex items-center gap-3 px-5 py-3">
               <div className="min-w-0 flex-1">

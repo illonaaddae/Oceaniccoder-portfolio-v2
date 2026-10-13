@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { TabHeader } from "@/components/ui/TabHeader";
 import { ErrorBanner, RefreshControl, SelectField } from "../shared/controls";
 import { BlogReadershipSection } from "./BlogReadershipSection";
+import { InfoTip } from "./KpiExtras";
 import { RangePicker } from "./RangePicker";
 import { useAnalyticsData } from "./useAnalyticsData";
 import { formatDay } from "./metrics/format";
@@ -23,7 +24,7 @@ import {
   type MoneyUnit,
 } from "./metrics/revenue";
 import { SummarySection } from "./sections/SummarySection";
-import { RevenueSection } from "./sections/RevenueSection";
+import { OWED_CARD_ID, RevenueSection } from "./sections/RevenueSection";
 import { ExpensesSection } from "./sections/ExpensesSection";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
@@ -32,8 +33,8 @@ const strong: React.CSSProperties = { color: "var(--text-primary)" };
 const APPROX_OPTION = "approx";
 
 const SECTIONS = [
-  { id: "analytics-summary", label: "Summary" },
   { id: "analytics-revenue", label: "Revenue" },
+  { id: OWED_CARD_ID, label: "Owed" },
   { id: "analytics-expenses", label: "Expenses" },
   { id: "analytics-content", label: "Content" },
 ] as const;
@@ -43,17 +44,23 @@ const storage = () => (typeof window === "undefined" ? undefined : window.localS
 function Section({
   id,
   title,
+  info,
   children,
 }: {
   id: string;
   title: string;
+  /** A how-it's-counted note behind an ⓘ next to the heading. */
+  info?: { label: string; text: string };
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-4 space-y-3">
-      <h2 id={`${id}-heading`} className="text-lg font-bold" style={strong}>
-        {title}
-      </h2>
+    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-28 space-y-3">
+      <div className="flex items-center gap-1.5" style={muted}>
+        <h2 id={`${id}-heading`} className="text-lg font-extrabold" style={strong}>
+          {title}
+        </h2>
+        {info && <InfoTip label={info.label}>{info.text}</InfoTip>}
+      </div>
       {children}
     </section>
   );
@@ -110,7 +117,7 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
   const errorText = Object.values(errors).filter(Boolean).join(" ");
 
   return (
-    <div className="space-y-6">
+    <div className="analytics-dash space-y-6">
       <TabHeader
         theme={theme}
         title="Analytics"
@@ -129,7 +136,17 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
         <ErrorBanner message={errorText} onDismiss={() => setDismissed(true)} />
       )}
 
-      <div className="glass-card space-y-3 rounded-xl p-4">
+      {/* From md up the bar sticks to the top of the admin content pane (the
+          scroller; the dashboard header sits above it). Chrome sticks it inside
+          the pane's padding, so the negative top and side margins match
+          TabContent's p-4 sm:p-6 lg:p-8. z-index 5 keeps it under the header's
+          menus (z-10). On phones it wraps to three rows, too tall to pin. */}
+      <div
+        role="region"
+        aria-label="Range and currency"
+        className="z-[5] -mx-4 md:sticky md:-top-6 lg:-top-8 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+        style={{ background: "var(--analytics-bar-bg)", borderColor: "var(--analytics-line)" }}
+      >
         <RangePicker
           key={`${choice.preset}-${choice.from ?? ""}-${choice.to ?? ""}`}
           choice={choice}
@@ -138,29 +155,29 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
           onChange={setChoice}
           now={now}
         />
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1" style={muted}>
           <SelectField
-            label="Charts in"
+            label="Show in"
             value={unitValue}
             options={[
               ...currencies.map((c) => ({ value: c, label: c })),
-              { value: APPROX_OPTION, label: "All currencies, approx. GHS" },
+              { value: APPROX_OPTION, label: "All, approx. GHS" },
             ]}
             onChange={setUnitPick}
           />
-          <p className="text-xs" style={muted}>
-            Totals are shown in each currency. Combined GHS figures are approx., at reference
-            exchange rates as of {formatDay(FX_RATES.asOf)}.
-          </p>
+          <InfoTip label="About days and currencies">
+            Days are UTC (Ghana time). Totals are shown in each currency. Combined GHS figures are
+            approx., at reference exchange rates as of {formatDay(FX_RATES.asOf)}.
+          </InfoTip>
         </div>
-        <nav aria-label="Analytics sections">
-          <ul className="flex flex-wrap gap-3 text-sm">
+        <nav aria-label="Analytics sections" className="ml-auto hidden md:block">
+          <ul className="flex gap-1 text-[13px]">
             {SECTIONS.map((s) => (
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  className="font-semibold underline-offset-2 hover:underline"
-                  style={{ color: "var(--accent-teal)" }}
+                  className="rounded-lg px-2 py-1 font-semibold hover:bg-[var(--analytics-line-soft)]"
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   {s.label}
                 </a>
@@ -170,20 +187,31 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
         </nav>
       </div>
 
-      <Section id="analytics-summary" title="Summary">
+      <section id="analytics-summary" aria-labelledby="analytics-summary-heading">
+        <h2 id="analytics-summary-heading" className="sr-only">
+          Key figures
+        </h2>
         <SummarySection
           ledger={ledger}
           expenses={data.expenses}
           outstanding={outstanding}
           range={range}
           previous={previous}
+          bucket={bucket}
           unit={unit}
           unitLabel={unitLabel}
           errors={errors}
         />
-      </Section>
+      </section>
 
-      <Section id="analytics-revenue" title="Revenue and payments">
+      <Section
+        id="analytics-revenue"
+        title="Revenue and payments"
+        info={{
+          label: "How revenue is counted",
+          text: "Successful payments on invoices and quotes, dated when the money arrived. Failed, pending, abandoned, duplicate and refunded attempts don't count.",
+        }}
+      >
         <RevenueSection
           ledger={ledger}
           outstanding={outstanding}
@@ -196,12 +224,11 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
         />
       </Section>
 
-      <Section id="analytics-expenses" title="Expenses in detail">
+      <Section id="analytics-expenses" title="Expenses">
         <ExpensesSection
           expenses={data.expenses}
           setExpenses={setExpenses}
           range={range}
-          bucket={bucket}
           unit={unit}
           unitLabel={unitLabel}
           loading={loading}

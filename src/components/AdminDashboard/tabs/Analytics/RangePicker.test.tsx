@@ -18,8 +18,15 @@ function setup(choice = { preset: "30d" as const }) {
 describe("RangePicker", () => {
   it("marks the current preset and says what it compares with", () => {
     setup();
-    expect(screen.getByRole("button", { name: "30 days" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /^30D.*30 days/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: /^7D.*7 days/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByText("14 Sep – 13 Oct · vs 15 Aug – 13 Sep")).toBeInTheDocument();
     expect(
       screen.getByText(/14 Sep 2026 to 13 Oct 2026, compared with 15 Aug 2026 to 13 Sep 2026/),
     ).toBeInTheDocument();
@@ -27,7 +34,7 @@ describe("RangePicker", () => {
 
   it("switches preset", async () => {
     const { onChange, user } = setup();
-    await user.click(screen.getByRole("button", { name: "12 months" }));
+    await user.click(screen.getByRole("button", { name: /12 months/ }));
     expect(onChange).toHaveBeenCalledWith({ preset: "12m" });
   });
 

@@ -1,39 +1,55 @@
 import type React from "react";
 import { useId } from "react";
+import { InfoTip } from "./KpiExtras";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 const strong: React.CSSProperties = { color: "var(--text-primary)" };
 
-/** Series colours: brand tokens that switch with the light and dark themes. */
+/** Series colours: Analytics tokens that switch with the light and dark themes. */
 export const CHART_COLORS = {
-  primary: "var(--brand-ocean-2)",
-  secondary: "var(--brand-ocean-4)",
-  previous: "var(--text-secondary)",
-  grid: "var(--border-subtle)",
+  invoice: "var(--analytics-s-invoice)",
+  quote: "var(--analytics-s-quote)",
+  previous: "var(--analytics-s-prev)",
+  grid: "var(--analytics-line)",
   axis: "var(--text-secondary)",
 } as const;
 
 export const axisTick = { fill: CHART_COLORS.axis, fontSize: 11 };
 
-/**
- * Recharts colours legend text with the series colour, which is too faint for
- * text on light backgrounds; the swatch keeps the colour, the label doesn't.
- */
-export const legendLabel = (value: string) => (
-  <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>{value}</span>
-);
-
-export const tooltipStyle: React.CSSProperties = {
-  background: "var(--bg-secondary)",
-  border: "1px solid var(--border-subtle)",
-  borderRadius: 10,
-  color: "var(--text-primary)",
-};
+/** A legend in the card header. The swatch carries the colour; the text stays in text tokens. */
+export function ChartLegend({
+  items,
+}: {
+  items: { label: string; color: string; dashed?: boolean }[];
+}) {
+  return (
+    <ul className="flex flex-wrap gap-x-3.5 gap-y-1 text-xs" style={muted} aria-hidden="true">
+      {items.map((item) => (
+        <li key={item.label} className="inline-flex items-center gap-1.5">
+          <span
+            className={
+              item.dashed
+                ? "inline-block w-3.5 border-t-2 border-dashed"
+                : "h-2.5 w-2.5 rounded-[3px]"
+            }
+            style={item.dashed ? { borderColor: item.color } : { background: item.color }}
+          />
+          {item.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 interface ChartCardProps {
   title: string;
-  /** What the chart shows and how it's counted; read out with the chart. */
+  /** A short line under the title saying what is shown; read out with the card. */
   description: string;
+  /** The longer how-it's-counted note, behind an ⓘ. */
+  info?: React.ReactNode;
+  /** Shown at the right of the header, e.g. a legend. */
+  aside?: React.ReactNode;
+  id?: string;
   loading?: boolean;
   error?: string | null;
   /** Shown instead of the chart when there's nothing to plot. */
@@ -53,6 +69,9 @@ interface ChartCardProps {
 export function ChartCard({
   title,
   description,
+  info,
+  aside,
+  id,
   loading,
   error,
   empty,
@@ -85,16 +104,25 @@ export function ChartCard({
     );
   return (
     <section
-      className="glass-card rounded-xl p-4 sm:p-5"
+      id={id}
+      className="glass-card min-w-0 scroll-mt-28 p-4 sm:p-5"
       aria-labelledby={titleId}
       aria-describedby={descId}
     >
-      <h3 id={titleId} className="text-base font-bold" style={strong}>
-        {title}
-      </h3>
-      <p id={descId} className="mb-3 text-xs" style={muted}>
-        {description}
-      </p>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1" style={muted}>
+            <h3 id={titleId} className="text-base font-bold" style={strong}>
+              {title}
+            </h3>
+            {info && <InfoTip label={`About ${title.toLowerCase()}`}>{info}</InfoTip>}
+          </div>
+          <p id={descId} className="text-xs" style={muted}>
+            {description}
+          </p>
+        </div>
+        {!loading && !error && !empty && aside}
+      </div>
       {body}
       {!loading && !error && footer}
     </section>

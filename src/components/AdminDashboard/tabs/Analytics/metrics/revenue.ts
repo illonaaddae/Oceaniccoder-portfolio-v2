@@ -265,12 +265,6 @@ export function topClients(entries: LedgerEntry[], unit: MoneyUnit, limit = 10):
   ).slice(0, limit);
 }
 
-export const AGE_BUCKETS = [
-  { key: "0-30", label: "0–30 days", min: 0, max: 30 },
-  { key: "31-60", label: "31–60 days", min: 31, max: 60 },
-  { key: "61+", label: "61+ days", min: 61, max: Number.POSITIVE_INFINITY },
-] as const;
-
 export interface OutstandingItem {
   key: string;
   number: string;
@@ -292,7 +286,6 @@ export interface OutstandingSummary {
   totals: CurrencyTotals;
   overdueCount: number;
   overdue: CurrencyTotals;
-  ageing: { key: string; label: string; count: number; totals: CurrencyTotals }[];
 }
 
 /**
@@ -338,12 +331,6 @@ export function outstandingSummary(
     totals: totals(items),
     overdueCount: overdue.length,
     overdue: totals(overdue),
-    ageing: AGE_BUCKETS.map((b) => {
-      const inBucket = items.filter(
-        (i) => i.ageDays !== null && i.ageDays >= b.min && i.ageDays <= b.max,
-      );
-      return { key: b.key, label: b.label, count: inBucket.length, totals: totals(inBucket) };
-    }),
   };
 }
 
