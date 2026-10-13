@@ -254,6 +254,12 @@ export interface QuoteSummary {
   nextDue: { id: string; label: string; overdue: boolean } | null;
   sentAt: string | null;
   viewedAt: string | null;
+  /** The fields below up to declineReason are absent from older API responses. */
+  createdAt?: string | null;
+  respondedAt?: string | null;
+  validUntil?: string | null;
+  inquiryId?: string | null;
+  declineReason?: string | null;
   updatedAt: string | null;
   invoices?: QuoteStageInvoice[];
 }

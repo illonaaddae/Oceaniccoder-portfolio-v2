@@ -291,6 +291,40 @@ describe("summarize invoices", () => {
     });
   });
 
+  it("carries the dates, inquiry link and decline reason Analytics needs", () => {
+    const declined = {
+      ...quote,
+      id: "q1",
+      status: "declined",
+      createdAt: "2026-09-29T08:00:00.000Z",
+      inquiryId: "inq-1",
+      declineReason: "Went with a cheaper quote",
+    };
+    const s = V.summarize(declined, M.stageStates(declined, [], Date.now()));
+    expect(s).toMatchObject({
+      createdAt: "2026-09-29T08:00:00.000Z",
+      respondedAt: "2026-10-01T10:00:00.000Z",
+      validUntil: "2026-10-14T10:00:00.000Z",
+      inquiryId: "inq-1",
+      declineReason: "Went with a cheaper quote",
+    });
+    // Still a whitelist: secrets and client contact details stay out.
+    expect(s).not.toHaveProperty("tokenHash");
+    expect(s).not.toHaveProperty("acceptedIpHash");
+    expect(s).not.toHaveProperty("clientPhone");
+  });
+
+  it("reads the new fields as null on quotes that never had them", () => {
+    const draft = { id: "q2", quoteNumber: "Q-2026-0002", status: "draft", schedule: [] };
+    expect(V.summarize(draft, [])).toMatchObject({
+      createdAt: null,
+      respondedAt: null,
+      validUntil: null,
+      inquiryId: null,
+      declineReason: null,
+    });
+  });
+
   it("has no invoices before any stage is requested", () => {
     const later = M.stageStates({ ...quote, status: "sent" }, [], Date.now());
     expect(V.summarize({ ...quote, id: "q1" }, later).invoices).toEqual([]);
