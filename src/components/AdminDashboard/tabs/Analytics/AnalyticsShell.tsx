@@ -149,8 +149,8 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
             onChange={setUnitPick}
           />
           <p className="text-xs" style={muted}>
-            Totals are shown in each currency. Combined GHS figures are approx., at the rates in
-            fxRates.ts as of {formatDay(FX_RATES.asOf)}.
+            Totals are shown in each currency. Combined GHS figures are approx., at reference
+            exchange rates as of {formatDay(FX_RATES.asOf)}.
           </p>
         </div>
         <nav aria-label="Analytics sections">

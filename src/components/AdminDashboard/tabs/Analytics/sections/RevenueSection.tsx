@@ -183,7 +183,8 @@ export function RevenueSection({
             <p className="mt-2 text-sm" style={{ color: "var(--status-pending-text)" }}>
               {estimated} paid {estimated === 1 ? "invoice has" : "invoices have"} no payment
               record, so {estimated === 1 ? "its date is" : "their dates are"} estimated from the
-              invoice&rsquo;s last update. Run <code>scripts/backfill-payments.mjs</code> to fix.
+              invoice&rsquo;s last update. Running the payments backfill script (
+              <code>scripts/backfill-payments.mjs</code>) fixes this.
             </p>
           )}
         </KpiCard>

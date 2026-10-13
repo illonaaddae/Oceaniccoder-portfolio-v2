@@ -166,6 +166,12 @@ describe("AnalyticsShell summary", () => {
   it("flags paid invoices whose date is estimated", async () => {
     await renderShell();
     expect(screen.getByText(/1 paid invoice has no payment record/)).toBeInTheDocument();
+    expect(screen.getByText(/1 paid invoice has no payment record/).textContent).toMatch(
+      /Running the payments backfill script \(scripts\/backfill-payments\.mjs\) fixes this\.$/,
+    );
+    // No source file names in the copy.
+    expect(screen.getByText(/at reference exchange rates as of 13 Oct 2026\./)).toBeInTheDocument();
+    expect(screen.queryByText(/fxRates/)).not.toBeInTheDocument();
   });
 
   it("recomputes for a new range and remembers it", async () => {
