@@ -569,3 +569,117 @@ textarea:focus {
     color: #0f172a;
   }
 }
+
+/* Admin Analytics tab. Cards are plain surfaces (white, navy in dark) rather
+   than the mint glass used elsewhere; the key figures sit on the same ocean
+   gradient as the client quote hero. Method colours passed a colour-blind
+   check in both themes. */
+:root {
+  --analytics-card: #0b1628;
+  --analytics-line: #1c2c44;
+  --analytics-line-soft: #132238;
+  --analytics-bar-bg: rgba(10, 15, 26, 0.9);
+  --analytics-tip-bg: #f1f5f9;
+  --analytics-tip-ink: #0b1628;
+  --analytics-s-invoice: #26a9c5;
+  --analytics-s-quote: #8dd7e7;
+  --analytics-s-prev: #7b8ca1;
+  --method-card: #1f97b0;
+  --method-momo: #bf7f22;
+  --method-bank: #8573e0;
+  --method-apple: #c0587f;
+  --method-other: #7b8ca1;
+}
+[data-theme="light"] {
+  --analytics-card: #ffffff;
+  --analytics-line: #dde5ea;
+  --analytics-line-soft: #edf2f4;
+  --analytics-bar-bg: rgba(255, 255, 255, 0.9);
+  --analytics-tip-bg: #0f1724;
+  --analytics-tip-ink: #ffffff;
+  --analytics-s-invoice: #085866;
+  --analytics-s-quote: #2b8fa3; /* 3.8:1 on white */
+  --analytics-s-prev: #8494a3;
+  --method-card: #008ba6;
+  --method-momo: #c27c1a;
+  --method-bank: #7a68d8;
+  --method-apple: #c2507a;
+  --method-other: #64748b;
+}
+.analytics-dash .glass-card {
+  background: var(--analytics-card);
+  border: 1px solid var(--analytics-line);
+  border-radius: 14px;
+  box-shadow: none;
+}
+/* The site light theme repaints headings and .text-white with --text-primary,
+   so the band sets the variables rather than colours. */
+.analytics-hero {
+  container-type: inline-size;
+}
+.analytics-hero__grid {
+  --text-primary: #ffffff;
+  --text-secondary: #c6e6ec; /* 6.1:1 at the light end of the gradient */
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-radius: 18px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #04333b 0%, #085866 100%);
+}
+.analytics-hero__fig {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 20px 16px;
+}
+.analytics-hero__fig + .analytics-hero__fig {
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+.analytics-spark {
+  display: block;
+  width: 100%;
+  height: 36px;
+  color: #8fd9e8;
+}
+@container (max-width: 980px) {
+  .analytics-hero__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .analytics-hero__fig:nth-child(3) {
+    border-left: 0;
+  }
+  .analytics-hero__fig:nth-child(n + 3) {
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+  }
+}
+@container (max-width: 520px) {
+  .analytics-hero__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .analytics-hero__fig + .analytics-hero__fig {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+  }
+}
+/* Delta chips on the band: each pairing is at least 5:1 on #085866. */
+.analytics-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2f3f6;
+}
+.analytics-chip[data-tone="good"] {
+  background: rgba(134, 239, 172, 0.14);
+  color: #bbf7d0;
+}
+.analytics-chip[data-tone="bad"] {
+  background: rgba(252, 165, 165, 0.14);
+  color: #fee2e2;
+}
