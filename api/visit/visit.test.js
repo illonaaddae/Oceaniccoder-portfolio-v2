@@ -299,6 +299,23 @@ describe("POST /api/visit", () => {
     expect(container.meta.get("count:2026-10-20").n).toBe(50030); // every request reserved once
   });
 
+  it("writes again on the next UTC day after a day was full", async () => {
+    const container = fakeContainer();
+    container.meta.set("count:2026-10-20", { id: "count:2026-10-20", n: 50000 });
+    let at = NOW;
+    const t = setup({ container, now: () => at });
+    await t.call(); // 20 Oct is full: latched
+    await t.call({ headers: { "x-forwarded-for": "198.51.100.1" } });
+    expect(t.container.docs).toHaveLength(0);
+    expect(container.meta.get("count:2026-10-20").n).toBe(50001); // one patch, then latched
+
+    at = new Date("2026-10-21T00:00:05.000Z");
+    await t.call({ headers: { "x-forwarded-for": "198.51.100.2" } });
+    expect(t.container.docs).toHaveLength(1);
+    expect(t.container.docs[0].day).toBe("2026-10-21");
+    expect(container.meta.get("count:2026-10-21")).toMatchObject({ n: 1 });
+  });
+
   it("creates the day's counter once when first requests race (409)", async () => {
     const t = setup();
     await Promise.all(
