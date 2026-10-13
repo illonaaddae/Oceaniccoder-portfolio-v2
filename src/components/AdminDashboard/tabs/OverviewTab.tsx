@@ -6,6 +6,7 @@ import { RecentActivity } from "./Overview/RecentActivity";
 import { buildRecentActivity } from "./Overview/buildActivity";
 import { StorageUsage } from "./Overview/StorageUsage";
 import { PortfolioStats } from "./Overview/PortfolioStats";
+import { addedLast30Days, latestCertification } from "./Overview/statChanges";
 
 export type { OverviewTabProps };
 
@@ -47,7 +48,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     {
       label: "Total Projects",
       value: totalProjects,
-      change: "+2 this mo",
+      change: addedLast30Days(activityProjects),
       icon: FaFolder,
       bgGradient: "from-oceanic-500 to-oceanic-800",
       tabLink: "projects",
@@ -63,15 +64,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     {
       label: "Certifications",
       value: totalCertifications,
-      change: "Latest: AWS Cloud",
+      change: latestCertification(activityCertifications),
       icon: FaAward,
       bgGradient: "from-oceanic-400 to-oceanic-600",
       tabLink: "certifications",
     },
     {
-      label: "Site Views",
+      // The counter goes up once per browser session, not per page view.
+      label: "Site Sessions",
       value: siteViews,
-      change: "Total page visits",
+      change: "All time",
       icon: FaEye,
       bgGradient: "from-oceanic-600 to-oceanic-500",
       tabLink: null,
