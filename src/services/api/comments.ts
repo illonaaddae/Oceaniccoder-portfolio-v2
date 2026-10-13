@@ -1,24 +1,24 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Comment } from "../../types";
-import { listRows, submitRow, usesCosmos } from "./dataApi";
+import { getJson, listRows, submitRow, usesCosmos, type DocumentList } from "./dataApi";
 
+/**
+ * Approved comments on a post, newest first, without commenter emails. Goes
+ * through the server in both backends; reading the Appwrite collection from
+ * the browser would hand every visitor every commenter's email.
+ */
 export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
-  if (usesCosmos) {
-    const response = await listRows<Comment>(COLLECTIONS.COMMENTS, {
-      where: { postId, isApproved: true },
-      orderBy: "$createdAt",
-      dir: "desc",
-    });
-    return response.documents;
-  }
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.COMMENTS, [
-    Query.equal("postId", postId),
-    Query.equal("isApproved", true),
-    Query.orderDesc("$createdAt"),
-  ]);
-  return response.documents as unknown as Comment[];
+  const response = usesCosmos
+    ? await listRows<Comment>(COLLECTIONS.COMMENTS, {
+        where: { postId, isApproved: true },
+        orderBy: "$createdAt",
+        dir: "desc",
+      })
+    : await getJson<DocumentList<Comment>>(`/api/comments?postId=${encodeURIComponent(postId)}`);
+  return response.documents;
 }
 
+/** Every comment, with emails. Admin only: needs the admin's Appwrite session. */
 export async function getAllComments(): Promise<Comment[]> {
   const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.COMMENTS, [
     Query.orderDesc("$createdAt"),
