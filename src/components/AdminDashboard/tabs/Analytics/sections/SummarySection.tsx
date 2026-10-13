@@ -83,6 +83,11 @@ export function SummarySection({
             <MoneyTotals totals={figures.cash} />
             <ApproxLine totals={figures.cash} />
             <DeltaLine delta={figures.cashDelta} unitLabel={unitLabel} />
+            {errors.invoices && (
+              <p className="mt-1 text-xs" style={muted}>
+                Leaves out paid invoices with no payment record: invoices couldn&rsquo;t load.
+              </p>
+            )}
           </>
         )}
       </KpiCard>

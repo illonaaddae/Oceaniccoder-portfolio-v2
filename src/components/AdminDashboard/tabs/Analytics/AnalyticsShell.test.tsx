@@ -193,6 +193,19 @@ describe("AnalyticsShell summary", () => {
   });
 });
 
+describe("AnalyticsShell when invoices fail", () => {
+  it("says cash collected leaves out the estimated invoice rows", async () => {
+    getInvoices.mockReset().mockRejectedValue(new Error("Invoices down"));
+    await renderShell();
+    const cash = card("Cash collected");
+    // Only the GHS 500 payment row; the estimated GHS 50 invoice is unknown.
+    expect(within(cash).getByText("GHS 500.00")).toBeInTheDocument();
+    expect(
+      within(cash).getByText(/Leaves out paid invoices with no payment record/),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("AnalyticsShell revenue", () => {
   it("defaults the charts to the currency with the most revenue, compared at approx. rates", async () => {
     await renderShell();
