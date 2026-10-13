@@ -26,6 +26,7 @@ export const TRACKED_ROUTES = [
   "/contact",
   "/booking",
   "/inquiry",
+  "/privacy",
 ];
 
 const SPLIT_ROUTES = TRACKED_ROUTES.map((route) => route.split("/"));
