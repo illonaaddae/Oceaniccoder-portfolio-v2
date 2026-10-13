@@ -253,7 +253,8 @@ export function RevenueSection({
             <Line
               dataKey="previous"
               name="Previous period"
-              type="monotone"
+              // Straight segments: a smoothed curve draws bumps between periods that look like data.
+              type="linear"
               stroke={CHART_COLORS.previous}
               strokeDasharray="5 4"
               strokeWidth={2}
