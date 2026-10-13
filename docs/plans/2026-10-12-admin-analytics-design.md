@@ -144,7 +144,7 @@ Fix the data bugs in PR 1 only, and leave tracking alone. This is cheap and corr
 - **Visitor identity.** Visitors come from the daily salted hash. Sessions come from the sessionStorage `sid` with a 30-minute idle rollover.
 - **Rollups.** A daily rollup doc is built by a GitHub Action cron through `POST /api/admin-insights/rollup` (`x-cron-key`). If the cron misses a day, the read endpoint computes the missing rollup on demand.
 - **Admin read.** `GET /api/admin-insights/traffic` is admin-authed and reduces rollups plus today's raw events.
-- **Business metrics.** Computed in the browser by pure, tested functions over services fixed to page through all rows. `summarize()` gains four fields.
+- **Business metrics.** Computed in the browser by pure, tested functions over services fixed to page through all rows. `summarize()` gains five fields.
 - **Money.** Revenue is the payments ledger (`status=success`, dated by `paidAt`), shown per currency. A converted view is optional and labelled "approx.".
 - **Attribution.** An `attribution` JSON column on `messages`, `bookings` and `project_inquiries`. First touch is kept in localStorage for 30 days, session touch in sessionStorage. The value is sent with submissions and validated server-side in cosmos mode.
 
@@ -185,7 +185,7 @@ flowchart TB
     V["/api/visit<br/>validate, bot filter, hash, write"]
     I["/api/admin-insights/{traffic|rollup}<br/>requireAdmin / x-cron-key"]
     S["/api/submit/{collection}<br/>+ attribution validator"]
-    Q["/api/quote-admin list<br/>summarize + 4 fields"]
+    Q["/api/quote-admin list<br/>summarize + 5 fields"]
   end
   subgraph "Cosmos portfolio"
     AN[(analytics<br/>pk /day, TTL per item)]
@@ -230,7 +230,7 @@ flowchart TB
 | `api/shared/analytics/query.js`               | Range parsing, bucketing, merging rollup docs, compare period. Pure.                                                                                                                                                                                                                                                                                                                   |
 | `api/admin-insights/{function.json,index.js}` | Route `admin-insights/{action}`: `GET traffic` (requireAdmin), `POST rollup` (`x-cron-key`, reusing `sameSecret` from `quote-maintenance-due`, moved to `api/shared/cron.js`).                                                                                                                                                                                                         |
 | `api/shared/submissions.js`                   | Adds `attribution: { type: "attribution" }` to `messages`, `bookings` and `project_inquiries`, with a `checkAttribution` case in `checkField`.                                                                                                                                                                                                                                         |
-| `api/shared/quotes/views.js` `summarize`      | Adds `createdAt`, `respondedAt`, `validUntil`, `inquiryId`.                                                                                                                                                                                                                                                                                                                            |
+| `api/shared/quotes/views.js` `summarize`      | Adds `createdAt`, `respondedAt`, `validUntil`, `inquiryId`, `declineReason`.                                                                                                                                                                                                                                                                                                           |
 | `api/shared/quotes/repo.js`                   | `list()` and `listQuotePayments()` page with `cursorAfter` instead of the 100 and 500 caps.                                                                                                                                                                                                                                                                                            |
 | `api/shared/cosmos.js`                        | `CONTAINERS.analytics = { partitionKey: "/day", defaultTtl: -1, indexingPolicy }`. `ensureSchema` passes `defaultTtl` and `indexingPolicy` through.                                                                                                                                                                                                                                    |
 
@@ -395,7 +395,7 @@ Query parameters:
 - No `sid` and no visitor hash: a named lead is never linked to a browsing trail. Conversion is measured in aggregate through `form_submit` events.
 - In Appwrite mode the browser writes directly with no server validation, which is the same accepted risk as every other field there. The admin UI renders the value as escaped text.
 
-**`summarize()` additions:** `createdAt`, `respondedAt`, `validUntil`, `inquiryId`. It stays a whitelist. `declineReason` is optional; add it only if the owner wants a "why we lost" list.
+**`summarize()` additions (five fields):** `createdAt`, `respondedAt`, `validUntil`, `inquiryId` (for the inquiry → quote rate) and `declineReason` (the owner approved showing decline reasons in the Quotes section, Q8). It stays a whitelist, and its only caller is the admin-only quote-admin `list` action.
 
 ### 5.4 Main flows
 
@@ -619,7 +619,7 @@ sequenceDiagram
 
 | #   | Title                                                           | Contents (approx. files)                                                                                                                                                                                                                                                                                                                                                                          | Depends                                                     |
 | --- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| 1   | `fix(OC-0): page through all rows and correct analytics inputs` | `listAll.ts` plus tests; payments, invoices, messages, inquiries, bookings and expenses use it in admin reads; quotes `repo.list` / `listQuotePayments` paging plus tests; `summarize` +4 fields plus test; Overview fake copy and label. **Coordinate with the in-flight `getPayments` fix: rebase onto it or fold it in.** (~16)                                                                | —                                                           |
+| 1   | `fix(OC-0): page through all rows and correct analytics inputs` | `listAll.ts` plus tests; payments, invoices, messages, inquiries, bookings and expenses use it in admin reads; quotes `repo.list` / `listQuotePayments` paging plus tests; `summarize` +5 fields plus test; Overview fake copy and label. **Coordinate with the in-flight `getPayments` fix: rebase onto it or fold it in.** (~16)                                                                | —                                                           |
 | 2   | `feat(OC-0): first-party page-view tracking`                    | `api/visit/*`, `api/shared/analytics/{validate,ua,tzCountry,visitor}.js` plus tests, `cosmos.js` (analytics container, TTL, indexing), `src/utils/analytics/{consent,routes,channel,tracker}.ts` plus tests, `PageViewTracker.tsx`, `App.tsx`, the workflow env line `VITE_ANALYTICS_ENABLED`, a CLAUDE.md env table row. Admin login sets `oc_notrack`. (~22) Ship early: data starts at deploy. | console steps A1–A3                                         |
 | 3   | `feat(OC-0): lead source on messages, bookings and inquiries`   | `attribution.ts` plus test, `dataApi.submitRow`, 3 services, `submissions.js` plus tests, `form_submit` events in the 6 forms, a source line in the Messages, Bookings and Inquiry detail views. Behind `VITE_LEAD_ATTRIBUTION`. (~18)                                                                                                                                                            | **Appwrite columns B1 must exist before the flag is set**   |
 | 4   | `feat(OC-0): traffic rollups and admin insights endpoint`       | `api/admin-insights/*`, `api/shared/analytics/{rollup,query}.js` plus tests, `api/shared/cron.js` (extract `sameSecret`; `quote-maintenance-due` imports it), `.github/workflows/analytics-rollup.yml`, `src/services/api/insights.ts`. (~13)                                                                                                                                                     | 2                                                           |
@@ -632,7 +632,7 @@ PRs 2 and 3 go out as early as possible, right after PR 1 (or in parallel with i
 
 ### 6.2 Console and configuration steps (exact)
 
-**Azure Cosmos** (account `oceaniccoder-db`, database `portfolio`). Do A1 before PR 2 merges.
+**Azure Cosmos** (the Cosmos account and the site's database). Do A1 before PR 2 merges.
 
 - A1. Create container `analytics`:
   - Partition key `/day`.
@@ -710,7 +710,7 @@ Function invocations are included with the SWA Standard managed API.
 - **Q5.** Currency: confirm native-per-currency as the default. If a converted view is wanted: home currency (GHS?) and who updates `fxRates.ts`.
 - **Q6.** Should client document pages (`/q`, `/pay`, `/receipt`) be counted at all, even as anonymised templates? The recommendation is no; quote `viewedAt` already covers them.
 - **Q7.** Privacy notice page and DPC registration (R4).
-- **Q8.** Show decline reasons on the Quotes section (adds `declineReason` to `summarize`)?
+- **Q8.** Show decline reasons on the Quotes section (adds `declineReason` to `summarize`)? **Decided: yes.**
 
 ---
 
