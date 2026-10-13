@@ -50,7 +50,10 @@ console.log(`Backup: ${backupDir}\n`);
 // Read and check everything before touching Cosmos.
 const docsByContainer = {};
 const stale = [];
-for (const id of Object.keys(CONTAINERS)) {
+for (const [id, { imported }] of Object.entries(CONTAINERS)) {
+  // Cosmos-only containers (analytics) have no backup file, and --prune must
+  // never empty them.
+  if (imported === false) continue;
   const rows = JSON.parse(await readFile(path.join(backupDir, "db", `${id}.json`), "utf8"));
   const kept = id === "settings" ? rows.filter((r) => MIGRATED_SETTINGS_KEYS.has(r.key)) : rows;
   for (const row of kept) {

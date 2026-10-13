@@ -83,18 +83,19 @@ To run manually: `npx lint-staged`
 
 All `VITE_*` vars are **baked at build time** by GitHub Actions — Azure never reads them at runtime.
 
-| Variable                                                                                         | Purpose                                                       |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| `VITE_APPWRITE_ENDPOINT`                                                                         | Appwrite API endpoint                                         |
-| `VITE_APPWRITE_PROJECT_ID`                                                                       | Appwrite project                                              |
-| `VITE_APPWRITE_DATABASE_ID`                                                                      | Appwrite database                                             |
-| `VITE_APPWRITE_BUCKET_ID`                                                                        | Appwrite storage bucket                                       |
-| `VITE_ADMIN_EMAIL`                                                                               | Admin account email (Appwrite Auth)                           |
-| `VITE_PAYSTACK_PUBLIC_KEY`                                                                       | Paystack Inline JS (card, momo, Apple Pay)                    |
-| `VITE_AZURE_MEDIA_BASE_URL`                                                                      | Blob `media` container URL (optional; defaults to production) |
-| `VITE_DATA_BACKEND`                                                                              | `cosmos` reads through `/api/data`; unset keeps Appwrite      |
-| `VITE_TURNSTILE_SITE_KEY`                                                                        | Cloudflare Turnstile site key for visitor forms (public)      |
-| `VITE_BANK_NAME` / `VITE_BANK_ACCOUNT_NAME` / `VITE_BANK_ACCOUNT_NUMBER` / `VITE_BANK_SORT_CODE` | Bank transfer details on pay pages (Actions secrets)          |
+| Variable                                                                                         | Purpose                                                                                  |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `VITE_APPWRITE_ENDPOINT`                                                                         | Appwrite API endpoint                                                                    |
+| `VITE_APPWRITE_PROJECT_ID`                                                                       | Appwrite project                                                                         |
+| `VITE_APPWRITE_DATABASE_ID`                                                                      | Appwrite database                                                                        |
+| `VITE_APPWRITE_BUCKET_ID`                                                                        | Appwrite storage bucket                                                                  |
+| `VITE_ADMIN_EMAIL`                                                                               | Admin account email (Appwrite Auth)                                                      |
+| `VITE_PAYSTACK_PUBLIC_KEY`                                                                       | Paystack Inline JS (card, momo, Apple Pay)                                               |
+| `VITE_AZURE_MEDIA_BASE_URL`                                                                      | Blob `media` container URL (optional; defaults to production)                            |
+| `VITE_DATA_BACKEND`                                                                              | `cosmos` reads through `/api/data`; unset keeps Appwrite                                 |
+| `VITE_TURNSTILE_SITE_KEY`                                                                        | Cloudflare Turnstile site key for visitor forms (public)                                 |
+| `VITE_ANALYTICS_ENABLED`                                                                         | `true` sends first-party page views to `/api/visit` (Actions variable); unset sends none |
+| `VITE_BANK_NAME` / `VITE_BANK_ACCOUNT_NAME` / `VITE_BANK_ACCOUNT_NUMBER` / `VITE_BANK_SORT_CODE` | Bank transfer details on pay pages (Actions secrets)                                     |
 
 Set all in: **GitHub → Settings → Secrets and variables → Actions**
 
@@ -104,24 +105,26 @@ Set all in: **GitHub → Settings → Secrets and variables → Actions**
 
 Azure Function runtime vars (set in **Azure Portal → Static Web App → Configuration → Application settings**):
 
-| Variable                 | Purpose                                                                              |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| `GOOGLE_CLIENT_ID`       | OAuth client for Calendar API                                                        |
-| `GOOGLE_CLIENT_SECRET`   | OAuth secret                                                                         |
-| `GOOGLE_REFRESH_TOKEN`   | Long-lived refresh token                                                             |
-| `GOOGLE_CALENDAR_ID`     | Calendar ID (usually your email)                                                     |
-| `OPENAI_API_KEY`         | Chatbot (GPT-4o-mini)                                                                |
-| `PAYSTACK_SECRET_KEY`    | Webhook signature verification                                                       |
-| `AZURE_STORAGE_ACCOUNT`  | Media storage account (`oceaniccodermedia`)                                          |
-| `AZURE_STORAGE_KEY`      | Signs upload URLs, writes resized copies                                             |
-| `COSMOS_ENDPOINT`        | Cosmos DB account (`oceaniccoder-db`)                                                |
-| `COSMOS_KEY`             | Cosmos DB key, used by `/api/data`                                                   |
-| `TURNSTILE_SECRET_KEY`   | Checks visitor form tokens (`/api/submit`)                                           |
-| `RECEIPT_SIGNING_SECRET` | Signs receipt links (`/receipt/<ref>?s=`); any long random string                    |
-| `SITE_URL`               | Base URL in quote emails and Paystack callbacks (default `https://oceaniccoder.dev`) |
-| `CONTACT_WHATSAPP`       | Optional WhatsApp number shown on client quote pages (digits, with country code)     |
-| `ANTHROPIC_API_KEY`      | Claude API key for the AI quote drafter (PR 1b)                                      |
-| `CRON_SECRET`            | Lets the daily GitHub Action trigger maintenance offer emails                        |
+| Variable                  | Purpose                                                                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GOOGLE_CLIENT_ID`        | OAuth client for Calendar API                                                                                                                                  |
+| `GOOGLE_CLIENT_SECRET`    | OAuth secret                                                                                                                                                   |
+| `GOOGLE_REFRESH_TOKEN`    | Long-lived refresh token                                                                                                                                       |
+| `GOOGLE_CALENDAR_ID`      | Calendar ID (usually your email)                                                                                                                               |
+| `OPENAI_API_KEY`          | Chatbot (GPT-4o-mini)                                                                                                                                          |
+| `PAYSTACK_SECRET_KEY`     | Webhook signature verification                                                                                                                                 |
+| `AZURE_STORAGE_ACCOUNT`   | Media storage account (`oceaniccodermedia`)                                                                                                                    |
+| `AZURE_STORAGE_KEY`       | Signs upload URLs, writes resized copies                                                                                                                       |
+| `COSMOS_ENDPOINT`         | Cosmos DB account (`oceaniccoder-db`)                                                                                                                          |
+| `COSMOS_KEY`              | Cosmos DB key, used by `/api/data`                                                                                                                             |
+| `TURNSTILE_SECRET_KEY`    | Checks visitor form tokens (`/api/submit`)                                                                                                                     |
+| `ANALYTICS_ALLOWED_HOSTS` | Optional. Comma-separated hosts `/api/visit` accepts page views from (default `oceaniccoder.dev,www.oceaniccoder.dev`; localhost is added only off production) |
+| `ANALYTICS_RAW_TTL_DAYS`  | Optional. Days raw page views live in the Cosmos `analytics` container (default 90)                                                                            |
+| `RECEIPT_SIGNING_SECRET`  | Signs receipt links (`/receipt/<ref>?s=`); any long random string                                                                                              |
+| `SITE_URL`                | Base URL in quote emails and Paystack callbacks (default `https://oceaniccoder.dev`)                                                                           |
+| `CONTACT_WHATSAPP`        | Optional WhatsApp number shown on client quote pages (digits, with country code)                                                                               |
+| `ANTHROPIC_API_KEY`       | Claude API key for the AI quote drafter (PR 1b)                                                                                                                |
+| `CRON_SECRET`             | Lets the daily GitHub Action trigger maintenance offer emails                                                                                                  |
 
 > `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
 > sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent
@@ -130,6 +133,12 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 > `/api/get-availability` reports every slot free without checking the calendar.
 > Symptom: `/api/create-booking` answers `_phase: "Error: oauth:invalid_grant"`.
 > Reissue with `node scripts/get-google-refresh-token.mjs`.
+
+> The Cosmos `analytics` container (page views from `/api/visit`) must have
+> **Time to Live: On (no default)**, i.e. `defaultTtl: -1`. With container TTL
+> Off, Cosmos ignores every item's `ttl`, so raw page views and the daily
+> visitor-hash salts would never expire. Production was created that way;
+> recheck it if the container is ever recreated by hand.
 
 **Required for payments to record correctly.** `/api/paystack-webhook` marks the
 invoice paid, writes the `payments` audit row and sends the confirmation emails.

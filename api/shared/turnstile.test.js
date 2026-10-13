@@ -53,10 +53,64 @@ describe("verifyTurnstile", () => {
 
 describe("clientIp", () => {
   it.each([
+    ["1.2.3.4:5678", "1.2.3.4"],
     ["1.2.3.4:5678, 10.0.0.1", "1.2.3.4"],
     ["2001:db8::1", "2001:db8::1"],
+    ["[2001:db8::1]:443", "2001:db8::1"],
+    ["[2001:db8::1]", "2001:db8::1"],
+    // IPv4-mapped IPv6 collapses to the IPv4 address, so it's one rate-limit key.
+    ["[::ffff:1.2.3.4]:80, 10.0.0.1", "1.2.3.4"],
+    ["::FFFF:203.0.113.7", "203.0.113.7"],
+    ["203.0.113.7, ::ffff:10.0.0.4", "203.0.113.7"],
+    // The exact shape seen on a real SWA preview: client-supplied entries,
+    // then the real client with a port, then SWA's internal ULA hop.
+    ["6.6.6.6, 203.0.113.7:51234, [fd00::78df:1]:443", "203.0.113.7"],
+    // A forged left-most entry is ignored; the platform's appended one wins.
+    ["8.8.8.8, 203.0.113.7:51234", "203.0.113.7"],
+    ["1.1.1.1, 9.9.9.9, [2001:db8::1]:443", "2001:db8::1"],
+    // Internal hops after the client are skipped.
+    ["203.0.113.7, 10.0.0.4", "203.0.113.7"],
+    ["203.0.113.7, 172.16.0.2, fd00::1", "203.0.113.7"],
+    ["203.0.113.7, 100.64.0.1", "203.0.113.7"], // CGNAT
+    ["203.0.113.7, 100.127.255.254", "203.0.113.7"], // CGNAT upper edge
+    ["203.0.113.7, 0.0.0.0", "203.0.113.7"],
+    ["203.0.113.7, [fe80::1]:443", "203.0.113.7"],
+    ["203.0.113.7, febf::1", "203.0.113.7"], // top of fe80::/10
+    ["203.0.113.7, ::1", "203.0.113.7"],
+    // Just outside the private ranges counts as public.
+    ["203.0.113.7, 100.128.0.1", "100.128.0.1"],
+    ["203.0.113.7, 100.63.255.255", "100.63.255.255"],
+    ["203.0.113.7, fec0::1", "fec0::1"],
+    // Entries that aren't IP addresses are skipped.
+    ["203.0.113.7, unknown", "203.0.113.7"],
+    ["203.0.113.7, 999.1.1.1", "203.0.113.7"],
+    ["unknown", undefined],
+    // No public entry: the last real address is still a better key than none.
+    ["10.0.0.4", "10.0.0.4"],
     ["", undefined],
   ])("%j → %j", (header, ip) => {
     expect(clientIp({ headers: { "x-forwarded-for": header } })).toBe(ip);
+  });
+
+  it("returns undefined without the header", () => {
+    expect(clientIp({ headers: {} })).toBeUndefined();
+    expect(clientIp({})).toBeUndefined();
+  });
+
+  // /api/submit sends verifyTurnstile(token, clientIp(req)).
+  it("sends Cloudflare the platform-seen IP however the client spoofs the header", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "test-secret";
+    vi.stubGlobal("fetch", respond({ success: true }));
+    try {
+      for (const forged of ["6.6.6.6", "1.1.1.1, 2.2.2.2"]) {
+        const req = { headers: { "x-forwarded-for": `${forged}, 203.0.113.7:443` } };
+        await verifyTurnstile("tok", clientIp(req));
+      }
+      const sent = fetch.mock.calls.map(([, init]) => JSON.parse(init.body).remoteip);
+      expect(sent).toEqual(["203.0.113.7", "203.0.113.7"]);
+    } finally {
+      vi.unstubAllGlobals();
+      delete process.env.TURNSTILE_SECRET_KEY;
+    }
   });
 });
