@@ -1,13 +1,11 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
 import { submitRow, usesCosmos } from "./dataApi";
+import { listAllDocuments } from "./listAll";
 import type { ProjectInquiry } from "../../types";
 
+/** Every inquiry, newest first (the old 100-row limit dropped older ones). */
 export async function getInquiries(): Promise<ProjectInquiry[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_INQUIRIES, [
-    Query.orderDesc("$createdAt"),
-    Query.limit(100),
-  ]);
-  return response.documents as unknown as ProjectInquiry[];
+  return listAllDocuments<ProjectInquiry>(COLLECTIONS.PROJECT_INQUIRIES);
 }
 
 export async function createInquiry(
