@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, render } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { StrictMode, useEffect } from "react";
 
 const START = new Date("2026-10-20T09:00:00.000Z").getTime();
 const MINUTE = 60 * 1000;
@@ -107,8 +107,6 @@ describe("trackPageView", () => {
           source: "linkedin",
           medium: "social",
           campaign: "oct-launch",
-          term: null,
-          content: null,
         },
         ch: "social",
       },
@@ -286,5 +284,36 @@ describe("PageViewTracker", () => {
     act(() => navigate("/blog"));
     expect(trackPageView.mock.calls.map(([p]) => p)).toEqual(["/", "/about", "/blog"]);
     vi.doUnmock("@/utils/analytics/tracker");
+  });
+});
+
+describe("PageViewTracker in StrictMode", () => {
+  it("beacons exactly one page view per pathname", async () => {
+    vi.resetModules();
+    const { default: PageViewTracker } = await import("@/components/PageViewTracker");
+
+    let navigate: (to: string) => void = () => undefined;
+    function NavigateHandle() {
+      const nav = useNavigate();
+      useEffect(() => {
+        navigate = nav;
+      }, [nav]);
+      return null;
+    }
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={["/"]}>
+          <PageViewTracker />
+          <NavigateHandle />
+        </MemoryRouter>
+      </StrictMode>,
+    );
+    act(() => navigate("/about"));
+    act(() => navigate("/about?tab=2"));
+    act(() => navigate("/blog"));
+
+    const paths = (await beaconPayloads()).map((p) => p.events[0].path);
+    expect(paths).toEqual(["/", "/about", "/blog"]);
   });
 });

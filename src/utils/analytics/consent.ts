@@ -38,6 +38,8 @@ export function trackingAllowed(): boolean {
 
 /** Marks this browser as the owner's so its visits are never counted. */
 export function optOutOfTracking(): void {
+  // With analytics off, store nothing (and let the build drop this code).
+  if (import.meta.env.VITE_ANALYTICS_ENABLED !== "true") return;
   try {
     localStorage.setItem(OPT_OUT_KEY, "1");
   } catch {

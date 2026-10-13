@@ -10,15 +10,17 @@ export interface Utm {
   source: string | null;
   medium: string | null;
   campaign: string | null;
-  term: string | null;
-  content: string | null;
 }
 
-const UTM_KEYS = ["source", "medium", "campaign", "term", "content"] as const;
+// utm_term and utm_content are left out on purpose: they are free text and
+// often carry search terms or personal details.
+const UTM_KEYS = ["source", "medium", "campaign"] as const;
 const MAX_VALUE = 100;
 const HOST = /^(?=.{1,100}$)[a-z0-9-]+(\.[a-z0-9-]+)+$/;
-// eslint-disable-next-line no-control-regex -- strips control characters on purpose
-const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
+// Campaign labels only; the same rule as /api/visit. Anything else (an
+// email, a phone number, an id) is dropped rather than sent.
+const UTM_VALUE = /^[a-z0-9._+-]{1,100}$/;
+const LONG_DIGIT_RUN = /\d{6,}/;
 
 const PAID_MEDIUMS = new Set(["cpc", "ppc", "paid"]);
 const EMAIL_MEDIUMS = new Set(["email", "newsletter"]);
@@ -72,7 +74,11 @@ export function externalReferrerHost(referrer: string, ownHost: string): string 
   }
 }
 
-/** The UTM tags from a query string, trimmed and lowercased; null when none. */
+/**
+ * utm_source, utm_medium and utm_campaign from a query string: trimmed,
+ * lowercased, spaces turned into "-". A value outside [a-z0-9._+-] or with a
+ * run of 6+ digits is dropped. Null when none survive.
+ */
 export function parseUtm(search: string): Utm | null {
   let params: URLSearchParams;
   try {
@@ -80,15 +86,15 @@ export function parseUtm(search: string): Utm | null {
   } catch {
     return null;
   }
-  const utm: Utm = { source: null, medium: null, campaign: null, term: null, content: null };
+  const utm: Utm = { source: null, medium: null, campaign: null };
   let found = false;
   for (const key of UTM_KEYS) {
     const value = (params.get(`utm_${key}`) || "")
-      .replace(CONTROL_CHARS, "")
       .trim()
       .toLowerCase()
+      .replace(/\s+/g, "-")
       .slice(0, MAX_VALUE);
-    if (value) {
+    if (UTM_VALUE.test(value) && !LONG_DIGIT_RUN.test(value)) {
       utm[key] = value;
       found = true;
     }

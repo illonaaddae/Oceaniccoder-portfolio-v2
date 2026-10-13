@@ -12,7 +12,8 @@ const PATH = /^\/[a-z0-9/_-]*$/;
 export const NOT_FOUND_PATH = "/(404)";
 
 // The public pages in src/routes/publicRoutes.tsx, minus the client documents
-// and the catch-all. routes.test.ts fails if the two drift apart.
+// and the catch-all. /api/visit keeps the same list (TRACKED_ROUTES in
+// api/shared/analytics/validate.js); analytics.test.ts fails if either drifts.
 export const TRACKED_ROUTES = [
   "/",
   "/about",

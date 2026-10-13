@@ -4,13 +4,12 @@ import publicRoutes from "@/routes/publicRoutes";
 import { trackingAllowed, optOutOfTracking } from "./consent";
 import { normalisePath, isExcluded, NOT_FOUND_PATH, TRACKED_ROUTES } from "./routes";
 import { classify, externalReferrerHost, parseUtm, type Utm } from "./channel";
+import serverValidation from "../../../api/shared/analytics/validate.js";
 
 const utm = (fields: Partial<Utm>): Utm => ({
   source: null,
   medium: null,
   campaign: null,
-  term: null,
-  content: null,
   ...fields,
 });
 
@@ -48,6 +47,11 @@ describe("trackingAllowed", () => {
     optOutOfTracking();
     expect(localStorage.getItem("oc_notrack")).toBe("1");
     expect(trackingAllowed()).toBe(false);
+  });
+
+  it("leaves no flag behind when the build has analytics off", () => {
+    optOutOfTracking();
+    expect(localStorage.getItem("oc_notrack")).toBeNull();
   });
 
   it("survives blocked storage", () => {
@@ -107,6 +111,20 @@ describe("normalisePath", () => {
       .filter((p) => p !== "*" && !isExcluded(p));
     expect(paths.sort()).toEqual([...TRACKED_ROUTES].sort());
   });
+
+  // /api/visit only stores paths that fit its own copy of the list.
+  it("uses the same route list as /api/visit", () => {
+    expect(serverValidation.TRACKED_ROUTES).toEqual(TRACKED_ROUTES);
+  });
+
+  it("only emits paths /api/visit accepts", () => {
+    const sid = "s_AAAAAAAAAAAAAAAAAAAAAA";
+    for (const input of ["/", "/about/", "/Blog/My-Post", "/projects/x", "/nope", "/blog/a/b"]) {
+      const path = normalisePath(input);
+      const payload = { v: 1, sid, events: [{ t: "pv", path }] };
+      expect(serverValidation.validatePayload(payload)).not.toBeNull();
+    }
+  });
 });
 
 describe("externalReferrerHost", () => {
@@ -124,10 +142,15 @@ describe("externalReferrerHost", () => {
 });
 
 describe("parseUtm", () => {
-  it("reads, trims and lowercases the five tags", () => {
+  it("reads, trims and lowercases source, medium and campaign", () => {
     expect(
-      parseUtm("?utm_source=LinkedIn&utm_medium=%20social%20&utm_campaign=oct-launch"),
+      parseUtm("?utm_source=LinkedIn&utm_medium=%20social%20&utm_campaign=Oct%20Launch"),
     ).toEqual(utm({ source: "linkedin", medium: "social", campaign: "oct-launch" }));
+  });
+
+  it("ignores utm_term and utm_content", () => {
+    expect(parseUtm("?utm_term=web+developer+accra&utm_content=ama@example.com")).toBeNull();
+    expect(parseUtm("?utm_source=x&utm_term=secret")).toEqual(utm({ source: "x" }));
   });
 
   it("returns null without tags and caps long values", () => {
@@ -136,8 +159,18 @@ describe("parseUtm", () => {
     expect(parseUtm(`?utm_source=${"a".repeat(200)}`)?.source).toHaveLength(100);
   });
 
-  it("strips control characters", () => {
-    expect(parseUtm("?utm_source=a%0Ab")?.source).toBe("ab");
+  it.each([
+    ["an email", "?utm_source=ama%40example.com"],
+    ["a phone number", "?utm_campaign=call-0244123456"],
+    ["a long id", "?utm_medium=id1234567"],
+    ["control characters", "?utm_source=a%00b"],
+    ["other punctuation", "?utm_source=a%3Cb%3E"],
+  ])("drops a value with %s", (_label, search) => {
+    expect(parseUtm(search)).toBeNull();
+  });
+
+  it("keeps short numbers and campaign punctuation", () => {
+    expect(parseUtm("?utm_campaign=q4_2026.v2+promo")?.campaign).toBe("q4_2026.v2-promo");
   });
 });
 

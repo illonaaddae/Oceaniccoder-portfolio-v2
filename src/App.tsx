@@ -117,7 +117,8 @@ function App() {
                     onAdminLogout={handleAdminLogout}
                   />
                   <RouteChangeHandler />
-                  <PageViewTracker />
+                  {/* Compared inline so a flag-off build drops the tracker entirely. */}
+                  {import.meta.env.VITE_ANALYTICS_ENABLED === "true" && <PageViewTracker />}
                   <SiteChatbot />
                 </React.Suspense>
               </MainLayout>
