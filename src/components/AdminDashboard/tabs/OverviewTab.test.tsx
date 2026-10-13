@@ -30,7 +30,7 @@ describe("OverviewTab stat cards", () => {
     );
     expect(screen.getByText("+1 in 30 days")).toBeInTheDocument();
     expect(screen.getByText("Latest: Azure Fundamentals")).toBeInTheDocument();
-    expect(screen.getByText("Site Sessions")).toBeInTheDocument();
+    expect(screen.getByText("Sessions (all time)")).toBeInTheDocument();
     expect(screen.queryByText("+2 this mo")).not.toBeInTheDocument();
     expect(screen.queryByText("Latest: AWS Cloud")).not.toBeInTheDocument();
     expect(screen.queryByText("Total page visits")).not.toBeInTheDocument();

@@ -71,9 +71,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     },
     {
       // The counter goes up once per browser session, not per page view.
-      label: "Site Sessions",
+      label: "Sessions (all time)",
       value: siteViews,
-      change: "All time",
+      change: "One per browser session",
       icon: FaEye,
       bgGradient: "from-oceanic-600 to-oceanic-500",
       tabLink: null,
