@@ -1,0 +1,13 @@
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "route": "hdr-probe",
+      "methods": ["get"]
+    },
+    { "type": "http", "direction": "out", "name": "res" }
+  ]
+}
