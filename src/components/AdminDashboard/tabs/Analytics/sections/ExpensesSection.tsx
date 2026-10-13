@@ -40,6 +40,7 @@ interface ExpensesSectionProps {
   loading: boolean;
   /** Set when the expenses couldn't be read. */
   error?: string;
+  theme: "light" | "dark";
 }
 
 /** Spending in the range by period and category, and the expense log. */
@@ -52,6 +53,7 @@ export function ExpensesSection({
   unitLabel,
   loading,
   error,
+  theme,
 }: ExpensesSectionProps) {
   const failed = error ? `Expenses couldn't load: ${error}` : null;
   const currency = unitCurrency(unit);
@@ -172,7 +174,12 @@ export function ExpensesSection({
           />
         </ChartCard>
       </div>
-      <ExpenseLog expenses={expenses} setExpenses={setExpenses} loadFailed={Boolean(error)} />
+      <ExpenseLog
+        expenses={expenses}
+        setExpenses={setExpenses}
+        loadFailed={Boolean(error)}
+        theme={theme}
+      />
     </div>
   );
 }

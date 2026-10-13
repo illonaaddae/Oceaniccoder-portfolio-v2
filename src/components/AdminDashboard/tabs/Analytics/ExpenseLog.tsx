@@ -3,6 +3,8 @@ import { useId, useState } from "react";
 import { FaPlus, FaTimes, FaTrash } from "react-icons/fa";
 import { createExpense, deleteExpense } from "@/services/api/expenses";
 import type { Expense } from "@/types";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 import { useConfirm } from "../../ConfirmContext";
 import { formatMoney } from "../shared/money";
 import { ErrorBanner } from "../shared/controls";
@@ -18,6 +20,7 @@ const field: React.CSSProperties = {
   color: "var(--text-primary)",
 };
 
+const PAGE_SIZE = 15;
 const CURRENCIES = ["GHS", "USD", "EUR", "GBP", "NGN", "KES"];
 const CATEGORIES = Object.keys(EXPENSE_CATEGORY_LABELS) as Expense["category"][];
 
@@ -34,10 +37,11 @@ interface ExpenseLogProps {
   setExpenses: (update: (prev: Expense[]) => Expense[]) => void;
   /** The list couldn't be read; adding still works. */
   loadFailed?: boolean;
+  theme: "light" | "dark";
 }
 
 /** Every logged expense, latest date first, with add and delete. */
-export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: ExpenseLogProps) {
+export function ExpenseLog({ expenses, setExpenses, loadFailed = false, theme }: ExpenseLogProps) {
   const confirm = useConfirm();
   const formId = useId();
   const [showForm, setShowForm] = useState(false);
@@ -45,6 +49,7 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: Expens
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const { page, setPage, pageItems, totalItems } = usePagination(expenses, PAGE_SIZE);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +73,7 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: Expens
       );
       setForm(blankForm());
       setShowForm(false);
+      setPage(1);
       setNotice(`Logged ${created.description}.`);
     } catch (err) {
       setError(
@@ -92,6 +98,7 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: Expens
     try {
       await deleteExpense(exp.$id);
       setExpenses((prev) => prev.filter((e) => e.$id !== exp.$id));
+      setPage(1);
       setNotice(`Deleted ${exp.description}.`);
     } catch (err) {
       setError(err instanceof Error ? `Couldn't delete: ${err.message}` : "Couldn't delete.");
@@ -233,7 +240,7 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: Expens
         </p>
       ) : (
         <ul className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
-          {expenses.map((exp) => (
+          {pageItems.map((exp) => (
             <li key={exp.$id} className="flex items-center gap-3 px-5 py-3">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium" style={strong}>
@@ -259,6 +266,17 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false }: Expens
             </li>
           ))}
         </ul>
+      )}
+      {totalItems > PAGE_SIZE && (
+        <div className="px-5 pb-4">
+          <Pagination
+            page={page}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            theme={theme}
+          />
+        </div>
       )}
     </section>
   );

@@ -206,6 +206,7 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
           unitLabel={unitLabel}
           loading={loading}
           error={errors.expenses}
+          theme={theme}
         />
       </Section>
 

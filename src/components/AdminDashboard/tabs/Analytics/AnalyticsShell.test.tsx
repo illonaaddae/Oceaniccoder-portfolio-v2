@@ -300,6 +300,43 @@ describe("AnalyticsShell expenses", () => {
     expect(screen.getByText("Hosting · 5 Oct 2026")).toBeInTheDocument();
   });
 
+  it("pages the log 15 at a time and goes back to page 1 after a change", async () => {
+    const many = Array.from({ length: 32 }, (_, i) => ({
+      $id: `m${i + 1}`,
+      description: `Cost ${i + 1}`,
+      amount: 1,
+      currency: "GHS",
+      category: "other",
+      // Latest date first: Cost 1 is newest.
+      date: `2026-10-${String(Math.max(13 - Math.floor(i / 3), 1)).padStart(2, "0")}`,
+    }));
+    getExpenses.mockReset().mockResolvedValue(many);
+    createExpense.mockResolvedValue({
+      $id: "new",
+      description: "Brand new",
+      amount: 5,
+      currency: "GHS",
+      category: "domain",
+      date: "2026-10-13",
+    });
+    await renderShell();
+    const deletes = () => screen.getAllByRole("button", { name: /^Delete / });
+    expect(deletes()).toHaveLength(15);
+    await userEvent.click(screen.getByRole("button", { name: "Page 3" }));
+    expect(deletes()).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    await userEvent.type(screen.getByLabelText("Description"), "Brand new");
+    await userEvent.type(screen.getByLabelText("Amount"), "5");
+    await userEvent.click(screen.getByRole("button", { name: "Log expense" }));
+    expect(await screen.findByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
+    expect(deletes()).toHaveLength(15);
+
+    await userEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    await userEvent.click(deletes()[0]);
+    expect(await screen.findByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
+  });
+
   it("deletes an expense after confirming", async () => {
     await renderShell();
     await userEvent.click(screen.getByRole("button", { name: "Delete Hosting" }));
