@@ -6,10 +6,12 @@
 // The browser already normalises paths and skips excluded routes
 // (src/utils/analytics/routes.ts). They are checked again here so a client
 // document token (/q/<token>, /pay/<invoice>, /receipt/<ref>) can never be
-// stored, whoever sends it.
+// stored, whoever sends it, and a path must fit one of the site's public route
+// templates, so arbitrary strings can't be planted in the stats.
 
 const MAX_BODY_BYTES = 4 * 1024;
-const MAX_EVENTS = 10;
+// The tracker sends one event per request; a little headroom, no more.
+const MAX_EVENTS = 5;
 const MAX_MS = 30 * 60 * 1000;
 
 const DEFAULT_HOSTS = ["oceaniccoder.dev", "www.oceaniccoder.dev"];
@@ -21,11 +23,13 @@ const PATH = /^\/[a-z0-9/_-]*$/;
 const NOT_FOUND_PATH = "/(404)";
 const HOST = /^(?=.{1,100}$)[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 const SLUG = /^[a-z0-9_-]{1,40}$/;
-// Printable text only, so a UTM value can't smuggle control characters.
-const UTM_VALUE = /^[^\u0000-\u001f\u007f]{1,100}$/;
+// UTM tags are campaign labels, not free text. The narrow alphabet and the
+// digit-run ban keep emails, phone numbers and ids out of the stats.
+const UTM_VALUE = /^[a-z0-9._+-]{1,100}$/;
+const LONG_DIGIT_RUN = /\d{6,}/;
 
 const CHANNELS = new Set(["direct", "search", "social", "email", "paid", "referral"]);
-const UTM_KEYS = ["source", "medium", "campaign", "term", "content"];
+const UTM_KEYS = ["source", "medium", "campaign"];
 const FORM_TYPES = new Set([
   "contact",
   "booking",
@@ -34,6 +38,24 @@ const FORM_TYPES = new Set([
   "testimonial",
   "comment",
 ]);
+
+// The public pages in src/routes/publicRoutes.tsx, minus client documents and
+// the catch-all. Must equal TRACKED_ROUTES in src/utils/analytics/routes.ts;
+// src/utils/analytics/analytics.test.ts fails if they drift apart.
+const TRACKED_ROUTES = [
+  "/",
+  "/about",
+  "/skills",
+  "/projects",
+  "/projects/:slug",
+  "/services",
+  "/blog",
+  "/blog/:slug",
+  "/contact",
+  "/booking",
+  "/inquiry",
+];
+const SPLIT_ROUTES = TRACKED_ROUTES.map((route) => route.split("/"));
 
 // Event name → check for its prop. `null` means the event takes no prop.
 const EVENTS = {
@@ -115,26 +137,40 @@ function isExcludedPath(path) {
   );
 }
 
+/** True when the path fits a public route template (":slug" = one segment). */
+function matchesTrackedRoute(path) {
+  if (path === "/") return true;
+  const parts = path.split("/");
+  if (parts.slice(1).some((part) => part === "")) return false;
+  return SPLIT_ROUTES.some(
+    (route) =>
+      route.length === parts.length &&
+      route.every((seg, i) => seg.startsWith(":") || seg === parts[i]),
+  );
+}
+
 function checkPath(path) {
   if (path === NOT_FOUND_PATH) return true;
-  return typeof path === "string" && path.length <= 150 && PATH.test(path) && !isExcludedPath(path);
+  return (
+    typeof path === "string" &&
+    path.length <= 150 &&
+    PATH.test(path) &&
+    !isExcludedPath(path) &&
+    matchesTrackedRoute(path)
+  );
 }
+
+const isUtmValue = (v) => typeof v === "string" && UTM_VALUE.test(v) && !LONG_DIGIT_RUN.test(v);
 
 /** Validated UTM object in the stored short-key shape, or false when invalid. */
 function checkUtm(utm) {
   if (utm === undefined || utm === null) return null;
   if (!isPlainObject(utm) || !hasOnly(utm, UTM_KEYS)) return false;
   for (const key of UTM_KEYS) {
-    if (!isOptional(utm[key], (v) => typeof v === "string" && UTM_VALUE.test(v))) return false;
+    if (!isOptional(utm[key], isUtmValue)) return false;
   }
-  const { source, medium, campaign, term, content } = utm;
-  return {
-    s: source ?? null,
-    m: medium ?? null,
-    c: campaign ?? null,
-    t: term ?? null,
-    x: content ?? null,
-  };
+  const { source, medium, campaign } = utm;
+  return { s: source ?? null, m: medium ?? null, c: campaign ?? null };
 }
 
 function checkPageView(e) {
@@ -211,6 +247,7 @@ function validatePayload(body) {
 
 module.exports = {
   MAX_BODY_BYTES,
+  TRACKED_ROUTES,
   allowedHosts,
   allowedOrigin,
   headerDropReason,

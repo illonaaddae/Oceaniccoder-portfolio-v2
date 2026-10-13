@@ -2,8 +2,12 @@
 // plus a bot check. Regex only, no dependency. The UA string itself is never
 // stored; only these coarse labels are.
 
+// "bot" counts only as a product token: a word of its own ("bot"), or a name
+// ending in it followed by a version or separator ("Googlebot/2.1",
+// "TwitterBot)", "Slackbot-LinkExpanding"). A bare substring match would also
+// catch real handsets such as "CUBOT P30" or "CUBOT_X30".
 const BOT =
-  /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|embedly|curl|wget|python|axios|node-fetch|go-http/i;
+  /\bbot\b|bot(?:[/);-]|$)|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|embedly|\bcurl\b|\bwget\b|python|axios|node-fetch|go-http/i;
 
 /** True for crawlers, link previewers, scripts and a missing UA. */
 function isBot(ua) {

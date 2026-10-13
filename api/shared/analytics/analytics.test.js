@@ -6,6 +6,7 @@ const { allowedHosts, allowedOrigin, headerDropReason, isExcludedPath, validateP
 const { isBot, parseUserAgent } = await import("./ua.js");
 const { tzCountry } = await import("./tzCountry.js");
 const { createSaltStore, visitorHash, SALT_TTL_SECONDS } = await import("./visitor.js");
+const { ANALYTICS_CLIENT_OPTIONS, CONTAINERS } = await import("../cosmos.js");
 
 const SID = "s_3q8Zr0kD2m1xVb7YtQ9wLw";
 const pv = (extra = {}) => ({ t: "pv", path: "/blog/my-post", ...extra });
@@ -20,7 +21,7 @@ describe("validatePayload", () => {
             entry: true,
             ref: "www.linkedin.com",
             ch: "social",
-            utm: { source: "linkedin", medium: "social", campaign: "oct", term: null },
+            utm: { source: "linkedin", medium: "social", campaign: "oct-2026" },
             prevMs: 42000,
           }),
         ],
@@ -38,7 +39,7 @@ describe("validatePayload", () => {
           entry: true,
           ref: "www.linkedin.com",
           ch: "social",
-          utm: { s: "linkedin", m: "social", c: "oct", t: null, x: null },
+          utm: { s: "linkedin", m: "social", c: "oct-2026" },
           prevMs: 42000,
         },
       ],
@@ -65,8 +66,24 @@ describe("validatePayload", () => {
     ]);
   });
 
-  it("accepts the 404 placeholder path", () => {
-    expect(validatePayload(body([pv({ path: "/(404)" })]))).not.toBeNull();
+  it.each(["/(404)", "/", "/about", "/projects/craigtec", "/blog/my-post", "/inquiry"])(
+    "accepts the public path %s",
+    (path) => {
+      expect(validatePayload(body([pv({ path })]))).not.toBeNull();
+    },
+  );
+
+  it("accepts up to five events", () => {
+    expect(validatePayload(body(Array.from({ length: 5 }, () => pv())))).not.toBeNull();
+  });
+
+  it("accepts campaign-style UTM values", () => {
+    const utm = { source: "news.letter", medium: "e-mail+promo", campaign: "q4_2026" };
+    expect(validatePayload(body([pv({ entry: true, utm })])).events[0].utm).toEqual({
+      s: "news.letter",
+      m: "e-mail+promo",
+      c: "q4_2026",
+    });
   });
 
   it.each([
@@ -78,7 +95,7 @@ describe("validatePayload", () => {
     ["bad lang", body([pv()], { lang: "english" })],
     ["long tz", body([pv()], { tz: "x".repeat(65) })],
     ["no events", body([])],
-    ["more than 10 events", body(Array.from({ length: 11 }, () => pv()))],
+    ["more than 5 events", body(Array.from({ length: 6 }, () => pv()))],
     ["unknown event type", body([{ t: "click", path: "/" }])],
     ["prototype event type", body([{ t: "constructor", path: "/" }])],
     ["unknown event key", body([pv({ ua: "Mozilla" })])],
@@ -90,6 +107,16 @@ describe("validatePayload", () => {
     ["receipt path", body([pv({ path: "/receipt/ref1" })])],
     ["admin path", body([pv({ path: "/admin/dashboard" })])],
     ["dashboard path", body([pv({ path: "/dashboard" })])],
+    ["empty segment", body([pv({ path: "/blog//my-post" })])],
+    ["trailing slash", body([pv({ path: "/about/" })])],
+    ["path outside the route templates", body([pv({ path: "/buy-cheap-pills" })])],
+    ["too many segments", body([pv({ path: "/blog/a/b" })])],
+    ["utm_term", body([pv({ entry: true, utm: { term: "x" } })])],
+    ["utm_content", body([pv({ entry: true, utm: { content: "x" } })])],
+    ["email in utm", body([pv({ entry: true, utm: { source: "ama@example.com" } })])],
+    ["phone number in utm", body([pv({ entry: true, utm: { campaign: "call-0244123456" } })])],
+    ["uppercase utm", body([pv({ entry: true, utm: { source: "LinkedIn" } })])],
+    ["space in utm", body([pv({ entry: true, utm: { campaign: "oct launch" } })])],
     ["bad channel", body([pv({ entry: true, ch: "tv" })])],
     ["bad referrer host", body([pv({ entry: true, ref: "https://x.com/a" })])],
     ["unknown utm key", body([pv({ entry: true, utm: { id: "1" } })])],
@@ -177,6 +204,15 @@ describe("ua", () => {
     [FIREFOX_MAC, { dev: "desktop", br: "firefox", os: "macos" }],
     [SAMSUNG_TABLET, { dev: "tablet", br: "samsung", os: "android" }],
     ["something odd", { dev: "desktop", br: "other", os: "other" }],
+    // Cubot handsets: "bot" inside a model name is not a crawler.
+    [
+      "Mozilla/5.0 (Linux; Android 11; CUBOT KINGKONG 5 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.104 Mobile Safari/537.36",
+      { dev: "mobile", br: "chrome", os: "android" },
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 10; CUBOT_X30 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+      { dev: "mobile", br: "chrome", os: "android" },
+    ],
   ])("parses %s", (ua, expected) => {
     expect(parseUserAgent(ua)).toEqual(expected);
     expect(isBot(ua)).toBe(false);
@@ -190,6 +226,12 @@ describe("ua", () => {
     "curl/8.7.1",
     "python-requests/2.32",
     "axios/1.7.7",
+    "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+    "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)",
+    "TelegramBot (like TwitterBot)",
+    "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+    "Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)",
+    "Some monitoring bot",
     "",
     "   ",
     undefined,
@@ -284,5 +326,53 @@ describe("visitor hash", () => {
     });
     await expect(createSaltStore(container)("2026-10-20")).rejects.toThrow("unavailable");
     expect(() => visitorHash(undefined, who)).toThrow();
+  });
+
+  it("shares one load between concurrent first requests of a day", async () => {
+    const container = fakeContainer();
+    const getSalt = createSaltStore(container);
+    const [a, b, c] = await Promise.all([
+      getSalt("2026-10-20"),
+      getSalt("2026-10-20"),
+      getSalt("2026-10-20"),
+    ]);
+    expect(container.items.create).toHaveBeenCalledTimes(1);
+    expect(new Set([a, b, c]).size).toBe(1);
+  });
+
+  it("forgets a failed load so the next request retries", async () => {
+    const container = fakeContainer();
+    let down = true;
+    const item = container.item;
+    container.item = (id) => ({
+      read: async () => {
+        if (down) throw Object.assign(new Error("unavailable"), { code: 503 });
+        return item(id).read();
+      },
+    });
+    const getSalt = createSaltStore(container);
+    await expect(getSalt("2026-10-20")).rejects.toThrow("unavailable");
+    down = false;
+    expect(await getSalt("2026-10-20")).toEqual(expect.any(String));
+  });
+});
+
+describe("analytics Cosmos client", () => {
+  it("never retries a throttled write and gives up quickly", () => {
+    expect(ANALYTICS_CLIENT_OPTIONS.connectionPolicy.retryOptions).toEqual({
+      maxRetryAttemptCount: 0,
+      fixedRetryIntervalInMilliseconds: 0,
+      maxWaitTimeInSeconds: 1,
+    });
+    expect(ANALYTICS_CLIENT_OPTIONS.connectionPolicy.requestTimeout).toBeLessThanOrEqual(5000);
+  });
+
+  it("declares the analytics container with TTL on and lean indexing", () => {
+    expect(CONTAINERS.analytics).toMatchObject({
+      partitionKey: "/day",
+      defaultTtl: -1,
+      imported: false,
+      indexingPolicy: { excludedPaths: [{ path: "/*" }] },
+    });
   });
 });

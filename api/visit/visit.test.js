@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
 
-const { createHandler } = await import("./index.js");
+const { createHandler, createRateLimiter, createDailyCeiling } = await import("./index.js");
 
 const NOW = new Date("2026-10-20T09:14:03.120Z");
 const UA =
@@ -9,16 +9,32 @@ const UA =
 const IP = "203.0.113.7";
 const SID = "s_3q8Zr0kD2m1xVb7YtQ9wLw";
 
+const conflict = () => Object.assign(new Error("conflict"), { code: 409 });
+const notFound = () => Object.assign(new Error("not found"), { code: 404 });
+const throttled = () => Object.assign(new Error("Request rate is large"), { code: 429 });
+
+// Event docs land in `docs`; salt and daily-count docs are kept apart.
 function fakeContainer() {
   const docs = [];
-  const salts = new Map();
+  const meta = new Map();
   return {
     docs,
-    item: (id) => ({ read: async () => ({ resource: salts.get(id) }) }),
+    meta,
+    item: (id) => ({
+      read: async () => ({ resource: meta.get(id) }),
+      patch: vi.fn(async ([op]) => {
+        const doc = meta.get(id);
+        if (!doc) throw notFound();
+        doc.n += op.value;
+        return { resource: doc };
+      }),
+    }),
     items: {
       create: vi.fn(async (doc) => {
-        if (doc.type === "salt") salts.set(doc.id, doc);
-        else docs.push(doc);
+        if (doc.type === "salt" || doc.type === "count") {
+          if (meta.has(doc.id)) throw conflict();
+          meta.set(doc.id, { ...doc });
+        } else docs.push(doc);
         return { resource: doc };
       }),
     },
@@ -32,6 +48,11 @@ const entryView = {
   ref: "www.linkedin.com",
   ch: "social",
   utm: { source: "linkedin", medium: "social", campaign: "oct-launch" },
+};
+const fiveViews = {
+  v: 1,
+  sid: SID,
+  events: Array.from({ length: 5 }, () => ({ t: "pv", path: "/" })),
 };
 
 function setup({ env = {}, container = fakeContainer() } = {}) {
@@ -82,7 +103,7 @@ describe("POST /api/visit", () => {
       entry: true,
       ref: "www.linkedin.com",
       ch: "social",
-      utm: { s: "linkedin", m: "social", c: "oct-launch", t: null, x: null },
+      utm: { s: "linkedin", m: "social", c: "oct-launch" },
       dev: "mobile",
       br: "chrome",
       os: "android",
@@ -149,6 +170,7 @@ describe("POST /api/visit", () => {
     ["bot UA", { headers: { "user-agent": "Googlebot/2.1 (+http://www.google.com/bot.html)" } }],
     ["missing UA", { headers: { "user-agent": undefined } }],
     ["invalid payload", { body: { v: 1, sid: SID, events: [{ t: "pv", path: "/q/secret" }] } }],
+    ["made-up path", { body: { v: 1, sid: SID, events: [{ t: "pv", path: "/buy-cheap-pills" }] } }],
     ["garbage body", { body: "not json", rawBody: "not json" }],
   ])("answers 204 and writes nothing for a %s", async (_label, request) => {
     const t = setup();
@@ -182,21 +204,46 @@ describe("POST /api/visit", () => {
     expect(r.status).toBe(405);
   });
 
-  it("stops writing after 60 events a minute from one visitor", async () => {
+  it("caps one IP at 60 events a minute, however often it changes its UA", async () => {
     const t = setup();
-    const ten = {
-      v: 1,
-      sid: SID,
-      events: Array.from({ length: 10 }, () => ({ t: "pv", path: "/" })),
-    };
-    for (let i = 0; i < 7; i += 1) await t.call({ body: ten });
+    for (let i = 0; i < 14; i += 1) {
+      await t.call({ body: fiveViews, headers: { "user-agent": `${UA} rotated/${i}` } });
+    }
     expect(t.container.docs).toHaveLength(60);
+    // A different client is unaffected.
+    await t.call({ body: fiveViews, headers: { "x-forwarded-for": "198.51.100.9" } });
+    expect(t.container.docs).toHaveLength(65);
+  });
+
+  it("keys bracketed IPv6 clients by address, not by port", async () => {
+    const t = setup();
+    for (let port = 1000; port < 1014; port += 1) {
+      await t.call({ body: fiveViews, headers: { "x-forwarded-for": `[2001:db8::1]:${port}` } });
+    }
+    expect(t.container.docs).toHaveLength(60);
+  });
+
+  it("caps one instance at 300 events a minute across all clients", async () => {
+    const t = setup();
+    for (let i = 0; i < 62; i += 1) {
+      await t.call({ body: fiveViews, headers: { "x-forwarded-for": `198.51.100.${i}` } });
+    }
+    expect(t.container.docs).toHaveLength(300);
+  });
+
+  it("stops writing raw events once the day's ceiling is reached", async () => {
+    const container = fakeContainer();
+    container.meta.set("count:2026-10-20", { id: "count:2026-10-20", n: 49998 });
+    const t = setup({ container });
+    await t.call({ body: fiveViews }); // first sync: 49998 + 5 > 50000 → dropped
+    await t.call(); // one event: fits
+    expect(t.container.docs).toHaveLength(1);
   });
 
   it("still answers 204 and logs when Cosmos fails", async () => {
     const container = fakeContainer();
     container.items.create = vi.fn(async () => {
-      throw Object.assign(new Error("Request rate is large"), { code: 429 });
+      throw throttled();
     });
     const t = setup({ container });
     const r = await t.call();
@@ -206,7 +253,9 @@ describe("POST /api/visit", () => {
 
   it("drops the event when the salt can't be read, never hashing without it", async () => {
     const container = fakeContainer();
-    container.item = () => ({
+    const item = container.item;
+    container.item = (id) => ({
+      ...item(id),
       read: async () => {
         throw Object.assign(new Error("unavailable"), { code: 503 });
       },
@@ -214,6 +263,82 @@ describe("POST /api/visit", () => {
     const t = setup({ container });
     const r = await t.call();
     expect(r.status).toBe(204);
-    expect(container.items.create).not.toHaveBeenCalled();
+    expect(container.docs).toHaveLength(0);
+  });
+});
+
+describe("createRateLimiter", () => {
+  it("evicts the oldest key when full instead of resetting everyone", () => {
+    const allow = createRateLimiter({ limit: 2, maxKeys: 2 });
+    expect(allow("a", 1, 0)).toBe(true);
+    expect(allow("b", 2, 1)).toBe(true);
+    expect(allow("c", 1, 2)).toBe(true); // evicts "a"
+    expect(allow("b", 1, 3)).toBe(false); // "b" kept its count
+    expect(allow("a", 2, 4)).toBe(true); // "a" starts over
+  });
+
+  it("opens a new window after a minute", () => {
+    const allow = createRateLimiter({ limit: 1 });
+    expect(allow("a", 1, 0)).toBe(true);
+    expect(allow("a", 1, 59_999)).toBe(false);
+    expect(allow("a", 1, 60_000)).toBe(true);
+  });
+});
+
+describe("createDailyCeiling", () => {
+  const DAY = "2026-10-20";
+
+  it("creates the day's counter, then batches increments", async () => {
+    const container = fakeContainer();
+    const allow = createDailyCeiling(container, { limit: 100, flushEvery: 3 });
+    expect(await allow(DAY, 1, 1000)).toBe(true); // first of the day: syncs first
+    expect(container.meta.get(`count:${DAY}`)).toMatchObject({
+      type: "count",
+      day: DAY,
+      n: 0,
+      ttl: 2 * 86400,
+    });
+    expect(await allow(DAY, 1, 2000)).toBe(true);
+    expect(container.meta.get(`count:${DAY}`).n).toBe(0);
+    expect(await allow(DAY, 1, 3000)).toBe(true); // 3 pending → flush
+    expect(container.meta.get(`count:${DAY}`).n).toBe(3);
+    expect(await allow(DAY, 1, 4000)).toBe(true);
+    expect(container.meta.get(`count:${DAY}`).n).toBe(3);
+    expect(await allow(DAY, 1, 64_000)).toBe(true); // a minute later → flush
+    expect(container.meta.get(`count:${DAY}`).n).toBe(5);
+  });
+
+  it("learns other instances' writes from the counter and refuses past the limit", async () => {
+    const container = fakeContainer();
+    container.meta.set(`count:${DAY}`, { id: `count:${DAY}`, n: 8 });
+    const allow = createDailyCeiling(container, { limit: 10, flushEvery: 50 });
+    expect(await allow(DAY, 1, 1000)).toBe(true); // syncs: total 9
+    expect(await allow(DAY, 1, 2000)).toBe(true); // 9 + 1 pending = 10
+    expect(await allow(DAY, 1, 3000)).toBe(false);
+    expect(await allow("2026-10-21", 1, 4000)).toBe(true); // a new day starts over
+  });
+
+  it("keeps the count for the next flush when the counter is throttled", async () => {
+    const container = fakeContainer();
+    container.meta.set(`count:${DAY}`, { id: `count:${DAY}`, n: 0 });
+    const item = container.item;
+    let fail = true;
+    container.item = (id) => {
+      const real = item(id);
+      return {
+        ...real,
+        patch: async (ops) => {
+          if (fail) throw throttled();
+          return real.patch(ops);
+        },
+      };
+    };
+    const allow = createDailyCeiling(container, { limit: 100, flushEvery: 2 });
+    await expect(allow(DAY, 1, 1000)).rejects.toThrow("Request rate is large");
+    fail = false;
+    expect(await allow(DAY, 1, 2000)).toBe(true); // sync carries the first event
+    expect(container.meta.get(`count:${DAY}`).n).toBe(1);
+    expect(await allow(DAY, 1, 3000)).toBe(true); // 2 pending → flush
+    expect(container.meta.get(`count:${DAY}`).n).toBe(3);
   });
 });

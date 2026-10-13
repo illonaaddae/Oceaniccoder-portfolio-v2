@@ -27,6 +27,12 @@ const SHARED_THROUGHPUT = 1000;
 // Appwrite table to import (`imported: false`). Partition per UTC day; TTL is
 // on with no default (-1), and each item sets its own `ttl`. Only the fields
 // the analytics queries filter on are indexed, which keeps writes cheap.
+//
+// TTL must be On for the container itself. With container TTL Off, Cosmos
+// ignores every item's `ttl`, so raw page views and daily salts would never
+// expire. createIfNotExists never changes an existing container, so check it
+// in the portal (Settings → Time to Live: "On (no default)") if it was created
+// by hand. Production was created with defaultTtl -1.
 const ANALYTICS_INDEXING_POLICY = {
   indexingMode: "consistent",
   includedPaths: [{ path: "/type/?" }, { path: "/day/?" }, { path: "/ts/?" }, { path: "/sid/?" }],
@@ -68,23 +74,46 @@ const CONTAINERS = {
 // behind, so a private setting is never copied by accident.
 const MIGRATED_SETTINGS_KEYS = new Set(["platform_logos", "hero_roles", "hero_images"]);
 
-/** A client from COSMOS_ENDPOINT and COSMOS_KEY. */
-function createClient() {
+/** A client from COSMOS_ENDPOINT and COSMOS_KEY. `extra` adds client options. */
+function createClient(extra = {}) {
   const endpoint = process.env.COSMOS_ENDPOINT;
   const key = process.env.COSMOS_KEY;
   if (!endpoint || !key) throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
   // Required here, not at the top: publicData.js (and its tests) import this
   // file for constants only, where api/node_modules may not be installed.
   const { CosmosClient } = require("@azure/cosmos");
-  return new CosmosClient({ endpoint, key });
+  return new CosmosClient({ endpoint, key, ...extra });
 }
 
+// Page-view writes must never compete with the rest of the site for the
+// shared 1,000 RU/s. Their client gives up on the first 429 and on slow
+// requests, so throttling drops page views instead of queueing retries.
+const ANALYTICS_CLIENT_OPTIONS = {
+  connectionPolicy: {
+    requestTimeout: 5000,
+    retryOptions: {
+      maxRetryAttemptCount: 0,
+      fixedRetryIntervalInMilliseconds: 0,
+      maxWaitTimeInSeconds: 1,
+    },
+  },
+};
+
 let database;
+let analyticsContainer;
 
 /** The `portfolio` database, reusing one client across invocations. */
 function getDatabase() {
   database ??= createClient().database(DATABASE_ID);
   return database;
+}
+
+/** The `analytics` container on its own no-retry client. */
+function getAnalyticsContainer() {
+  analyticsContainer ??= createClient(ANALYTICS_CLIENT_OPTIONS)
+    .database(DATABASE_ID)
+    .container("analytics");
+  return analyticsContainer;
 }
 
 /** Creates the database and every container if missing. Safe to re-run. */
@@ -143,6 +172,8 @@ module.exports = {
   newId,
   newDocument,
   getDatabase,
+  getAnalyticsContainer,
+  ANALYTICS_CLIENT_OPTIONS,
   ensureSchema,
   toCosmos,
   fromCosmos,

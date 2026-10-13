@@ -28,7 +28,7 @@ async function readSalt(container, day) {
 /**
  * A getter for the salt of a UTC day ("2026-10-20"). Reads it, creates it on
  * the first request of the day, and re-reads when another instance won the
- * race (409). Cached in memory; older days are evicted when a new one loads.
+ * race (409). Cached in memory; older days are evicted when a new one starts.
  */
 function createSaltStore(container) {
   const cache = new Map();
@@ -54,12 +54,17 @@ function createSaltStore(container) {
     }
   }
 
-  return async function getSalt(day) {
+  // Caches the promise, not the value, so concurrent first requests of a day
+  // share one read/create. A failed load is forgotten so the next call retries.
+  return function getSalt(day) {
     if (cache.has(day)) return cache.get(day);
-    const salt = await load(day);
     for (const key of cache.keys()) if (key < day) cache.delete(key);
-    cache.set(day, salt);
-    return salt;
+    const pending = load(day);
+    cache.set(day, pending);
+    pending.catch(() => {
+      if (cache.get(day) === pending) cache.delete(day);
+    });
+    return pending;
   };
 }
 
