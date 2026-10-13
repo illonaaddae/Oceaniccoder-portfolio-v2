@@ -183,6 +183,11 @@ describe("AnalyticsShell summary", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Network down");
     expect(within(card("Cash collected")).getByText(/Payments couldn.t load/)).toBeInTheDocument();
     expect(within(card("Cash collected")).queryByText("0.00")).not.toBeInTheDocument();
+    // No payment stats, and no "estimated" warning built from missing rows.
+    expect(
+      within(card("Payments received")).getByText(/Payments couldn.t load/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/no payment record/)).not.toBeInTheDocument();
     // Other sources still show.
     expect(within(card("Expenses")).getByText("GHS 80.00")).toBeInTheDocument();
   });

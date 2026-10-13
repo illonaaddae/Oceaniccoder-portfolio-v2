@@ -156,21 +156,30 @@ export function RevenueSection({
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <KpiCard label="Payments received">
-          <p className="mt-1 text-xl font-bold" style={strong}>
-            {count} {count === 1 ? "payment" : "payments"}
-          </p>
-          {stats.map((s) => (
-            <p key={s.currency} className="text-sm tabular-nums" style={muted}>
-              {s.count} in {s.currency}, average {formatMoney(s.average, s.currency)}
+          {errors.payments ? (
+            <p className="mt-1 text-sm" style={muted}>
+              Payments couldn&rsquo;t load.
             </p>
-          ))}
+          ) : (
+            <>
+              <p className="mt-1 text-xl font-bold" style={strong}>
+                {count} {count === 1 ? "payment" : "payments"}
+              </p>
+              {stats.map((s) => (
+                <p key={s.currency} className="text-sm tabular-nums" style={muted}>
+                  {s.count} in {s.currency}, average {formatMoney(s.average, s.currency)}
+                </p>
+              ))}
+            </>
+          )}
         </KpiCard>
         <KpiCard label="How revenue is counted">
           <p className="mt-1 text-sm" style={muted}>
             Successful payments on invoices and quotes, dated when the money arrived. Failed,
             pending, abandoned, duplicate and refunded attempts don&rsquo;t count.
           </p>
-          {estimated > 0 && (
+          {/* Without payment rows every paid invoice would look estimated. */}
+          {estimated > 0 && !errors.payments && (
             <p className="mt-2 text-sm" style={{ color: "var(--status-pending-text)" }}>
               {estimated} paid {estimated === 1 ? "invoice has" : "invoices have"} no payment
               record, so {estimated === 1 ? "its date is" : "their dates are"} estimated from the
