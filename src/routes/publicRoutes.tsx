@@ -15,6 +15,7 @@ import {
   Blog,
   BlogPost,
   NotFound,
+  Privacy,
   Booking,
   ClientInquiry,
   PaymentPage,
@@ -131,6 +132,16 @@ const publicRoutes = (
       element={
         <React.Suspense fallback={<Fallback />}>
           <ClientInquiry />
+        </React.Suspense>
+      }
+    />
+    <Route
+      path="/privacy"
+      element={
+        <React.Suspense fallback={<Fallback />}>
+          <PageWrapper>
+            <Privacy />
+          </PageWrapper>
         </React.Suspense>
       }
     />
