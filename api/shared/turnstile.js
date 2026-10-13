@@ -7,6 +7,8 @@
 // Cloudflare's test secret 1x0000000000000000000000000000000AA always passes,
 // for local and preview testing.
 
+const { isIP } = require("net");
+
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const TIMEOUT_MS = 10000;
 
@@ -44,34 +46,45 @@ async function verifyTurnstile(token, remoteip) {
   }
 }
 
-// Strip a port from IPv4 ("1.2.3.4:5678") and from bracketed IPv6
-// ("[2001:db8::1]:443"); a bare IPv6 address contains colons, so it's kept whole.
-function stripPort(entry) {
+// One X-Forwarded-For entry → a bare address: strips a port from IPv4
+// ("1.2.3.4:5678") and bracketed IPv6 ("[2001:db8::1]:443"), and unwraps an
+// IPv4-mapped IPv6 address ("::ffff:1.2.3.4" → "1.2.3.4") so one client has
+// one rate-limit key. A bare IPv6 address contains colons, so it's kept whole.
+function normaliseIp(entry) {
   return entry
+    .trim()
     .replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, "$1")
-    .replace(/^\[([0-9a-fA-F:.]+)\](?::\d+)?$/, "$1");
+    .replace(/^\[([0-9a-fA-F:.]+)\](?::\d+)?$/, "$1")
+    .replace(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i, "$1");
 }
 
+// Addresses that can't be a visitor on the public internet: unspecified,
+// private, CGNAT (100.64.0.0/10), loopback and link-local IPv4; loopback,
+// unspecified, unique-local (fc00::/7) and link-local (fe80::/10) IPv6.
 const PRIVATE_IP =
-  /^(?:10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|::1$|f[cd][0-9a-f]{2}:|fe80:)/i;
+  /^(?:0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1?$|f[cd][0-9a-f]{2}:|fe[89ab][0-9a-f]:)/i;
 
 /**
  * The visitor's IP as Static Web Apps saw it: the right-most public
- * X-Forwarded-For entry. Proxies append to the header, so anything to the
- * left of the platform's own entry is whatever the client sent and can be
- * forged on every request; the left-most entry must never be trusted for
- * rate limits or records. Private and loopback entries are skipped in case
- * an internal hop appends its own address after the client's. Static Web Apps
- * documents no dedicated client-IP header, so this is the best signal there
- * is. Used by /api/visit (rate limit, visitor hash), /api/submit (Turnstile's
- * `remoteip`) and /api/quote-respond (hashed acceptance record).
+ * X-Forwarded-For entry. Observed on a real SWA preview, a Function receives
+ *
+ *   x-forwarded-for: <whatever the client sent...>, 203.0.113.7:51234, [fd00::78df:1]:443
+ *
+ * SWA appends the real client (IPv4 with a port) and then its own internal
+ * unique-local hop. Everything to the left is client-supplied and can be
+ * forged on every request, so the left-most entry is never trusted. Of the
+ * other headers, `client-ip` holds the internal hop and `x-real-ip` is passed
+ * through from the client, so neither is used. Private hops and entries that
+ * aren't IP addresses ("unknown") are skipped. Used by /api/visit (rate
+ * limit, visitor hash), /api/submit (Turnstile's `remoteip`) and
+ * /api/quote-respond (hashed acceptance record).
  */
 function clientIp(req) {
   const header = (req.headers && req.headers["x-forwarded-for"]) || "";
   const entries = header
     .split(",")
-    .map((entry) => stripPort(entry.trim()))
-    .filter(Boolean);
+    .map(normaliseIp)
+    .filter((entry) => isIP(entry) !== 0);
   for (let i = entries.length - 1; i >= 0; i -= 1) {
     if (!PRIVATE_IP.test(entries[i])) return entries[i];
   }

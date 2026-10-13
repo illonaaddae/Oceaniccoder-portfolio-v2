@@ -58,13 +58,34 @@ describe("clientIp", () => {
     ["2001:db8::1", "2001:db8::1"],
     ["[2001:db8::1]:443", "2001:db8::1"],
     ["[2001:db8::1]", "2001:db8::1"],
-    ["[::ffff:1.2.3.4]:80, 10.0.0.1", "::ffff:1.2.3.4"],
+    // IPv4-mapped IPv6 collapses to the IPv4 address, so it's one rate-limit key.
+    ["[::ffff:1.2.3.4]:80, 10.0.0.1", "1.2.3.4"],
+    ["::FFFF:203.0.113.7", "203.0.113.7"],
+    ["203.0.113.7, ::ffff:10.0.0.4", "203.0.113.7"],
+    // The exact shape seen on a real SWA preview: client-supplied entries,
+    // then the real client with a port, then SWA's internal ULA hop.
+    ["6.6.6.6, 203.0.113.7:51234, [fd00::78df:1]:443", "203.0.113.7"],
     // A forged left-most entry is ignored; the platform's appended one wins.
     ["8.8.8.8, 203.0.113.7:51234", "203.0.113.7"],
     ["1.1.1.1, 9.9.9.9, [2001:db8::1]:443", "2001:db8::1"],
-    // An internal hop after the client is skipped.
+    // Internal hops after the client are skipped.
     ["203.0.113.7, 10.0.0.4", "203.0.113.7"],
     ["203.0.113.7, 172.16.0.2, fd00::1", "203.0.113.7"],
+    ["203.0.113.7, 100.64.0.1", "203.0.113.7"], // CGNAT
+    ["203.0.113.7, 100.127.255.254", "203.0.113.7"], // CGNAT upper edge
+    ["203.0.113.7, 0.0.0.0", "203.0.113.7"],
+    ["203.0.113.7, [fe80::1]:443", "203.0.113.7"],
+    ["203.0.113.7, febf::1", "203.0.113.7"], // top of fe80::/10
+    ["203.0.113.7, ::1", "203.0.113.7"],
+    // Just outside the private ranges counts as public.
+    ["203.0.113.7, 100.128.0.1", "100.128.0.1"],
+    ["203.0.113.7, 100.63.255.255", "100.63.255.255"],
+    ["203.0.113.7, fec0::1", "fec0::1"],
+    // Entries that aren't IP addresses are skipped.
+    ["203.0.113.7, unknown", "203.0.113.7"],
+    ["203.0.113.7, 999.1.1.1", "203.0.113.7"],
+    ["unknown", undefined],
+    // No public entry: the last real address is still a better key than none.
     ["10.0.0.4", "10.0.0.4"],
     ["", undefined],
   ])("%j → %j", (header, ip) => {
