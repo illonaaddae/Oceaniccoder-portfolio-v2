@@ -75,13 +75,13 @@ export function useContactForm() {
         errorMessage = err.message;
       } else if (err instanceof TypeError) {
         errorMessage =
-          "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at illona@oceaniccoder.dev";
+          "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at hello@oceaniccoder.dev";
       } else if (err.name === "AbortError") {
         errorMessage = "Request timed out. Please check your internet connection and try again.";
       }
 
-      if (!errorMessage.includes("info@oceaniccoder.dev") && !errorMessage.includes("email")) {
-        errorMessage += " Alternatively, you can contact me directly at info@oceaniccoder.dev";
+      if (!errorMessage.includes("hello@oceaniccoder.dev") && !errorMessage.includes("email")) {
+        errorMessage += " Alternatively, you can contact me directly at hello@oceaniccoder.dev";
       }
 
       setResponseMessage(errorMessage);

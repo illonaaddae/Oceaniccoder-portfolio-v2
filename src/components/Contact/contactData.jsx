@@ -13,8 +13,8 @@ export const contactInfo = [
   {
     icon: <FaEnvelope className="text-oceanic-500" />,
     label: "Email",
-    value: "info@oceaniccoder.dev",
-    href: "mailto:info@oceaniccoder.dev",
+    value: "hello@oceaniccoder.dev",
+    href: "mailto:hello@oceaniccoder.dev",
   },
   {
     icon: <FaPhone className="text-oceanic-400" />,
