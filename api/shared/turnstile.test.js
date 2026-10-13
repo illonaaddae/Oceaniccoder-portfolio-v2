@@ -55,6 +55,9 @@ describe("clientIp", () => {
   it.each([
     ["1.2.3.4:5678, 10.0.0.1", "1.2.3.4"],
     ["2001:db8::1", "2001:db8::1"],
+    ["[2001:db8::1]:443", "2001:db8::1"],
+    ["[2001:db8::1]", "2001:db8::1"],
+    ["[::ffff:1.2.3.4]:80, 10.0.0.1", "::ffff:1.2.3.4"],
     ["", undefined],
   ])("%j → %j", (header, ip) => {
     expect(clientIp({ headers: { "x-forwarded-for": header } })).toBe(ip);

@@ -47,12 +47,14 @@ async function verifyTurnstile(token, remoteip) {
 /** The visitor's IP from Static Web Apps' forwarding header, if present. */
 function clientIp(req) {
   const forwarded = (req.headers && req.headers["x-forwarded-for"]) || "";
-  // Strip a port only from IPv4 ("1.2.3.4:5678"); IPv6 addresses contain colons.
+  // Strip a port from IPv4 ("1.2.3.4:5678") and from bracketed IPv6
+  // ("[2001:db8::1]:443"); a bare IPv6 address contains colons, so it's kept whole.
   return (
     forwarded
       .split(",")[0]
       .trim()
-      .replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, "$1") || undefined
+      .replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, "$1")
+      .replace(/^\[([0-9a-fA-F:.]+)\](?::\d+)?$/, "$1") || undefined
   );
 }
 
