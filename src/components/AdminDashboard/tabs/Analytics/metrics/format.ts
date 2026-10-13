@@ -3,7 +3,7 @@
 // marked approximate.
 import { FX_RATES } from "@/config/fxRates";
 import { formatMoney, type CurrencyTotals } from "../../shared/money";
-import type { Delta } from "./range";
+import type { DateRange, Delta } from "./range";
 
 export const APPROX = "approx";
 
@@ -42,6 +42,24 @@ export function formatDay(day: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   if (!m) return day;
   return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
+}
+
+/** "14 Sep – 13 Oct", with the years only when either end falls outside `year`. */
+export function formatSpan(r: DateRange, year: string): string {
+  const inYear = r.from.startsWith(year) && r.to.startsWith(year);
+  const day = (d: string) => (inYear ? formatDay(d).replace(/ \d{4}$/, "") : formatDay(d));
+  return `${day(r.from)} – ${day(r.to)}`;
+}
+
+/** Up to two initials for an avatar, e.g. "AO" for "Ama Owusu"; "?" for a blank name. */
+export function initials(name: string): string {
+  const letters = name
+    .trim()
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => Array.from(word)[0].toUpperCase());
+  return letters.join("") || "?";
 }
 
 /** "at rates as of 13 Oct 2026". */

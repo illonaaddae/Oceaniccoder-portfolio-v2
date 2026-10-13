@@ -6,7 +6,7 @@ import type { QuoteSummary } from "@/types/quote";
 import { isSuccess } from "../../Payments/paymentStatus";
 import { quoteRows, toInvoiceRows } from "../../Invoices/invoiceView";
 import { sumByCurrency, type CurrencyTotals } from "../../shared/money";
-import { toApproxGHS } from "./format";
+import { formatDay, toApproxGHS } from "./format";
 import {
   bucketFor,
   bucketsFor,
@@ -229,6 +229,14 @@ export const METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
 };
 
+export type MethodTone = "card" | "momo" | "bank" | "apple" | "other";
+
+/** The icon and colour for a byMethod key; cash, "unknown" and anything new share "other". */
+export function methodTone(key: string): MethodTone {
+  if (key === "card" || key === "momo" || key === "bank") return key;
+  return key === "apple_pay" ? "apple" : "other";
+}
+
 /** Money by payment method. Estimated invoices have no method: "Not recorded". */
 export const byMethod = (entries: LedgerEntry[], unit: MoneyUnit) =>
   breakdown(
@@ -274,6 +282,8 @@ export interface OutstandingItem {
   overdue: boolean;
   /** Whole days since the invoice was issued; null when the issue date is unknown. */
   ageDays: number | null;
+  /** Whole days until it falls due, negative once past; null with no due date. */
+  dueInDays: number | null;
   source: "oneoff" | "quote";
 }
 
@@ -300,6 +310,7 @@ export function outstandingSummary(
     .filter((r) => !r.archived && (r.status === "due" || r.status === "overdue"))
     .map((r) => {
       const issued = dayOf(r.issuedAt);
+      const due = dayOf(r.dueAt);
       return {
         key: r.key,
         number: r.number,
@@ -310,6 +321,7 @@ export function outstandingSummary(
         dueAt: r.dueAt,
         overdue: r.status === "overdue",
         ageDays: issued ? rangeDays({ from: issued, to: today }) - 1 : null,
+        dueInDays: due ? rangeDays({ from: today, to: due }) - 1 : null,
         source: r.kind,
       };
     })
@@ -333,6 +345,28 @@ export function outstandingSummary(
       return { key: b.key, label: b.label, count: inBucket.length, totals: totals(inBucket) };
     }),
   };
+}
+
+const DUE_SOON_DAYS = 7;
+
+export interface OwedStatus {
+  kind: "overdue" | "due" | "sent";
+  label: string;
+}
+
+const days = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
+
+/** Overdue, due within a week, or simply sent, worded for a status pill. */
+export function owedStatus(
+  item: Pick<OutstandingItem, "overdue" | "dueInDays" | "issuedAt">,
+): OwedStatus {
+  const d = item.dueInDays;
+  if (item.overdue)
+    return { kind: "overdue", label: d !== null && d < 0 ? `Overdue ${days(-d)}` : "Overdue" };
+  if (d !== null && d >= 0 && d <= DUE_SOON_DAYS)
+    return { kind: "due", label: d === 0 ? "Due today" : `Due in ${days(d)}` };
+  const issued = dayOf(item.issuedAt);
+  return { kind: "sent", label: issued ? `Sent ${formatDay(issued)}` : "Sent" };
 }
 
 export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -383,6 +417,18 @@ export function expenseSeries(
     }
     return point;
   });
+}
+
+/**
+ * The biggest expenses in the range, each in its own currency. Currencies are
+ * compared at the approx. rates; one with no rate is compared as it stands.
+ */
+export function largestExpenses(expenses: Expense[], r: DateRange, limit = 3): Expense[] {
+  const size = (e: Expense) => {
+    const amount = Number(e.amount) || 0;
+    return toApproxGHS(amount, e.currency) ?? amount;
+  };
+  return [...expensesIn(expenses, r)].sort((a, b) => size(b) - size(a)).slice(0, limit);
 }
 
 export const expensesByCategory = (expenses: Expense[], unit: MoneyUnit) =>

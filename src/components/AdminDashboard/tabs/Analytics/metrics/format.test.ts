@@ -6,6 +6,8 @@ import {
   formatApproxGHS,
   formatDay,
   formatDelta,
+  formatSpan,
+  initials,
   toApproxGHS,
 } from "./format";
 
@@ -64,5 +66,21 @@ describe("formatDay and compactNumber", () => {
     expect(compactNumber(1200)).toBe("1.2k");
     expect(compactNumber(3000)).toBe("3k");
     expect(compactNumber(3_450_000)).toBe("3.5M");
+  });
+});
+
+describe("formatSpan and initials", () => {
+  it("drops the years when both ends are in the given year", () => {
+    expect(formatSpan({ from: "2026-09-14", to: "2026-10-13" }, "2026")).toBe("14 Sep – 13 Oct");
+    expect(formatSpan({ from: "2025-10-14", to: "2026-10-13" }, "2026")).toBe(
+      "14 Oct 2025 – 13 Oct 2026",
+    );
+  });
+
+  it("takes up to two initials, from a name or an email", () => {
+    expect(initials("Ama Owusu")).toBe("AO");
+    expect(initials(" kojo  kwame mensah ")).toBe("KK");
+    expect(initials("esi@example.com")).toBe("EE");
+    expect(initials("  ")).toBe("?");
   });
 });

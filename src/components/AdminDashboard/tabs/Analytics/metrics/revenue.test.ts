@@ -13,8 +13,11 @@ import {
   expensesByCategory,
   expensesIn,
   invoiceBalance,
+  largestExpenses,
+  methodTone,
   netByCurrency,
   outstandingSummary,
+  owedStatus,
   paymentAmount,
   paymentStats,
   topClients,
@@ -428,6 +431,44 @@ describe("outstandingSummary", () => {
       ["31-60", 0],
       ["61+", 1],
     ]);
+    // Due 20 Oct is 7 days out; 1 Oct was 12 days ago.
+    expect(s.items.map((i) => [i.number, i.dueInDays])).toEqual([
+      ["Q-2026-0001-2", -59],
+      ["INV-E", -12],
+      ["INV-A", 7],
+    ]);
+  });
+});
+
+describe("owedStatus", () => {
+  const item = { overdue: false, dueInDays: null, issuedAt: "2026-10-02T09:00:00Z" };
+
+  it("says how long an overdue item has been overdue", () => {
+    expect(owedStatus({ ...item, overdue: true, dueInDays: -6 })).toEqual({
+      kind: "overdue",
+      label: "Overdue 6 days",
+    });
+    expect(owedStatus({ ...item, overdue: true, dueInDays: -1 }).label).toBe("Overdue 1 day");
+    expect(owedStatus({ ...item, overdue: true }).label).toBe("Overdue");
+  });
+
+  it("calls an item due soon within a week of its due date", () => {
+    expect(owedStatus({ ...item, dueInDays: 3 })).toEqual({ kind: "due", label: "Due in 3 days" });
+    expect(owedStatus({ ...item, dueInDays: 0 }).label).toBe("Due today");
+    expect(owedStatus({ ...item, dueInDays: 8 }).kind).toBe("sent");
+  });
+
+  it("otherwise says when it was sent", () => {
+    expect(owedStatus(item)).toEqual({ kind: "sent", label: "Sent 2 Oct 2026" });
+    expect(owedStatus({ ...item, issuedAt: null }).label).toBe("Sent");
+  });
+});
+
+describe("methodTone", () => {
+  it("maps the recorded methods and sends anything else to other", () => {
+    expect(
+      ["card", "momo", "bank", "apple_pay", "cash", "unknown", "paypal"].map(methodTone),
+    ).toEqual(["card", "momo", "bank", "apple", "other", "other", "other"]);
   });
 });
 
@@ -470,6 +511,16 @@ describe("expenses", () => {
       { key: "hosting", label: "Hosting", count: 1, amount: 30 },
       { key: "domain", label: "Domain", count: 1, amount: 10 },
     ]);
+  });
+
+  it("picks the largest expenses in the range, comparing currencies at the approx. rates", () => {
+    // USD 4 ≈ GHS 47 beats GHS 30 and GHS 10; the GHS 99 is outside the range.
+    expect(largestExpenses(expenses, OCT).map((e) => [e.currency, e.amount])).toEqual([
+      ["USD", 4],
+      ["GHS", 30],
+      ["GHS", 10],
+    ]);
+    expect(largestExpenses(expenses, OCT, 1)).toHaveLength(1);
   });
 
   it("nets per currency and never across currencies", () => {
