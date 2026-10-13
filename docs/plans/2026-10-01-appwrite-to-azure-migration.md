@@ -129,6 +129,7 @@ The key change: today the browser talks to Appwrite directly, and Appwrite permi
    - `POST /api/data/{collection}`: public create for comments, messages, bookings and inquiries, with server-side validation and Cloudflare Turnstile (already used elsewhere);
    - counter endpoints for reactions and views (increment-only);
    - **Testimonials:** the public "Share your experience" form (`src/components/Testimonials/useTestimonialForm.ts`) has never worked for visitors, because only the admin can create testimonials. Give it a `POST` that saves a pending, unapproved testimonial, and upload the optional photo through the same endpoint (not anonymously to storage), so failed submissions stop leaving orphan photos.
+     ✅ Done in `/api/submit/testimonials` (Cosmos mode). Since 2026-10-13 the "Share your experience" button and form are hidden while `VITE_DATA_BACKEND` is unset (`src/components/TestimonialsSection.tsx`), so visitors no longer hit the broken Appwrite flow. They come back on their own at the cutover; no code change is needed.
    - `/api/admin/data/{collection}[/{id}]`: full CRUD, `admin` role only (enforced in `staticwebapp.config.json` **and** checked in the Function).
    - Query support: translate the `Query.*` options actually used (`equal`, `orderAsc/Desc`, `limit`, `offset`, `select`) into parameterised Cosmos SQL. Grep every `Query.` in `src/services/api` first and support only those.
 4. **Response shape adapter:** the Functions return `$id`, `$createdAt` and `$updatedAt` exactly as today, so **components don't change**. Only `src/services/api/*` changes, one file per domain. Each file keeps its tests, retargeted at `fetch`.
@@ -210,7 +211,7 @@ so once that deploy is live:
 1. Stop admin edits; take a final Phase 1 backup.
 2. Re-run the import (it's idempotent: upsert by `id`).
 3. Merge the PR and let the deploy finish.
-4. Smoke test: each public page, blog read counts, a comment, a contact message (and its email), a test booking (Meet link), a Paystack **test** payment through the webhook, an admin edit, a dashboard upload.
+4. Smoke test: each public page, blog read counts, a comment, a contact message (and its email), a test booking (Meet link), a Paystack **test** payment through the webhook, an admin edit, a dashboard upload, and a testimonial with a photo (the "Share your experience" form reappears with Cosmos; the new row must stay hidden until approved).
 5. Leave Appwrite untouched until the deadline, as a fallback. Revert = redeploy the previous commit.
 
 ---

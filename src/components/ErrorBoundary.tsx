@@ -124,7 +124,7 @@ class ErrorBoundary extends Component<Props, State> {
             {/* Support Info */}
             <p className="mt-6 text-sm text-gray-600 dark:text-gray-200">
               If this problem persists, please{" "}
-              <a href="mailto:illona@oceaniccoder.dev" className="text-oceanic-500 hover:underline">
+              <a href="mailto:hello@oceaniccoder.dev" className="text-oceanic-500 hover:underline">
                 contact support
               </a>
             </p>
