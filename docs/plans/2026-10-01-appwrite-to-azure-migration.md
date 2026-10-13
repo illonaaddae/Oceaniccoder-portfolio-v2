@@ -110,6 +110,19 @@ The key change: today the browser talks to Appwrite directly, and Appwrite permi
 ### 3.2 Steps
 
 1. ✅ **Cosmos setup (2026-10-03):** account `oceaniccoder-db` in Central US (the region the SWA's API runs in), free tier on, database `portfolio` with 1,000 RU/s shared, 21 containers. Layout lives in `api/shared/cosmos.js`. Partition keys: `/id` for content; `/postId` for `blog_views` and `blog_reactions` with a unique key on `/visitorId`; `/projectId` for `project_videos` and `project_case_studies` with a unique key on `/projectId`.
+   - **`analytics` container (added 2026-10-13):** first-party page views from
+     `/api/visit`. It's Cosmos-only (no Appwrite table, so the import script
+     skips it via `imported: false`). Partition key `/day` (UTC date). Time to
+     Live **On, no default** (`defaultTtl: -1`); each item sets its own `ttl`
+     (raw events 90 days, daily salts and counters 48 hours). With container
+     TTL Off, item `ttl` is ignored and nothing would ever expire. Lean
+     indexing: only `/type/?`, `/day/?`, `/ts/?` and `/sid/?` are included and
+     `/*` is excluded. Shared throughput, never its own.
+   - **Container count:** 23 live today. Moving `quotes` and `locks` makes 25,
+     which is the limit for a database with shared throughput. Nothing else
+     can get its own container after that; new event types go into
+     `analytics`, and `expenses` must share an existing container or wait for
+     a new database.
 2. ✅ **Import:** `scripts/import-to-cosmos.mjs` reads the Phase 1 backup and keeps `$id`, `$createdAt` and `$updatedAt` as `id`, `createdAt` and `updatedAt`, so links and slugs don't break. It refuses a backup that still has Appwrite file URLs (taken before the Phase 2 rewrite) and skips `settings.admin_password_hash`.
 3. **Data API** (`api/data/index.js`):
    - `GET /api/data/{collection}` and `/{id}`: public read for the public-read collections only, plus the three public `settings` keys;

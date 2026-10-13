@@ -134,6 +134,12 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 > Symptom: `/api/create-booking` answers `_phase: "Error: oauth:invalid_grant"`.
 > Reissue with `node scripts/get-google-refresh-token.mjs`.
 
+> The Cosmos `analytics` container (page views from `/api/visit`) must have
+> **Time to Live: On (no default)**, i.e. `defaultTtl: -1`. With container TTL
+> Off, Cosmos ignores every item's `ttl`, so raw page views and the daily
+> visitor-hash salts would never expire. Production was created that way;
+> recheck it if the container is ever recreated by hand.
+
 **Required for payments to record correctly.** `/api/paystack-webhook` marks the
 invoice paid, writes the `payments` audit row and sends the confirmation emails.
 If any of these is missing, a real payment is charged by Paystack but nothing is
