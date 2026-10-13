@@ -186,6 +186,26 @@ Created in the Appwrite console. The `quotes` and `locks` collections have no pe
     archived. Set and cleared by `/api/quote-admin` (`archiveInvoice`,
     `restoreInvoice`). Replaces the old permanent delete from the Invoices tab.
 
+#### Comments read permission (console step, after `/api/comments` deploys)
+
+Since 2026-10-13 the blog reads comments through `GET /api/comments`, which
+uses the server API key and returns only the public fields (no `authorEmail`).
+Nothing in the browser reads the `comments` collection as a visitor any more,
+so once that deploy is live:
+
+1. Appwrite console → Databases → `comments` → Settings → Permissions.
+2. Read: remove `Any`, keep or add `Users` (the admin's session, which the
+   Comments tab and dashboard notifications use to see emails).
+3. Create: leave `Any` as it is, so visitors can still post comments.
+4. Leave update and delete as they are.
+5. Smoke test: open a blog post (comments load), post a comment (it appears,
+   no error toast), open the admin Comments tab (emails show).
+
+`Users` means any signed-in Appwrite account, so it's only "admin only" while
+the admin is the sole account and public sign-up stays off (Auth → Settings).
+The code works before and after this change: `/api/comments` ignores
+collection permissions, and the admin reads with a session.
+
 ### 3.3 Cutover (one evening)
 
 1. Stop admin edits; take a final Phase 1 backup.
