@@ -304,6 +304,7 @@ export function outstandingSummary(
     .map((r) => {
       const issued = dayOf(r.issuedAt);
       const due = dayOf(r.dueAt);
+      const dueInDays = due ? rangeDays({ from: today, to: due }) - 1 : null;
       return {
         key: r.key,
         number: r.number,
@@ -312,9 +313,11 @@ export function outstandingSummary(
         amount: r.amount,
         issuedAt: r.issuedAt,
         dueAt: r.dueAt,
-        overdue: r.status === "overdue",
+        // A quote stage's flag comes from the server and can lag its due date;
+        // a passed due date (in UTC days, Ghana's) counts as overdue either way.
+        overdue: r.status === "overdue" || (dueInDays !== null && dueInDays < 0),
         ageDays: issued ? rangeDays({ from: issued, to: today }) - 1 : null,
-        dueInDays: due ? rangeDays({ from: today, to: due }) - 1 : null,
+        dueInDays,
         source: r.kind,
       };
     })

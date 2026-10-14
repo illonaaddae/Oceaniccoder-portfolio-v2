@@ -433,6 +433,33 @@ describe("outstandingSummary", () => {
       ["INV-A", 7],
     ]);
   });
+  it("counts an item past its due date as overdue even when its flag says otherwise", () => {
+    // The server hasn't flagged this stage overdue, but it was due on 10 Oct.
+    const lagging = {
+      ...quote,
+      invoices: [{ ...quote.invoices[1], dueBy: "2026-10-10", overdue: false }],
+    } as QuoteSummary;
+    const s = outstandingSummary(
+      [
+        inv({
+          $id: "a",
+          invoiceNumber: "INV-A",
+          dueDate: "2026-10-20",
+          $createdAt: "2026-07-01T00:00:00Z",
+        }),
+      ],
+      [lagging],
+      NOW,
+    );
+    // Sorted first despite INV-A being older; counted; and its pill agrees.
+    expect(s.items.map((i) => [i.number, i.overdue])).toEqual([
+      ["Q-2026-0001-2", true],
+      ["INV-A", false],
+    ]);
+    expect(s.overdueCount).toBe(1);
+    expect(s.overdue).toEqual([{ currency: "USD", amount: 500 }]);
+    expect(owedStatus(s.items[0])).toEqual({ kind: "overdue", label: "Overdue 3 days" });
+  });
 });
 
 describe("owedStatus", () => {
