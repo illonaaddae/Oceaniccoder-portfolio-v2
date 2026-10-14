@@ -24,7 +24,7 @@ const Logo = React.memo(function Logo({ theme }) {
     <Link to="/" aria-label="Go to homepage" className="group mr-4">
       {/* WebP with the PNG as fallback, in both themes. */}
       <picture>
-        <source srcSet={LOGO_PATHS.lightWebp} type="image/webp" />
+        <source srcSet={LOGO_PATHS.webp} type="image/webp" />
         {img}
       </picture>
     </Link>

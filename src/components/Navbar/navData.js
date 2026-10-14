@@ -3,9 +3,10 @@
 /**
  * Site logo, used by the header, the footer and the client documents.
  *
- * The originals are 2903x842: Oceaniccoder-croped.png is 476 KB and the .svg
- * is a 748 KB wrapper around that same PNG. Every place draws the logo at 168px
- * wide or less, so these are the same artwork resized to 336px wide: 8 KB as
+ * The full-size originals are about 2900px wide: Oceaniccoder-croped.png is
+ * 476 KB and the .svg is a 748 KB wrapper around an embedded PNG of the same
+ * artwork. Every place draws the logo at 168px wide or less, so these are that
+ * artwork resized to 336px wide (3x for the header, 2x for the footer): 8 KB as
  * WebP, 23 KB as the PNG fallback. Dark mode recolours the image with a CSS
  * filter (brightness-0 invert ...) that only reads the alpha channel, so the
  * small raster renders the same silhouette the SVG did.
@@ -13,7 +14,7 @@
 export const LOGO_PATHS = {
   dark: "/images/logo/Oceaniccoder-logo@3x.png",
   light: "/images/logo/Oceaniccoder-logo@3x.png",
-  lightWebp: "/images/logo/Oceaniccoder-logo.webp",
+  webp: "/images/logo/Oceaniccoder-logo.webp",
 };
 
 export const NAV_BASE_CLASS =

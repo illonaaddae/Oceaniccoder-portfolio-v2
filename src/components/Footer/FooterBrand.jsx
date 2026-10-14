@@ -5,7 +5,7 @@ const FooterBrand = React.memo(({ theme }) => (
   <div className="lg:col-span-2">
     <div className="mb-6">
       <picture>
-        <source srcSet={LOGO_PATHS.lightWebp} type="image/webp" />
+        <source srcSet={LOGO_PATHS.webp} type="image/webp" />
         <img
           src={theme === "dark" ? LOGO_PATHS.dark : LOGO_PATHS.light}
           alt="Oceaniccoder"
