@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CustomSelect } from "./CustomSelect";
 
@@ -123,5 +123,94 @@ describe("CustomSelect", () => {
     await userEvent.click(screen.getByText("Letters"));
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     expect(screen.getByRole("combobox")).toHaveFocus();
+  });
+
+  it("puts each group's options in a role=group named by its heading", async () => {
+    render(
+      <CustomSelect
+        value="a"
+        onChange={() => {}}
+        groups={[
+          { group: "Letters", options: [{ value: "a", label: "A" }] },
+          { group: "Numbers", options: [{ value: "1", label: "One" }] },
+        ]}
+        theme="dark"
+        ariaLabel="Pick"
+      />,
+    );
+    await userEvent.click(screen.getByRole("combobox"));
+    const numbers = screen.getByRole("group", { name: "Numbers" });
+    expect(within(numbers).getByRole("option", { name: "One" })).toBeInTheDocument();
+    expect(within(screen.getByRole("listbox")).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("returns focus to the trigger after picking from the search box", async () => {
+    const onChange = vi.fn();
+    render(
+      <CustomSelect
+        value="all"
+        onChange={onChange}
+        options={OPTIONS}
+        theme="light"
+        ariaLabel="Source"
+        searchable
+      />,
+    );
+    await userEvent.click(screen.getByRole("combobox"));
+    const search = await screen.findByPlaceholderText("Search…");
+    await waitFor(() => expect(search).toHaveFocus());
+    await userEvent.type(search, "quote{Enter}");
+    expect(onChange).toHaveBeenCalledWith("quotes");
+    expect(screen.getByRole("combobox")).toHaveFocus();
+  });
+
+  it("commits the highlighted option on Space and jumps with Home/End", async () => {
+    const onChange = vi.fn();
+    const three = [...OPTIONS, { value: "oneoff", label: "One-off" }];
+    render(
+      <CustomSelect
+        value="all"
+        onChange={onChange}
+        options={three}
+        theme="light"
+        ariaLabel="Source"
+      />,
+    );
+    const box = screen.getByRole("combobox");
+    box.focus();
+    await userEvent.keyboard("{ArrowDown}{End}");
+    expect(document.getElementById(box.getAttribute("aria-activedescendant")!)).toHaveTextContent(
+      "One-off",
+    );
+    await userEvent.keyboard("{Home}");
+    expect(document.getElementById(box.getAttribute("aria-activedescendant")!)).toHaveTextContent(
+      "All sources",
+    );
+    await userEvent.keyboard("{ArrowDown} ");
+    expect(onChange).toHaveBeenCalledWith("quotes");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("stops Escape at the dropdown so an enclosing modal stays open", async () => {
+    const modalClose = vi.fn();
+    const onDocKey = (e: KeyboardEvent) => e.key === "Escape" && modalClose();
+    document.addEventListener("keydown", onDocKey);
+    try {
+      render(
+        <CustomSelect
+          value="all"
+          onChange={() => {}}
+          options={OPTIONS}
+          theme="light"
+          ariaLabel="Source"
+        />,
+      );
+      await userEvent.click(screen.getByRole("combobox"));
+      await userEvent.keyboard("{Escape}");
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+      expect(modalClose).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("keydown", onDocKey);
+    }
   });
 });

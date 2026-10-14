@@ -59,6 +59,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   const [highlight, setHighlight] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const listboxId = useId();
   const valueId = useId();
 
@@ -122,9 +123,16 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
   const optionId = (idx: number) => `${listboxId}-opt-${idx}`;
 
+  // The search box unmounts on close; return focus to the trigger so it never
+  // drops to <body>.
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
   const commit = (val: string) => {
     onChange(val);
-    setOpen(false);
+    close();
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -137,7 +145,18 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     }
     if (e.key === "Escape") {
       e.preventDefault();
-      setOpen(false);
+      // Stop here so an enclosing Modal's document listener doesn't close too.
+      e.stopPropagation();
+      close();
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      setHighlight(e.key === "Home" ? 0 : Math.max(0, flat.length - 1));
+    } else if (e.key === " " && !searchable) {
+      // preventDefault also cancels the button's keyup click, which would
+      // otherwise toggle the panel shut without choosing.
+      e.preventDefault();
+      const opt = flat[highlight];
+      if (opt) commit(opt.value);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlight((h) => Math.min(h + 1, flat.length - 1));
@@ -163,10 +182,49 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   }`;
 
   let runningIndex = -1;
+  const renderOption = (opt: SelectOption) => {
+    runningIndex += 1;
+    const idx = runningIndex;
+    const isSel = opt.value === value;
+    const isHi = idx === highlight;
+    return (
+      <li
+        key={opt.value}
+        id={optionId(idx)}
+        role="option"
+        aria-selected={isSel}
+        onMouseEnter={() => setHighlight(idx)}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          commit(opt.value);
+        }}
+        className={`flex items-center justify-between gap-2 mx-1 px-3 py-2 rounded-lg text-sm cursor-pointer ${
+          isHi
+            ? dark
+              ? "bg-oceanic-500/20 text-white shadow-[inset_3px_0_0_theme(colors.oceanic.400)]"
+              : "bg-oceanic-500/10 text-slate-900 shadow-[inset_3px_0_0_theme(colors.oceanic.600)]"
+            : dark
+              ? "text-slate-200"
+              : "text-slate-700"
+        }`}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          {opt.icon && (
+            <span className="flex-shrink-0" aria-hidden="true">
+              {opt.icon}
+            </span>
+          )}
+          <span className="truncate">{opt.label}</span>
+        </span>
+        {isSel && <FaCheck className="flex-shrink-0 text-xs text-oceanic-400" />}
+      </li>
+    );
+  };
 
   return (
     <div ref={rootRef} className={`relative ${className}`} onBlur={onBlur}>
       <button
+        ref={triggerRef}
         type="button"
         role="combobox"
         onClick={() => setOpen((o) => !o)}
@@ -187,7 +245,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           )}
           <span
             id={valueId}
-            className={`truncate ${selected ? "" : dark ? "text-gray-500" : "text-slate-500"}`}
+            className={`truncate ${selected ? "" : dark ? "text-gray-400" : "text-slate-500"}`}
           >
             {selected ? selected.label : placeholder}
           </span>
@@ -224,7 +282,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                 onKeyDown={onKeyDown}
                 placeholder="Search…"
                 className={`w-full bg-transparent text-sm focus:outline-none ${
-                  dark ? "text-white placeholder-gray-500" : "text-slate-900 placeholder-slate-400"
+                  dark ? "text-white placeholder-gray-400" : "text-slate-900 placeholder-slate-500"
                 }`}
               />
             </div>
@@ -238,61 +296,35 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
             className="max-h-72 overflow-y-auto py-1"
           >
             {flat.length === 0 && (
-              <li className={`px-4 py-3 text-sm ${dark ? "text-slate-400" : "text-slate-500"}`}>
+              <li
+                role="presentation"
+                className={`px-4 py-3 text-sm ${dark ? "text-slate-400" : "text-slate-600"}`}
+              >
                 No matches
               </li>
             )}
-            {filteredGroups.map((g) => (
-              <React.Fragment key={g.group || "__flat"}>
-                {g.group && (
-                  <li
-                    className={`px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider ${
-                      dark ? "text-slate-500" : "text-slate-400"
-                    }`}
-                  >
-                    {g.group}
-                  </li>
-                )}
-                {g.options.map((opt) => {
-                  runningIndex += 1;
-                  const idx = runningIndex;
-                  const isSel = opt.value === value;
-                  const isHi = idx === highlight;
-                  return (
+            {filteredGroups.map((g, gi) =>
+              g.group ? (
+                // A listbox may only hold options and groups, so each heading names
+                // a role="group" instead of sitting in the list as a bare item.
+                <li key={g.group} role="presentation">
+                  <ul role="group" aria-labelledby={`${listboxId}-g-${gi}`}>
                     <li
-                      key={opt.value}
-                      id={optionId(idx)}
-                      role="option"
-                      aria-selected={isSel}
-                      onMouseEnter={() => setHighlight(idx)}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        commit(opt.value);
-                      }}
-                      className={`flex items-center justify-between gap-2 mx-1 px-3 py-2 rounded-lg text-sm cursor-pointer ${
-                        isHi
-                          ? dark
-                            ? "bg-oceanic-500/20 text-white shadow-[inset_3px_0_0_theme(colors.oceanic.400)]"
-                            : "bg-oceanic-500/10 text-slate-900 shadow-[inset_3px_0_0_theme(colors.oceanic.600)]"
-                          : dark
-                            ? "text-slate-200"
-                            : "text-slate-700"
+                      role="presentation"
+                      id={`${listboxId}-g-${gi}`}
+                      className={`px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider ${
+                        dark ? "text-slate-400" : "text-slate-600"
                       }`}
                     >
-                      <span className="flex items-center gap-2 min-w-0">
-                        {opt.icon && (
-                          <span className="flex-shrink-0" aria-hidden="true">
-                            {opt.icon}
-                          </span>
-                        )}
-                        <span className="truncate">{opt.label}</span>
-                      </span>
-                      {isSel && <FaCheck className="flex-shrink-0 text-xs text-oceanic-400" />}
+                      {g.group}
                     </li>
-                  );
-                })}
-              </React.Fragment>
-            ))}
+                    {g.options.map(renderOption)}
+                  </ul>
+                </li>
+              ) : (
+                <React.Fragment key="__flat">{g.options.map(renderOption)}</React.Fragment>
+              ),
+            )}
           </ul>
         </div>
       )}
