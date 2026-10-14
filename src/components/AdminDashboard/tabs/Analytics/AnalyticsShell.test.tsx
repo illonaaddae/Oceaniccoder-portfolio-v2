@@ -526,7 +526,7 @@ describe("AnalyticsShell expenses", () => {
     await userEvent.click(log().getByRole("button", { name: "Add expense" }));
     await userEvent.type(log().getByLabelText("Description"), "Domain");
     await userEvent.type(log().getByLabelText("Amount"), "120");
-    await userEvent.click(log().getByRole("button", { name: /^Date / }));
+    await userEvent.click(log().getByRole("button", { name: /^Date ?\(required\) / }));
     await userEvent.click(screen.getByRole("button", { name: "Clear" }));
     await userEvent.click(log().getByRole("button", { name: "Log expense" }));
     expect(createExpense).not.toHaveBeenCalled();

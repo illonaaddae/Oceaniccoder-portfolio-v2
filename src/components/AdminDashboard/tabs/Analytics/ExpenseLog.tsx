@@ -216,7 +216,11 @@ export function ExpenseLog({
               />
             </div>
             <div className="text-xs font-semibold" style={muted}>
-              <span id={`${formId}-date`}>Date</span>
+              <span id={`${formId}-date`}>
+                Date
+                {/* A button can't carry aria-required; the name says it instead. */}
+                <span className="sr-only">{" (required)"}</span>
+              </span>
               <DatePicker
                 value={form.date}
                 onChange={set("date")}
