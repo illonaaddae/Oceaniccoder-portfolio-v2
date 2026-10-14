@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, test, expect, vi } from "vitest";
 import { DatePicker } from "./DatePicker";
 
@@ -88,5 +88,49 @@ describe("DatePicker", () => {
     expect(screen.getByLabelText("Preferred date").className).toContain("py-2 ");
     rerender(<DatePicker value="" onChange={vi.fn()} theme="light" ariaLabel="Preferred date" />);
     expect(screen.getByLabelText("Preferred date").className).toContain("py-2.5");
+  });
+
+  test("moves focus into the calendar, arrows between days, and returns it on pick", async () => {
+    const onChange = vi.fn();
+    render(<DatePicker value="2026-10-14" onChange={onChange} theme="light" ariaLabel="Date" />);
+    const trigger = screen.getByRole("button", { name: "Date" });
+    fireEvent.click(trigger);
+    const day14 = await screen.findByRole("button", { name: "October 14, 2026" });
+    await waitFor(() => expect(day14).toHaveFocus());
+    expect(day14).toHaveAttribute("aria-pressed", "true");
+    expect(day14).toHaveAttribute("tabindex", "0");
+
+    fireEvent.keyDown(day14, { key: "ArrowRight" });
+    const day15 = screen.getByRole("button", { name: "October 15, 2026" });
+    await waitFor(() => expect(day15).toHaveFocus());
+
+    fireEvent.keyDown(day15, { key: "PageDown" });
+    const nov15 = await screen.findByRole("button", { name: "November 15, 2026" });
+    await waitFor(() => expect(nov15).toHaveFocus());
+
+    fireEvent.click(nov15);
+    expect(onChange).toHaveBeenCalledWith("2026-11-15");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  test("returns focus to the field on Escape", async () => {
+    render(<DatePicker value="2026-10-14" onChange={vi.fn()} theme="dark" ariaLabel="Date" />);
+    const trigger = screen.getByRole("button", { name: "Date" });
+    fireEvent.click(trigger);
+    const day = await screen.findByRole("button", { name: "October 14, 2026" });
+    await waitFor(() => expect(day).toHaveFocus());
+    fireEvent.keyDown(day, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  test("keeps Tab inside the open panel", async () => {
+    render(<DatePicker value="2026-10-14" onChange={vi.fn()} theme="light" ariaLabel="Date" />);
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    const clear = await screen.findByRole("button", { name: "Clear" });
+    clear.focus();
+    fireEvent.keyDown(clear, { key: "Tab" });
+    expect(screen.getByRole("button", { name: "Previous month" })).toHaveFocus();
   });
 });
