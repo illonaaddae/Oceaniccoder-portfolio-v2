@@ -1,5 +1,5 @@
 /* All @import statements must come first (CSS specification) */
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Ysabeau+Office:wght@300;400;500;600;700&display=swap");
+/* Web fonts load from index.html, so they do not wait for this file. */
 @import "./animations.css";
 @import "./components.css";
 
