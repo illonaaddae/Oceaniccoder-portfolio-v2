@@ -445,6 +445,7 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
           value={source}
           options={SOURCE_OPTIONS}
           onChange={changeSource}
+          theme={theme}
         />
       </div>
 

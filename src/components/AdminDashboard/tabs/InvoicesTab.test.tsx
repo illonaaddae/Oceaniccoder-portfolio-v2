@@ -24,6 +24,12 @@ vi.mock("../ConfirmContext", () => ({ useConfirm: () => confirm }));
 
 import InvoicesTab from "./InvoicesTab";
 
+/** Opens a CustomSelect by its visible label and picks an option. */
+async function pick(label: RegExp, option: string) {
+  await userEvent.click(screen.getByRole("button", { name: label }));
+  await userEvent.click(screen.getByRole("option", { name: option }));
+}
+
 const daysFromNow = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString();
 
 const oneOff = {
@@ -134,11 +140,11 @@ describe("InvoicesTab", () => {
 
   it("filters by source and by search", async () => {
     await renderTab();
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: /source/i }), "quotes");
+    await pick(/^Source /, "Quote stages");
     expect(within(table()).queryByText("INV-2026-0042")).toBeNull();
     expect(within(table()).getByText("Q-2026-0001-INV-1")).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: /source/i }), "all");
+    await pick(/^Source /, "All sources");
     await userEvent.type(screen.getByRole("searchbox", { name: /search invoices/i }), "ama@");
     expect(within(table()).getByText("INV-2026-0042")).toBeInTheDocument();
     expect(within(table()).queryByText("Q-2026-0001-INV-1")).toBeNull();

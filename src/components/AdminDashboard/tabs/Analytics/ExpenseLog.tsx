@@ -5,6 +5,7 @@ import { createExpense, deleteExpense } from "@/services/api/expenses";
 import type { Expense } from "@/types";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/hooks/usePagination";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { useConfirm } from "../../ConfirmContext";
 import { formatMoney } from "../shared/money";
 import { ErrorBanner } from "../shared/controls";
@@ -23,6 +24,8 @@ const field: React.CSSProperties = {
 const PAGE_SIZE = 15;
 const CURRENCIES = ["GHS", "USD", "EUR", "GBP", "NGN", "KES"];
 const CATEGORIES = Object.keys(EXPENSE_CATEGORY_LABELS) as Expense["category"][];
+const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({ value: c, label: c }));
+const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: EXPENSE_CATEGORY_LABELS[c] }));
 
 const blankForm = () => ({
   description: "",
@@ -187,36 +190,30 @@ export function ExpenseLog({
                 style={field}
               />
             </label>
-            <label className="block text-xs font-semibold" style={muted}>
-              Currency
-              <select
+            <div className="text-xs font-semibold" style={muted}>
+              <span id={`${formId}-currency`}>Currency</span>
+              <CustomSelect
                 value={form.currency}
-                onChange={(e) => set("currency")(e.target.value)}
-                className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-normal"
-                style={field}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-xs font-semibold" style={muted}>
-              Category
-              <select
+                onChange={set("currency")}
+                options={CURRENCY_OPTIONS}
+                theme={theme}
+                labelId={`${formId}-currency`}
+                size="sm"
+                className="mt-1 font-normal"
+              />
+            </div>
+            <div className="text-xs font-semibold" style={muted}>
+              <span id={`${formId}-category`}>Category</span>
+              <CustomSelect
                 value={form.category}
-                onChange={(e) => set("category")(e.target.value as Expense["category"])}
-                className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-normal"
-                style={field}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {EXPENSE_CATEGORY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={(v) => set("category")(v as Expense["category"])}
+                options={CATEGORY_OPTIONS}
+                theme={theme}
+                labelId={`${formId}-category`}
+                size="sm"
+                className="mt-1 font-normal"
+              />
+            </div>
             <label className="block text-xs font-semibold" style={muted}>
               Date
               <input
