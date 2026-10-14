@@ -551,7 +551,8 @@ describe("AnalyticsShell expenses", () => {
 describe("invoiceIsTop", () => {
   it("rounds the invoice part when the quote part is missing or too short to draw", () => {
     expect(invoiceIsTop(100, { invoice: 500, quote: 0 })).toBe(true);
-    // 100px of invoices at 5px per unit: a 2-unit quote is 0.4px, under the 2px gap.
+    // 100px for 500 of invoices is 0.2px per unit: a quote of 2 is 0.4px and one of
+    // 10 is exactly the 2px gap, so neither is drawn; one of 11 (2.2px) is.
     expect(invoiceIsTop(100, { invoice: 500, quote: 2 })).toBe(true);
     expect(invoiceIsTop(100, { invoice: 500, quote: 10 })).toBe(true);
     expect(invoiceIsTop(100, { invoice: 500, quote: 11 })).toBe(false);
