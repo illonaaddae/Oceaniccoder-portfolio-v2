@@ -81,7 +81,7 @@ describe("MaintenanceEditor", () => {
     await userEvent.type(within(box).getByLabelText("Name for plan 1"), "Basic");
     await userEvent.click(within(box).getByRole("button", { name: /add plan/i }));
     await userEvent.type(within(box).getByLabelText("Name for plan 2"), "Pro");
-    await userEvent.click(within(box).getByRole("button", { name: "Period for plan 2" }));
+    await userEvent.click(within(box).getByRole("combobox", { name: "Period for plan 2" }));
     await userEvent.click(screen.getByRole("option", { name: "per year" }));
     await userEvent.click(within(box).getByRole("button", { name: "Move plan 2 up" }));
     expect(within(box).getByLabelText("Name for plan 1")).toHaveValue("Pro");

@@ -22,7 +22,7 @@ describe("CustomSelect", () => {
         />
       </>,
     );
-    expect(screen.getByRole("button")).toHaveAccessibleName("Source All sources");
+    expect(screen.getByRole("combobox")).toHaveAccessibleName("Source All sources");
   });
 
   it("keeps ariaLabel as the name when no labelId is given", () => {
@@ -35,7 +35,7 @@ describe("CustomSelect", () => {
         ariaLabel="Filter by source"
       />,
     );
-    expect(screen.getByRole("button")).toHaveAccessibleName("Filter by source");
+    expect(screen.getByRole("combobox")).toHaveAccessibleName("Filter by source");
   });
 
   it("names the open list by the visible label and commits the picked option", async () => {
@@ -52,7 +52,7 @@ describe("CustomSelect", () => {
         />
       </>,
     );
-    await userEvent.click(screen.getByRole("button"));
+    await userEvent.click(screen.getByRole("combobox"));
     expect(screen.getByRole("listbox")).toHaveAccessibleName("Source");
     await userEvent.click(screen.getByRole("option", { name: "Quote stages" }));
     expect(onChange).toHaveBeenCalledWith("quotes");
@@ -63,8 +63,49 @@ describe("CustomSelect", () => {
     const { rerender } = render(
       <CustomSelect value="all" onChange={() => {}} options={OPTIONS} theme="light" size="sm" />,
     );
-    expect(screen.getByRole("button").className).toContain("py-2");
+    expect(screen.getByRole("combobox").className).toContain("py-2");
     rerender(<CustomSelect value="all" onChange={() => {}} options={OPTIONS} theme="light" />);
-    expect(screen.getByRole("button").className).toContain("py-3");
+    expect(screen.getByRole("combobox").className).toContain("py-3");
+  });
+
+  it("points aria-activedescendant at the option the arrows highlight", async () => {
+    render(
+      <CustomSelect
+        value="all"
+        onChange={() => {}}
+        options={OPTIONS}
+        theme="light"
+        ariaLabel="Source"
+      />,
+    );
+    const box = screen.getByRole("combobox");
+    box.focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(box).toHaveAttribute("aria-expanded", "true");
+    expect(box).toHaveAttribute("aria-controls", screen.getByRole("listbox").id);
+    const active = () => document.getElementById(box.getAttribute("aria-activedescendant")!);
+    expect(active()).toHaveTextContent("All sources");
+    await userEvent.keyboard("{ArrowDown}");
+    expect(active()).toHaveTextContent("Quote stages");
+  });
+
+  it("closes when focus tabs away, so the panel can't cover the next field", async () => {
+    render(
+      <>
+        <CustomSelect
+          value="all"
+          onChange={() => {}}
+          options={OPTIONS}
+          theme="light"
+          ariaLabel="Source"
+        />
+        <button type="button">Next field</button>
+      </>,
+    );
+    await userEvent.click(screen.getByRole("combobox"));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    await userEvent.tab();
+    expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });

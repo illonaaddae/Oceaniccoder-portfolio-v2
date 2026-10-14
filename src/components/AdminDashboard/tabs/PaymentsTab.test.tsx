@@ -19,7 +19,7 @@ import PaymentsTab from "./PaymentsTab";
 
 /** Opens a CustomSelect by its visible label and picks an option. */
 async function pick(label: RegExp, option: string) {
-  await userEvent.click(screen.getByRole("button", { name: label }));
+  await userEvent.click(screen.getByRole("combobox", { name: label }));
   await userEvent.click(screen.getByRole("option", { name: option }));
 }
 

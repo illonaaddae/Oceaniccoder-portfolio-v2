@@ -114,6 +114,14 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     setHighlight((h) => Math.min(h, Math.max(0, flat.length - 1)));
   }, [flat.length]);
 
+  // Close when focus leaves the control (Tab away), so an open panel never
+  // covers the next focusable field.
+  const onBlur = (e: React.FocusEvent) => {
+    if (!rootRef.current?.contains(e.relatedTarget as HTMLElement | null)) setOpen(false);
+  };
+
+  const optionId = (idx: number) => `${listboxId}-opt-${idx}`;
+
   const commit = (val: string) => {
     onChange(val);
     setOpen(false);
@@ -144,10 +152,10 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   };
 
   const sizeClass = size === "sm" ? "px-3 py-2 rounded-lg text-sm" : "px-4 py-3 rounded-xl";
-  const triggerClass = `w-full flex items-center justify-between gap-2 ${sizeClass} border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 ${
+  const triggerClass = `w-full flex items-center justify-between gap-2 ${sizeClass} border transition-all duration-200 focus:outline-none focus:ring-2 ${
     dark
-      ? "bg-gray-800/80 border-gray-700 text-white focus:border-oceanic-500/60"
-      : "bg-white/50 border-oceanic-200/50 text-slate-900"
+      ? "bg-gray-800/80 border-gray-700 text-white focus:border-oceanic-400 focus:ring-oceanic-400"
+      : "bg-white/50 border-oceanic-200/50 text-slate-900 focus:ring-oceanic-600"
   }`;
 
   const panelClass = `absolute z-50 mt-2 w-full rounded-xl border shadow-xl overflow-hidden ${
@@ -157,14 +165,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   let runningIndex = -1;
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div ref={rootRef} className={`relative ${className}`} onBlur={onBlur}>
       <button
         type="button"
+        role="combobox"
         onClick={() => setOpen((o) => !o)}
         onKeyDown={onKeyDown}
         className={triggerClass}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={open && flat[highlight] ? optionId(highlight) : undefined}
         aria-label={labelId ? undefined : ariaLabel}
         aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
       >
@@ -242,6 +253,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                   return (
                     <li
                       key={opt.value}
+                      id={optionId(idx)}
                       role="option"
                       aria-selected={isSel}
                       onMouseEnter={() => setHighlight(idx)}
@@ -252,8 +264,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                       className={`flex items-center justify-between gap-2 mx-1 px-3 py-2 rounded-lg text-sm cursor-pointer ${
                         isHi
                           ? dark
-                            ? "bg-oceanic-500/20 text-white"
-                            : "bg-oceanic-500/10 text-slate-900"
+                            ? "bg-oceanic-500/20 text-white shadow-[inset_3px_0_0_theme(colors.oceanic.400)]"
+                            : "bg-oceanic-500/10 text-slate-900 shadow-[inset_3px_0_0_theme(colors.oceanic.600)]"
                           : dark
                             ? "text-slate-200"
                             : "text-slate-700"

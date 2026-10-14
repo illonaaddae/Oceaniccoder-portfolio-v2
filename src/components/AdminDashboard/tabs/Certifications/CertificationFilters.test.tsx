@@ -68,7 +68,7 @@ describe("CertificationsTab filters", () => {
 
   it("narrows the table by platform", () => {
     renderTab();
-    fireEvent.click(screen.getByRole("button", { name: "Filter by platform" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Filter by platform" }));
     // CustomSelect commits on mousedown, not click.
     fireEvent.mouseDown(screen.getByRole("option", { name: "AWS" }));
 
