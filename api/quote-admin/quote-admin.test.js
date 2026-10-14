@@ -354,6 +354,43 @@ describe("quote-admin", () => {
       expect(t.notify.quoteEmailAgain).not.toHaveBeenCalled();
     });
 
+    it("refuses a sent quote that has passed its valid-until date", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      await t.repo.update(id, { validUntil: "2026-10-01T09:00:00.000Z" });
+      const before = t.repo.quotes.get(id).tokenHash;
+      const r = await t.call({ action: "emailAgain", id });
+      expect(r.status).toBe(409);
+      expect(r.body.error).toMatch(/expired/i);
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+    });
+
+    it("refuses an accepted quote with nothing due, leaving the link alone", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+      await t.repo.createPayment({
+        quoteNumber: "Q-2026-0001",
+        stageId: "deposit",
+        status: "success",
+        paidAt: NOW.toISOString(),
+      });
+      const before = t.repo.quotes.get(id).tokenHash;
+      const r = await t.call({ action: "emailAgain", id });
+      expect(r.status).toBe(409);
+      expect(r.body.error).toMatch(/nothing is due/i);
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+      expect(t.notify.quoteEmailAgain).not.toHaveBeenCalled();
+    });
+
+    it("refuses an address longer than 254 characters instead of cutting it short", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      const long = `${"a".repeat(250)}@b.co`;
+      expect((await t.call({ action: "emailAgain", id, to: long })).status).toBe(400);
+      expect(t.notify.quoteEmailAgain).not.toHaveBeenCalled();
+    });
+
     it("reports which addresses the email failed to reach", async () => {
       const t = setup();
       const id = (await sentQuote(t)).body.quote.id;

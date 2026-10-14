@@ -52,6 +52,36 @@ describe("notify.quoteEmailAgain", () => {
     expect(send.mock.calls[0][0].subject).toBe(expected.mock.calls[0][0].subject);
   });
 
+  it("sends the stage invoice, not the deposit email, once the deposit is paid", async () => {
+    const send = vi.fn().mockResolvedValue({ ok: true });
+    const q = {
+      ...quote("accepted"),
+      respondedAt: "2026-10-11T09:00:00.000Z",
+      payState: { due: { balance: "2026-11-01T09:00:00.000Z" } },
+    };
+    const paid = [{ stageId: "deposit", status: "success", paidAt: "2026-10-12T09:00:00.000Z" }];
+    const stages = M.stageStates(q, paid, Date.parse("2026-11-02T09:00:00.000Z"));
+    await createNotifier({ send, base: "https://oceaniccoder.dev" }).quoteEmailAgain(
+      q,
+      "tok",
+      stages,
+      "prince_ofori@hotmail.com",
+    );
+    const mail = send.mock.calls[0][0];
+    expect(mail.subject).toMatch(/^Invoice Q-2026-0001-INV-2: Balance/);
+    expect(mail.text).not.toMatch(/pay the deposit/i);
+  });
+
+  it("sends nothing for an accepted quote with nothing due", async () => {
+    const send = vi.fn();
+    const q = { ...quote("accepted"), respondedAt: "2026-10-11T09:00:00.000Z" };
+    const paid = [{ stageId: "deposit", status: "success", paidAt: "2026-10-12T09:00:00.000Z" }];
+    const stages = M.stageStates(q, paid, Date.parse("2026-11-02T09:00:00.000Z"));
+    const r = await createNotifier({ send }).quoteEmailAgain(q, "tok", stages, "a@b.co");
+    expect(r.ok).toBe(false);
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("returns a failure instead of throwing when sending fails", async () => {
     const send = vi.fn().mockRejectedValue(new Error("network down"));
     const r = await createNotifier({ send }).quoteEmailAgain(quote("sent"), "tok", [], "a@b.co");

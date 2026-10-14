@@ -176,28 +176,39 @@ const actions = {
   // another address. The raw link isn't stored, so this issues a fresh one and
   // the old link stops working, as with rotate. It goes to the client's address
   // and to `to` if given, one email each; with saveAddress, `to` becomes the
-  // client's email from now on (receipts and payment requests included).
+  // client's email for later emails (payment requests, maintenance offers).
+  // Accepted quotes get whatever is due now, so there must be something due.
   async emailAgain(svc, input) {
     const quote = await load(svc, input.id);
     if (!["sent", "accepted"].includes(quote.status))
       throw new HttpError(409, "Only sent or accepted quotes can be emailed again.");
-    const extra = str(input.to, 254).toLowerCase();
+    const now = svc.now().getTime();
+    if (M.isExpired(quote, now))
+      throw new HttpError(409, "This quote has expired. Revise it to send a new one.");
+    const raw = typeof input.to === "string" ? input.to.trim() : "";
+    if (raw.length > 254) throw new HttpError(400, "Enter a valid email address.");
+    const extra = raw.toLowerCase();
     if (extra && !M.EMAIL_RE.test(extra)) throw new HttpError(400, "Enter a valid email address.");
     const save = input.saveAddress === true;
     if (save && !extra) throw new HttpError(400, "Enter the address to use from now on.");
     const addresses = [...new Set([quote.clientEmail, extra].filter(Boolean))];
     if (!addresses.length) throw new HttpError(400, "Add the client's email address first.");
+    const payments = await svc.repo.listPayments(quote.quoteNumber);
+    if (
+      quote.status === "accepted" &&
+      !M.paymentSummary(M.stageStates(quote, payments, now)).nextDue
+    )
+      throw new HttpError(
+        409,
+        "Nothing is due on this quote, so there's no email to send. Use New link to share the quote page.",
+      );
 
     const token = newToken();
     const updated = await svc.repo.update(quote.id, {
       tokenHash: hashToken(token),
       ...(save ? { clientEmail: extra } : {}),
     });
-    const stages = M.stageStates(
-      updated,
-      await svc.repo.listPayments(updated.quoteNumber),
-      svc.now().getTime(),
-    );
+    const stages = M.stageStates(updated, payments, now);
     const results = await Promise.all(
       addresses.map((address) => svc.notify.quoteEmailAgain(updated, token, stages, address)),
     );
