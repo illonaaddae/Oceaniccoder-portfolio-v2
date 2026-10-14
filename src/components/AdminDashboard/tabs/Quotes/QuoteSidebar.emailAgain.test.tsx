@@ -114,6 +114,73 @@ describe("QuoteSidebar Email again", () => {
     );
   });
 
+  it("is not offered for a sent quote past its valid-until date", () => {
+    const sent = detail("sent");
+    renderSidebar({
+      ...sent,
+      quote: { ...sent.quote, validUntil: "2020-01-01T00:00:00.000Z" },
+    } as QuoteDetailResponse);
+    expect(screen.queryByRole("button", { name: "Email again" })).not.toBeInTheDocument();
+  });
+
+  it("doesn't reopen by itself when a later stage becomes due", async () => {
+    const view = (data: QuoteDetailResponse) => (
+      <MemoryRouter>
+        <QuoteSidebar data={data} onChanged={vi.fn()} />
+      </MemoryRouter>
+    );
+    const balance = { ...depositDue, id: "balance", label: "Balance", index: 1, state: "later" };
+    const { rerender } = render(
+      view(detail("accepted", "kofi@example.com", [depositDue, balance])),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Email again" }));
+    await userEvent.type(screen.getByLabelText(/also send to/i), "x@y.com");
+    const paid = { ...depositDue, state: "paid" };
+    rerender(view(detail("accepted", "kofi@example.com", [paid, balance])));
+    rerender(view(detail("accepted", "kofi@example.com", [paid, { ...balance, state: "due" }])));
+    expect(screen.queryByLabelText(/also send to/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Email again" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("keeps focus on Send email while sending and returns it to the button after", async () => {
+    let finish: (v: unknown) => void = () => {};
+    quoteAdmin.mockReturnValue(new Promise((r) => (finish = r)));
+    renderSidebar(detail("sent"));
+    await userEvent.click(screen.getByRole("button", { name: "Email again" }));
+    const sendButton = screen.getByRole("button", { name: "Send email" });
+    await userEvent.click(sendButton);
+    expect(sendButton).not.toBeDisabled();
+    expect(sendButton).toHaveAttribute("aria-disabled", "true");
+    expect(sendButton).toHaveFocus();
+    await userEvent.click(sendButton);
+    expect(quoteAdmin).toHaveBeenCalledTimes(1);
+    finish({
+      ...detail("sent"),
+      link: LINK,
+      emailed: true,
+      emailedTo: ["kofi@example.com"],
+      failedTo: [],
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Email again" })).toHaveFocus());
+  });
+
+  it("puts focus back in the address field when the send fails", async () => {
+    quoteAdmin.mockRejectedValue(new Error("Enter a valid email address."));
+    renderSidebar(detail("sent"));
+    await userEvent.click(screen.getByRole("button", { name: "Email again" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send email" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Enter a valid email address.");
+    await waitFor(() => expect(screen.getByLabelText(/also send to/i)).toHaveFocus());
+  });
+
+  it("keeps the status region mounted so new messages are announced", () => {
+    renderSidebar(detail("sent"));
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("is not offered for a draft", () => {
     renderSidebar(detail("draft"));
     expect(screen.queryByRole("button", { name: "Email again" })).not.toBeInTheDocument();

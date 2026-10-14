@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck, FaEye } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
@@ -12,8 +12,10 @@ import { INVALID_AMOUNT } from "./PriceInput";
 const btn =
   "px-3 py-2 rounded-lg text-sm font-medium border transition hover:opacity-90 disabled:opacity-50";
 const btnStyle = { borderColor: "var(--border-subtle)", color: "var(--text-primary)" };
+// oceanic-600 to oceanic-700: white text is 5.9-8.1:1. The old start colour,
+// --accent-teal, is #26a9c5 in dark theme, where white text was only 2.8:1.
 const primary = {
-  background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+  background: "linear-gradient(135deg, #0a6e7d 0%, #085866 100%)",
   color: "#fff",
   borderColor: "transparent",
 };
@@ -56,9 +58,12 @@ export default function QuoteSidebar({
   } | null>(null);
   const againRef = useRef<HTMLInputElement>(null);
   const againButtonRef = useRef<HTMLButtonElement>(null);
+  // Focus goes back to the button once it is rendered and enabled again, so it
+  // never drops to <body> while a send is still finishing.
+  const restoreAgainFocus = useRef(false);
   const closeAgain = () => {
+    restoreAgainFocus.current = true;
     setAgain(null);
-    requestAnimationFrame(() => againButtonRef.current?.focus());
   };
   const [manual, setManual] = useState<{
     stageId: string;
@@ -112,11 +117,21 @@ export default function QuoteSidebar({
 
   const { quote, stages, payments } = data;
   // An accepted quote is emailed again as whatever is due now, so it needs a due stage.
+  // The server refuses a sent quote past its valid-until date and an accepted
+  // one with nothing due, so the button isn't offered for either.
   const canEmailAgain =
-    quote.status === "sent" ||
+    (quote.status === "sent" && !(quote.validUntil && Date.parse(quote.validUntil) < Date.now())) ||
     (quote.status === "accepted" && stages.some((s) => s.state === "due"));
-  const againKey = `${quote.status}:${quote.revision}`;
+  // Includes the due stage, so a form left open doesn't reappear by itself when
+  // a different stage becomes due later.
+  const againKey = `${quote.status}:${quote.revision}:${stages.find((s) => s.state === "due")?.id ?? ""}`;
   const againOpen = again !== null && canEmailAgain && again.openedFor === againKey;
+  useLayoutEffect(() => {
+    if (restoreAgainFocus.current && !busy && !againOpen) {
+      restoreAgainFocus.current = false;
+      againButtonRef.current?.focus();
+    }
+  }, [busy, againOpen]);
   const anyPaid =
     stages.some((s) => s.state === "paid") || payments.some((p) => p.status === "success");
 
@@ -187,20 +202,28 @@ export default function QuoteSidebar({
         />
       )}
 
-      {message && (
-        <p
-          role={message.tone === "ok" ? "status" : "alert"}
-          className="text-sm rounded-lg px-3 py-2"
-          style={{
-            background:
-              message.tone === "ok" ? "var(--status-success-bg)" : "var(--status-failed-bg)",
-            color:
-              message.tone === "ok" ? "var(--status-success-text)" : "var(--status-failed-text)",
-          }}
-        >
-          {message.text}
-        </p>
-      )}
+      {/* Both live regions stay mounted and only their text changes, so screen
+          readers announce each new message reliably. */}
+      <div role="status">
+        {message?.tone === "ok" && (
+          <p
+            className="text-sm rounded-lg px-3 py-2"
+            style={{ background: "var(--status-success-bg)", color: "var(--status-success-text)" }}
+          >
+            {message.text}
+          </p>
+        )}
+      </div>
+      <div role="alert">
+        {message?.tone === "error" && (
+          <p
+            className="text-sm rounded-lg px-3 py-2"
+            style={{ background: "var(--status-failed-bg)", color: "var(--status-failed-text)" }}
+          >
+            {message.text}
+          </p>
+        )}
+      </div>
 
       {link && (
         <div className="flex flex-wrap items-center gap-2">
@@ -378,9 +401,11 @@ export default function QuoteSidebar({
           style={{ borderColor: "var(--border-subtle)" }}
           onSubmit={(e) => {
             e.preventDefault();
+            if (busy) return;
             void run("emailAgain", { to: again.to.trim(), saveAddress: again.saveAddress }).then(
               (ok) => {
                 if (ok) closeAgain();
+                else againRef.current?.focus();
               },
             );
           }}
@@ -433,7 +458,14 @@ export default function QuoteSidebar({
             </p>
           )}
           <div className="flex gap-2">
-            <button type="submit" disabled={busy} className={btn} style={primary}>
+            {/* aria-disabled, not disabled: disabling the focused button would
+                drop keyboard focus to <body> while the email sends. */}
+            <button
+              type="submit"
+              aria-disabled={busy}
+              className={`${btn} aria-disabled:opacity-50`}
+              style={primary}
+            >
               Send email
             </button>
             <button type="button" className={btn} style={btnStyle} onClick={closeAgain}>
