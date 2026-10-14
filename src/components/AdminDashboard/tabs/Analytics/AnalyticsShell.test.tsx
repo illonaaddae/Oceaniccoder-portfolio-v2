@@ -438,6 +438,19 @@ describe("AnalyticsShell expenses", () => {
     ]);
   });
 
+  it("marks a largest expense with no rate as unconverted", async () => {
+    getExpenses
+      .mockReset()
+      .mockResolvedValue([
+        ...EXPENSES,
+        { ...EXPENSES[0], $id: "e6", description: "Visa fee", amount: 5000, currency: "XOF" },
+      ]);
+    await renderShell();
+    const [first] = within(card("Largest this range")).getAllByRole("listitem");
+    expect(first).toHaveTextContent("Visa fee");
+    expect(first).toHaveTextContent("XOF 5,000.00(unconverted)");
+  });
+
   it("lists expenses per period, with the previous period, behind a table", async () => {
     await renderShell();
     await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");

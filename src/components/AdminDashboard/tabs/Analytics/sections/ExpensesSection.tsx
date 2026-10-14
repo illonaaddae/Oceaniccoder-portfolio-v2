@@ -5,7 +5,7 @@ import { formatMoney } from "../../shared/money";
 import { ShareList } from "../BreakdownTable";
 import { ChartCard, TableDisclosure } from "../ChartCard";
 import { ExpenseLog } from "../ExpenseLog";
-import { formatDay } from "../metrics/format";
+import { formatDay, toApproxGHS } from "../metrics/format";
 import { dayOf, type Bucket, type DateRange } from "../metrics/range";
 import {
   EXPENSE_CATEGORY_LABELS,
@@ -146,6 +146,12 @@ export function ExpensesSection({
                   </span>
                   <span className="whitespace-nowrap text-sm font-bold tabular-nums" style={strong}>
                     {formatMoney(Number(e.amount) || 0, e.currency)}
+                    {/* Ranked by its raw amount: there's no rate to compare it at. */}
+                    {toApproxGHS(Number(e.amount) || 0, e.currency) === null && (
+                      <span className="block text-xs font-medium" style={muted}>
+                        (unconverted)
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}
