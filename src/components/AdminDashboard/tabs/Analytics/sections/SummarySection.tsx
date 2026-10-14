@@ -141,7 +141,6 @@ export function SummarySection({
     const cashLine = cashSeries(ledger, range, unit, bucket).map((p) => p.total);
     const spentLine = expenseSeries(expenses, range, unit, bucket).map((p) => p.amount);
     const stats = paymentStats(inRange);
-    const averages = stats.map((s) => formatMoney(s.average, s.currency)).join(", ");
     return {
       cash,
       spent,
@@ -149,9 +148,12 @@ export function SummarySection({
       cashLine,
       spentLine,
       netLine: cashLine.map((c, i) => c - (spentLine[i] ?? 0)),
+      // "2 GHS (avg GHS 275.00), 1 USD (avg USD 100.00)"
       cashNote:
-        inRange.length > 0
-          ? `${plural(inRange.length, "payment", "payments")}, avg ${averages}`
+        stats.length > 0
+          ? stats
+              .map((s) => `${s.count} ${s.currency} (avg ${formatMoney(s.average, s.currency)})`)
+              .join(", ")
           : "No payments",
       spentNote: plural(spentIn.length, "expense", "expenses"),
       cashMissing: unconverted(unit, cash, cashBefore),

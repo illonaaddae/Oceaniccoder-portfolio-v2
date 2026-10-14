@@ -202,7 +202,7 @@ describe("AnalyticsShell summary", () => {
     ).toBeInTheDocument();
     expect(within(figure("Cash collected")).queryByText("0.00")).not.toBeInTheDocument();
     // No payment stats, and no "estimated" warning built from missing rows.
-    expect(within(figure("Cash collected")).queryByText(/payments, avg/)).not.toBeInTheDocument();
+    expect(within(figure("Cash collected")).queryByText(/\(avg /)).not.toBeInTheDocument();
     expect(screen.queryByText(/estimated date/)).not.toBeInTheDocument();
     // Other sources still show.
     expect(within(figure("Expenses")).getByText("GHS 80.00")).toBeInTheDocument();
@@ -220,7 +220,9 @@ describe("AnalyticsShell key figures", () => {
       "good",
     );
     expect(within(cash).getByText("up 175% on the previous period, in GHS")).toBeInTheDocument();
-    expect(within(cash).getByText(/3 payments, avg GHS 275\.00, USD 100\.00/)).toBeInTheDocument();
+    expect(
+      within(cash).getByText(/^2 GHS \(avg GHS 275\.00\), 1 USD \(avg USD 100\.00\)/),
+    ).toBeInTheDocument();
   });
 
   it("counts expenses going down as good", async () => {
