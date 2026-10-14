@@ -22,26 +22,28 @@ export const NAV_BASE_CLASS =
 
 export const MOBILE_BASE_CLASS = "text-left py-3 px-4 rounded-xl transition-all duration-300";
 
+// Dark-theme link text is oceanic-400, never 500: on the dark navbar and menu
+// (with or without the 20% active tint) oceanic-500 measured 3.7-4.0:1, under
+// AA; oceanic-400 is 5.7-6.3:1.
 export function getNavActiveClass(theme) {
-  // Dark: oceanic-500 on its own 20% tint was 3.7:1; oceanic-400 is about 5.9:1.
   return theme === "dark" ? "text-oceanic-400 bg-oceanic-500/20" : "text-oceanic-600 bg-oceanic-50";
 }
 
 export function getNavInactiveClass(theme) {
   return theme === "dark"
-    ? "text-gray-300 hover:text-oceanic-500 hover:bg-white/10"
+    ? "text-gray-300 hover:text-oceanic-400 hover:bg-white/10"
     : "text-slate-900 hover:text-oceanic-600 hover:bg-gray-100";
 }
 
 export function getMobileActiveClass(theme) {
   return theme === "dark"
-    ? "text-oceanic-500 bg-oceanic-500/20 border border-oceanic-500/30"
+    ? "text-oceanic-400 bg-oceanic-500/20 border border-oceanic-500/30"
     : "text-oceanic-600 bg-oceanic-50 border border-oceanic-200";
 }
 
 export function getMobileInactiveClass(theme) {
   return theme === "dark"
-    ? "text-gray-200 hover:text-oceanic-500 hover:bg-white/10"
+    ? "text-gray-200 hover:text-oceanic-400 hover:bg-white/10"
     : "text-slate-900 hover:text-oceanic-600 hover:bg-gray-100";
 }
 
