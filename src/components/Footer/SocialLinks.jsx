@@ -57,7 +57,7 @@ const SocialLinks = React.memo(() => (
             <span className="text-gray-800 dark:text-white text-sm font-medium">
               Scrimba Ambassador
             </span>
-            <span className="px-2 py-0.5 bg-oceanic-500 text-white text-xs font-bold rounded-full animate-pulse">
+            <span className="px-2 py-0.5 bg-oceanic-600 text-white text-xs font-bold rounded-full animate-pulse">
               20% OFF
             </span>
           </div>

@@ -18,4 +18,14 @@ describe("footer column headings", () => {
     );
     expect(screen.getByRole("heading", { name, level: 3 })).toBeInTheDocument();
   });
+
+  // White 12px bold text on oceanic-500 was 4.34:1; oceanic-600 is 5.9:1.
+  it("puts the ambassador discount label on oceanic-600", () => {
+    render(
+      <MemoryRouter>
+        <SocialLinks />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("20% OFF")).toHaveClass("bg-oceanic-600", "text-white");
+  });
 });

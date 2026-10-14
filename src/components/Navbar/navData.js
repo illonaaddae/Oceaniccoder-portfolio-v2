@@ -23,7 +23,8 @@ export const NAV_BASE_CLASS =
 export const MOBILE_BASE_CLASS = "text-left py-3 px-4 rounded-xl transition-all duration-300";
 
 export function getNavActiveClass(theme) {
-  return theme === "dark" ? "text-oceanic-500 bg-oceanic-500/20" : "text-oceanic-600 bg-oceanic-50";
+  // Dark: oceanic-500 on its own 20% tint was 3.7:1; oceanic-400 is about 5.9:1.
+  return theme === "dark" ? "text-oceanic-400 bg-oceanic-500/20" : "text-oceanic-600 bg-oceanic-50";
 }
 
 export function getNavInactiveClass(theme) {
