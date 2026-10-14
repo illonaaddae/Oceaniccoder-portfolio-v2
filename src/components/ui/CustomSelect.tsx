@@ -200,7 +200,15 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       </button>
 
       {open && (
-        <div className={panelClass}>
+        // Keep focus on the trigger when the pointer lands on a group header, the
+        // "No matches" row or the padding; otherwise focus-out would close the panel.
+        // The search box still takes focus.
+        <div
+          className={panelClass}
+          onMouseDown={(e) => {
+            if (e.target !== searchRef.current) e.preventDefault();
+          }}
+        >
           {searchable && (
             <div
               className={`flex items-center gap-2 px-3 py-2 border-b ${

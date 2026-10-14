@@ -108,4 +108,20 @@ describe("CustomSelect", () => {
     expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
+
+  it("stays open when the pointer lands on a group header", async () => {
+    render(
+      <CustomSelect
+        value="a"
+        onChange={() => {}}
+        groups={[{ group: "Letters", options: [{ value: "a", label: "A" }] }]}
+        theme="light"
+        ariaLabel="Pick"
+      />,
+    );
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(screen.getByText("Letters"));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toHaveFocus();
+  });
 });
