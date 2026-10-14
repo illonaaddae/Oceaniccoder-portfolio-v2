@@ -60,7 +60,7 @@ export function BreakdownTable({
         {rows.map((r) => (
           <tr key={r.key} className="border-b" style={{ borderColor: "var(--border-subtle)" }}>
             <th scope="row" className="py-2 pr-3 text-left font-medium" style={strong}>
-              <span className="block truncate">{r.label}</span>
+              <span className="block [overflow-wrap:anywhere] sm:truncate">{r.label}</span>
               <span
                 aria-hidden="true"
                 className="mt-1 block h-1.5 rounded-full"
@@ -170,7 +170,7 @@ export function MethodBreakdown({
               </span>
               <span className="min-w-0">
                 <span className="flex justify-between gap-2 text-sm font-bold" style={strong}>
-                  <span className="truncate">{r.label}</span>
+                  <span className="min-w-0 [overflow-wrap:anywhere] sm:truncate">{r.label}</span>
                   <span className="text-xs font-medium tabular-nums" style={muted}>
                     {r.count}
                   </span>
@@ -256,7 +256,7 @@ export function ShareList({
           {avatars && <Avatar name={r.label} />}
           <span className="min-w-0">
             <span className="flex justify-between gap-2 text-sm font-bold" style={strong}>
-              <span className="truncate">{r.label}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere] sm:truncate">{r.label}</span>
               <span className="whitespace-nowrap text-xs font-medium tabular-nums" style={muted}>
                 {r.count} {r.count === 1 ? noun[0] : noun[1]}
               </span>

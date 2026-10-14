@@ -98,7 +98,9 @@ export function ChartCard({
           >
             Show the data as a table
           </summary>
-          <div className="mt-2 overflow-x-auto">{table}</div>
+          {/* relative: the table's sr-only text is absolutely placed and would
+              otherwise escape this box and scroll the page sideways. */}
+          <div className="relative mt-2 overflow-x-auto">{table}</div>
         </details>
       </>
     );

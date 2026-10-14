@@ -644,6 +644,14 @@ textarea:focus {
     top: calc(-1 * var(--analytics-pane-pad, 0px));
   }
 }
+/* Blog post titles in the Content section truncate at any width; on phones
+   they wrap instead, so the whole title stays readable. */
+@media (max-width: 639px) {
+  #analytics-content .truncate {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
 .analytics-dash .glass-card {
   background: var(--analytics-card);
   border: 1px solid var(--analytics-line);

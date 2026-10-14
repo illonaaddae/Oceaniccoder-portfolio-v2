@@ -87,7 +87,10 @@ export function ExpensesSection({
               {largest.map((e) => (
                 <li key={e.$id} className="flex items-start justify-between gap-3">
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold" style={strong}>
+                    <span
+                      className="block text-sm font-bold [overflow-wrap:anywhere] sm:truncate"
+                      style={strong}
+                    >
                       {e.description}
                     </span>
                     <span className="block text-xs" style={muted}>

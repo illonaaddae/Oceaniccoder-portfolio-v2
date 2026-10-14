@@ -243,7 +243,10 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false, theme }:
           {pageItems.map((exp) => (
             <li key={exp.$id} className="flex items-center gap-3 px-5 py-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium" style={strong}>
+                <p
+                  className="text-sm font-medium [overflow-wrap:anywhere] sm:truncate"
+                  style={strong}
+                >
                   {exp.description}
                 </p>
                 <p className="mt-0.5 text-xs" style={muted}>

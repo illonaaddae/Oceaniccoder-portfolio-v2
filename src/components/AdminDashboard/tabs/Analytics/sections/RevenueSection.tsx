@@ -467,7 +467,10 @@ function PaymentList({
             className="flex items-center justify-between gap-3 py-2 text-sm"
           >
             <span className="min-w-0">
-              <span className="block truncate font-medium" style={strong}>
+              <span
+                className="block font-medium [overflow-wrap:anywhere] sm:truncate"
+                style={strong}
+              >
                 {e.clientName || e.clientEmail || "Unnamed client"}
               </span>
               <span className="block text-xs" style={muted}>
@@ -506,8 +509,7 @@ function StatusPill({ status }: { status: OwedStatus }) {
   const { mark, style } = PILL_STYLES[status.kind];
   return (
     <span
-      // Wraps on phones, where the table's status column is narrow.
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold sm:whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold"
       style={style}
     >
       <span aria-hidden="true">{mark}</span>
@@ -543,20 +545,25 @@ function OutstandingCard({
       loading={loading && total === 0}
       empty={total === 0 ? "Nothing is owed right now." : null}
     >
-      {/* Fixed layout so a long client name truncates instead of widening the card. */}
+      {/* Fixed layout so a long client name wraps or truncates instead of widening
+          the card. Below sm the status moves under the name to leave it room. */}
       <table className="w-full table-fixed text-sm tabular-nums">
         <caption className="sr-only">Invoices and quote stages owed now</caption>
         <colgroup>
           <col />
-          <col className="w-[6.5rem] sm:w-[8.5rem]" />
-          <col className="w-[6rem] sm:w-[6.5rem]" />
+          <col className="hidden w-[8.5rem] sm:table-column" />
+          <col className="w-[6.5rem]" />
         </colgroup>
         <thead>
           <tr className="border-b" style={{ borderColor: "var(--analytics-line)" }}>
             <th scope="col" className="pb-2 pr-2 text-left text-xs font-bold" style={muted}>
               Client
             </th>
-            <th scope="col" className="pb-2 pr-2 text-left text-xs font-bold" style={muted}>
+            <th
+              scope="col"
+              className="hidden pb-2 pr-2 text-left text-xs font-bold sm:table-cell"
+              style={muted}
+            >
               Status
             </th>
             <th scope="col" className="pb-2 text-right text-xs font-bold" style={muted}>
@@ -577,16 +584,25 @@ function OutstandingCard({
                     <Avatar name={i.clientName || "?"} size={28} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-bold" style={strong}>
+                    <span
+                      className="block font-bold [overflow-wrap:anywhere] sm:truncate"
+                      style={strong}
+                    >
                       {i.clientName || "Unnamed client"}
                     </span>
-                    <span className="block truncate font-mono text-xs" style={muted}>
+                    <span
+                      className="block font-mono text-xs [overflow-wrap:anywhere] sm:truncate"
+                      style={muted}
+                    >
                       {i.number}
+                    </span>
+                    <span className="mt-1 block sm:hidden">
+                      <StatusPill status={owedStatus(i)} />
                     </span>
                   </span>
                 </span>
               </td>
-              <td className="py-2.5 pr-2">
+              <td className="hidden py-2.5 pr-2 sm:table-cell">
                 <StatusPill status={owedStatus(i)} />
               </td>
               <td className="py-2.5 text-right font-bold" style={strong}>
