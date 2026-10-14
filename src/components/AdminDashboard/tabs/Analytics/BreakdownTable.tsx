@@ -40,7 +40,7 @@ export function BreakdownTable({
     <table className="w-full text-sm">
       <caption className="sr-only">{caption}</caption>
       <thead>
-        <tr className="border-b text-left" style={{ borderColor: "var(--border-subtle)" }}>
+        <tr className="border-b text-left" style={{ borderColor: "var(--analytics-line)" }}>
           <th scope="col" className="py-2 pr-3 text-xs font-semibold uppercase" style={muted}>
             {keyHeader}
           </th>
@@ -58,7 +58,7 @@ export function BreakdownTable({
       </thead>
       <tbody>
         {rows.map((r) => (
-          <tr key={r.key} className="border-b" style={{ borderColor: "var(--border-subtle)" }}>
+          <tr key={r.key} className="border-b" style={{ borderColor: "var(--analytics-line)" }}>
             <th scope="row" className="py-2 pr-3 text-left font-medium" style={strong}>
               <span className="block [overflow-wrap:anywhere] sm:truncate">{r.label}</span>
               <span
@@ -66,7 +66,7 @@ export function BreakdownTable({
                 className="mt-1 block h-1.5 rounded-full"
                 style={{
                   width: `${max > 0 ? Math.max((r.amount / max) * 100, 2) : 0}%`,
-                  background: "var(--brand-ocean-2)",
+                  background: "var(--analytics-accent)",
                 }}
               />
             </th>
@@ -270,7 +270,7 @@ export function ShareList({
                 className="block h-full rounded-full"
                 style={{
                   width: `${Math.max(share(r.amount, max), 2)}%`,
-                  background: "var(--brand-ocean-2)",
+                  background: "var(--analytics-accent)",
                 }}
               />
             </span>

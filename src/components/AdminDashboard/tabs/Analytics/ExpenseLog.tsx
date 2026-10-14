@@ -114,7 +114,7 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false, theme }:
     <section className="glass-card overflow-hidden rounded-xl" aria-labelledby={`${formId}-title`}>
       <div
         className="flex items-center justify-between gap-3 px-5 py-4"
-        style={{ borderBottom: "1px solid var(--border-subtle)" }}
+        style={{ borderBottom: "1px solid var(--analytics-line)" }}
       >
         <h3 id={`${formId}-title`} className="text-base font-bold" style={strong}>
           Expense log{" "}
@@ -149,7 +149,7 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false, theme }:
           id={`${formId}-form`}
           onSubmit={add}
           className="space-y-3 px-5 py-4"
-          style={{ borderBottom: "1px solid var(--border-subtle)" }}
+          style={{ borderBottom: "1px solid var(--analytics-line)" }}
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-xs font-semibold sm:col-span-2" style={muted}>

@@ -576,6 +576,7 @@ textarea:focus {
    check in both themes. */
 :root {
   --analytics-card: #0b1628;
+  --analytics-accent: #26a9c5; /* share bars */
   --analytics-line: #1c2c44;
   --analytics-line-soft: #132238;
   --analytics-bar-bg: rgba(10, 15, 26, 0.9);
@@ -592,6 +593,7 @@ textarea:focus {
 }
 [data-theme="light"] {
   --analytics-card: #ffffff;
+  --analytics-accent: #0a6e7d; /* share bars */
   --analytics-line: #dde5ea;
   --analytics-line-soft: #edf2f4;
   --analytics-bar-bg: rgba(255, 255, 255, 0.9);
