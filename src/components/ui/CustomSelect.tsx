@@ -148,7 +148,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       // Stop here so an enclosing Modal's document listener doesn't close too.
       e.stopPropagation();
       close();
-    } else if (e.key === "Home" || e.key === "End") {
+    } else if ((e.key === "Home" || e.key === "End") && e.target === triggerRef.current) {
+      // In the search box Home/End keep moving the text cursor.
       e.preventDefault();
       setHighlight(e.key === "Home" ? 0 : Math.max(0, flat.length - 1));
     } else if (e.key === " " && !searchable) {

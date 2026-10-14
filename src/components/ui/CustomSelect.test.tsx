@@ -213,4 +213,27 @@ describe("CustomSelect", () => {
       document.removeEventListener("keydown", onDocKey);
     }
   });
+
+  it("leaves Home/End to the text cursor in the search box", async () => {
+    render(
+      <CustomSelect
+        value="all"
+        onChange={() => {}}
+        options={OPTIONS}
+        theme="light"
+        ariaLabel="Source"
+        searchable
+      />,
+    );
+    const box = screen.getByRole("combobox");
+    await userEvent.click(box);
+    const search = await screen.findByPlaceholderText<HTMLInputElement>("Search…");
+    await waitFor(() => expect(search).toHaveFocus());
+    await userEvent.type(search, "qu{End}");
+    const highlighted = () => document.getElementById(box.getAttribute("aria-activedescendant")!);
+    expect(highlighted()).toHaveTextContent("Quote stages");
+    await userEvent.keyboard("{Home}");
+    expect(search.selectionStart).toBe(0);
+    expect(highlighted()).toHaveTextContent("Quote stages");
+  });
 });
