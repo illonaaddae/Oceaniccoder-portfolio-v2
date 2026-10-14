@@ -203,21 +203,23 @@ export default function QuoteSidebar({
       )}
 
       {/* Both live regions stay mounted and only their text changes, so screen
-          readers announce each new message reliably. */}
-      <div role="status">
+          readers announce each new message reliably. The wrappers opt out of the
+          aside's space-y gap (empty, they'd add blank space); the message
+          carries it instead. */}
+      <div role="status" className="!mt-0">
         {message?.tone === "ok" && (
           <p
-            className="text-sm rounded-lg px-3 py-2"
+            className="mt-5 text-sm rounded-lg px-3 py-2"
             style={{ background: "var(--status-success-bg)", color: "var(--status-success-text)" }}
           >
             {message.text}
           </p>
         )}
       </div>
-      <div role="alert">
+      <div role="alert" className="!mt-0">
         {message?.tone === "error" && (
           <p
-            className="text-sm rounded-lg px-3 py-2"
+            className="mt-5 text-sm rounded-lg px-3 py-2"
             style={{ background: "var(--status-failed-bg)", color: "var(--status-failed-text)" }}
           >
             {message.text}
@@ -468,7 +470,17 @@ export default function QuoteSidebar({
             >
               Send email
             </button>
-            <button type="button" className={btn} style={btnStyle} onClick={closeAgain}>
+            {/* Inert while sending: the email can't be stopped, and closing the
+                form then would leave focus nowhere until the send finished. */}
+            <button
+              type="button"
+              aria-disabled={busy}
+              className={`${btn} aria-disabled:opacity-50`}
+              style={btnStyle}
+              onClick={() => {
+                if (!busy) closeAgain();
+              }}
+            >
               Cancel
             </button>
           </div>

@@ -37,7 +37,8 @@ function createNotifier({
         if (q.status !== "accepted")
           return to(address, T.quoteSent(V.quoteSentView(q, token, base)));
         // Only the earliest due stage: one email, one invoice. Once it is paid,
-        // Email again (or Remind on the stage) sends the next one.
+        // Email again sends the next stage if it has been requested; otherwise
+        // Request (or Resend request) on that stage does.
         const due = M.paymentSummary(stages).nextDue;
         if (!due) return { ok: false, error: "nothing is due" };
         return to(

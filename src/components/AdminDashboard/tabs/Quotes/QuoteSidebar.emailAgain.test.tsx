@@ -167,6 +167,27 @@ describe("QuoteSidebar Email again", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Email again" })).toHaveFocus());
   });
 
+  it("ignores Cancel while the email is sending, so focus isn't lost", async () => {
+    let finish: (v: unknown) => void = () => {};
+    quoteAdmin.mockReturnValue(new Promise((r) => (finish = r)));
+    renderSidebar(detail("sent"));
+    await userEvent.click(screen.getByRole("button", { name: "Email again" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send email" }));
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(cancel);
+    expect(screen.getByLabelText(/also send to/i)).toBeInTheDocument();
+    expect(cancel).toHaveFocus();
+    finish({
+      ...detail("sent"),
+      link: LINK,
+      emailed: true,
+      emailedTo: ["kofi@example.com"],
+      failedTo: [],
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Email again" })).toHaveFocus());
+  });
+
   it("puts focus back in the address field when the send fails", async () => {
     quoteAdmin.mockRejectedValue(new Error("Enter a valid email address."));
     renderSidebar(detail("sent"));
@@ -179,6 +200,9 @@ describe("QuoteSidebar Email again", () => {
   it("keeps the status region mounted so new messages are announced", () => {
     renderSidebar(detail("sent"));
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    // Empty regions must not add the aside's space-y gap.
+    expect(screen.getByRole("status")).toHaveClass("!mt-0");
+    expect(screen.getByRole("alert")).toHaveClass("!mt-0");
   });
 
   it("is not offered for a draft", () => {
