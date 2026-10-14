@@ -164,8 +164,8 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
             approx., at reference exchange rates as of {formatDay(FX_RATES.asOf)}.
           </InfoTip>
         </div>
-        <nav aria-label="Analytics sections" className="ml-auto hidden md:block">
-          <ul className="flex gap-1 text-[13px]">
+        <nav aria-label="Analytics sections" className="md:ml-auto">
+          <ul className="-ml-2 flex flex-wrap gap-1 text-[13px] md:ml-0">
             {SECTIONS.map((s) => (
               <li key={s.id}>
                 <a
