@@ -37,8 +37,9 @@ interface CustomSelectProps {
 /**
  * Design-system dropdown — a styled, accessible replacement for a native
  * <select>. Supports grouped options, per-option icons, type-to-filter search,
- * and keyboard navigation (↑/↓/Enter/Escape). Themed with oceanic/slate to
- * match the rest of the admin UI.
+ * and keyboard navigation (↑/↓/Enter/Escape; Home/End on the trigger; Space
+ * picks when not searchable). Themed with oceanic/slate to match the rest of
+ * the admin UI.
  */
 export const CustomSelect: React.FC<CustomSelectProps> = ({
   value,

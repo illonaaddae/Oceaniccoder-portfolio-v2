@@ -215,11 +215,17 @@ describe("CustomSelect", () => {
   });
 
   it("leaves Home/End to the text cursor in the search box", async () => {
+    const four = [
+      { value: "oneoff", label: "One-off" },
+      { value: "quotes", label: "Quote stages" },
+      { value: "paid", label: "Quote paid" },
+      { value: "all", label: "All sources" },
+    ];
     render(
       <CustomSelect
         value="all"
         onChange={() => {}}
-        options={OPTIONS}
+        options={four}
         theme="light"
         ariaLabel="Source"
         searchable
@@ -229,11 +235,16 @@ describe("CustomSelect", () => {
     await userEvent.click(box);
     const search = await screen.findByPlaceholderText<HTMLInputElement>("Search…");
     await waitFor(() => expect(search).toHaveFocus());
-    await userEvent.type(search, "qu{End}");
+    // "o" matches all four; move the highlight off both ends, so a Home/End
+    // jump would show.
+    await userEvent.type(search, "o{ArrowUp}{ArrowUp}");
     const highlighted = () => document.getElementById(box.getAttribute("aria-activedescendant")!);
     expect(highlighted()).toHaveTextContent("Quote stages");
     await userEvent.keyboard("{Home}");
     expect(search.selectionStart).toBe(0);
+    expect(highlighted()).toHaveTextContent("Quote stages");
+    await userEvent.keyboard("{End}");
+    expect(search.selectionStart).toBe(1);
     expect(highlighted()).toHaveTextContent("Quote stages");
   });
 });
