@@ -193,7 +193,9 @@ describe("QuoteSidebar Email again", () => {
     renderSidebar(detail("sent"));
     await userEvent.click(screen.getByRole("button", { name: "Email again" }));
     await userEvent.click(screen.getByRole("button", { name: "Send email" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Enter a valid email address.");
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid email address."),
+    );
     await waitFor(() => expect(screen.getByLabelText(/also send to/i)).toHaveFocus());
   });
 
