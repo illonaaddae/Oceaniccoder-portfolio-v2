@@ -4,16 +4,12 @@ import type { Expense } from "../../types";
 
 /**
  * Every expense, latest `date` first (the old 200-row limit dropped older
- * ones). An empty list when the expenses table can't be read.
+ * ones). Read errors reach the caller, so a failure isn't shown as "no expenses".
  */
 export async function getExpenses(): Promise<Expense[]> {
-  try {
-    const rows = await listAllDocuments<Expense>(COLLECTIONS.EXPENSES);
-    // listAll pages in $createdAt order; the log reads by the expense date.
-    return rows.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
-  } catch {
-    return [];
-  }
+  const rows = await listAllDocuments<Expense>(COLLECTIONS.EXPENSES);
+  // listAll pages in $createdAt order; the log reads by the expense date.
+  return rows.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
 }
 
 export async function createExpense(
