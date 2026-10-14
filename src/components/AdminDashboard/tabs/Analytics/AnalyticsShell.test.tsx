@@ -26,6 +26,7 @@ vi.mock("../../ConfirmContext", () => ({ useConfirm: () => async () => true }));
 
 import AnalyticsShell from "./AnalyticsShell";
 import AnalyticsTab from "../AnalyticsTab";
+import { invoiceIsTop } from "./sections/RevenueSection";
 import { RANGE_STORAGE_KEY } from "./metrics/range";
 
 // Today is 13 Oct 2026, so 30 days is 14 Sep to 13 Oct and the previous
@@ -486,6 +487,16 @@ describe("AnalyticsShell expenses", () => {
     expect(deleteExpense).toHaveBeenCalledWith("e1");
     expect(await screen.findByText("Deleted Hosting.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete Hosting" })).not.toBeInTheDocument();
+  });
+});
+
+describe("invoiceIsTop", () => {
+  it("rounds the invoice part when the quote part is missing or too short to draw", () => {
+    expect(invoiceIsTop(100, { invoice: 500, quote: 0 })).toBe(true);
+    // 100px of invoices at 5px per unit: a 2-unit quote is 0.4px, under the 2px gap.
+    expect(invoiceIsTop(100, { invoice: 500, quote: 2 })).toBe(true);
+    expect(invoiceIsTop(100, { invoice: 500, quote: 10 })).toBe(true);
+    expect(invoiceIsTop(100, { invoice: 500, quote: 11 })).toBe(false);
   });
 });
 

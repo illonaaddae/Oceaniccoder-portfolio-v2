@@ -91,13 +91,26 @@ function segmentOf(props: unknown): Segment | null {
 }
 
 /**
+ * Whether the invoice part is the top of its bar: when there is no quote part,
+ * or the quote part is too short to draw once the gap is taken out of it. Both
+ * parts share one scale, so the quote's height follows from the invoice's.
+ */
+export function invoiceIsTop(
+  invoicePx: number,
+  point: Pick<CashPoint, "invoice" | "quote">,
+): boolean {
+  if (point.quote <= 0 || point.invoice <= 0) return true;
+  return (invoicePx * point.quote) / point.invoice <= SEGMENT_GAP;
+}
+
+/**
  * One part of the stacked bar. Only the top part has rounded corners, and the
  * quote part stops short of the invoice part so the card shows between them.
  */
 function StackSegment(props: unknown, part: "invoice" | "quote") {
   const s = segmentOf(props);
   if (!s || s.height <= 0) return <g />;
-  const isTop = part === "quote" || s.point.quote <= 0;
+  const isTop = part === "quote" || invoiceIsTop(s.height, s.point);
   const gap = part === "quote" && s.point.invoice > 0 ? SEGMENT_GAP : 0;
   const height = s.height - gap;
   if (height <= 0) return <g />;
