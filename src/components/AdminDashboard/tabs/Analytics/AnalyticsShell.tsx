@@ -54,7 +54,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-28 space-y-3">
+    <section id={id} aria-labelledby={`${id}-heading`} className="space-y-3">
       <div className="flex items-center gap-1.5" style={muted}>
         <h2 id={`${id}-heading`} className="text-lg font-extrabold" style={strong}>
           {title}
@@ -136,16 +136,10 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
         <ErrorBanner message={errorText} onDismiss={() => setDismissed(true)} />
       )}
 
-      {/* From md up the bar sticks to the top of the admin content pane (the
-          scroller; the dashboard header sits above it). Chrome sticks it inside
-          the pane's padding, so the negative top and side margins match
-          TabContent's p-4 sm:p-6 lg:p-8. z-index 5 keeps it under the header's
-          menus (z-10). On phones it wraps to three rows, too tall to pin. */}
       <div
         role="region"
         aria-label="Range and currency"
-        className="z-[5] -mx-4 md:sticky md:-top-6 lg:-top-8 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-        style={{ background: "var(--analytics-bar-bg)", borderColor: "var(--analytics-line)" }}
+        className="analytics-filters flex flex-wrap items-center gap-x-3.5 gap-y-2"
       >
         <RangePicker
           key={`${choice.preset}-${choice.from ?? ""}-${choice.to ?? ""}`}

@@ -105,7 +105,7 @@ export function ChartCard({
   return (
     <section
       id={id}
-      className="glass-card min-w-0 scroll-mt-28 p-4 sm:p-5"
+      className="glass-card min-w-0 p-4 sm:p-5"
       aria-labelledby={titleId}
       aria-describedby={descId}
     >

@@ -606,6 +606,44 @@ textarea:focus {
   --method-apple: #c2507a;
   --method-other: #64748b;
 }
+/* The admin content pane (TabContent) is the scroller. Its padding is set
+   here from one variable, the same values as its p-4 sm:p-6 lg:p-8, so the
+   sticky filter bar can sit flush with the pane's top edge and span its width. */
+:has(> .analytics-dash) {
+  --analytics-pane-pad: 1rem;
+  padding: var(--analytics-pane-pad);
+}
+@media (min-width: 640px) {
+  :has(> .analytics-dash) {
+    --analytics-pane-pad: 1.5rem;
+  }
+}
+@media (min-width: 768px) {
+  /* Keeps whatever gets focus or a jump link clear of the sticky bar. */
+  :has(> .analytics-dash) {
+    scroll-padding-top: 7rem;
+  }
+}
+@media (min-width: 1024px) {
+  :has(> .analytics-dash) {
+    --analytics-pane-pad: 2rem;
+  }
+}
+.analytics-filters {
+  z-index: 5; /* under the dashboard header's menus (z-10) */
+  margin-inline: calc(-1 * var(--analytics-pane-pad, 0px));
+  padding: 10px var(--analytics-pane-pad, 0px);
+  border-bottom: 1px solid var(--analytics-line);
+  background: var(--analytics-bar-bg);
+  backdrop-filter: blur(8px);
+}
+/* On phones the bar wraps to three rows, too tall to pin. */
+@media (min-width: 768px) {
+  .analytics-filters {
+    position: sticky;
+    top: calc(-1 * var(--analytics-pane-pad, 0px));
+  }
+}
 .analytics-dash .glass-card {
   background: var(--analytics-card);
   border: 1px solid var(--analytics-line);
@@ -620,6 +658,9 @@ textarea:focus {
 .analytics-hero__grid {
   --text-primary: #ffffff;
   --text-secondary: #c6e6ec; /* 6.1:1 at the light end of the gradient */
+  /* Focus rings read this; the teal default is under 3:1 on the band. White
+     is 8.1:1 at the light end. */
+  --brand-ocean-2: #ffffff;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   border-radius: 18px;
