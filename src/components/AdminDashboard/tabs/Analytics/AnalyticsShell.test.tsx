@@ -396,6 +396,22 @@ describe("AnalyticsShell expenses", () => {
     ]);
   });
 
+  it("lists expenses per period, with the previous period, behind a table", async () => {
+    await renderShell();
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    const table = within(card("Where the money went")).getByRole("table", {
+      name: "Expenses per day, GHS",
+    });
+    const row = within(table).getByRole("row", { name: /^5 Oct/ });
+    expect(
+      within(row)
+        .getAllByRole("cell")
+        .map((c) => c.textContent),
+    ).toEqual(["GHS 80.00", "GHS 0.00"]);
+    // The category list stays readable alongside it.
+    expect(within(card("Where the money went")).getByText("Hosting")).toBeInTheDocument();
+  });
+
   it("logs a new expense", async () => {
     createExpense.mockResolvedValue({
       $id: "e3",

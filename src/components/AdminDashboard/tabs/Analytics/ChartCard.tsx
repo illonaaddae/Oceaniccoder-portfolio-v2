@@ -41,6 +41,23 @@ export function ChartLegend({
   );
 }
 
+/** A table behind "Show the data as a table". */
+export function TableDisclosure({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="mt-3">
+      <summary
+        className="cursor-pointer text-xs font-semibold"
+        style={{ color: "var(--accent-teal)" }}
+      >
+        Show the data as a table
+      </summary>
+      {/* relative: the table's sr-only text is absolutely placed and would
+          otherwise escape this box and scroll the page sideways. */}
+      <div className="relative mt-2 overflow-x-auto">{children}</div>
+    </details>
+  );
+}
+
 interface ChartCardProps {
   title: string;
   /** A short line under the title saying what is shown; read out with the card. */
@@ -91,17 +108,7 @@ export function ChartCard({
     body = (
       <>
         <div aria-hidden="true">{children}</div>
-        <details className="mt-3">
-          <summary
-            className="cursor-pointer text-xs font-semibold"
-            style={{ color: "var(--accent-teal)" }}
-          >
-            Show the data as a table
-          </summary>
-          {/* relative: the table's sr-only text is absolutely placed and would
-              otherwise escape this box and scroll the page sideways. */}
-          <div className="relative mt-2 overflow-x-auto">{table}</div>
-        </details>
+        <TableDisclosure>{table}</TableDisclosure>
       </>
     );
   return (

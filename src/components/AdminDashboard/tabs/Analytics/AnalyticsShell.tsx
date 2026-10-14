@@ -223,6 +223,7 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
           expenses={data.expenses}
           setExpenses={setExpenses}
           range={range}
+          bucket={bucket}
           unit={unit}
           unitLabel={unitLabel}
           loading={loading}
