@@ -181,7 +181,11 @@ export function SummarySection({
     const netBefore = netByCurrency(cashBefore, spentBefore);
     const cashLine = cashSeries(ledger, range, unit, bucket).map((p) => p.total);
     const spentLine = expenseSeries(expenses, range, unit, bucket).map((p) => p.amount);
-    const stats = paymentStats(inRange);
+    // Same order as the totals above: the chosen currency, then by approx. value.
+    const order = orderTotals(cash, lead).map((t) => t.currency);
+    const stats = paymentStats(inRange).sort(
+      (a, b) => order.indexOf(a.currency) - order.indexOf(b.currency),
+    );
     return {
       cash,
       spent,
@@ -204,7 +208,7 @@ export function SummarySection({
       spentDelta: delta(totalIn(unit, spent), totalIn(unit, spentBefore)),
       netDelta: delta(totalIn(unit, net), totalIn(unit, netBefore)),
     };
-  }, [ledger, expenses, range, previous, bucket, unit]);
+  }, [ledger, expenses, range, previous, bucket, unit, lead]);
 
   const chip = (d: Delta, upIsGood = true) => (
     <DeltaChip delta={d} unitLabel={unitLabel} upIsGood={upIsGood} />

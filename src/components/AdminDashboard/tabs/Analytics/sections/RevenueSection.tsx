@@ -304,7 +304,11 @@ export function RevenueSection({
         <div className="grid min-w-0 lg:col-span-2">
           <ChartCard
             title="Cash collected over time"
-            description={`Per ${bucket}, ${unitLabel} · ${count} ${count === 1 ? "payment" : "payments"}${gap}`}
+            description={
+              loadingPayments
+                ? `Per ${bucket}, ${unitLabel}`
+                : `Per ${bucket}, ${unitLabel} · ${count} ${count === 1 ? "payment" : "payments"}${gap}`
+            }
             info="The dashed line is the same slot of the previous period. Choose a bar, or a row in the table, to list its payments."
             aside={
               <ChartLegend

@@ -587,6 +587,8 @@ describe("AnalyticsShell QA fixes", () => {
       expect(within(figure(name)).queryByText("0.00")).not.toBeInTheDocument();
     }
     expect(within(card("Owed to you now")).getByText("Loading…")).toBeInTheDocument();
+    // No payment count over a chart that is still loading.
+    expect(card("Cash collected over time")).toHaveAccessibleDescription("Per day, USD");
   });
 
   it("says the expense log is loading, not empty, until expenses answer", async () => {
@@ -633,6 +635,12 @@ describe("AnalyticsShell QA fixes", () => {
       .getAllByRole("listitem")
       .map((li) => li.textContent);
     expect(lines).toEqual(["GHS 550.00", "NGN 1,000,000.00", "USD 100.00", "XOF 250,000.00"]);
+    // The per-currency counts follow the same order.
+    expect(
+      within(figure("Cash collected")).getByText(
+        /^2 GHS \(avg GHS 275\.00\), 1 NGN \(avg NGN 1,000,000\.00\), 1 USD \(avg USD 100\.00\), 1 XOF/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("counts estimated dates only in the range, and hides the note when there are none", async () => {
