@@ -57,8 +57,14 @@ const SocialLinks = React.memo(() => (
             <span className="text-gray-800 dark:text-white text-sm font-medium">
               Scrimba Ambassador
             </span>
-            <span className="px-2 py-0.5 bg-oceanic-600 text-white text-xs font-bold rounded-full animate-pulse">
+            {/* Only the ring pulses: fading the label itself took the text
+                below AA contrast for half of every cycle. */}
+            <span className="relative px-2 py-0.5 bg-oceanic-600 text-white text-xs font-bold rounded-full">
               20% OFF
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-0.5 rounded-full ring-2 ring-oceanic-400 animate-pulse"
+              />
             </span>
           </div>
           <p className="text-gray-600 dark:text-gray-200 text-xs">

@@ -20,12 +20,16 @@ describe("footer column headings", () => {
   });
 
   // White 12px bold text on oceanic-500 was 4.34:1; oceanic-600 is 5.9:1.
-  it("puts the ambassador discount label on oceanic-600", () => {
+  it("keeps the discount label text solid on oceanic-600 and pulses only its ring", () => {
     render(
       <MemoryRouter>
         <SocialLinks />
       </MemoryRouter>,
     );
-    expect(screen.getByText("20% OFF")).toHaveClass("bg-oceanic-600", "text-white");
+    const label = screen.getByText("20% OFF");
+    expect(label).toHaveClass("bg-oceanic-600", "text-white");
+    // The pulse fades opacity, so it must sit on the ring, never on the text.
+    expect(label).not.toHaveClass("animate-pulse");
+    expect(label.querySelector('[aria-hidden="true"]')).toHaveClass("animate-pulse");
   });
 });
