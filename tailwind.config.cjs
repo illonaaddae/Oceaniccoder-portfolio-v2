@@ -44,7 +44,9 @@ module.exports = {
         },
         // ── Semantic accents — status/badges ONLY, never decoration ──────────────
         // Light badges: bg-<name>-100 + text-<name>-700 (Wild Oasis pattern).
-        // Dark badges: text-<name>-400 + bg-<name>-400/10 + border-<name>-400/30.
+        // Dark badges: text-<name>-400 + bg-<name>-400/10 + border-<name>-400/30,
+        // except over images, where the tint lets the photo through: use a solid
+        // bg-gray-900 instead (see Projects/projectsUtils.js).
         // Design system: brand = oceanic, neutrals = slate, decoration = none.
         success: { 100: "#dcfce7", 400: "#4ade80", 500: "#22c55e", 700: "#15803d" },
         warning: { 100: "#fef9c3", 400: "#facc15", 500: "#eab308", 700: "#a16207" },

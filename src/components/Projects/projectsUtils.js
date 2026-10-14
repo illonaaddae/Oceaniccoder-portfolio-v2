@@ -1,7 +1,7 @@
 // The badge sits on the project image, so both themes need a solid fill to pass
 // AA (4.5:1) whatever the image is: a 10% tint let light screenshots show
 // through (1.0-1.7:1). Light uses 700 text on the 100 fill; dark uses 400 text
-// on gray-900 (7-11.6:1).
+// on gray-900 (6.4-11.6:1).
 // success and warning sit just above AA (4.57 and 4.58:1 on their 100 fill),
 // so keep the fill solid: any transparency over the image drops them below.
 export const getStatusColor = (status) => {

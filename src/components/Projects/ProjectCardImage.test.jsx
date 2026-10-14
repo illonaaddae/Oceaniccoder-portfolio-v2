@@ -1,4 +1,4 @@
-import { beforeAll, describe, it, expect, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ProjectCardImage from "./ProjectCardImage";
@@ -28,6 +28,7 @@ describe("project card image badges", () => {
       },
     );
   });
+  afterAll(() => vi.unstubAllGlobals());
 
   it.each([
     ["Featured", () => screen.getByText("Featured")],
