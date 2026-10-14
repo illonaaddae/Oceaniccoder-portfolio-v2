@@ -4,7 +4,9 @@ import { FaCalendar, FaCode, FaEye, FaArrowRight } from "react-icons/fa";
 const ProjectCardContent = React.memo(({ project }) => (
   <div className="p-6">
     <div className="flex items-center justify-between mb-3">
-      <span className="text-sm text-oceanic-500 font-medium">{project.category}</span>
+      <span className="text-sm text-brand-accent-strong dark:text-oceanic-400 font-medium">
+        {project.category}
+      </span>
       <div className="flex items-center gap-1 text-xs text-gray-200">
         <FaCalendar className="w-3 h-3" />
         {project.year}

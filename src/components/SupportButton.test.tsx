@@ -64,7 +64,13 @@ describe("SupportButton", () => {
     const toggleButton = screen.getByRole("button", { name: /support/i });
     fireEvent.click(toggleButton);
 
-    expect(screen.getByText("20% OFF")).toBeInTheDocument();
+    const badge = screen.getByText("20% OFF");
+    expect(badge).toBeInTheDocument();
+    // White on oceanic-500 was 4.34:1, and pulsing the badge itself faded the
+    // text further; the text stays solid on oceanic-600 and only a ring pulses.
+    expect(badge).toHaveClass("bg-oceanic-600");
+    expect(badge).not.toHaveClass("animate-pulse");
+    expect(badge.querySelector('[aria-hidden="true"]')).toHaveClass("animate-pulse");
   });
 
   test("toggles expanded state when clicked multiple times", () => {

@@ -106,8 +106,14 @@ const SupportButton: React.FC = () => {
                 </span>
               </div>
               {link.badge && (
-                <span className="ml-2 px-2 py-0.5 bg-oceanic-500 text-white text-xs font-bold rounded-full animate-pulse">
+                // Same as the footer label: solid text on oceanic-600 (white on
+                // 500 was 4.34:1), and only the ring pulses.
+                <span className="relative ml-2 px-2 py-0.5 bg-oceanic-600 text-white text-xs font-bold rounded-full">
                   {link.badge}
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -inset-0.5 rounded-full ring-2 ring-oceanic-400 animate-pulse"
+                  />
                 </span>
               )}
             </a>
