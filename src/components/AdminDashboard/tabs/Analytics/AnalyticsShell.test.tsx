@@ -529,8 +529,10 @@ describe("AnalyticsShell expenses", () => {
     expect(deletes()).toHaveLength(15);
 
     await userEvent.click(log().getByRole("button", { name: "Page 2" }));
-    await userEvent.click(deletes()[0]);
-    expect(await log().findByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
+    // The confirm resolves on a later tick; act lets the delete finish inside it.
+    await act(async () => userEvent.click(deletes()[0]));
+    expect(await log().findByText(/^Deleted /)).toBeInTheDocument();
+    expect(log().getByRole("button", { name: "Delete Brand new" })).toBeInTheDocument();
   });
 
   it("deletes an expense after confirming", async () => {
