@@ -130,18 +130,36 @@ export const cashByCurrency = (entries: LedgerEntry[]): CurrencyTotals =>
 export const estimatedCount = (ledger: LedgerEntry[]) => ledger.filter((e) => e.estimated).length;
 
 /**
+ * Biggest first, comparing currencies at the approx. rates. A currency with no
+ * rate can't be compared, so it goes after every rated one (by its own amount).
+ */
+function byApproxValue(a: CurrencyTotals[number], b: CurrencyTotals[number]): number {
+  const ga = toApproxGHS(a.amount, a.currency);
+  const gb = toApproxGHS(b.amount, b.currency);
+  if (ga !== null && gb !== null) return gb - ga;
+  if (ga !== null) return -1;
+  if (gb !== null) return 1;
+  return b.amount - a.amount;
+}
+
+/**
+ * Totals in display order: `lead` first (the currency the charts are in), then
+ * the rest biggest first at the approx. rates, unrated currencies last.
+ */
+export function orderTotals(totals: CurrencyTotals, lead: string): CurrencyTotals {
+  return [...totals].sort(
+    (a, b) => Number(b.currency === lead) - Number(a.currency === lead) || byApproxValue(a, b),
+  );
+}
+
+/**
  * The currency with the most revenue in the range, else across all time, else
- * GHS. Totals in different currencies are compared at the approx. rates.
+ * GHS. Totals in different currencies are compared at the approx. rates; one
+ * with no rate only wins when nothing else was received.
  */
 export function defaultCurrency(ledger: LedgerEntry[], r: DateRange): string {
-  const pick = (entries: LedgerEntry[]) => {
-    let best: { currency: string; value: number } | null = null;
-    for (const t of cashByCurrency(entries)) {
-      const value = toApproxGHS(t.amount, t.currency) ?? t.amount;
-      if (!best || value > best.value) best = { currency: t.currency, value };
-    }
-    return best?.currency ?? null;
-  };
+  const pick = (entries: LedgerEntry[]) =>
+    [...cashByCurrency(entries)].sort(byApproxValue)[0]?.currency ?? null;
   return pick(entriesIn(ledger, r)) ?? pick(ledger) ?? "GHS";
 }
 

@@ -16,6 +16,7 @@ import {
   largestExpenses,
   methodTone,
   netByCurrency,
+  orderTotals,
   outstandingSummary,
   owedStatus,
   paymentAmount,
@@ -262,6 +263,28 @@ describe("defaultCurrency", () => {
     const old = [entry({ currency: "EUR", date: "2025-01-01T00:00:00Z" })];
     expect(defaultCurrency(old, OCT)).toBe("EUR");
     expect(defaultCurrency([], OCT)).toBe("GHS");
+  });
+
+  it("never lets a currency with no rate win over a rated one", () => {
+    const ledger = [
+      entry({ currency: "GHS", amount: 550 }),
+      entry({ currency: "XOF", amount: 250000 }), // no rate in fxRates
+    ];
+    expect(defaultCurrency(ledger, OCT)).toBe("GHS");
+    expect(defaultCurrency([entry({ currency: "XOF", amount: 5 })], OCT)).toBe("XOF");
+  });
+});
+
+describe("orderTotals", () => {
+  it("puts the chosen currency first, then the rest by approx. value, unrated last", () => {
+    const totals = [
+      { currency: "NGN", amount: 1_000_000 }, // ≈ GHS 8,850
+      { currency: "XOF", amount: 250_000 }, // no rate
+      { currency: "GHS", amount: 18_200 },
+      { currency: "USD", amount: 120 }, // ≈ GHS 1,412
+    ];
+    expect(orderTotals(totals, "GHS").map((t) => t.currency)).toEqual(["GHS", "NGN", "USD", "XOF"]);
+    expect(orderTotals(totals, "USD").map((t) => t.currency)).toEqual(["USD", "GHS", "NGN", "XOF"]);
   });
 });
 
