@@ -521,6 +521,20 @@ describe("AnalyticsShell expenses", () => {
     );
   });
 
+  it("refuses to log an expense once the date is cleared", async () => {
+    await renderShell();
+    await userEvent.click(log().getByRole("button", { name: "Add expense" }));
+    await userEvent.type(log().getByLabelText("Description"), "Domain");
+    await userEvent.type(log().getByLabelText("Amount"), "120");
+    await userEvent.click(log().getByRole("button", { name: /^Date / }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await userEvent.click(log().getByRole("button", { name: "Log expense" }));
+    expect(createExpense).not.toHaveBeenCalled();
+    expect(
+      log().getByText("Enter a description, an amount above zero and a date."),
+    ).toBeInTheDocument();
+  });
+
   it("formats dates stored as timestamps", async () => {
     getExpenses
       .mockReset()
