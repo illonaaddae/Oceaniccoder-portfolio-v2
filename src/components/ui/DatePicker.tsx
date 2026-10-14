@@ -160,14 +160,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       if (triggerRef.current?.contains(t) || panelRef.current?.contains(t)) return;
       setOpen(false);
     };
+    // Capture phase, and stop it there: an enclosing Modal also closes on
+    // Escape from a document listener, and would lose the user's form.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close(true);
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      close(true);
     };
     document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
 
@@ -183,9 +187,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     day.focus();
   }, [open, coords, focusDay, view]);
 
-  const moveFocus = (iso: string) => {
-    if (!inRange(iso)) return;
+  const moveFocus = (target: string) => {
+    const iso = min && target < min ? min : max && target > max ? max : target;
     const p = parseISO(iso);
+    if (iso === focusDay) {
+      // Home on a Sunday, End on a Saturday: nothing re-renders, so focus now
+      // instead of leaving a pending move for the next scroll to fire.
+      panelRef.current?.querySelector<HTMLButtonElement>(`[data-iso="${iso}"]`)?.focus();
+      return;
+    }
     if (p && (p.y !== view.y || p.m !== view.m)) setView({ y: p.y, m: p.m });
     pendingFocus.current = true;
     setFocusDay(iso);
@@ -247,9 +257,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           (view.m + n + 12) % 12,
           1,
         );
-    const q = parseISO(next)!;
+    // Clamp into min/max so the month always holds a reachable day.
+    const clamped = min && next < min ? min : max && next > max ? max : next;
+    const q = parseISO(clamped)!;
     setView({ y: q.y, m: q.m });
-    setFocusDay(next);
+    setFocusDay(clamped);
+    // At the boundary the pressed button turns disabled and would drop focus to
+    // <body>; hand focus to the day instead.
+    const atStart = !!min && toISO(q.y, q.m, 1) <= min;
+    const atEnd = !!max && toISO(q.y, q.m, new Date(q.y, q.m + 1, 0).getDate()) >= max;
+    if ((n < 0 && atStart) || (n > 0 && atEnd)) pendingFocus.current = true;
   };
   const prevMonth = () => showMonth(-1);
   const nextMonth = () => showMonth(1);
@@ -281,15 +298,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     return false;
   };
 
-  /** Whole-month check so month navigation can be disabled at the boundary. */
-  const monthFullyBefore = (() => {
-    if (!min) return false;
-    return toISO(view.y, view.m, daysInMonth) < min;
-  })();
-  const monthFullyAfter = (() => {
-    if (!max) return false;
-    return toISO(view.y, view.m, 1) > max;
-  })();
+  // Month navigation stops at the month holding min/max: every earlier (later)
+  // month would have no selectable day.
+  const monthFullyBefore = !!min && toISO(view.y, view.m, 1) <= min;
+  const monthFullyAfter = !!max && toISO(view.y, view.m, daysInMonth) >= max;
 
   return (
     <div className={`relative ${className}`}>
@@ -303,7 +315,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         aria-label={labelId ? undefined : ariaLabel}
         aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
       >
-        <span id={valueId} className={display ? "" : dark ? "text-gray-500" : "text-slate-500"}>
+        <span id={valueId} className={display ? "" : dark ? "text-gray-400" : "text-slate-500"}>
           {display || placeholder}
         </span>
         <FaRegCalendarAlt className={`text-sm ${dark ? "text-slate-400" : "text-slate-500"}`} />
@@ -321,7 +333,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             aria-labelledby={labelId}
             onKeyDown={onPanelKeyDown}
             style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width }}
-            className={`z-[70] rounded-xl border shadow-2xl p-3 ${
+            className={`z-[110] rounded-xl border shadow-2xl p-3 ${
               dark ? "bg-gray-800 border-gray-700" : "bg-white border-slate-200"
             }`}
           >

@@ -182,4 +182,64 @@ describe("DatePicker", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(clear).toHaveFocus();
   });
+
+  test("a grid key that stays on the same day doesn't leave a focus jump for the next scroll", async () => {
+    // 11 Oct 2026 is a Sunday, so Home keeps focus where it is.
+    render(<DatePicker value="2026-10-11" onChange={vi.fn()} theme="light" ariaLabel="Date" />);
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    const sunday = await screen.findByRole("button", { name: "October 11, 2026" });
+    await waitFor(() => expect(sunday).toHaveFocus());
+    fireEvent.keyDown(sunday, { key: "Home" });
+    expect(sunday).toHaveFocus();
+    const clear = screen.getByRole("button", { name: "Clear" });
+    clear.focus();
+    fireEvent.scroll(window);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(clear).toHaveFocus();
+  });
+
+  test("month buttons clamp into min and hand focus to a day at the boundary", async () => {
+    const onChange = vi.fn();
+    render(
+      <DatePicker value="" onChange={onChange} theme="light" ariaLabel="Date" min="2099-10-20" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    const first = await screen.findByRole("button", { name: "October 20, 2099" });
+    await waitFor(() => expect(first).toHaveFocus());
+    const prev = screen.getByRole("button", { name: "Previous month" });
+    expect(prev).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    await screen.findByRole("button", { name: "November 20, 2099" });
+    fireEvent.keyDown(screen.getByRole("button", { name: "November 20, 2099" }), {
+      key: "ArrowUp",
+    });
+    fireEvent.keyDown(screen.getByRole("button", { name: "November 13, 2099" }), {
+      key: "ArrowUp",
+    });
+    // Nov 6 → Previous month would be Oct 6, before min: it clamps to Oct 20.
+    prev.focus();
+    fireEvent.click(prev);
+    const clamped = await screen.findByRole("button", { name: "October 20, 2099" });
+    expect(clamped).toHaveAttribute("tabindex", "0");
+    expect(clamped).not.toBeDisabled();
+    await waitFor(() => expect(clamped).toHaveFocus());
+  });
+
+  test("Escape closes only the picker, not an enclosing modal", async () => {
+    const modalClose = vi.fn();
+    const onDocKey = (e: KeyboardEvent) => e.key === "Escape" && modalClose();
+    document.addEventListener("keydown", onDocKey);
+    try {
+      render(<DatePicker value="2026-10-14" onChange={vi.fn()} theme="light" ariaLabel="Date" />);
+      fireEvent.click(screen.getByRole("button", { name: "Date" }));
+      const day = await screen.findByRole("button", { name: "October 14, 2026" });
+      await waitFor(() => expect(day).toHaveFocus());
+      fireEvent.keyDown(day, { key: "Escape" });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(modalClose).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("keydown", onDocKey);
+    }
+  });
 });
