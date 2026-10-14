@@ -343,12 +343,15 @@ export interface OwedStatus {
 
 const days = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
 
-/** Overdue, due within a week, or simply sent, worded for a status pill. */
+/**
+ * Overdue, due within a week, or simply sent, worded for a status pill. A due
+ * date in the past reads as overdue even when the row isn't flagged overdue.
+ */
 export function owedStatus(
   item: Pick<OutstandingItem, "overdue" | "dueInDays" | "issuedAt">,
 ): OwedStatus {
   const d = item.dueInDays;
-  if (item.overdue)
+  if (item.overdue || (d !== null && d < 0))
     return { kind: "overdue", label: d !== null && d < 0 ? `Overdue ${days(-d)}` : "Overdue" };
   if (d !== null && d >= 0 && d <= DUE_SOON_DAYS)
     return { kind: "due", label: d === 0 ? "Due today" : `Due in ${days(d)}` };

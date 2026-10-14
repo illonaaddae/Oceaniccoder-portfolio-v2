@@ -447,6 +447,13 @@ describe("owedStatus", () => {
     expect(owedStatus({ ...item, overdue: true }).label).toBe("Overdue");
   });
 
+  it("calls an item overdue once its due date has passed, even unflagged", () => {
+    expect(owedStatus({ ...item, dueInDays: -2 })).toEqual({
+      kind: "overdue",
+      label: "Overdue 2 days",
+    });
+  });
+
   it("calls an item due soon within a week of its due date", () => {
     expect(owedStatus({ ...item, dueInDays: 3 })).toEqual({ kind: "due", label: "Due in 3 days" });
     expect(owedStatus({ ...item, dueInDays: 0 }).label).toBe("Due today");
