@@ -31,7 +31,7 @@ import { RANGE_STORAGE_KEY } from "./metrics/range";
 
 /** Opens a CustomSelect by its visible label and picks an option. */
 async function pick(label: RegExp, option: string) {
-  await userEvent.click(screen.getByRole("button", { name: label }));
+  await userEvent.click(screen.getByRole("combobox", { name: label }));
   await userEvent.click(screen.getByRole("option", { name: option }));
 }
 
@@ -329,7 +329,7 @@ describe("AnalyticsShell revenue", () => {
   it("defaults the charts to the currency with the most revenue, compared at approx. rates", async () => {
     await renderShell();
     // USD 100 ≈ GHS 1,177 beats GHS 550.
-    expect(screen.getByRole("button", { name: /^Show in / })).toHaveAccessibleName("Show in USD");
+    expect(screen.getByRole("combobox", { name: /^Show in / })).toHaveAccessibleName("Show in USD");
   });
 
   it("lists the payments behind a period from the data table", async () => {
@@ -511,9 +511,9 @@ describe("AnalyticsShell expenses", () => {
     await userEvent.click(log().getByRole("button", { name: "Add expense" }));
     await userEvent.type(log().getByLabelText("Description"), "Figma");
     await userEvent.type(log().getByLabelText("Amount"), "15");
-    await userEvent.click(log().getByRole("button", { name: "Currency GHS" }));
+    await userEvent.click(log().getByRole("combobox", { name: "Currency GHS" }));
     await userEvent.click(log().getByRole("option", { name: "USD" }));
-    await userEvent.click(log().getByRole("button", { name: /^Category / }));
+    await userEvent.click(log().getByRole("combobox", { name: /^Category / }));
     await userEvent.click(log().getByRole("option", { name: "Software" }));
     await userEvent.click(log().getByRole("button", { name: "Log expense" }));
     expect(createExpense).toHaveBeenCalledWith(
@@ -672,7 +672,7 @@ describe("AnalyticsShell QA fixes", () => {
     ]);
     await renderShell();
     // NGN 1,000,000 ≈ GHS 8,850 is the biggest rated total; XOF has no rate.
-    expect(screen.getByRole("button", { name: /^Show in / })).toHaveAccessibleName("Show in NGN");
+    expect(screen.getByRole("combobox", { name: /^Show in / })).toHaveAccessibleName("Show in NGN");
     await pick(/^Show in /, "GHS");
     const lines = within(figure("Cash collected"))
       .getAllByRole("listitem")

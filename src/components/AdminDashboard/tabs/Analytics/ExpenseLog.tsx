@@ -113,10 +113,10 @@ export function ExpenseLog({
   };
 
   // Matches CustomSelect and DatePicker at size "sm", so the row lines up.
-  const inputClass = `mt-1 block w-full rounded-lg border px-3 py-2 text-sm font-normal transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
+  const inputClass = `mt-1 block w-full rounded-lg border px-3 py-2 text-sm font-normal transition-all duration-200 focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
     theme === "dark"
-      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-oceanic-500/60"
-      : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500"
+      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-400 focus:border-oceanic-400 focus:ring-oceanic-400"
+      : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500 focus:ring-oceanic-600"
   }`;
 
   const set =
@@ -125,7 +125,7 @@ export function ExpenseLog({
       setForm((f) => ({ ...f, [key]: value }));
 
   return (
-    <section className="glass-card overflow-hidden rounded-xl" aria-labelledby={`${formId}-title`}>
+    <section className="glass-card rounded-xl" aria-labelledby={`${formId}-title`}>
       <div
         className="flex items-center justify-between gap-3 px-5 py-4"
         style={{ borderBottom: "1px solid var(--analytics-line)" }}
@@ -232,7 +232,9 @@ export function ExpenseLog({
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-oceanic-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-oceanic-700 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 focus:ring-offset-2 disabled:opacity-60"
+              className={`flex items-center gap-2 rounded-lg bg-oceanic-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-oceanic-700 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 ${
+                theme === "dark" ? "focus:ring-oceanic-400" : "focus:ring-oceanic-600"
+              }`}
             >
               <FaPlus aria-hidden="true" /> {saving ? "Saving…" : "Log expense"}
             </button>
