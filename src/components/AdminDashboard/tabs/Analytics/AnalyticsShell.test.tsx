@@ -29,6 +29,12 @@ import AnalyticsTab from "../AnalyticsTab";
 import { invoiceIsTop } from "./sections/RevenueSection";
 import { RANGE_STORAGE_KEY } from "./metrics/range";
 
+/** Opens a CustomSelect by its visible label and picks an option. */
+async function pick(label: RegExp, option: string) {
+  await userEvent.click(screen.getByRole("combobox", { name: label }));
+  await userEvent.click(screen.getByRole("option", { name: option }));
+}
+
 // Today is 13 Oct 2026, so 30 days is 14 Sep to 13 Oct and the previous
 // period is 15 Aug to 13 Sep.
 const NOW = new Date("2026-10-13T12:00:00Z");
@@ -219,7 +225,7 @@ describe("AnalyticsShell summary", () => {
 describe("AnalyticsShell key figures", () => {
   it("shows the change on the previous period as a chip, worded for screen readers", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    await pick(/^Show in /, "GHS");
     const cash = figure("Cash collected");
     // GHS 550 now against GHS 200 on 1 Sep: up 175%.
     expect(within(cash).getByText("▲ 175%").closest(".analytics-chip")).toHaveAttribute(
@@ -242,7 +248,7 @@ describe("AnalyticsShell key figures", () => {
         { ...EXPENSES[0], $id: "e0", amount: 100, date: "2026-09-01" },
       ]);
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    await pick(/^Show in /, "GHS");
     const spent = figure("Expenses");
     expect(within(spent).getByText("▼ 20%").closest(".analytics-chip")).toHaveAttribute(
       "data-tone",
@@ -261,7 +267,7 @@ describe("AnalyticsShell key figures", () => {
         { ...EXPENSES[0], $id: "e0", amount: 40, date: "2026-09-01" },
       ]);
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    await pick(/^Show in /, "GHS");
     // GHS 80 against GHS 40: up 100%, which is bad for expenses.
     const spent = figure("Expenses");
     expect(within(spent).getByText("▲ 100%").closest(".analytics-chip")).toHaveAttribute(
@@ -323,12 +329,12 @@ describe("AnalyticsShell revenue", () => {
   it("defaults the charts to the currency with the most revenue, compared at approx. rates", async () => {
     await renderShell();
     // USD 100 ≈ GHS 1,177 beats GHS 550.
-    expect(screen.getByLabelText("Show in")).toHaveValue("USD");
+    expect(screen.getByRole("combobox", { name: /^Show in / })).toHaveAccessibleName("Show in USD");
   });
 
   it("lists the payments behind a period from the data table", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    await pick(/^Show in /, "GHS");
     await userEvent.click(screen.getByRole("button", { name: "Show payments for 10 Oct" }));
     expect(screen.getByRole("heading", { name: "Payments, 10 Oct 2026" })).toBeInTheDocument();
     expect(screen.getAllByText("Ama Owusu").length).toBeGreaterThan(0);
@@ -348,7 +354,7 @@ describe("AnalyticsShell revenue", () => {
     await renderShell();
     const cash = () => figure("Cash collected");
     expect(within(cash()).queryByText(/vs previous period.*leaves out/)).not.toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
+    await pick(/^Show in /, "All, approx. GHS");
     const delta = within(cash())
       .getByText(/vs previous period \(approx\. GHS\)/)
       .closest("p");
@@ -357,7 +363,7 @@ describe("AnalyticsShell revenue", () => {
 
   it("breaks money down by method in the chosen unit", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
+    await pick(/^Show in /, "All, approx. GHS");
     const methods = screen.getByRole("table", { name: "Money received by payment method" });
     expect(within(methods).getByRole("rowheader", { name: /Card/ })).toBeInTheDocument();
     expect(within(methods).getByText("≈ GHS 1,177.00")).toBeInTheDocument();
@@ -365,7 +371,7 @@ describe("AnalyticsShell revenue", () => {
 
   it("gives each method its icon and colour, and an unrecorded one the neutral style", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
+    await pick(/^Show in /, "All, approx. GHS");
     const rows = card("By payment method").querySelectorAll("li[data-method]");
     // USD 100 card ≈ GHS 1,177, GHS 500 momo, GHS 50 estimated with no method.
     expect([...rows].map((r) => [r.getAttribute("data-method"), r.textContent])).toEqual([
@@ -453,7 +459,7 @@ describe("AnalyticsShell expenses", () => {
 
   it("lists expenses per period, with the previous period, behind a table", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    await pick(/^Show in /, "GHS");
     // The summary says which table it is: the card's visible list is by category.
     expect(
       within(card("Where the money went")).getByText("Show expenses per day as a table"),
@@ -490,6 +496,43 @@ describe("AnalyticsShell expenses", () => {
     );
     expect(await log().findByRole("button", { name: "Delete Domain" })).toBeInTheDocument();
     expect(within(figure("Expenses")).getByText("GHS 200.00")).toBeInTheDocument();
+  });
+
+  it("logs the currency and category picked from the form dropdowns", async () => {
+    createExpense.mockResolvedValue({
+      $id: "e4",
+      description: "Figma",
+      amount: 15,
+      currency: "USD",
+      category: "software",
+      date: "2026-10-12",
+    });
+    await renderShell();
+    await userEvent.click(log().getByRole("button", { name: "Add expense" }));
+    await userEvent.type(log().getByLabelText("Description"), "Figma");
+    await userEvent.type(log().getByLabelText("Amount"), "15");
+    await userEvent.click(log().getByRole("combobox", { name: "Currency GHS" }));
+    await userEvent.click(log().getByRole("option", { name: "USD" }));
+    await userEvent.click(log().getByRole("combobox", { name: /^Category / }));
+    await userEvent.click(log().getByRole("option", { name: "Software" }));
+    await userEvent.click(log().getByRole("button", { name: "Log expense" }));
+    expect(createExpense).toHaveBeenCalledWith(
+      expect.objectContaining({ description: "Figma", currency: "USD", category: "software" }),
+    );
+  });
+
+  it("refuses to log an expense once the date is cleared", async () => {
+    await renderShell();
+    await userEvent.click(log().getByRole("button", { name: "Add expense" }));
+    await userEvent.type(log().getByLabelText("Description"), "Domain");
+    await userEvent.type(log().getByLabelText("Amount"), "120");
+    await userEvent.click(log().getByRole("button", { name: /^Date ?\(required\) / }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await userEvent.click(log().getByRole("button", { name: "Log expense" }));
+    expect(createExpense).not.toHaveBeenCalled();
+    expect(
+      log().getByText("Enter a description, an amount above zero and a date."),
+    ).toBeInTheDocument();
   });
 
   it("formats dates stored as timestamps", async () => {
@@ -602,7 +645,7 @@ describe("AnalyticsShell QA fixes", () => {
 
   it("counts only the payments shown in the chosen currency on the cash chart", async () => {
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    await pick(/^Show in /, "GHS");
     // GHS 500 and the estimated GHS 50; not the USD payment.
     expect(card("Cash collected over time")).toHaveAccessibleDescription(
       "Per day, GHS · 2 payments",
@@ -629,8 +672,8 @@ describe("AnalyticsShell QA fixes", () => {
     ]);
     await renderShell();
     // NGN 1,000,000 ≈ GHS 8,850 is the biggest rated total; XOF has no rate.
-    expect(screen.getByLabelText("Show in")).toHaveValue("NGN");
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    expect(screen.getByRole("combobox", { name: /^Show in / })).toHaveAccessibleName("Show in NGN");
+    await pick(/^Show in /, "GHS");
     const lines = within(figure("Cash collected"))
       .getAllByRole("listitem")
       .map((li) => li.textContent);
@@ -669,7 +712,7 @@ describe("AnalyticsShell QA fixes", () => {
         { ...EXPENSES[0], $id: "ex", description: "Coworking", amount: 60000, currency: "XOF" },
       ]);
     await renderShell();
-    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
+    await pick(/^Show in /, "All, approx. GHS");
     for (const name of [
       "Cash collected over time",
       "By payment method",

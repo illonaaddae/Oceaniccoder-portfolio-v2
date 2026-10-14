@@ -14,7 +14,7 @@ describe("CertificationFormModal — certification type", () => {
   it("offers the certification type dropdown", () => {
     render(<CertificationFormModal {...baseProps} />);
     expect(screen.getByText("Certification Type")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /certification type/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /certification type/i })).toBeInTheDocument();
   });
 
   it("hydrates the type from the certification being edited", () => {
@@ -34,7 +34,7 @@ describe("CertificationFormModal — certification type", () => {
 
   it("reveals a free-text input for a custom type", () => {
     render(<CertificationFormModal {...baseProps} />);
-    fireEvent.click(screen.getByRole("button", { name: /certification type/i }));
+    fireEvent.click(screen.getByRole("combobox", { name: /certification type/i }));
     // CustomSelect commits on mousedown, not click.
     fireEvent.mouseDown(screen.getByText("+ Custom / Other"));
     expect(screen.getByLabelText("Custom certification type")).toBeInTheDocument();

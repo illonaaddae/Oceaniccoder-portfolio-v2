@@ -245,6 +245,7 @@ export default function PaymentsTab({ theme, onOpenQuote }: PaymentsTabProps) {
           value={method}
           options={METHOD_OPTIONS}
           onChange={changeMethod}
+          theme={theme}
         />
       </div>
 

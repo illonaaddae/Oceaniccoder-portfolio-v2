@@ -68,7 +68,7 @@ describe("ClientWorkTab", () => {
 
   it("emails the client when an inquiry is marked won", async () => {
     render(<ClientWorkTab theme="dark" onCreateQuote={vi.fn()} />);
-    await userEvent.click(await screen.findByRole("button", { name: /change status/i }));
+    await userEvent.click(await screen.findByRole("combobox", { name: /change status/i }));
     await userEvent.click(await screen.findByRole("option", { name: "Won" }));
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith(

@@ -5,6 +5,8 @@ import { createExpense, deleteExpense } from "@/services/api/expenses";
 import type { Expense } from "@/types";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/hooks/usePagination";
+import { CustomSelect } from "@/components/ui/CustomSelect";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { useConfirm } from "../../ConfirmContext";
 import { formatMoney } from "../shared/money";
 import { ErrorBanner } from "../shared/controls";
@@ -14,15 +16,12 @@ import { dayOf, todayUTC } from "./metrics/range";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 const strong: React.CSSProperties = { color: "var(--text-primary)" };
-const field: React.CSSProperties = {
-  background: "var(--bg-secondary)",
-  border: "1px solid var(--border-subtle)",
-  color: "var(--text-primary)",
-};
 
 const PAGE_SIZE = 15;
 const CURRENCIES = ["GHS", "USD", "EUR", "GBP", "NGN", "KES"];
 const CATEGORIES = Object.keys(EXPENSE_CATEGORY_LABELS) as Expense["category"][];
+const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({ value: c, label: c }));
+const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: EXPENSE_CATEGORY_LABELS[c] }));
 
 const blankForm = () => ({
   description: "",
@@ -62,8 +61,8 @@ export function ExpenseLog({
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = Number(form.amount);
-    if (!form.description.trim() || !Number.isFinite(amount) || amount <= 0) {
-      setError("Enter a description and an amount above zero.");
+    if (!form.description.trim() || !Number.isFinite(amount) || amount <= 0 || !form.date) {
+      setError("Enter a description, an amount above zero and a date.");
       return;
     }
     setSaving(true);
@@ -113,13 +112,20 @@ export function ExpenseLog({
     }
   };
 
+  // Matches CustomSelect and DatePicker at size "sm", so the row lines up.
+  const inputClass = `mt-1 block w-full rounded-lg border px-3 py-2 text-sm font-normal transition-all duration-200 focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
+    theme === "dark"
+      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-400 focus:border-oceanic-400 focus:ring-oceanic-400"
+      : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500 focus:ring-oceanic-600"
+  }`;
+
   const set =
     <K extends keyof ReturnType<typeof blankForm>>(key: K) =>
     (value: ReturnType<typeof blankForm>[K]) =>
       setForm((f) => ({ ...f, [key]: value }));
 
   return (
-    <section className="glass-card overflow-hidden rounded-xl" aria-labelledby={`${formId}-title`}>
+    <section className="glass-card rounded-xl" aria-labelledby={`${formId}-title`}>
       <div
         className="flex items-center justify-between gap-3 px-5 py-4"
         style={{ borderBottom: "1px solid var(--analytics-line)" }}
@@ -168,8 +174,7 @@ export function ExpenseLog({
                 onChange={(e) => set("description")(e.target.value)}
                 placeholder="e.g. Domain renewal for client.com"
                 required
-                className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-normal"
-                style={field}
+                className={inputClass}
               />
             </label>
             <label className="block text-xs font-semibold" style={muted}>
@@ -183,60 +188,61 @@ export function ExpenseLog({
                 onChange={(e) => set("amount")(e.target.value)}
                 placeholder="0.00"
                 required
-                className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-normal"
-                style={field}
+                className={`${inputClass} tabular-nums`}
               />
             </label>
-            <label className="block text-xs font-semibold" style={muted}>
-              Currency
-              <select
+            <div className="text-xs font-semibold" style={muted}>
+              <span id={`${formId}-currency`}>Currency</span>
+              <CustomSelect
                 value={form.currency}
-                onChange={(e) => set("currency")(e.target.value)}
-                className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-normal"
-                style={field}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-xs font-semibold" style={muted}>
-              Category
-              <select
-                value={form.category}
-                onChange={(e) => set("category")(e.target.value as Expense["category"])}
-                className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-normal"
-                style={field}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {EXPENSE_CATEGORY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-xs font-semibold" style={muted}>
-              Date
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => set("date")(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-normal"
-                style={field}
+                onChange={set("currency")}
+                options={CURRENCY_OPTIONS}
+                theme={theme}
+                labelId={`${formId}-currency`}
+                size="sm"
+                className="mt-1 font-normal"
               />
-            </label>
+            </div>
+            <div className="text-xs font-semibold" style={muted}>
+              <span id={`${formId}-category`}>Category</span>
+              <CustomSelect
+                value={form.category}
+                onChange={(v) => set("category")(v as Expense["category"])}
+                options={CATEGORY_OPTIONS}
+                theme={theme}
+                labelId={`${formId}-category`}
+                size="sm"
+                className="mt-1 font-normal"
+              />
+            </div>
+            <div className="text-xs font-semibold" style={muted}>
+              <span id={`${formId}-date`}>
+                Date
+                {/* A button can't carry aria-required; the name says it instead. */}
+                <span className="sr-only">{" (required)"}</span>
+              </span>
+              <DatePicker
+                value={form.date}
+                onChange={set("date")}
+                theme={theme}
+                labelId={`${formId}-date`}
+                size="sm"
+                placeholder="Pick a date"
+                className="mt-1 font-normal"
+              />
+            </div>
           </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-            style={{ background: "var(--quote-cta)" }}
-          >
-            <FaPlus aria-hidden="true" /> {saving ? "Saving…" : "Log expense"}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className={`flex items-center gap-2 rounded-lg bg-oceanic-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-oceanic-700 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 ${
+                theme === "dark" ? "focus:ring-oceanic-400" : "focus:ring-oceanic-600"
+              }`}
+            >
+              <FaPlus aria-hidden="true" /> {saving ? "Saving…" : "Log expense"}
+            </button>
+          </div>
         </form>
       )}
 

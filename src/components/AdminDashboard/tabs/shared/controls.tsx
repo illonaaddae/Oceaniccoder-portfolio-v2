@@ -1,6 +1,8 @@
 // Small controls shared by the Payments and Invoices tabs.
 import type React from "react";
+import { useId } from "react";
 import { FaSearch, FaSync, FaTimes } from "react-icons/fa";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 
@@ -93,37 +95,33 @@ export function SearchField({
   );
 }
 
-/** A native select with a visible label. */
+/** The design-system dropdown with a visible label, sized for filter bars. */
 export function SelectField<T extends string>({
   label,
   value,
   options,
   onChange,
+  theme,
 }: {
   label: string;
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
+  theme: "light" | "dark";
 }) {
+  const labelId = useId();
   return (
-    <label className="flex items-center gap-2 text-sm" style={muted}>
-      <span>{label}</span>
-      <select
+    <div className="flex items-center gap-2 text-sm" style={muted}>
+      <span id={labelId}>{label}</span>
+      <CustomSelect
         value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="rounded-lg border px-3 py-2 text-sm"
-        style={{
-          borderColor: "var(--border-subtle)",
-          color: "var(--text-primary)",
-          background: "var(--bg-primary)",
-        }}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
+        onChange={(v) => onChange(v as T)}
+        options={options}
+        theme={theme}
+        labelId={labelId}
+        size="sm"
+        className="min-w-[10.5rem]"
+      />
+    </div>
   );
 }

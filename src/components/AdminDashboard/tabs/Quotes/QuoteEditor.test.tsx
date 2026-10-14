@@ -36,9 +36,9 @@ describe("QuoteEditor", () => {
   it("picks the currency from the design-system dropdown, not a native select", async () => {
     render(<QuoteEditor theme="dark" onClose={vi.fn()} onSaved={vi.fn()} />);
     expect(document.querySelector("select")).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Currency" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "Currency" }));
     await userEvent.click(screen.getByRole("option", { name: /USD/ }));
-    expect(screen.getByRole("button", { name: "Currency" })).toHaveTextContent("USD");
+    expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("USD");
   });
 
   it("keeps At a glance boxes stable while typing into a later box", async () => {

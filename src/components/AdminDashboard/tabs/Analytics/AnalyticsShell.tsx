@@ -169,6 +169,7 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
               { value: APPROX_OPTION, label: "All, approx. GHS" },
             ]}
             onChange={setUnitPick}
+            theme={theme}
           />
           <InfoTip label="About days and currencies">
             Days are UTC (Ghana time). Totals are shown in each currency. Combined GHS figures are
