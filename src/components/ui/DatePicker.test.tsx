@@ -154,4 +154,32 @@ describe("DatePicker", () => {
     await waitFor(() => expect(today).toHaveFocus());
     expect(today).toHaveAttribute("tabindex", "0");
   });
+
+  test("keeps focus on the month buttons while stepping months", async () => {
+    render(<DatePicker value="2026-10-14" onChange={vi.fn()} theme="light" ariaLabel="Date" />);
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    const day = await screen.findByRole("button", { name: "October 14, 2026" });
+    await waitFor(() => expect(day).toHaveFocus());
+    const next = screen.getByRole("button", { name: "Next month" });
+    next.focus();
+    fireEvent.click(next);
+    await screen.findByRole("button", { name: "November 14, 2026" });
+    expect(next).toHaveFocus();
+    fireEvent.click(next);
+    await screen.findByRole("button", { name: "December 14, 2026" });
+    expect(next).toHaveFocus();
+  });
+
+  test("leaves focus alone when the page scrolls with the panel open", async () => {
+    render(<DatePicker value="2026-10-14" onChange={vi.fn()} theme="light" ariaLabel="Date" />);
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    const day = await screen.findByRole("button", { name: "October 14, 2026" });
+    await waitFor(() => expect(day).toHaveFocus());
+    const clear = screen.getByRole("button", { name: "Clear" });
+    clear.focus();
+    fireEvent.scroll(window);
+    fireEvent(window, new Event("resize"));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(clear).toHaveFocus();
+  });
 });

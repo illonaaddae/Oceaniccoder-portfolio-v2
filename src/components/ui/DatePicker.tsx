@@ -140,6 +140,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     // and the last open browsed elsewhere; otherwise no day is tabbable.
     const shown = parseISO(first);
     if (shown) setView({ y: shown.y, m: shown.m });
+    pendingFocus.current = true;
     setFocusDay(first);
     reposition();
     const onScroll = () => reposition();
@@ -170,16 +171,23 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     };
   }, [open]);
 
-  // Move focus to the roving day once the panel is placed, and after each move.
+  // Focus moves to the roving day only when asked: on open and after a grid key.
+  // Month buttons, scroll and resize also change view/coords but must leave
+  // focus where it is (APG date picker dialog).
+  const pendingFocus = useRef(false);
   useEffect(() => {
-    if (!open || !coords || !focusDay) return;
-    panelRef.current?.querySelector<HTMLButtonElement>(`[data-iso="${focusDay}"]`)?.focus();
+    if (!pendingFocus.current || !open || !coords || !focusDay) return;
+    const day = panelRef.current?.querySelector<HTMLButtonElement>(`[data-iso="${focusDay}"]`);
+    if (!day) return;
+    pendingFocus.current = false;
+    day.focus();
   }, [open, coords, focusDay, view]);
 
   const moveFocus = (iso: string) => {
     if (!inRange(iso)) return;
     const p = parseISO(iso);
     if (p && (p.y !== view.y || p.m !== view.m)) setView({ y: p.y, m: p.m });
+    pendingFocus.current = true;
     setFocusDay(iso);
   };
 
