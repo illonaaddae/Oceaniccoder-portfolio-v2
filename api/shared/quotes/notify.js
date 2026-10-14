@@ -2,6 +2,7 @@
 // logged by the caller from the returned { ok, error }.
 
 const T = require("../email/quoteEmails");
+const M = require("./model");
 const V = require("./views");
 const { sendEmail } = require("../email/send");
 
@@ -28,6 +29,25 @@ function createNotifier({
       safe(() => to(q.clientEmail, T.quoteSent(V.quoteSentView(q, token, base)))),
     quoteAccepted: (q, token, stages) =>
       safe(() => to(q.clientEmail, T.quoteAccepted(V.acceptedView(q, token, stages, base)))),
+    // A sent or accepted quote emailed again with a fresh link, to one address.
+    // A sent quote gets the quote email. An accepted one gets what is due now:
+    // the acceptance email while the deposit is due, else that stage's invoice.
+    quoteEmailAgain: (q, token, stages, address) =>
+      safe(() => {
+        if (q.status !== "accepted")
+          return to(address, T.quoteSent(V.quoteSentView(q, token, base)));
+        // Only the earliest due stage: one email, one invoice. Once it is paid,
+        // Email again sends the next stage if it has been requested; otherwise
+        // Request (or Resend request) on that stage does.
+        const due = M.paymentSummary(stages).nextDue;
+        if (!due) return { ok: false, error: "nothing is due" };
+        return to(
+          address,
+          due.index === 0
+            ? T.quoteAccepted(V.acceptedView(q, token, stages, base))
+            : T.paymentRequest(V.requestView(q, due, token, stages, base)),
+        );
+      }),
     decision: (q, decision) =>
       safe(() => to(adminEmail, T.quoteDecisionAlert(V.decisionView(q, decision, base)))),
     paymentRequest: (q, stage, token, stages) =>

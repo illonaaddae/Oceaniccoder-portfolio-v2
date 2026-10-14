@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck, FaEye } from "react-icons/fa";
 import { quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
@@ -12,8 +12,10 @@ import { INVALID_AMOUNT } from "./PriceInput";
 const btn =
   "px-3 py-2 rounded-lg text-sm font-medium border transition hover:opacity-90 disabled:opacity-50";
 const btnStyle = { borderColor: "var(--border-subtle)", color: "var(--text-primary)" };
+// oceanic-600 to oceanic-700: white text is 5.9-8.1:1. The old start colour,
+// --accent-teal, is #26a9c5 in dark theme, where white text was only 2.8:1.
 const primary = {
-  background: "linear-gradient(135deg, var(--accent-teal) 0%, #0d7a6e 100%)",
+  background: "linear-gradient(135deg, #0a6e7d 0%, #085866 100%)",
   color: "#fff",
   borderColor: "transparent",
 };
@@ -45,6 +47,24 @@ export default function QuoteSidebar({
   const [busy, setBusy] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  // "Email again" form: an optional extra address, and whether it becomes the
+  // client's email from now on.
+  // `openedFor` ties the form to the quote state it was opened for, so it doesn't
+  // reappear with a stale address after the quote is revised and sent again.
+  const [again, setAgain] = useState<{
+    to: string;
+    saveAddress: boolean;
+    openedFor: string;
+  } | null>(null);
+  const againRef = useRef<HTMLInputElement>(null);
+  const againButtonRef = useRef<HTMLButtonElement>(null);
+  // Focus goes back to the button once it is rendered and enabled again, so it
+  // never drops to <body> while a send is still finishing.
+  const restoreAgainFocus = useRef(false);
+  const closeAgain = () => {
+    restoreAgainFocus.current = true;
+    setAgain(null);
+  };
   const [manual, setManual] = useState<{
     stageId: string;
     method: ManualMethod;
@@ -68,7 +88,15 @@ export default function QuoteSidebar({
       )
         setLink(null);
       let emailNote = "";
-      if (result.emailed === false) {
+      if (action === "emailAgain") {
+        const sentTo = result.emailedTo ?? [];
+        const missed = result.failedTo ?? [];
+        success = sentTo.length ? `Emailed to ${sentTo.join(" and ")}.` : "No email went out.";
+        if (payload.saveAddress && payload.to)
+          success += ` ${result.quote.clientEmail} is now the client's email.`;
+        if (missed.length)
+          emailNote = ` It didn't reach ${missed.join(" or ")}; copy the link below and share it yourself.`;
+      } else if (result.emailed === false) {
         if (action === "send" || action === "requestStage")
           emailNote = " The email didn't send; copy the link below and share it yourself.";
         else if (action === "recordManual") emailNote = " The receipt email didn't send.";
@@ -88,6 +116,22 @@ export default function QuoteSidebar({
   };
 
   const { quote, stages, payments } = data;
+  // An accepted quote is emailed again as whatever is due now, so it needs a due stage.
+  // The server refuses a sent quote past its valid-until date and an accepted
+  // one with nothing due, so the button isn't offered for either.
+  const canEmailAgain =
+    (quote.status === "sent" && !(quote.validUntil && Date.parse(quote.validUntil) < Date.now())) ||
+    (quote.status === "accepted" && stages.some((s) => s.state === "due"));
+  // Includes the due stage, so a form left open doesn't reappear by itself when
+  // a different stage becomes due later.
+  const againKey = `${quote.status}:${quote.revision}:${stages.find((s) => s.state === "due")?.id ?? ""}`;
+  const againOpen = again !== null && canEmailAgain && again.openedFor === againKey;
+  useLayoutEffect(() => {
+    if (restoreAgainFocus.current && !busy && !againOpen) {
+      restoreAgainFocus.current = false;
+      againButtonRef.current?.focus();
+    }
+  }, [busy, againOpen]);
   const anyPaid =
     stages.some((s) => s.state === "paid") || payments.some((p) => p.status === "success");
 
@@ -158,20 +202,30 @@ export default function QuoteSidebar({
         />
       )}
 
-      {message && (
-        <p
-          role={message.tone === "ok" ? "status" : "alert"}
-          className="text-sm rounded-lg px-3 py-2"
-          style={{
-            background:
-              message.tone === "ok" ? "var(--status-success-bg)" : "var(--status-failed-bg)",
-            color:
-              message.tone === "ok" ? "var(--status-success-text)" : "var(--status-failed-text)",
-          }}
-        >
-          {message.text}
-        </p>
-      )}
+      {/* Both live regions stay mounted and only their text changes, so screen
+          readers announce each new message reliably. The wrappers opt out of the
+          aside's space-y gap (empty, they'd add blank space); the message
+          carries it instead. */}
+      <div role="status" className="!mt-0">
+        {message?.tone === "ok" && (
+          <p
+            className="mt-5 text-sm rounded-lg px-3 py-2"
+            style={{ background: "var(--status-success-bg)", color: "var(--status-success-text)" }}
+          >
+            {message.text}
+          </p>
+        )}
+      </div>
+      <div role="alert" className="!mt-0">
+        {message?.tone === "error" && (
+          <p
+            className="mt-5 text-sm rounded-lg px-3 py-2"
+            style={{ background: "var(--status-failed-bg)", color: "var(--status-failed-text)" }}
+          >
+            {message.text}
+          </p>
+        )}
+      </div>
 
       {link && (
         <div className="flex flex-wrap items-center gap-2">
@@ -317,22 +371,22 @@ export default function QuoteSidebar({
             className={btn}
             style={btnStyle}
             onClick={async () => {
-              const again = Boolean(data.maintenance?.sentAt);
+              const resend = Boolean(data.maintenance?.sentAt);
               if (
                 await confirm({
-                  message: again
+                  message: resend
                     ? "Send the maintenance offer again?"
                     : "Send the maintenance offer?",
                   description: `${quote.clientName} gets an email with the maintenance plans${
                     quote.clientEmail ? ` at ${quote.clientEmail}` : ""
                   }.`,
-                  confirmLabel: again ? "Send again" : "Send",
+                  confirmLabel: resend ? "Send again" : "Send",
                   variant: "success",
                 })
               )
                 void run(
                   "sendMaintenanceOffer",
-                  again ? { resend: true } : {},
+                  resend ? { resend: true } : {},
                   "Maintenance offer emailed.",
                 );
             }}
@@ -340,6 +394,97 @@ export default function QuoteSidebar({
             {data.maintenance.sentAt ? "Send again" : "Send maintenance offer"}
           </button>
         </div>
+      )}
+
+      {again && againOpen && (
+        <form
+          id="quote-email-again"
+          className="rounded-xl border p-4 space-y-3"
+          style={{ borderColor: "var(--border-subtle)" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (busy) return;
+            void run("emailAgain", { to: again.to.trim(), saveAddress: again.saveAddress }).then(
+              (ok) => {
+                if (ok) closeAgain();
+                else againRef.current?.focus();
+              },
+            );
+          }}
+        >
+          <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+            {quote.status === "accepted"
+              ? "Sends what's due now (the deposit or the next invoice)"
+              : "Sends the quote"}{" "}
+            to {quote.clientEmail || "the client"} with a fresh link. The link they have now stops
+            working.
+          </p>
+          <label className="block text-sm" style={{ color: "var(--text-secondary)" }}>
+            Also send to (optional)
+            <input
+              ref={againRef}
+              type="email"
+              placeholder="another@example.com"
+              maxLength={254}
+              value={again.to}
+              onChange={(e) =>
+                setAgain({
+                  ...again,
+                  to: e.target.value,
+                  saveAddress: e.target.value.trim() ? again.saveAddress : false,
+                })
+              }
+              className="glass-input mt-1 w-full rounded-lg px-3 py-2"
+            />
+          </label>
+          <label
+            className="flex items-center gap-2 text-sm"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <input
+              type="checkbox"
+              checked={again.saveAddress}
+              disabled={!again.to.trim()}
+              aria-describedby={again.to.trim() ? undefined : "quote-email-again-hint"}
+              onChange={(e) => setAgain({ ...again, saveAddress: e.target.checked })}
+            />
+            Use this address from now on (payment requests and other emails go there)
+          </label>
+          {!again.to.trim() && (
+            <p
+              id="quote-email-again-hint"
+              className="text-xs"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Enter an address above to save it.
+            </p>
+          )}
+          <div className="flex gap-2">
+            {/* aria-disabled, not disabled: disabling the focused button would
+                drop keyboard focus to <body> while the email sends. */}
+            <button
+              type="submit"
+              aria-disabled={busy}
+              className={`${btn} aria-disabled:opacity-50`}
+              style={primary}
+            >
+              Send email
+            </button>
+            {/* Inert while sending: the email can't be stopped, and closing the
+                form then would leave focus nowhere until the send finished. */}
+            <button
+              type="button"
+              aria-disabled={busy}
+              className={`${btn} aria-disabled:opacity-50`}
+              style={btnStyle}
+              onClick={() => {
+                if (!busy) closeAgain();
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
 
       {manual && (
@@ -433,6 +578,24 @@ export default function QuoteSidebar({
               </p>
             )}
           </>
+        )}
+        {canEmailAgain && (
+          <button
+            ref={againButtonRef}
+            type="button"
+            disabled={busy}
+            className={btn}
+            style={btnStyle}
+            aria-expanded={againOpen}
+            aria-controls="quote-email-again"
+            onClick={() => {
+              if (againOpen) return closeAgain();
+              setAgain({ to: "", saveAddress: false, openedFor: againKey });
+              requestAnimationFrame(() => againRef.current?.focus());
+            }}
+          >
+            Email again
+          </button>
         )}
         {(quote.status === "sent" || quote.status === "accepted") && (
           <button

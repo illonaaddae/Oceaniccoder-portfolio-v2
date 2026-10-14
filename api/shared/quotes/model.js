@@ -552,6 +552,7 @@ function networkFromNote(note) {
 }
 
 module.exports = {
+  EMAIL_RE,
   MOMO_NETWORKS,
   NETWORK_NOTE,
   networkFromNote,

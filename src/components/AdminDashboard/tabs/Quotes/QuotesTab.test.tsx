@@ -283,7 +283,8 @@ describe("QuotesTab", () => {
     );
     await userEvent.type(screen.getByLabelText("Note"), "ref 42");
     await userEvent.click(screen.getByRole("button", { name: "Record payment" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Server said no");
+    // The sidebar's alert region is always mounted, so wait for its text.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Server said no"));
     expect(screen.getByLabelText("Note")).toHaveValue("ref 42");
   });
 
@@ -323,8 +324,10 @@ describe("QuotesTab", () => {
     });
     await open();
     await userEvent.click(await screen.findByRole("button", { name: /send to client/i }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The email didn't send; copy the link below and share it yourself.",
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The email didn't send; copy the link below and share it yourself.",
+      ),
     );
   });
 });

@@ -25,6 +25,7 @@ function setup({ admin = true, quotes = [], payments = [], invoices = [] } = {})
     quoteSent: vi.fn().mockResolvedValue({ ok: true }),
     paymentRequest: vi.fn().mockResolvedValue({ ok: true }),
     paymentReceived: vi.fn().mockResolvedValue({ ok: true }),
+    quoteEmailAgain: vi.fn().mockResolvedValue({ ok: true }),
   };
   const handler = createHandler({
     requireAdmin: async () =>
@@ -275,6 +276,135 @@ describe("quote-admin", () => {
     expect(r.body.link).toMatch(/^https:\/\/oceaniccoder\.dev\/q\/[A-Za-z0-9_-]{43}$/);
     expect(r.body.link).not.toBe(sent.body.link);
     expect(t.repo.quotes.get(id).tokenHash).not.toBe(before);
+  });
+
+  describe("emailAgain", () => {
+    const addresses = (t) => t.notify.quoteEmailAgain.mock.calls.map((c) => c[3]);
+
+    it("emails the client again with a fresh link that replaces the old one", async () => {
+      const t = setup();
+      const sent = await sentQuote(t);
+      const id = sent.body.quote.id;
+      const before = t.repo.quotes.get(id).tokenHash;
+      const r = await t.call({ action: "emailAgain", id });
+      expect(r.status).toBe(200);
+      expect(r.body.link).toMatch(/^https:\/\/oceaniccoder\.dev\/q\/[A-Za-z0-9_-]{43}$/);
+      expect(r.body.link).not.toBe(sent.body.link);
+      expect(t.repo.quotes.get(id).tokenHash).not.toBe(before);
+      expect(addresses(t)).toEqual(["kofi@example.com"]);
+      expect(r.body).toMatchObject({
+        emailed: true,
+        emailedTo: ["kofi@example.com"],
+        failedTo: [],
+      });
+    });
+
+    it("also sends to another address, one email each, without saving it", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      const r = await t.call({ action: "emailAgain", id, to: " Prince_Ofori@Hotmail.com " });
+      expect(r.status).toBe(200);
+      expect(addresses(t)).toEqual(["kofi@example.com", "prince_ofori@hotmail.com"]);
+      expect(t.repo.quotes.get(id).clientEmail).toBe("kofi@example.com");
+      expect(r.body.quote.clientEmail).toBe("kofi@example.com");
+    });
+
+    it("saves the other address as the client's email when asked", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      const r = await t.call({
+        action: "emailAgain",
+        id,
+        to: "prince_ofori@hotmail.com",
+        saveAddress: true,
+      });
+      expect(r.status).toBe(200);
+      expect(addresses(t)).toEqual(["kofi@example.com", "prince_ofori@hotmail.com"]);
+      expect(t.repo.quotes.get(id).clientEmail).toBe("prince_ofori@hotmail.com");
+    });
+
+    it("sends once when the other address is the client's own", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      await t.call({ action: "emailAgain", id, to: "KOFI@example.com" });
+      expect(addresses(t)).toEqual(["kofi@example.com"]);
+    });
+
+    it("works for an accepted quote", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+      const r = await t.call({ action: "emailAgain", id });
+      expect(r.status).toBe(200);
+      expect(t.notify.quoteEmailAgain.mock.calls[0][0].status).toBe("accepted");
+    });
+
+    it("refuses drafts and a bad address, and leaves the link alone", async () => {
+      const t = setup();
+      const created = await t.call({ action: "create", draft });
+      expect((await t.call({ action: "emailAgain", id: created.body.quote.id })).status).toBe(409);
+
+      const id = (await sentQuote(t)).body.quote.id;
+      const before = t.repo.quotes.get(id).tokenHash;
+      const bad = await t.call({ action: "emailAgain", id, to: "not-an-email" });
+      expect(bad.status).toBe(400);
+      const noAddress = await t.call({ action: "emailAgain", id, saveAddress: true });
+      expect(noAddress.status).toBe(400);
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+      expect(t.notify.quoteEmailAgain).not.toHaveBeenCalled();
+    });
+
+    it("refuses a sent quote that has passed its valid-until date", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      await t.repo.update(id, { validUntil: "2026-10-01T09:00:00.000Z" });
+      const before = t.repo.quotes.get(id).tokenHash;
+      const r = await t.call({ action: "emailAgain", id });
+      expect(r.status).toBe(409);
+      expect(r.body.error).toMatch(/expired/i);
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+    });
+
+    it("refuses an accepted quote with nothing due, leaving the link alone", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+      await t.repo.createPayment({
+        quoteNumber: "Q-2026-0001",
+        stageId: "deposit",
+        status: "success",
+        paidAt: NOW.toISOString(),
+      });
+      const before = t.repo.quotes.get(id).tokenHash;
+      const r = await t.call({ action: "emailAgain", id });
+      expect(r.status).toBe(409);
+      expect(r.body.error).toMatch(/nothing is due/i);
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+      expect(t.notify.quoteEmailAgain).not.toHaveBeenCalled();
+    });
+
+    it("refuses an address longer than 254 characters instead of cutting it short", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      const long = `${"a".repeat(250)}@b.co`;
+      expect((await t.call({ action: "emailAgain", id, to: long })).status).toBe(400);
+      expect(t.notify.quoteEmailAgain).not.toHaveBeenCalled();
+    });
+
+    it("reports which addresses the email failed to reach", async () => {
+      const t = setup();
+      const id = (await sentQuote(t)).body.quote.id;
+      t.notify.quoteEmailAgain.mockImplementation(async (_q, _t, _s, address) =>
+        address === "kofi@example.com" ? { ok: true } : { ok: false, error: "bounced" },
+      );
+      const r = await t.call({ action: "emailAgain", id, to: "prince_ofori@hotmail.com" });
+      expect(r.status).toBe(200);
+      expect(r.body).toMatchObject({
+        emailed: false,
+        emailedTo: ["kofi@example.com"],
+        failedTo: ["prince_ofori@hotmail.com"],
+      });
+    });
   });
 
   it("returns 404 for an unknown quote id", async () => {
