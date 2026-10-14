@@ -6,6 +6,7 @@ import MomoPayment from "./MomoPayment";
 import BankTransfer from "./BankTransfer";
 import ApplePayPayment from "./ApplePayPayment";
 import { PAYMENT_CONFIG } from "@/config/payment";
+import { LOGO_PATHS } from "@/components/Navbar/navData";
 
 // Safe public invoice fields returned by /api/get-invoice
 interface PublicInvoice {
@@ -129,7 +130,7 @@ const InvoiceSummary: React.FC<{ invoice: PublicInvoice }> = ({ invoice }) => {
         }}
       >
         <img
-          src="/images/logo/Oceaniccoder-croped.png"
+          src={LOGO_PATHS.light}
           alt="OceanicCoder"
           width="110"
           height="32"

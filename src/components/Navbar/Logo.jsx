@@ -22,16 +22,11 @@ const Logo = React.memo(function Logo({ theme }) {
 
   return (
     <Link to="/" aria-label="Go to homepage" className="group mr-4">
-      {/* Light mode serves WebP with the PNG as fallback. Dark mode keeps the
-          SVG, which the CSS filter above recolours into a flat silhouette. */}
-      {isDark ? (
-        img
-      ) : (
-        <picture>
-          <source srcSet={LOGO_PATHS.lightWebp} type="image/webp" />
-          {img}
-        </picture>
-      )}
+      {/* WebP with the PNG as fallback, in both themes. */}
+      <picture>
+        <source srcSet={LOGO_PATHS.lightWebp} type="image/webp" />
+        {img}
+      </picture>
     </Link>
   );
 });
