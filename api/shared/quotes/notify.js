@@ -36,6 +36,8 @@ function createNotifier({
       safe(() => {
         if (q.status !== "accepted")
           return to(address, T.quoteSent(V.quoteSentView(q, token, base)));
+        // Only the earliest due stage: one email, one invoice. A later due stage
+        // gets its own email once this one is paid (or via Request on the stage).
         const due = M.paymentSummary(stages).nextDue;
         if (!due) return { ok: false, error: "nothing is due" };
         return to(

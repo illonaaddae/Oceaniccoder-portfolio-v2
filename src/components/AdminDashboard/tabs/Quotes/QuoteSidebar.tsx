@@ -47,8 +47,19 @@ export default function QuoteSidebar({
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   // "Email again" form: an optional extra address, and whether it becomes the
   // client's email from now on.
-  const [again, setAgain] = useState<{ to: string; saveAddress: boolean } | null>(null);
+  // `openedFor` ties the form to the quote state it was opened for, so it doesn't
+  // reappear with a stale address after the quote is revised and sent again.
+  const [again, setAgain] = useState<{
+    to: string;
+    saveAddress: boolean;
+    openedFor: string;
+  } | null>(null);
   const againRef = useRef<HTMLInputElement>(null);
+  const againButtonRef = useRef<HTMLButtonElement>(null);
+  const closeAgain = () => {
+    setAgain(null);
+    requestAnimationFrame(() => againButtonRef.current?.focus());
+  };
   const [manual, setManual] = useState<{
     stageId: string;
     method: ManualMethod;
@@ -77,7 +88,7 @@ export default function QuoteSidebar({
         const missed = result.failedTo ?? [];
         success = sentTo.length ? `Emailed to ${sentTo.join(" and ")}.` : "No email went out.";
         if (payload.saveAddress && payload.to)
-          success += ` ${String(payload.to)} is now the client's email.`;
+          success += ` ${result.quote.clientEmail} is now the client's email.`;
         if (missed.length)
           emailNote = ` It didn't reach ${missed.join(" or ")}; copy the link below and share it yourself.`;
       } else if (result.emailed === false) {
@@ -100,6 +111,12 @@ export default function QuoteSidebar({
   };
 
   const { quote, stages, payments } = data;
+  // An accepted quote is emailed again as whatever is due now, so it needs a due stage.
+  const canEmailAgain =
+    quote.status === "sent" ||
+    (quote.status === "accepted" && stages.some((s) => s.state === "due"));
+  const againKey = `${quote.status}:${quote.revision}`;
+  const againOpen = again !== null && canEmailAgain && again.openedFor === againKey;
   const anyPaid =
     stages.some((s) => s.state === "paid") || payments.some((p) => p.status === "success");
 
@@ -354,7 +371,7 @@ export default function QuoteSidebar({
         </div>
       )}
 
-      {again && (quote.status === "sent" || quote.status === "accepted") && (
+      {again && againOpen && (
         <form
           id="quote-email-again"
           className="rounded-xl border p-4 space-y-3"
@@ -363,14 +380,17 @@ export default function QuoteSidebar({
             e.preventDefault();
             void run("emailAgain", { to: again.to.trim(), saveAddress: again.saveAddress }).then(
               (ok) => {
-                if (ok) setAgain(null);
+                if (ok) closeAgain();
               },
             );
           }}
         >
           <p className="text-sm" style={{ color: "var(--text-primary)" }}>
-            Sends the quote to {quote.clientEmail || "the client"} with a fresh link. The link they
-            have now stops working.
+            {quote.status === "accepted"
+              ? "Sends what's due now (the deposit or the next invoice)"
+              : "Sends the quote"}{" "}
+            to {quote.clientEmail || "the client"} with a fresh link. The link they have now stops
+            working.
           </p>
           <label className="block text-sm" style={{ color: "var(--text-secondary)" }}>
             Also send to (optional)
@@ -382,6 +402,7 @@ export default function QuoteSidebar({
               value={again.to}
               onChange={(e) =>
                 setAgain({
+                  ...again,
                   to: e.target.value,
                   saveAddress: e.target.value.trim() ? again.saveAddress : false,
                 })
@@ -415,7 +436,7 @@ export default function QuoteSidebar({
             <button type="submit" disabled={busy} className={btn} style={primary}>
               Send email
             </button>
-            <button type="button" className={btn} style={btnStyle} onClick={() => setAgain(null)}>
+            <button type="button" className={btn} style={btnStyle} onClick={closeAgain}>
               Cancel
             </button>
           </div>
@@ -514,17 +535,18 @@ export default function QuoteSidebar({
             )}
           </>
         )}
-        {(quote.status === "sent" || quote.status === "accepted") && (
+        {canEmailAgain && (
           <button
+            ref={againButtonRef}
             type="button"
             disabled={busy}
             className={btn}
             style={btnStyle}
-            aria-expanded={again !== null}
+            aria-expanded={againOpen}
             aria-controls="quote-email-again"
             onClick={() => {
-              if (again) return setAgain(null);
-              setAgain({ to: "", saveAddress: false });
+              if (againOpen) return closeAgain();
+              setAgain({ to: "", saveAddress: false, openedFor: againKey });
               requestAnimationFrame(() => againRef.current?.focus());
             }}
           >
