@@ -6,7 +6,7 @@ import { socialLinks } from "./footerData";
 
 const SocialLinks = React.memo(() => (
   <div>
-    <h4 className="text-lg font-semibold text-white mb-4">Connect</h4>
+    <h3 className="text-lg font-semibold text-white mb-4">Connect</h3>
     <div className="space-y-4">
       {socialLinks.map((social, index) => (
         <a
