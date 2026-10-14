@@ -41,15 +41,22 @@ export function ChartLegend({
   );
 }
 
-/** A table behind "Show the data as a table". */
-export function TableDisclosure({ children }: { children: React.ReactNode }) {
+/** A table behind a "Show … as a table" disclosure. */
+export function TableDisclosure({
+  summary = "Show the data as a table",
+  children,
+}: {
+  /** Names what the table holds when the card shows more than one thing. */
+  summary?: string;
+  children: React.ReactNode;
+}) {
   return (
     <details className="mt-3">
       <summary
         className="cursor-pointer text-xs font-semibold"
         style={{ color: "var(--accent-teal)" }}
       >
-        Show the data as a table
+        {summary}
       </summary>
       {/* relative: the table's sr-only text is absolutely placed and would
           otherwise escape this box and scroll the page sideways. */}

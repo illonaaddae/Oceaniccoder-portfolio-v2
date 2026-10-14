@@ -454,6 +454,10 @@ describe("AnalyticsShell expenses", () => {
   it("lists expenses per period, with the previous period, behind a table", async () => {
     await renderShell();
     await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    // The summary says which table it is: the card's visible list is by category.
+    expect(
+      within(card("Where the money went")).getByText("Show expenses per day as a table"),
+    ).toBeInTheDocument();
     const table = within(card("Where the money went")).getByRole("table", {
       name: "Expenses per day, GHS",
     });

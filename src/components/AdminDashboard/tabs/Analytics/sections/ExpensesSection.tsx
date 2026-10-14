@@ -107,7 +107,11 @@ export function ExpensesSection({
             description={`By category, ${unitLabel}`}
             loading={waiting}
             error={failed}
-            footer={<TableDisclosure>{table}</TableDisclosure>}
+            footer={
+              <TableDisclosure summary={`Show expenses per ${bucket} as a table`}>
+                {table}
+              </TableDisclosure>
+            }
           >
             <ShareList
               rows={categories}
