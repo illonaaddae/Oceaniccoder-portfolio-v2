@@ -437,7 +437,20 @@ describe("outstandingSummary", () => {
     // The server hasn't flagged this stage overdue, but it was due on 10 Oct.
     const lagging = {
       ...quote,
-      invoices: [{ ...quote.invoices[1], dueBy: "2026-10-10", overdue: false }],
+      invoices: [
+        {
+          stageId: "balance",
+          invoiceNumber: "Q-2026-0001-2",
+          label: "Balance",
+          percent: 50,
+          amountMinor: 50000,
+          state: "due",
+          issuedAt: "2026-08-01T00:00:00Z",
+          dueBy: "2026-10-10",
+          overdue: false,
+          paidAt: null,
+        },
+      ],
     } as QuoteSummary;
     const s = outstandingSummary(
       [
