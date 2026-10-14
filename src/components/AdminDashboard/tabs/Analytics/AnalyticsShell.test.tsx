@@ -608,25 +608,23 @@ describe("AnalyticsShell QA fixes", () => {
   });
 
   it("never defaults to a currency with no rate, and leads the hero with the chosen one", async () => {
-    getPayments
-      .mockReset()
-      .mockResolvedValue([
-        ...PAYMENTS,
-        payment({
-          $id: "x",
-          invoiceNumber: "INV-X",
-          amount: 250000,
-          currency: "XOF",
-          paidAt: "2026-10-08T09:00:00Z",
-        }),
-        payment({
-          $id: "n",
-          invoiceNumber: "INV-N",
-          amount: 1000000,
-          currency: "NGN",
-          paidAt: "2026-10-09T09:00:00Z",
-        }),
-      ]);
+    getPayments.mockReset().mockResolvedValue([
+      ...PAYMENTS,
+      payment({
+        $id: "x",
+        invoiceNumber: "INV-X",
+        amount: 250000,
+        currency: "XOF",
+        paidAt: "2026-10-08T09:00:00Z",
+      }),
+      payment({
+        $id: "n",
+        invoiceNumber: "INV-N",
+        amount: 1000000,
+        currency: "NGN",
+        paidAt: "2026-10-09T09:00:00Z",
+      }),
+    ]);
     await renderShell();
     // NGN 1,000,000 ≈ GHS 8,850 is the biggest rated total; XOF has no rate.
     expect(screen.getByLabelText("Show in")).toHaveValue("NGN");
@@ -646,18 +644,16 @@ describe("AnalyticsShell QA fixes", () => {
   });
 
   it("says which currencies an approx. card leaves out", async () => {
-    getPayments
-      .mockReset()
-      .mockResolvedValue([
-        ...PAYMENTS,
-        payment({
-          $id: "x",
-          invoiceNumber: "INV-X",
-          amount: 250000,
-          currency: "XOF",
-          paidAt: "2026-10-08T09:00:00Z",
-        }),
-      ]);
+    getPayments.mockReset().mockResolvedValue([
+      ...PAYMENTS,
+      payment({
+        $id: "x",
+        invoiceNumber: "INV-X",
+        amount: 250000,
+        currency: "XOF",
+        paidAt: "2026-10-08T09:00:00Z",
+      }),
+    ]);
     getExpenses
       .mockReset()
       .mockResolvedValue([
