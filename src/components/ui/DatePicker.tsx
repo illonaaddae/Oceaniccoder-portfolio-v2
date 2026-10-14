@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaRegCalendarAlt, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
@@ -9,6 +9,10 @@ interface DatePickerProps {
   theme: "light" | "dark";
   placeholder?: string;
   ariaLabel?: string;
+  /** Id of a visible label; the trigger is then named by it plus the shown date. */
+  labelId?: string;
+  /** "sm" matches CustomSelect's compact size (py-2, rounded-lg). */
+  size?: "md" | "sm";
   className?: string;
   /** Earliest selectable date, ISO "YYYY-MM-DD". Mirrors `<input type="date" min>`. */
   min?: string;
@@ -61,12 +65,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   theme,
   placeholder = "Select date",
   ariaLabel,
+  labelId,
+  size = "md",
   className = "",
   min,
   max,
 }) => {
   const dark = theme === "dark";
   const [open, setOpen] = useState(false);
+  const valueId = useId();
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -140,7 +147,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const display = parsed ? `${MONTHS_SHORT[parsed.m]} ${parsed.d}, ${parsed.y}` : "";
 
-  const triggerClass = `w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 text-sm ${
+  const sizeClass = size === "sm" ? "px-3 py-2 rounded-lg" : "px-3.5 py-2.5 rounded-xl";
+  const triggerClass = `w-full flex items-center justify-between gap-2 ${sizeClass} border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-oceanic-500/50 text-sm ${
     dark
       ? "bg-gray-800/80 border-gray-700 text-white focus:border-oceanic-500/60"
       : "bg-white border-oceanic-500/20 text-slate-900"
@@ -183,9 +191,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         className={triggerClass}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={ariaLabel}
+        aria-label={labelId ? undefined : ariaLabel}
+        aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
       >
-        <span className={display ? "" : dark ? "text-gray-500" : "text-slate-500"}>
+        <span id={valueId} className={display ? "" : dark ? "text-gray-500" : "text-slate-500"}>
           {display || placeholder}
         </span>
         <FaRegCalendarAlt className={`text-sm ${dark ? "text-slate-400" : "text-slate-500"}`} />
@@ -197,7 +206,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <div
             ref={panelRef}
             role="dialog"
-            aria-label={ariaLabel}
+            aria-label={labelId ? undefined : ariaLabel}
+            aria-labelledby={labelId}
             style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width }}
             className={`z-[70] rounded-xl border shadow-2xl p-3 ${
               dark ? "bg-gray-800 border-gray-700" : "bg-white border-slate-200"

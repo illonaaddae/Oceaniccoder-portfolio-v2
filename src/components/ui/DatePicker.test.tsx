@@ -68,4 +68,25 @@ describe("DatePicker", () => {
     );
     expect(screen.getByLabelText("Preferred date")).toHaveTextContent("Jun 15, 2026");
   });
+
+  test("is named by a visible label plus the shown date when given labelId", () => {
+    render(
+      <>
+        <span id="date-label">Date</span>
+        <DatePicker value="2026-10-14" onChange={vi.fn()} theme="light" labelId="date-label" />
+      </>,
+    );
+    const trigger = screen.getByRole("button", { name: "Date Oct 14, 2026" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog", { name: "Date" })).toBeInTheDocument();
+  });
+
+  test("uses the compact padding for size sm and the default otherwise", () => {
+    const { rerender } = render(
+      <DatePicker value="" onChange={vi.fn()} theme="light" ariaLabel="Preferred date" size="sm" />,
+    );
+    expect(screen.getByLabelText("Preferred date").className).toContain("py-2 ");
+    rerender(<DatePicker value="" onChange={vi.fn()} theme="light" ariaLabel="Preferred date" />);
+    expect(screen.getByLabelText("Preferred date").className).toContain("py-2.5");
+  });
 });
