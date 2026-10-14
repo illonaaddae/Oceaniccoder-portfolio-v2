@@ -6,6 +6,7 @@ import type { CurrencyTotals } from "../shared/money";
 import { approxTotal, describeDelta, formatApproxGHS, ratesNote } from "./metrics/format";
 import type { Delta } from "./metrics/range";
 import type { MoneyUnit } from "./metrics/revenue";
+import type { SourceErrors } from "./useAnalyticsData";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 
@@ -15,6 +16,21 @@ const EDGE = 8;
 const VERDICT = { good: ", better than before", bad: ", worse than before", flat: "" } as const;
 
 export const leavesOut = (missing: string[]) => `(leaves out ${missing.join(", ")}: no rate set)`;
+
+/**
+ * What the owed figures are missing because invoices or quotes failed:
+ * everything (`all`), one source (a "leaves out" note), or null when both loaded.
+ */
+export function owedGap(errors: SourceErrors): { all: boolean; note: string } | null {
+  if (errors.invoices && errors.quotes)
+    return { all: true, note: "Invoices and quotes couldn't load." };
+  if (errors.invoices || errors.quotes)
+    return {
+      all: false,
+      note: `Leaves out ${errors.invoices ? "one-off invoices" : "quote stages"}: they couldn't load.`,
+    };
+  return null;
+}
 
 /** Currencies in any of the totals that the approx. unit can't convert. */
 export function unconverted(unit: MoneyUnit, ...totals: CurrencyTotals[]): string[] {

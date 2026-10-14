@@ -13,49 +13,70 @@ export interface AnalyticsSources {
   expenses: Expense[];
 }
 
+export type Source = keyof AnalyticsSources;
+
 /** One message per source that failed on the last load. */
-export type SourceErrors = Partial<Record<"payments" | "invoices" | "quotes" | "expenses", string>>;
+export type SourceErrors = Partial<Record<Source, string>>;
+
+/** Which sources have answered at least once, with data or an error. */
+export type SourcesLoaded = Record<Source, boolean>;
 
 const EMPTY: AnalyticsSources = { payments: [], invoices: [], quotes: [], expenses: [] };
+const NONE_LOADED: SourcesLoaded = {
+  payments: false,
+  invoices: false,
+  quotes: false,
+  expenses: false,
+};
+
+const FAILED: Record<Source, string> = {
+  payments: "Couldn't load payments.",
+  invoices: "Couldn't load invoices.",
+  quotes: "Couldn't load quotes.",
+  expenses: "Couldn't load expenses.",
+};
 
 const message = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
 /**
- * Loads every business row Analytics needs, once, paging through each table.
- * A source that fails keeps what was on screen and reports its own error, so
- * one bad request doesn't blank the whole tab.
+ * Loads every business row Analytics needs, paging through each table. Each
+ * source lands as soon as it answers, so a card can show once its own data is
+ * in. A source that fails keeps what was on screen and reports its own error,
+ * so one bad request doesn't blank the whole tab.
  */
 export function useAnalyticsData() {
   const [data, setData] = useState<AnalyticsSources>(EMPTY);
   const [errors, setErrors] = useState<SourceErrors>({});
+  const [loaded, setLoaded] = useState<SourcesLoaded>(NONE_LOADED);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const active = useRef(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [payments, invoices, quotes, expenses] = await Promise.allSettled([
-      getPayments(),
-      getInvoices(),
-      quoteAdmin<{ quotes: QuoteSummary[] }>("list").then((r) => r.quotes ?? []),
-      getExpenses(),
+    const track = <K extends Source>(source: K, request: () => Promise<AnalyticsSources[K]>) =>
+      request().then(
+        (rows) => {
+          if (!active.current) return;
+          setData((prev) => ({ ...prev, [source]: rows }));
+          setErrors(({ [source]: _cleared, ...rest }) => rest);
+          setLoaded((prev) => ({ ...prev, [source]: true }));
+        },
+        (err: unknown) => {
+          if (!active.current) return;
+          setErrors((prev) => ({ ...prev, [source]: message(err, FAILED[source]) }));
+          setLoaded((prev) => ({ ...prev, [source]: true }));
+        },
+      );
+    await Promise.all([
+      track("payments", getPayments),
+      track("invoices", getInvoices),
+      track("quotes", () =>
+        quoteAdmin<{ quotes: QuoteSummary[] }>("list").then((r) => r.quotes ?? []),
+      ),
+      track("expenses", getExpenses),
     ]);
     if (!active.current) return;
-    const next: SourceErrors = {};
-    if (payments.status === "rejected")
-      next.payments = message(payments.reason, "Couldn't load payments.");
-    if (invoices.status === "rejected")
-      next.invoices = message(invoices.reason, "Couldn't load invoices.");
-    if (quotes.status === "rejected") next.quotes = message(quotes.reason, "Couldn't load quotes.");
-    if (expenses.status === "rejected")
-      next.expenses = message(expenses.reason, "Couldn't load expenses.");
-    setData((prev) => ({
-      payments: payments.status === "fulfilled" ? payments.value : prev.payments,
-      invoices: invoices.status === "fulfilled" ? invoices.value : prev.invoices,
-      quotes: quotes.status === "fulfilled" ? quotes.value : prev.quotes,
-      expenses: expenses.status === "fulfilled" ? expenses.value : prev.expenses,
-    }));
-    setErrors(next);
     setUpdatedAt(new Date());
     setLoading(false);
   }, []);
@@ -74,5 +95,5 @@ export function useAnalyticsData() {
     [],
   );
 
-  return { data, errors, loading, updatedAt, refresh: load, setExpenses };
+  return { data, errors, loaded, loading, updatedAt, refresh: load, setExpenses };
 }

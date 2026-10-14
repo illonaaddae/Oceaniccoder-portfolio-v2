@@ -2,7 +2,15 @@ import type React from "react";
 import { useId, useMemo } from "react";
 import type { Expense } from "@/types";
 import { formatMoney, type CurrencyTotals } from "../../shared/money";
-import { ApproxLine, DeltaChip, InfoTip, Sparkline, leavesOut, unconverted } from "../KpiExtras";
+import {
+  ApproxLine,
+  DeltaChip,
+  InfoTip,
+  Sparkline,
+  leavesOut,
+  owedGap,
+  unconverted,
+} from "../KpiExtras";
 import { delta, type Bucket, type DateRange, type Delta } from "../metrics/range";
 import {
   cashByCurrency,
@@ -12,13 +20,15 @@ import {
   expenseTotals,
   expensesIn,
   netByCurrency,
+  orderTotals,
   paymentStats,
   totalIn,
+  unitCurrency,
   type LedgerEntry,
   type MoneyUnit,
   type OutstandingSummary,
 } from "../metrics/revenue";
-import type { SourceErrors } from "../useAnalyticsData";
+import type { SourceErrors, SourcesLoaded } from "../useAnalyticsData";
 
 const sub: React.CSSProperties = { color: "var(--text-secondary)" };
 
@@ -32,6 +42,7 @@ interface SummarySectionProps {
   unit: MoneyUnit;
   unitLabel: string;
   errors: SourceErrors;
+  loaded: SourcesLoaded;
 }
 
 /** One figure on the band; its heading names the group for screen readers. */
@@ -58,13 +69,13 @@ function Figure({
   );
 }
 
-/** The first currency large, any others smaller under it. */
-function Totals({ totals }: { totals: CurrencyTotals }) {
+/** The chosen currency large, any others smaller under it, biggest first. */
+function Totals({ totals, lead }: { totals: CurrencyTotals; lead: string }) {
   if (totals.length === 0)
     return <p className="text-[28px] font-extrabold leading-tight tabular-nums">0.00</p>;
   return (
     <ul className="min-w-0">
-      {totals.map((t, i) => (
+      {orderTotals(totals, lead).map((t, i) => (
         <li
           key={t.currency}
           className={
@@ -80,12 +91,34 @@ function Totals({ totals }: { totals: CurrencyTotals }) {
   );
 }
 
-function Headline({ totals, chip }: { totals: CurrencyTotals; chip: React.ReactNode }) {
+function Headline({
+  totals,
+  lead,
+  chip,
+}: {
+  totals: CurrencyTotals;
+  lead: string;
+  chip: React.ReactNode;
+}) {
   return (
     <div className="flex items-start justify-between gap-2">
-      <Totals totals={totals} />
+      <Totals totals={totals} lead={lead} />
       <span className="mt-1.5 shrink-0">{chip}</span>
     </div>
+  );
+}
+
+/** Until a figure's sources answer: no zeros that look like data. */
+function Pending() {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="block h-8 w-40 max-w-full animate-pulse rounded-md"
+        style={{ background: "rgba(255, 255, 255, 0.14)" }}
+      />
+      <Note>Loading…</Note>
+    </>
   );
 }
 
@@ -131,7 +164,12 @@ export function SummarySection({
   unit,
   unitLabel,
   errors,
+  loaded,
 }: SummarySectionProps) {
+  const lead = unitCurrency(unit);
+  // The ledger needs invoices too: paid invoices with no payment row count.
+  const ledgerReady = loaded.payments && loaded.invoices;
+  const owedReady = loaded.invoices && loaded.quotes;
   const figures = useMemo(() => {
     const inRange = entriesIn(ledger, range);
     const cash = cashByCurrency(inRange);
@@ -172,12 +210,7 @@ export function SummarySection({
     <DeltaChip delta={d} unitLabel={unitLabel} upIsGood={upIsGood} />
   );
 
-  const owedNote =
-    errors.invoices || errors.quotes
-      ? `Leaves out ${[errors.invoices && "one-off invoices", errors.quotes && "quote stages"]
-          .filter(Boolean)
-          .join(" and ")}: they couldn't load.`
-      : null;
+  const owedMissing = owedGap(errors);
 
   return (
     <div className="analytics-hero">
@@ -188,9 +221,11 @@ export function SummarySection({
         >
           {errors.payments ? (
             <Note>Payments couldn&rsquo;t load.</Note>
+          ) : !ledgerReady ? (
+            <Pending />
           ) : (
             <>
-              <Headline totals={figures.cash} chip={chip(figures.cashDelta)} />
+              <Headline totals={figures.cash} lead={lead} chip={chip(figures.cashDelta)} />
               <Sparkline values={figures.cashLine} />
               <Compared
                 lead={figures.cashNote}
@@ -210,16 +245,25 @@ export function SummarySection({
           label="Owed to you"
           info="Sent invoices and requested quote stages that aren't paid yet. Today's position, whatever the range."
         >
-          <Headline
-            totals={outstanding.totals}
-            chip={<span className="analytics-chip">Now</span>}
-          />
-          <Note>
-            {plural(outstanding.items.length, "invoice", "invoices")}, {outstanding.overdueCount}{" "}
-            overdue. Not limited to the range.
-          </Note>
-          <ApproxLine totals={outstanding.totals} />
-          {owedNote && <Note>{owedNote}</Note>}
+          {owedMissing?.all ? (
+            <Note>{owedMissing.note}</Note>
+          ) : !owedReady ? (
+            <Pending />
+          ) : (
+            <>
+              <Headline
+                totals={outstanding.totals}
+                lead={lead}
+                chip={<span className="analytics-chip">Now</span>}
+              />
+              <Note>
+                {plural(outstanding.items.length, "invoice", "invoices")},{" "}
+                {outstanding.overdueCount} overdue. Not limited to the range.
+              </Note>
+              <ApproxLine totals={outstanding.totals} />
+              {owedMissing && <Note>{owedMissing.note}</Note>}
+            </>
+          )}
         </Figure>
         <Figure
           label="Expenses"
@@ -227,9 +271,11 @@ export function SummarySection({
         >
           {errors.expenses ? (
             <Note>Expenses couldn&rsquo;t load.</Note>
+          ) : !loaded.expenses ? (
+            <Pending />
           ) : (
             <>
-              <Headline totals={figures.spent} chip={chip(figures.spentDelta, false)} />
+              <Headline totals={figures.spent} lead={lead} chip={chip(figures.spentDelta, false)} />
               <Sparkline values={figures.spentLine} />
               <Compared
                 lead={figures.spentNote}
@@ -245,9 +291,11 @@ export function SummarySection({
             <Note>
               Needs {errors.payments ? "payments" : "expenses"}, which couldn&rsquo;t load.
             </Note>
+          ) : !ledgerReady || !loaded.expenses ? (
+            <Pending />
           ) : (
             <>
-              <Headline totals={figures.net} chip={chip(figures.netDelta)} />
+              <Headline totals={figures.net} lead={lead} chip={chip(figures.netDelta)} />
               <Sparkline values={figures.netLine} />
               <Compared
                 lead="Collected minus expenses"

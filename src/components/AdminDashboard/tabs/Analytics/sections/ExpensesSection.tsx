@@ -5,11 +5,13 @@ import { formatMoney } from "../../shared/money";
 import { ShareList } from "../BreakdownTable";
 import { ChartCard, TableDisclosure } from "../ChartCard";
 import { ExpenseLog } from "../ExpenseLog";
+import { leavesOut, unconverted } from "../KpiExtras";
 import { formatDay, toApproxGHS } from "../metrics/format";
 import { dayOf, type Bucket, type DateRange } from "../metrics/range";
 import {
   EXPENSE_CATEGORY_LABELS,
   expenseSeries,
+  expenseTotals,
   expensesByCategory,
   expensesIn,
   largestExpenses,
@@ -28,7 +30,8 @@ interface ExpensesSectionProps {
   bucket: Bucket;
   unit: MoneyUnit;
   unitLabel: string;
-  loading: boolean;
+  /** The expenses have answered, with rows or an error. */
+  loaded: boolean;
   /** Set when the expenses couldn't be read. */
   error?: string;
   theme: "light" | "dark";
@@ -42,20 +45,21 @@ export function ExpensesSection({
   bucket,
   unit,
   unitLabel,
-  loading,
+  loaded,
   error,
   theme,
 }: ExpensesSectionProps) {
   const failed = error ? `Expenses couldn't load: ${error}` : null;
   const currency = unitCurrency(unit);
   const approx = unit.kind === "approx";
-  const waiting = loading && expenses.length === 0;
+  const waiting = !loaded;
   const money = (amount: number) => `${approx ? "≈ " : ""}${formatMoney(amount, currency)}`;
 
-  const categories = useMemo(
-    () => expensesByCategory(expensesIn(expenses, range), unit),
-    [expenses, range, unit],
-  );
+  const inRange = useMemo(() => expensesIn(expenses, range), [expenses, range]);
+  const categories = useMemo(() => expensesByCategory(inRange, unit), [inRange, unit]);
+  // Approx. mode drops currencies with no rate; the card says which.
+  const missing = unconverted(unit, expenseTotals(inRange));
+  const gap = missing.length > 0 ? ` ${leavesOut(missing)}` : "";
   const largest = useMemo(() => largestExpenses(expenses, range), [expenses, range]);
   const series = useMemo(
     () => expenseSeries(expenses, range, unit, bucket),
@@ -104,7 +108,7 @@ export function ExpensesSection({
         <div className="grid min-w-0 lg:col-span-2">
           <ChartCard
             title="Where the money went"
-            description={`By category, ${unitLabel}`}
+            description={`By category, ${unitLabel}${gap}`}
             loading={waiting}
             error={failed}
             footer={
@@ -167,6 +171,7 @@ export function ExpensesSection({
         expenses={expenses}
         setExpenses={setExpenses}
         loadFailed={Boolean(error)}
+        loading={waiting}
         theme={theme}
       />
     </div>

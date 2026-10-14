@@ -548,6 +548,134 @@ describe("AnalyticsShell expenses", () => {
   });
 });
 
+describe("AnalyticsShell QA fixes", () => {
+  const never = () => new Promise<never>(() => {});
+
+  it("says owed couldn't load when invoices and quotes both fail, with no fake zeros", async () => {
+    getInvoices.mockReset().mockRejectedValue(new Error("Invoices down"));
+    quoteAdmin.mockReset().mockRejectedValue(new Error("Quotes down"));
+    await renderShell();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Invoices couldn't load (Invoices down). Quotes couldn't load (Quotes down).",
+    );
+    const owed = figure("Owed to you");
+    expect(within(owed).getByText("Invoices and quotes couldn't load.")).toBeInTheDocument();
+    expect(within(owed).queryByText("0.00")).not.toBeInTheDocument();
+    expect(within(owed).queryByText(/0 invoices/)).not.toBeInTheDocument();
+    const owedCard = card("Owed to you now");
+    expect(within(owedCard).getByText("Invoices and quotes couldn't load.")).toBeInTheDocument();
+    expect(within(owedCard).queryByText("Nothing is owed right now.")).not.toBeInTheDocument();
+  });
+
+  it("keeps the owed rows and names what's left out when only quotes fail", async () => {
+    quoteAdmin.mockReset().mockRejectedValue(new Error("Quotes down"));
+    await renderShell();
+    const note = "Leaves out quote stages: they couldn't load.";
+    expect(within(figure("Owed to you")).getByText(note)).toBeInTheDocument();
+    const owedCard = card("Owed to you now");
+    expect(within(owedCard).getByText("INV-DUE")).toBeInTheDocument();
+    expect(within(owedCard).getByText(note)).toBeInTheDocument();
+  });
+
+  it("shows each figure loading until its own sources answer", async () => {
+    getInvoices.mockReset().mockImplementation(never);
+    render(<AnalyticsShell theme="dark" now={NOW} />);
+    // Expenses don't need invoices, so they show as soon as they arrive.
+    expect(await within(figure("Expenses")).findByText("GHS 80.00")).toBeInTheDocument();
+    for (const name of ["Cash collected", "Owed to you", "Net"]) {
+      expect(within(figure(name)).getByText("Loading…")).toBeInTheDocument();
+      expect(within(figure(name)).queryByText("0.00")).not.toBeInTheDocument();
+    }
+    expect(within(card("Owed to you now")).getByText("Loading…")).toBeInTheDocument();
+  });
+
+  it("says the expense log is loading, not empty, until expenses answer", async () => {
+    getExpenses.mockReset().mockImplementation(never);
+    render(<AnalyticsShell theme="dark" now={NOW} />);
+    expect(await within(figure("Cash collected")).findByText("GHS 550.00")).toBeInTheDocument();
+    expect(log().getByText("Loading expenses…")).toBeInTheDocument();
+    expect(log().queryByText(/No expenses logged yet/)).not.toBeInTheDocument();
+    expect(within(figure("Expenses")).getByText("Loading…")).toBeInTheDocument();
+  });
+
+  it("counts only the payments shown in the chosen currency on the cash chart", async () => {
+    await renderShell();
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    // GHS 500 and the estimated GHS 50; not the USD payment.
+    expect(card("Cash collected over time")).toHaveAccessibleDescription(
+      "Per day, GHS · 2 payments",
+    );
+  });
+
+  it("never defaults to a currency with no rate, and leads the hero with the chosen one", async () => {
+    getPayments
+      .mockReset()
+      .mockResolvedValue([
+        ...PAYMENTS,
+        payment({
+          $id: "x",
+          invoiceNumber: "INV-X",
+          amount: 250000,
+          currency: "XOF",
+          paidAt: "2026-10-08T09:00:00Z",
+        }),
+        payment({
+          $id: "n",
+          invoiceNumber: "INV-N",
+          amount: 1000000,
+          currency: "NGN",
+          paidAt: "2026-10-09T09:00:00Z",
+        }),
+      ]);
+    await renderShell();
+    // NGN 1,000,000 ≈ GHS 8,850 is the biggest rated total; XOF has no rate.
+    expect(screen.getByLabelText("Show in")).toHaveValue("NGN");
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    const lines = within(figure("Cash collected"))
+      .getAllByRole("listitem")
+      .map((li) => li.textContent);
+    expect(lines).toEqual(["GHS 550.00", "NGN 1,000,000.00", "USD 100.00", "XOF 250,000.00"]);
+  });
+
+  it("counts estimated dates only in the range, and hides the note when there are none", async () => {
+    await renderShell();
+    expect(screen.getByText(/1 paid invoice has an estimated date/)).toBeInTheDocument();
+    // The estimated invoice is dated 2 Oct, before the last 7 days.
+    await userEvent.click(screen.getByRole("button", { name: /7 days/ }));
+    expect(screen.queryByText(/estimated date/)).not.toBeInTheDocument();
+  });
+
+  it("says which currencies an approx. card leaves out", async () => {
+    getPayments
+      .mockReset()
+      .mockResolvedValue([
+        ...PAYMENTS,
+        payment({
+          $id: "x",
+          invoiceNumber: "INV-X",
+          amount: 250000,
+          currency: "XOF",
+          paidAt: "2026-10-08T09:00:00Z",
+        }),
+      ]);
+    getExpenses
+      .mockReset()
+      .mockResolvedValue([
+        ...EXPENSES,
+        { ...EXPENSES[0], $id: "ex", description: "Coworking", amount: 60000, currency: "XOF" },
+      ]);
+    await renderShell();
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "approx");
+    for (const name of [
+      "Cash collected over time",
+      "By payment method",
+      "Top clients",
+      "Where the money went",
+    ])
+      expect(card(name)).toHaveAccessibleDescription(/\(leaves out XOF: no rate set\)$/);
+  });
+});
+
 describe("invoiceIsTop", () => {
   it("rounds the invoice part when the quote part is missing or too short to draw", () => {
     expect(invoiceIsTop(100, { invoice: 500, quote: 0 })).toBe(true);

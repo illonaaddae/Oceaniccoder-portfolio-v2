@@ -5,7 +5,7 @@ import { ErrorBanner, RefreshControl, SelectField } from "../shared/controls";
 import { BlogReadershipSection } from "./BlogReadershipSection";
 import { InfoTip } from "./KpiExtras";
 import { RangePicker } from "./RangePicker";
-import { useAnalyticsData } from "./useAnalyticsData";
+import { useAnalyticsData, type Source } from "./useAnalyticsData";
 import { formatDay } from "./metrics/format";
 import { FX_RATES } from "@/config/fxRates";
 import {
@@ -38,6 +38,13 @@ const SECTIONS = [
   { id: "analytics-expenses", label: "Expenses" },
   { id: "analytics-content", label: "Content" },
 ] as const;
+
+const SOURCE_NAMES: Record<Source, string> = {
+  payments: "Payments",
+  invoices: "Invoices",
+  quotes: "Quotes",
+  expenses: "Expenses",
+};
 
 const storage = () => (typeof window === "undefined" ? undefined : window.localStorage);
 
@@ -74,7 +81,7 @@ interface AnalyticsShellProps {
 
 /** The Analytics tab: range and currency controls over the money sections. */
 export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
-  const { data, errors, loading, updatedAt, refresh, setExpenses } = useAnalyticsData();
+  const { data, errors, loaded, loading, updatedAt, refresh, setExpenses } = useAnalyticsData();
   const [choice, setChoice] = useState<RangeChoice>(() => loadRangeChoice(storage(), now));
   const [unitPick, setUnitPick] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -114,7 +121,11 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
   );
   const unitLabel = unit.kind === "approx" ? "approx. GHS" : unit.currency;
 
-  const errorText = Object.values(errors).filter(Boolean).join(" ");
+  // One sentence per source, e.g. "Invoices couldn't load (Network down)."
+  const errorText = (Object.keys(SOURCE_NAMES) as Source[])
+    .filter((source) => errors[source])
+    .map((source) => `${SOURCE_NAMES[source]} couldn't load (${errors[source]}).`)
+    .join(" ");
 
   return (
     <div className="analytics-dash space-y-6">
@@ -195,6 +206,7 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
           unit={unit}
           unitLabel={unitLabel}
           errors={errors}
+          loaded={loaded}
         />
       </section>
 
@@ -213,7 +225,7 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
           bucket={bucket}
           unit={unit}
           unitLabel={unitLabel}
-          loading={loading}
+          loaded={loaded}
           errors={errors}
         />
       </Section>
@@ -226,7 +238,7 @@ export default function AnalyticsShell({ theme, now }: AnalyticsShellProps) {
           bucket={bucket}
           unit={unit}
           unitLabel={unitLabel}
-          loading={loading}
+          loaded={loaded.expenses}
           error={errors.expenses}
           theme={theme}
         />

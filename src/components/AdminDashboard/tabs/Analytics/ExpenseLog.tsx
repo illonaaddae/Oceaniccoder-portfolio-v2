@@ -37,11 +37,19 @@ interface ExpenseLogProps {
   setExpenses: (update: (prev: Expense[]) => Expense[]) => void;
   /** The list couldn't be read; adding still works. */
   loadFailed?: boolean;
+  /** The list hasn't arrived yet. */
+  loading?: boolean;
   theme: "light" | "dark";
 }
 
 /** Every logged expense, latest date first, with add and delete. */
-export function ExpenseLog({ expenses, setExpenses, loadFailed = false, theme }: ExpenseLogProps) {
+export function ExpenseLog({
+  expenses,
+  setExpenses,
+  loadFailed = false,
+  loading = false,
+  theme,
+}: ExpenseLogProps) {
   const confirm = useConfirm();
   const formId = useId();
   const [showForm, setShowForm] = useState(false);
@@ -234,9 +242,11 @@ export function ExpenseLog({ expenses, setExpenses, loadFailed = false, theme }:
 
       {expenses.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm" style={muted}>
-          {loadFailed
-            ? "Expenses couldn't load, so the log may be incomplete. Refresh to try again."
-            : "No expenses logged yet. Track domains, hosting, tools and other costs here."}
+          {loading
+            ? "Loading expenses…"
+            : loadFailed
+              ? "Expenses couldn't load, so the log may be incomplete. Refresh to try again."
+              : "No expenses logged yet. Track domains, hosting, tools and other costs here."}
         </p>
       ) : (
         <ul className="divide-y divide-[var(--analytics-line)]">

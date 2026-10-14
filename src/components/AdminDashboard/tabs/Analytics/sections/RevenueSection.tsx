@@ -14,12 +14,13 @@ import {
 import { formatMoney } from "../../shared/money";
 import { Avatar, BreakdownTable, MethodBreakdown, ShareList } from "../BreakdownTable";
 import { CHART_COLORS, ChartCard, ChartLegend, axisTick } from "../ChartCard";
-import { InfoTip } from "../KpiExtras";
+import { InfoTip, leavesOut, owedGap, unconverted } from "../KpiExtras";
 import { compactNumber, formatDay, formatDelta } from "../metrics/format";
 import { dayOf, delta, inRange, type Bucket, type DateRange } from "../metrics/range";
 import {
   amountIn,
   byMethod,
+  cashByCurrency,
   cashSeries,
   entriesIn,
   estimatedCount,
@@ -32,7 +33,7 @@ import {
   type OutstandingSummary,
   type OwedStatus,
 } from "../metrics/revenue";
-import type { SourceErrors } from "../useAnalyticsData";
+import type { SourceErrors, SourcesLoaded } from "../useAnalyticsData";
 
 const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 const strong: React.CSSProperties = { color: "var(--text-primary)" };
@@ -53,7 +54,7 @@ interface RevenueSectionProps {
   bucket: Bucket;
   unit: MoneyUnit;
   unitLabel: string;
-  loading: boolean;
+  loaded: SourcesLoaded;
   errors: SourceErrors;
 }
 
@@ -193,7 +194,7 @@ export function RevenueSection({
   bucket,
   unit,
   unitLabel,
-  loading,
+  loaded,
   errors,
 }: RevenueSectionProps) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -208,7 +209,13 @@ export function RevenueSection({
   );
   const methods = useMemo(() => byMethod(inRangeEntries, unit), [inRangeEntries, unit]);
   const clients = useMemo(() => topClients(inRangeEntries, unit), [inRangeEntries, unit]);
-  const estimated = estimatedCount(ledger);
+  const estimated = estimatedCount(inRangeEntries);
+  // Approx. mode drops currencies with no rate; each card says which.
+  const missing = useMemo(
+    () => unconverted(unit, cashByCurrency(inRangeEntries)),
+    [unit, inRangeEntries],
+  );
+  const gap = missing.length > 0 ? ` ${leavesOut(missing)}` : "";
 
   // A selected bucket that's no longer on the chart (new range) shows nothing.
   const point = series.find((p) => p.key === selected) ?? null;
@@ -220,8 +227,10 @@ export function RevenueSection({
         .sort((a, b) => b.date.localeCompare(a.date))
     : [];
   const hasCash = series.some((p) => p.total > 0 || p.previous > 0);
-  const count = inRangeEntries.length;
-  const loadingPayments = loading && ledger.length === 0;
+  // Only the payments the chart can show in this unit, so it matches the donut.
+  const count = inRangeEntries.filter((e) => amountIn(unit, e.amount, e.currency) !== null).length;
+  // The ledger needs invoices too: paid invoices with no payment row count.
+  const loadingPayments = !loaded.payments || !loaded.invoices;
   const paymentsFailed = errors.payments ? "Payments couldn't load." : null;
 
   const toggle = (key: string) => setSelected((cur) => (cur === key ? null : key));
@@ -295,7 +304,7 @@ export function RevenueSection({
         <div className="grid min-w-0 lg:col-span-2">
           <ChartCard
             title="Cash collected over time"
-            description={`Per ${bucket}, ${unitLabel} · ${count} ${count === 1 ? "payment" : "payments"}`}
+            description={`Per ${bucket}, ${unitLabel} · ${count} ${count === 1 ? "payment" : "payments"}${gap}`}
             info="The dashed line is the same slot of the previous period. Choose a bar, or a row in the table, to list its payments."
             aside={
               <ChartLegend
@@ -381,7 +390,7 @@ export function RevenueSection({
         </div>
         <ChartCard
           title="By payment method"
-          description={`Share of ${unitLabel} collected`}
+          description={`Share of ${unitLabel} collected${gap}`}
           loading={loadingPayments}
           error={paymentsFailed}
           empty={methods.length === 0 ? "No payments in this range." : null}
@@ -404,7 +413,7 @@ export function RevenueSection({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartCard
           title="Top clients"
-          description={`By cash collected in the range, ${unitLabel}`}
+          description={`By cash collected in the range, ${unitLabel}${gap}`}
           loading={loadingPayments}
           error={paymentsFailed}
         >
@@ -417,7 +426,11 @@ export function RevenueSection({
             empty="No payments in this range."
           />
         </ChartCard>
-        <OutstandingCard outstanding={outstanding} loading={loading} />
+        <OutstandingCard
+          outstanding={outstanding}
+          loading={!loaded.invoices || !loaded.quotes}
+          errors={errors}
+        />
       </div>
     </div>
   );
@@ -534,10 +547,13 @@ function StatusPill({ status }: { status: OwedStatus }) {
 function OutstandingCard({
   outstanding,
   loading,
+  errors,
 }: {
   outstanding: OutstandingSummary;
   loading: boolean;
+  errors: SourceErrors;
 }) {
+  const missing = owedGap(errors);
   const shown = outstanding.items.slice(0, OUTSTANDING_SHOWN);
   const total = outstanding.items.length;
   return (
@@ -555,8 +571,16 @@ function OutstandingCard({
           <StatusPill status={{ kind: "overdue", label: `${outstanding.overdueCount} overdue` }} />
         )
       }
-      loading={loading && total === 0}
+      loading={loading}
+      error={missing?.all ? missing.note : null}
       empty={total === 0 ? "Nothing is owed right now." : null}
+      footer={
+        missing && (
+          <p className="mt-3 text-xs" style={muted}>
+            {missing.note}
+          </p>
+        )
+      }
     >
       {/* Fixed layout so a long client name wraps or truncates instead of widening
           the card. Below sm the status moves under the name to leave it room. */}
