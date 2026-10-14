@@ -109,7 +109,7 @@ const ProjectCardImage = React.memo(({ project }) => {
           type="button"
           onClick={openDemo}
           onKeyDown={(e) => e.stopPropagation()}
-          className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 bg-gradient-to-r from-oceanic-500 to-oceanic-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg shadow-oceanic-900/30 hover:from-oceanic-400 hover:to-oceanic-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 transition-colors duration-300"
+          className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 bg-gradient-to-r from-oceanic-600 to-oceanic-700 text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg shadow-oceanic-900/30 hover:from-oceanic-400 hover:to-oceanic-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 transition-colors duration-300"
           aria-label={`Watch the ${project.title} demo video`}
         >
           <FaPlay className="w-2.5 h-2.5" aria-hidden="true" />
@@ -119,7 +119,7 @@ const ProjectCardImage = React.memo(({ project }) => {
 
       {project.featured && (
         <div className="absolute top-4 left-4">
-          <span className="bg-gradient-to-r from-oceanic-500 to-oceanic-600 text-white text-xs px-3 py-1 rounded-full font-medium">
+          <span className="bg-gradient-to-r from-oceanic-600 to-oceanic-700 text-white text-xs px-3 py-1 rounded-full font-medium">
             Featured
           </span>
         </div>
