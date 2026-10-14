@@ -172,6 +172,45 @@ const actions = {
     return detail(svc, updated, { link: V.quoteLink(token), emailed: false });
   },
 
+  // Emails a sent or accepted quote again, e.g. when the client asks for it at
+  // another address. The raw link isn't stored, so this issues a fresh one and
+  // the old link stops working, as with rotate. It goes to the client's address
+  // and to `to` if given, one email each; with saveAddress, `to` becomes the
+  // client's email from now on (receipts and payment requests included).
+  async emailAgain(svc, input) {
+    const quote = await load(svc, input.id);
+    if (!["sent", "accepted"].includes(quote.status))
+      throw new HttpError(409, "Only sent or accepted quotes can be emailed again.");
+    const extra = str(input.to, 254).toLowerCase();
+    if (extra && !M.EMAIL_RE.test(extra)) throw new HttpError(400, "Enter a valid email address.");
+    const save = input.saveAddress === true;
+    if (save && !extra) throw new HttpError(400, "Enter the address to use from now on.");
+    const addresses = [...new Set([quote.clientEmail, extra].filter(Boolean))];
+    if (!addresses.length) throw new HttpError(400, "Add the client's email address first.");
+
+    const token = newToken();
+    const updated = await svc.repo.update(quote.id, {
+      tokenHash: hashToken(token),
+      ...(save ? { clientEmail: extra } : {}),
+    });
+    const stages = M.stageStates(
+      updated,
+      await svc.repo.listPayments(updated.quoteNumber),
+      svc.now().getTime(),
+    );
+    const results = await Promise.all(
+      addresses.map((address) => svc.notify.quoteEmailAgain(updated, token, stages, address)),
+    );
+    const emailedTo = addresses.filter((_, i) => results[i].ok);
+    const failedTo = addresses.filter((_, i) => !results[i].ok);
+    return detail(svc, updated, {
+      link: V.quoteLink(token),
+      emailed: failedTo.length === 0,
+      emailedTo,
+      failedTo,
+    });
+  },
+
   async requestStage(svc, input) {
     const quote = await load(svc, input.id);
     if (quote.status !== "accepted")
