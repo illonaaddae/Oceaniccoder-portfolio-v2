@@ -45,6 +45,9 @@ export default function QuoteSidebar({
   const [busy, setBusy] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  // "Email again" form: an optional extra address, and whether it becomes the
+  // client's email from now on.
+  const [again, setAgain] = useState<{ to: string; saveAddress: boolean } | null>(null);
   const [manual, setManual] = useState<{
     stageId: string;
     method: ManualMethod;
@@ -68,7 +71,13 @@ export default function QuoteSidebar({
       )
         setLink(null);
       let emailNote = "";
-      if (result.emailed === false) {
+      if (action === "emailAgain") {
+        const sentTo = result.emailedTo ?? [];
+        const missed = result.failedTo ?? [];
+        success = sentTo.length ? `Emailed to ${sentTo.join(" and ")}.` : "No email went out.";
+        if (missed.length)
+          emailNote = ` It didn't reach ${missed.join(" or ")}; copy the link below and share it yourself.`;
+      } else if (result.emailed === false) {
         if (action === "send" || action === "requestStage")
           emailNote = " The email didn't send; copy the link below and share it yourself.";
         else if (action === "recordManual") emailNote = " The receipt email didn't send.";
@@ -342,6 +351,62 @@ export default function QuoteSidebar({
         </div>
       )}
 
+      {again && (
+        <form
+          className="rounded-xl border p-4 space-y-3"
+          style={{ borderColor: "var(--border-subtle)" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void run("emailAgain", { to: again.to.trim(), saveAddress: again.saveAddress }).then(
+              (ok) => {
+                if (ok) setAgain(null);
+              },
+            );
+          }}
+        >
+          <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+            Sends the quote to {quote.clientEmail || "the client"} with a fresh link. The link they
+            have now stops working.
+          </p>
+          <label className="block text-sm" style={{ color: "var(--text-secondary)" }}>
+            Also send to (optional)
+            <input
+              type="email"
+              placeholder="another@example.com"
+              maxLength={254}
+              value={again.to}
+              onChange={(e) =>
+                setAgain({
+                  to: e.target.value,
+                  saveAddress: e.target.value.trim() ? again.saveAddress : false,
+                })
+              }
+              className="glass-input mt-1 w-full rounded-lg px-3 py-2"
+            />
+          </label>
+          <label
+            className="flex items-center gap-2 text-sm"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <input
+              type="checkbox"
+              checked={again.saveAddress}
+              disabled={!again.to.trim()}
+              onChange={(e) => setAgain({ ...again, saveAddress: e.target.checked })}
+            />
+            Use this address from now on (receipts and payment requests go there too)
+          </label>
+          <div className="flex gap-2">
+            <button type="submit" disabled={busy} className={btn} style={primary}>
+              Send email
+            </button>
+            <button type="button" className={btn} style={btnStyle} onClick={() => setAgain(null)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
       {manual && (
         <form
           className="rounded-xl border p-4 space-y-3"
@@ -433,6 +498,18 @@ export default function QuoteSidebar({
               </p>
             )}
           </>
+        )}
+        {(quote.status === "sent" || quote.status === "accepted") && (
+          <button
+            type="button"
+            disabled={busy}
+            className={btn}
+            style={btnStyle}
+            aria-expanded={again !== null}
+            onClick={() => setAgain(again ? null : { to: "", saveAddress: false })}
+          >
+            Email again
+          </button>
         )}
         {(quote.status === "sent" || quote.status === "accepted") && (
           <button

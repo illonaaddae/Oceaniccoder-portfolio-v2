@@ -286,6 +286,9 @@ export interface QuoteDetailResponse {
   maintenance?: MaintenanceOfferState | null;
   link?: string;
   emailed?: boolean;
+  /** emailAgain only: the addresses the email reached, and those it didn't. */
+  emailedTo?: string[];
+  failedTo?: string[];
 }
 
 export interface ReceiptView {
