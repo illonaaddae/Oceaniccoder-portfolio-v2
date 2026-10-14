@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 const getInvoices = vi.fn();
 const updateInvoice = vi.fn();
 const createPayment = vi.fn();
+const getPaymentsForInvoice = vi.fn();
 const quoteAdmin = vi.fn();
 const confirm = vi.fn();
 vi.mock("@/services/api/invoices", () => ({
@@ -13,6 +14,7 @@ vi.mock("@/services/api/invoices", () => ({
 }));
 vi.mock("@/services/api/payments", () => ({
   createPayment: (...a: unknown[]) => createPayment(...a),
+  getPaymentsForInvoice: (n: string) => getPaymentsForInvoice(n),
 }));
 vi.mock("@/services/api/adminHeaders", () => ({ adminHeaders: vi.fn().mockResolvedValue({}) }));
 vi.mock("@/services/api/quotes", () => ({
@@ -108,6 +110,8 @@ beforeEach(() => {
   updateInvoice.mockResolvedValue({});
   createPayment.mockReset();
   createPayment.mockResolvedValue({});
+  getPaymentsForInvoice.mockReset();
+  getPaymentsForInvoice.mockResolvedValue([]);
   quoteAdmin.mockReset();
   routeQuoteAdmin(async () => ({}));
   confirm.mockReset();
@@ -207,6 +211,52 @@ describe("InvoicesTab", () => {
       ),
     );
     await waitFor(() => expect(pill(/^Paid\s*2$/)).toBeInTheDocument());
+  });
+
+  it("records only the balance when part of the invoice is already paid", async () => {
+    getPaymentsForInvoice.mockResolvedValue([
+      { invoiceNumber: "INV-2026-0042", amount: 200, currency: "GHS", status: "success" },
+      { invoiceNumber: "INV-2026-0042", amount: 300, currency: "GHS", status: "failed" },
+    ]);
+    confirm.mockResolvedValue("bank");
+    await renderTab();
+    const menu = await openMenu("INV-2026-0042");
+    await userEvent.click(within(menu).getByRole("menuitem", { name: "Mark as paid" }));
+    await waitFor(() => expect(createPayment).toHaveBeenCalledTimes(1));
+    expect(getPaymentsForInvoice).toHaveBeenCalledWith("INV-2026-0042");
+    expect(confirm.mock.calls[0][0].description).toMatch(
+      /Records the balance of GHS 300.00 \(GHS 200.00 is already recorded\)/,
+    );
+    expect(createPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ invoiceNumber: "INV-2026-0042", amount: 300, method: "bank" }),
+    );
+  });
+
+  it("marks a fully recorded invoice paid without adding a payment", async () => {
+    getPaymentsForInvoice.mockResolvedValue([
+      { invoiceNumber: "INV-2026-0042", amount: 500, currency: "GHS", status: "success" },
+    ]);
+    await renderTab();
+    const menu = await openMenu("INV-2026-0042");
+    await userEvent.click(within(menu).getByRole("menuitem", { name: "Mark as paid" }));
+    await waitFor(() => expect(updateInvoice).toHaveBeenCalledWith("inv1", { status: "paid" }));
+    expect(confirm.mock.calls[0][0]).not.toHaveProperty("choices");
+    expect(confirm.mock.calls[0][0].description).toMatch(/already recorded, so no new payment/);
+    expect(createPayment).not.toHaveBeenCalled();
+  });
+
+  it("changes nothing when the recorded payments can't be read", async () => {
+    getPaymentsForInvoice.mockImplementation(async () => {
+      throw new Error("Network down");
+    });
+    await renderTab();
+    const menu = await openMenu("INV-2026-0042");
+    await userEvent.click(within(menu).getByRole("menuitem", { name: "Mark as paid" }));
+    expect(
+      await screen.findByText(/Couldn't check the payments already recorded/),
+    ).toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(updateInvoice).not.toHaveBeenCalled();
   });
 
   it("still shows one-off invoices when quote invoices fail to load", async () => {

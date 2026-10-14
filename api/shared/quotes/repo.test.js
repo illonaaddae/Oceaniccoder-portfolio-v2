@@ -118,6 +118,73 @@ describe("quote repo", () => {
   });
 });
 
+describe("quote repo paging", () => {
+  const docs = (prefix, from, count, extra = {}) =>
+    Array.from({ length: count }, (_, i) => ({ $id: `${prefix}${from + i}`, ...extra }));
+  const queriesOf = (db, call) => db.listDocuments.mock.calls[call][2].map(String);
+
+  it("list follows the cursor past 100 quotes, newest first", async () => {
+    const db = {
+      listDocuments: vi
+        .fn()
+        .mockResolvedValueOnce({ documents: docs("q", 1, 100, { items: "[]" }) })
+        .mockResolvedValueOnce({ documents: docs("q", 101, 100) })
+        .mockResolvedValueOnce({ documents: docs("q", 201, 7) }),
+    };
+    const quotes = await createQuoteRepo(db).list();
+    expect(quotes).toHaveLength(207);
+    expect(quotes[0]).toMatchObject({ id: "q1", items: [] });
+    expect(db.listDocuments).toHaveBeenCalledTimes(3);
+    expect(db.listDocuments.mock.calls[0][1]).toBe("quotes");
+    expect(queriesOf(db, 0)).toContain('{"method":"orderDesc","attribute":"$createdAt"}');
+    expect(queriesOf(db, 0).join()).not.toContain("cursorAfter");
+    expect(queriesOf(db, 1)).toContain('{"method":"cursorAfter","values":["q100"]}');
+    expect(queriesOf(db, 2)).toContain('{"method":"cursorAfter","values":["q200"]}');
+  });
+
+  it("listQuotePayments keeps the kind filter on every page and reads past 500", async () => {
+    const db = { listDocuments: vi.fn() };
+    for (let page = 0; page < 6; page++) {
+      db.listDocuments.mockResolvedValueOnce({
+        documents: docs("p", page * 100 + 1, 100, { amount: 1 }),
+      });
+    }
+    db.listDocuments.mockResolvedValueOnce({ documents: docs("p", 601, 1, { amount: 1 }) });
+    const payments = await createQuoteRepo(db).listQuotePayments();
+    expect(payments).toHaveLength(601);
+    expect(payments[600]).toMatchObject({ id: "p601", amountMinor: 100 });
+    for (let call = 0; call < 7; call++) {
+      expect(db.listDocuments.mock.calls[call][1]).toBe("payments");
+      expect(queriesOf(db, call)).toContain(
+        '{"method":"equal","attribute":"kind","values":["quote"]}',
+      );
+    }
+  });
+
+  it("stops after one read when the first page is short", async () => {
+    const db = { listDocuments: vi.fn().mockResolvedValue({ documents: docs("q", 1, 3) }) };
+    expect(await createQuoteRepo(db).list()).toHaveLength(3);
+    expect(db.listDocuments).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops at the 5,000-row safety cap and warns", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let next = 1;
+    const db = {
+      listDocuments: vi.fn(async (_d, _c, queries) => {
+        const limit = JSON.parse(queries.find((q) => String(q).includes('"limit"'))).values[0];
+        const page = docs("q", next, limit);
+        next += limit;
+        return { documents: page };
+      }),
+    };
+    expect(await createQuoteRepo(db).list()).toHaveLength(5000);
+    expect(db.listDocuments).toHaveBeenCalledTimes(50);
+    expect(warn.mock.calls[0][0]).toMatch(/stopped at 5000 rows in "quotes"/);
+    warn.mockRestore();
+  });
+});
+
 describe("locks", () => {
   it("takes a lock once", async () => {
     const db = {

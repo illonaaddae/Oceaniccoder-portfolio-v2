@@ -1,5 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import { getJson, submitRow, usesCosmos } from "./dataApi";
+import { listAllDocuments } from "./listAll";
 
 export interface Booking {
   $id?: string;
@@ -32,12 +33,9 @@ export async function createBooking(
   return result as unknown as Booking;
 }
 
+/** Every booking, newest first (the old 200-row limit dropped older ones). */
 export async function getBookings(): Promise<Booking[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
-    Query.limit(200),
-    Query.orderDesc("$createdAt"),
-  ]);
-  return response.documents as unknown as Booking[];
+  return listAllDocuments<Booking & { $id: string }>(COLLECTIONS.BOOKINGS);
 }
 
 export async function isSlotBooked(preferredDate: string, preferredTime: string): Promise<boolean> {

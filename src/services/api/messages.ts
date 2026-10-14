@@ -1,12 +1,11 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
 import { submitRow, usesCosmos } from "./dataApi";
+import { listAllDocuments } from "./listAll";
 import type { Message } from "../../types";
 
+/** Every message, newest first (Appwrite's 25-row default dropped older ones). */
 export async function getMessages(): Promise<Message[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.MESSAGES, [
-    Query.orderDesc("$createdAt"),
-  ]);
-  return response.documents as unknown as Message[];
+  return listAllDocuments<Message>(COLLECTIONS.MESSAGES);
 }
 
 export async function createMessage(

@@ -271,6 +271,14 @@ function summarize(q, stages) {
       : null,
     sentAt: q.sentAt || null,
     viewedAt: q.viewedAt || null,
+    // For the admin Analytics tab (win rate, time to decision, expiry,
+    // inquiry-to-quote rate, why quotes were lost). Admin-only: the only
+    // caller is quote-admin "list", behind requireAdmin.
+    createdAt: q.createdAt || null,
+    respondedAt: q.respondedAt || null,
+    validUntil: q.validUntil || null,
+    inquiryId: q.inquiryId || null,
+    declineReason: q.declineReason || null,
     updatedAt: q.updatedAt || q.createdAt || null,
     // Stage invoices that exist for the client (requested or paid), for the
     // dashboard's Invoices tab. "later" stages haven't been invoiced yet.
