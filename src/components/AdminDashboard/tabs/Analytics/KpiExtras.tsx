@@ -11,6 +11,9 @@ const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 
 const EDGE = 8;
 
+/** Says in words what the chip's colour says. */
+const VERDICT = { good: ", better than before", bad: ", worse than before", flat: "" } as const;
+
 export const leavesOut = (missing: string[]) => `(leaves out ${missing.join(", ")}: no rate set)`;
 
 /** Currencies in any of the totals that the approx. unit can't convert. */
@@ -119,7 +122,7 @@ export function DeltaChip({
   return (
     <span className="analytics-chip tabular-nums" data-tone={tone}>
       <span aria-hidden="true">{shown}</span>
-      <span className="sr-only">{`${describeDelta(delta)}, in ${unitLabel}`}</span>
+      <span className="sr-only">{`${describeDelta(delta)}, in ${unitLabel}${VERDICT[tone]}`}</span>
     </span>
   );
 }

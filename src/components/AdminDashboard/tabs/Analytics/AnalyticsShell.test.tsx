@@ -220,7 +220,9 @@ describe("AnalyticsShell key figures", () => {
       "data-tone",
       "good",
     );
-    expect(within(cash).getByText("up 175% on the previous period, in GHS")).toBeInTheDocument();
+    expect(
+      within(cash).getByText("up 175% on the previous period, in GHS, better than before"),
+    ).toBeInTheDocument();
     expect(
       within(cash).getByText(/^2 GHS \(avg GHS 275\.00\), 1 USD \(avg USD 100\.00\)/),
     ).toBeInTheDocument();
@@ -240,7 +242,38 @@ describe("AnalyticsShell key figures", () => {
       "data-tone",
       "good",
     );
-    expect(within(spent).getByText("down 20% on the previous period, in GHS")).toBeInTheDocument();
+    expect(
+      within(spent).getByText("down 20% on the previous period, in GHS, better than before"),
+    ).toBeInTheDocument();
+  });
+
+  it("counts expenses going up as bad, and nets them off cash", async () => {
+    getExpenses
+      .mockReset()
+      .mockResolvedValue([
+        ...EXPENSES,
+        { ...EXPENSES[0], $id: "e0", amount: 40, date: "2026-09-01" },
+      ]);
+    await renderShell();
+    await userEvent.selectOptions(screen.getByLabelText("Show in"), "GHS");
+    // GHS 80 against GHS 40: up 100%, which is bad for expenses.
+    const spent = figure("Expenses");
+    expect(within(spent).getByText("▲ 100%").closest(".analytics-chip")).toHaveAttribute(
+      "data-tone",
+      "bad",
+    );
+    expect(
+      within(spent).getByText("up 100% on the previous period, in GHS, worse than before"),
+    ).toBeInTheDocument();
+    // Net GHS 470 (550 − 80) against GHS 160 (200 − 40): up 194%.
+    const net = figure("Net");
+    expect(within(net).getByText("▲ 194%").closest(".analytics-chip")).toHaveAttribute(
+      "data-tone",
+      "good",
+    );
+    expect(
+      within(net).getByText("up 194% on the previous period, in GHS, better than before"),
+    ).toBeInTheDocument();
   });
 });
 
