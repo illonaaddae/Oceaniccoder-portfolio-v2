@@ -1,5 +1,5 @@
 import type React from "react";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import type { Expense } from "@/types";
 import { formatMoney, type CurrencyTotals } from "../../shared/money";
 import { ApproxLine, DeltaChip, InfoTip, Sparkline, leavesOut, unconverted } from "../KpiExtras";
@@ -34,7 +34,7 @@ interface SummarySectionProps {
   errors: SourceErrors;
 }
 
-/** One figure on the band; its label names the group for screen readers. */
+/** One figure on the band; its heading names the group for screen readers. */
 function Figure({
   label,
   info,
@@ -44,10 +44,13 @@ function Figure({
   info: string;
   children: React.ReactNode;
 }) {
+  const headingId = useId();
   return (
-    <div role="group" className="analytics-hero__fig" aria-label={label}>
+    <div role="group" className="analytics-hero__fig" aria-labelledby={headingId}>
       <div className="flex items-center gap-1">
-        <h3 className="text-sm font-semibold">{label}</h3>
+        <h3 id={headingId} className="text-sm font-semibold">
+          {label}
+        </h3>
         <InfoTip label={`About ${label.toLowerCase()}`}>{info}</InfoTip>
       </div>
       {children}

@@ -166,6 +166,12 @@ describe("AnalyticsShell summary", () => {
     expect(within(owed).getByText("Now")).toBeInTheDocument();
     expect(within(figure("Expenses")).getByText("GHS 80.00")).toBeInTheDocument();
     const net = figure("Net");
+    // Named by its heading, not a second copy of the label.
+    expect(net).not.toHaveAttribute("aria-label");
+    expect(net).toHaveAttribute(
+      "aria-labelledby",
+      within(net).getByRole("heading", { name: "Net" }).id,
+    );
     expect(within(net).getByText("GHS 470.00")).toBeInTheDocument();
     expect(within(net).getByText("USD 100.00")).toBeInTheDocument();
   });
