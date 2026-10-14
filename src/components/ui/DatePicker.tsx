@@ -43,7 +43,6 @@ const PANEL_H = 336; // approx, for flip calc
 const pad = (n: number) => String(n).padStart(2, "0");
 const toISO = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 
-// Parse "YYYY-MM-DD" into parts without timezone drift.
 /** The ISO day `n` days after `iso`, computed on the local calendar (no time-zone drift). */
 const shiftDays = (iso: string, n: number) => {
   const p = parseISO(iso);
@@ -61,6 +60,7 @@ const shiftMonths = (iso: string, n: number) => {
   return toISO(first.getFullYear(), first.getMonth(), Math.min(p.d, last));
 };
 
+// Parse "YYYY-MM-DD" into parts without timezone drift.
 const parseISO = (s: string): { y: number; m: number; d: number } | null => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (!match) return null;
@@ -128,11 +128,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    if (parsed) setView({ y: parsed.y, m: parsed.m });
+    if (!open) {
+      // Forget the old position so the focus effect waits for this open's placement.
+      setCoords(null);
+      return;
+    }
     const todayISO = toISO(today.getFullYear(), today.getMonth(), today.getDate());
     const start = parsed ? value : todayISO;
-    setFocusDay(inRange(start) ? start : (min ?? max ?? start));
+    const first = inRange(start) ? start : (min ?? max ?? start);
+    // Show the month that holds the focused day, even when the value is empty
+    // and the last open browsed elsewhere; otherwise no day is tabbable.
+    const shown = parseISO(first);
+    if (shown) setView({ y: shown.y, m: shown.m });
+    setFocusDay(first);
     reposition();
     const onScroll = () => reposition();
     window.addEventListener("scroll", onScroll, true);

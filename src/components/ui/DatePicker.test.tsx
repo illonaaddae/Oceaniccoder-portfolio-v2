@@ -133,4 +133,25 @@ describe("DatePicker", () => {
     fireEvent.keyDown(clear, { key: "Tab" });
     expect(screen.getByRole("button", { name: "Previous month" })).toHaveFocus();
   });
+
+  test("reopens on the focused day's month after browsing and clearing", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <DatePicker value="2026-10-14" onChange={onChange} theme="light" ariaLabel="Date" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    const day = await screen.findByRole("button", { name: "October 14, 2026" });
+    await waitFor(() => expect(day).toHaveFocus());
+    fireEvent.keyDown(day, { key: "PageDown" });
+    await screen.findByRole("button", { name: "November 14, 2026" });
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    rerender(<DatePicker value="" onChange={onChange} theme="light" ariaLabel="Date" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Date" }));
+    const now = new Date();
+    const todayName = `${now.toLocaleString("en-US", { month: "long" })} ${now.getDate()}, ${now.getFullYear()}`;
+    const today = await screen.findByRole("button", { name: todayName });
+    await waitFor(() => expect(today).toHaveFocus());
+    expect(today).toHaveAttribute("tabindex", "0");
+  });
 });
