@@ -48,6 +48,7 @@ export default function QuoteSidebar({
   // "Email again" form: an optional extra address, and whether it becomes the
   // client's email from now on.
   const [again, setAgain] = useState<{ to: string; saveAddress: boolean } | null>(null);
+  const againRef = useRef<HTMLInputElement>(null);
   const [manual, setManual] = useState<{
     stageId: string;
     method: ManualMethod;
@@ -75,6 +76,8 @@ export default function QuoteSidebar({
         const sentTo = result.emailedTo ?? [];
         const missed = result.failedTo ?? [];
         success = sentTo.length ? `Emailed to ${sentTo.join(" and ")}.` : "No email went out.";
+        if (payload.saveAddress && payload.to)
+          success += ` ${String(payload.to)} is now the client's email.`;
         if (missed.length)
           emailNote = ` It didn't reach ${missed.join(" or ")}; copy the link below and share it yourself.`;
       } else if (result.emailed === false) {
@@ -326,22 +329,22 @@ export default function QuoteSidebar({
             className={btn}
             style={btnStyle}
             onClick={async () => {
-              const again = Boolean(data.maintenance?.sentAt);
+              const resend = Boolean(data.maintenance?.sentAt);
               if (
                 await confirm({
-                  message: again
+                  message: resend
                     ? "Send the maintenance offer again?"
                     : "Send the maintenance offer?",
                   description: `${quote.clientName} gets an email with the maintenance plans${
                     quote.clientEmail ? ` at ${quote.clientEmail}` : ""
                   }.`,
-                  confirmLabel: again ? "Send again" : "Send",
+                  confirmLabel: resend ? "Send again" : "Send",
                   variant: "success",
                 })
               )
                 void run(
                   "sendMaintenanceOffer",
-                  again ? { resend: true } : {},
+                  resend ? { resend: true } : {},
                   "Maintenance offer emailed.",
                 );
             }}
@@ -351,8 +354,9 @@ export default function QuoteSidebar({
         </div>
       )}
 
-      {again && (
+      {again && (quote.status === "sent" || quote.status === "accepted") && (
         <form
+          id="quote-email-again"
           className="rounded-xl border p-4 space-y-3"
           style={{ borderColor: "var(--border-subtle)" }}
           onSubmit={(e) => {
@@ -371,6 +375,7 @@ export default function QuoteSidebar({
           <label className="block text-sm" style={{ color: "var(--text-secondary)" }}>
             Also send to (optional)
             <input
+              ref={againRef}
               type="email"
               placeholder="another@example.com"
               maxLength={254}
@@ -392,10 +397,20 @@ export default function QuoteSidebar({
               type="checkbox"
               checked={again.saveAddress}
               disabled={!again.to.trim()}
+              aria-describedby={again.to.trim() ? undefined : "quote-email-again-hint"}
               onChange={(e) => setAgain({ ...again, saveAddress: e.target.checked })}
             />
-            Use this address from now on (receipts and payment requests go there too)
+            Use this address from now on (payment requests and other emails go there)
           </label>
+          {!again.to.trim() && (
+            <p
+              id="quote-email-again-hint"
+              className="text-xs"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Enter an address above to save it.
+            </p>
+          )}
           <div className="flex gap-2">
             <button type="submit" disabled={busy} className={btn} style={primary}>
               Send email
@@ -506,7 +521,12 @@ export default function QuoteSidebar({
             className={btn}
             style={btnStyle}
             aria-expanded={again !== null}
-            onClick={() => setAgain(again ? null : { to: "", saveAddress: false })}
+            aria-controls="quote-email-again"
+            onClick={() => {
+              if (again) return setAgain(null);
+              setAgain({ to: "", saveAddress: false });
+              requestAnimationFrame(() => againRef.current?.focus());
+            }}
           >
             Email again
           </button>
