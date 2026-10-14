@@ -30,7 +30,11 @@ export default defineConfig({
       output: {
         manualChunks(id: string) {
           // ── Core React runtime ──────────────────────────────────────────
+          // Rollup's CommonJS interop helper goes with React. Left unassigned
+          // it landed in the "markdown" chunk, so the entry statically
+          // imported (and preloaded) 46 KB of blog-only code on every page.
           if (
+            id.includes("commonjsHelpers") ||
             id.includes("/node_modules/react/") ||
             id.includes("/node_modules/react-dom/") ||
             id.includes("/node_modules/scheduler/")
