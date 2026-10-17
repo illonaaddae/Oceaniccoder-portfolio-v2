@@ -162,6 +162,96 @@ function adminPaymentEmail({ invoiceNumber, clientName, amount, reference, settl
   });
 }
 
+// Paystack channel: "card", "mobile_money", "bank", "bank_transfer",
+// "apple_pay", etc. Apple Pay is checked first — it is a card wallet, so if
+// Paystack ever reports it as a card variant the substring match on "apple"
+// still wins and we keep the distinction in reporting.
+function paymentMethod(rawChannel) {
+  const channel = (rawChannel || "").toLowerCase();
+  if (channel.includes("apple")) return "apple_pay";
+  if (channel.includes("mobile")) return "momo";
+  if (channel.includes("bank")) return "bank";
+  return "card";
+}
+
+const currencySymbol = (currency) => (currency === "GHS" ? "₵" : currency);
+
+/**
+ * The client receipt (only when the invoice settles) and the admin notice for
+ * a recorded payment. Sending is best effort, as sendEmail logs and swallows a
+ * failure, so this never throws for a Resend problem.
+ */
+async function sendPaymentEmails(
+  { invoiceNumber, clientName, clientEmail, amountPaid, currency, reference, settlement },
+  { resendKey, fromEmail, adminEmail, log },
+) {
+  const {
+    settles,
+    underpaid,
+    overpaid,
+    currencyMismatch,
+    shortfall,
+    surplus,
+    expected,
+    invoiceCurrency,
+    paidCurrency,
+  } = settlement;
+  const sym = currencySymbol(currency);
+
+  // Only tell the client the invoice is settled when it actually is.
+  if (settles && resendKey && clientEmail) {
+    await sendEmail(
+      resendKey,
+      fromEmail,
+      clientEmail,
+      `Payment received for invoice ${invoiceNumber}`,
+      clientReceiptEmail({
+        clientName,
+        invoiceNumber,
+        amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+      }),
+      log,
+    );
+  }
+
+  // Send notification to admin
+  if (resendKey && adminEmail) {
+    const problem = currencyMismatch
+      ? {
+          tone: "danger",
+          text: `Currency mismatch. Paid in ${paidCurrency}, invoiced in ${invoiceCurrency}. The invoice has been left open.`,
+        }
+      : underpaid
+        ? {
+            tone: "danger",
+            text: `Underpaid by ${sym}${shortfall.toFixed(2)}. Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.`,
+          }
+        : overpaid
+          ? {
+              tone: "warn",
+              text: `Overpaid by ${sym}${surplus.toFixed(2)}. The invoice has been marked paid.`,
+            }
+          : null;
+    await sendEmail(
+      resendKey,
+      fromEmail,
+      adminEmail,
+      settles
+        ? `Payment received for invoice ${invoiceNumber}`
+        : `Action needed: underpayment on invoice ${invoiceNumber}`,
+      adminPaymentEmail({
+        invoiceNumber,
+        clientName,
+        amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+        reference: reference || "n/a",
+        settles,
+        problem,
+      }),
+      log,
+    );
+  }
+}
+
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
@@ -311,7 +401,7 @@ module.exports = async function (context, req) {
 
   const amountPaid = (data.amount || 0) / 100; // convert from pesewas back to base unit
   const currency = data.currency || "GHS";
-  const sym = currency === "GHS" ? "₵" : currency;
+  const sym = currencySymbol(currency);
 
   const apiKey = process.env.APPWRITE_API_KEY;
 
@@ -364,18 +454,8 @@ module.exports = async function (context, req) {
          * invoice open and raises an alert instead.
          */
         const settlement = evaluateSettlement({ amountPaid, currency, invoice: doc });
-        const {
-          settles,
-          underpaid,
-          overpaid,
-          currencyMismatch,
-          shortfall,
-          surplus,
-          knownTotal,
-          expected,
-          invoiceCurrency,
-          paidCurrency,
-        } = settlement;
+        const { settles, currencyMismatch, knownTotal, expected, invoiceCurrency, paidCurrency } =
+          settlement;
 
         if (!knownTotal) {
           context.log.warn(
@@ -418,23 +498,13 @@ module.exports = async function (context, req) {
 
         // Create payment record (audit log)
         try {
-          // Paystack channel: "card", "mobile_money", "bank", "bank_transfer",
-          // "apple_pay", etc. Apple Pay is checked first — it is a card wallet,
-          // so if Paystack ever reports it as a card variant the substring match
-          // on "apple" still wins and we keep the distinction in reporting.
-          const channel = (data.channel || "").toLowerCase();
-          let method = "card";
-          if (channel.includes("apple")) method = "apple_pay";
-          else if (channel.includes("mobile")) method = "momo";
-          else if (channel.includes("bank")) method = "bank";
-
           await db.createDocument(DATABASE_ID, PAYMENTS_COLLECTION_ID, sdk.ID.unique(), {
             invoiceNumber,
             clientName,
             clientEmail: clientEmail || "",
             amount: amountPaid,
             currency,
-            method,
+            method: paymentMethod(data.channel),
             paystackReference: reference,
             paidAt: new Date().toISOString(),
             status: "success",
@@ -461,58 +531,10 @@ module.exports = async function (context, req) {
           }
         }
 
-        // Only tell the client the invoice is settled when it actually is.
-        if (settles && resendKey && clientEmail) {
-          await sendEmail(
-            resendKey,
-            fromEmail,
-            clientEmail,
-            `Payment received for invoice ${invoiceNumber}`,
-            clientReceiptEmail({
-              clientName,
-              invoiceNumber,
-              amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
-            }),
-            context.log,
-          );
-        }
-
-        // Send notification to admin
-        if (resendKey && adminEmail) {
-          const problem = currencyMismatch
-            ? {
-                tone: "danger",
-                text: `Currency mismatch. Paid in ${paidCurrency}, invoiced in ${invoiceCurrency}. The invoice has been left open.`,
-              }
-            : underpaid
-              ? {
-                  tone: "danger",
-                  text: `Underpaid by ${sym}${shortfall.toFixed(2)}. Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.`,
-                }
-              : overpaid
-                ? {
-                    tone: "warn",
-                    text: `Overpaid by ${sym}${surplus.toFixed(2)}. The invoice has been marked paid.`,
-                  }
-                : null;
-          await sendEmail(
-            resendKey,
-            fromEmail,
-            adminEmail,
-            settles
-              ? `Payment received for invoice ${invoiceNumber}`
-              : `Action needed: underpayment on invoice ${invoiceNumber}`,
-            adminPaymentEmail({
-              invoiceNumber,
-              clientName,
-              amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
-              reference: reference || "n/a",
-              settles,
-              problem,
-            }),
-            context.log,
-          );
-        }
+        await sendPaymentEmails(
+          { invoiceNumber, clientName, clientEmail, amountPaid, currency, reference, settlement },
+          { resendKey, fromEmail, adminEmail, log: context.log },
+        );
       } else {
         await bail(
           "no invoice matches this payment",
