@@ -283,8 +283,8 @@ module.exports = async function (context, req) {
    *
    * The failure paths here used to leave only a log line. The result was a
    * real charge where the invoice stayed "sent", no payment record was
-   * written and no email went out, with nothing anywhere to say why. Money moves through this function; it must not
-   * fail quietly.
+   * written and no email went out, with nothing anywhere to say why. Money
+   * moves through this function; it must not fail quietly.
    */
   const alert = async (reason, detail) => {
     context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}`);
