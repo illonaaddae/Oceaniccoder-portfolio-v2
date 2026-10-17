@@ -33,3 +33,6 @@ awesome-design-md/
 # Appwrite backups (scripts/backup-appwrite.mjs) — personal data from bookings,
 # invoices, payments and messages. Never commit.
 backup/
+
+# Azure Functions local settings (secrets for func start). Never commit.
+api/local.settings.json
