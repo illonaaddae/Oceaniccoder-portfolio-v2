@@ -6,7 +6,7 @@ import { databases, DATABASE_ID } from "@/lib/appwrite";
 import { manageList, usesCosmos } from "@/services/api/dataApi";
 import { deleteImage, listMediaFiles } from "@/services/api/storage";
 import { MEDIA_BASE_URL, getOptimizedImageUrl } from "@/utils/imageOptimizer";
-import { getPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
+import { readPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
 import { applyPlatformLogoOverrides } from "@/utils/platformLogos";
 import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
 
@@ -70,6 +70,14 @@ async function listCollectionRows(collection: string): Promise<Record<string, un
   return res.documents;
 }
 
+/** Every platform with its logo: the saved override, else the bundled default. */
+function platformsWith(overrides: Record<string, string>): PlatformEntry[] {
+  return ALL_PLATFORMS.map((name) => ({
+    name,
+    currentUrl: overrides[name] ?? HARDCODED_URLS[name] ?? null,
+  }));
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -87,9 +95,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [collectionErrors, setCollectionErrors] = useState<string[]>([]);
-  const [platforms, setPlatforms] = useState<PlatformEntry[]>(
-    ALL_PLATFORMS.map((name) => ({ name, currentUrl: HARDCODED_URLS[name] ?? null })),
-  );
+  const [platforms, setPlatforms] = useState<PlatformEntry[]>(() => platformsWith({}));
   const [replacingLogo, setReplacingLogo] = useState<string | null>(null);
   const [savingLogo, setSavingLogo] = useState<string | null>(null);
   const [orphanPage, setOrphanPage] = useState(0);
@@ -118,55 +124,71 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  useEffect(() => {
-    getPlatformLogoOverrides().then((overrides) => {
-      if (Object.keys(overrides).length === 0) return;
-      setPlatforms((prev) =>
-        prev.map((p) => (overrides[p.name] ? { ...p, currentUrl: overrides[p.name] } : p)),
-      );
-    });
-  }, []);
-
-  const collectAllUrls = useCallback(async (): Promise<Set<string>> => {
+  // The logo overrides are read as part of each scan, not beforehand, so a
+  // logo's file is never judged before its override is known. A failed read
+  // is a scan error like any collection's, which blocks delete.
+  const collectAllUrls = useCallback(async (): Promise<{
+    urls: Set<string>;
+    logoUrls: string[];
+  }> => {
     const urls = new Set<string>();
     const errors: string[] = [];
 
-    await Promise.allSettled(
-      DB_COLLECTIONS.map(async ({ id, fields }) => {
-        try {
-          const rows = await listCollectionRows(id);
-          for (const doc of rows) {
-            for (const field of fields) {
-              const val = doc[field];
-              if (!val) continue;
-              if (Array.isArray(val)) {
-                val.forEach((v: string) => v && urls.add(v));
-              } else {
-                urls.add(String(val));
+    const readLogoOverrides = async (): Promise<Record<string, string> | null> => {
+      try {
+        return await readPlatformLogoOverrides();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`platform logos: ${msg}`);
+        return null;
+      }
+    };
+
+    const [overrides] = await Promise.all([
+      readLogoOverrides(),
+      Promise.allSettled(
+        DB_COLLECTIONS.map(async ({ id, fields }) => {
+          try {
+            const rows = await listCollectionRows(id);
+            for (const doc of rows) {
+              for (const field of fields) {
+                const val = doc[field];
+                if (!val) continue;
+                if (Array.isArray(val)) {
+                  val.forEach((v: string) => v && urls.add(v));
+                } else {
+                  urls.add(String(val));
+                }
               }
             }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            errors.push(`${id}: ${msg}`);
           }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          errors.push(`${id}: ${msg}`);
-        }
-      }),
-    );
+        }),
+      ),
+    ]);
 
     setCollectionErrors(errors);
-    platforms.forEach((p) => p.currentUrl && urls.add(p.currentUrl));
-    return urls;
-  }, [platforms]);
+    const logoPlatforms = platformsWith(overrides ?? {});
+    // On a failed read, keep showing the logos already on screen.
+    if (overrides) setPlatforms(logoPlatforms);
+    const logoUrls = logoPlatforms.map((p) => p.currentUrl).filter((u): u is string => !!u);
+    logoUrls.forEach((u) => urls.add(u));
+    return { urls, logoUrls };
+  }, []);
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [mediaFiles, referencedUrls] = await Promise.all([listMediaFiles(), collectAllUrls()]);
+      const [mediaFiles, { urls: referencedUrls, logoUrls: platformLogoUrls }] = await Promise.all([
+        listMediaFiles(),
+        collectAllUrls(),
+      ]);
 
-      // Precompute collection ids + platform-logo URL list once — O(N+M) vs O(N*M) per-file scan.
+      // Precompute collection ids once — O(N+M) vs O(N*M) per-file scan.
       const collectionIds = DB_COLLECTIONS.map((c) => c.id);
-      const platformLogoUrls = platforms.map((p) => p.currentUrl).filter((u): u is string => !!u);
 
       // Matching is by file id, which migrated files kept, so rows that still
       // hold an Appwrite URL count as using the Blob copy.
@@ -211,7 +233,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     } finally {
       setLoading(false);
     }
-  }, [collectAllUrls, platforms]);
+  }, [collectAllUrls]);
 
   useEffect(() => {
     loadFiles();
