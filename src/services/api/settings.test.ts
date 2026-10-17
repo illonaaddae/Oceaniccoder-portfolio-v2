@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { Permission, Role } from "appwrite";
 import { databases } from "./client";
-import { getPlatformLogoOverrides, readPlatformLogoOverrides, setSetting } from "./settings";
+import {
+  getPlatformLogoOverrides,
+  readPlatformLogoOverrides,
+  setPlatformLogoUrl,
+  setSetting,
+} from "./settings";
 
 function mockEmptyList() {
   vi.spyOn(databases, "listDocuments").mockResolvedValue({ documents: [], total: 0 } as never);
@@ -80,5 +85,63 @@ describe("platform logo overrides", () => {
     arrange();
     await expect(readPlatformLogoOverrides()).rejects.toThrow();
     await expect(getPlatformLogoOverrides()).resolves.toEqual({});
+  });
+});
+
+describe("setPlatformLogoUrl", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("adds the logo to the saved overrides", async () => {
+    vi.spyOn(databases, "listDocuments").mockResolvedValue({
+      documents: [{ $id: "doc1", key: "platform_logos", value: '{"AWS":"https://e.com/aws.png"}' }],
+      total: 1,
+    } as never);
+    const update = vi.spyOn(databases, "updateDocument").mockResolvedValue({} as never);
+
+    await setPlatformLogoUrl("Udemy", "https://e.com/udemy.png");
+
+    expect(update).toHaveBeenCalledWith(expect.any(String), expect.any(String), "doc1", {
+      value: '{"AWS":"https://e.com/aws.png","Udemy":"https://e.com/udemy.png"}',
+    });
+  });
+
+  it("starts from no overrides when there is no row yet", async () => {
+    mockEmptyList();
+    const create = vi.spyOn(databases, "createDocument").mockResolvedValue({} as never);
+
+    await setPlatformLogoUrl("Udemy", "https://e.com/udemy.png");
+
+    expect(create.mock.calls[0][3]).toEqual({
+      key: "platform_logos",
+      value: '{"Udemy":"https://e.com/udemy.png"}',
+    });
+  });
+
+  // Saving {} plus one logo would wipe every other override.
+  it.each([
+    [
+      "a failed read",
+      () => vi.spyOn(databases, "listDocuments").mockRejectedValue(new Error("401")),
+    ],
+    [
+      "a malformed row",
+      () =>
+        vi.spyOn(databases, "listDocuments").mockResolvedValue({
+          documents: [{ $id: "doc1", key: "platform_logos", value: "{not json" }],
+          total: 1,
+        } as never),
+    ],
+  ])("refuses to save after %s", async (_name, arrange) => {
+    arrange();
+    const update = vi.spyOn(databases, "updateDocument").mockResolvedValue({} as never);
+    const create = vi.spyOn(databases, "createDocument").mockResolvedValue({} as never);
+
+    await expect(setPlatformLogoUrl("Udemy", "https://e.com/udemy.png")).rejects.toThrow(
+      /Couldn't read the saved platform logos, so nothing was saved/,
+    );
+    expect(update).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 });
