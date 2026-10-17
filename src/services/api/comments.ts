@@ -27,7 +27,7 @@ export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
   return response.documents;
 }
 
-/** Every comment, with emails. Admin only: needs the admin's Appwrite session. */
+/** Every comment, with emails. Admin only. */
 export async function getAllComments(): Promise<Comment[]> {
   const response = usesCosmos
     ? await manageList(COLLECTIONS.COMMENTS, { orderBy: "$createdAt", dir: "desc", limit: 100 })

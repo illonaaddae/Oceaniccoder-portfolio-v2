@@ -86,10 +86,11 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
   };
 
   /**
-   * Calls the newsletter endpoint with a short-lived Appwrite JWT.
+   * Calls the newsletter endpoint as the signed-in admin (adminHeaders: an
+   * Appwrite JWT, or the SWA session cookie in cosmos mode).
    *
    * The endpoint mails a real subscriber list from a verified domain, so it
-   * now requires a signed-in admin; the JWT is what proves that.
+   * requires the admin.
    */
   const postNewsletter = async (post: Partial<BlogPost> & { slug: string }, mode?: "test") => {
     // Throws "session expired" itself when the Appwrite session is gone.

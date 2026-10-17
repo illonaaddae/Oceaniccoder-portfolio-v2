@@ -10,8 +10,12 @@ const MAX_BODY_BYTES = 1024 * 1024; // Cosmos caps a document at 2 MB
 
 class Invalid extends Error {}
 
+/**
+ * Containers the admin edits. Cosmos-only ones (analytics: raw page views,
+ * partitioned by day with a TTL) are written and read by their own Functions.
+ */
 function isCollection(name) {
-  return Object.hasOwn(CONTAINERS, name);
+  return Object.hasOwn(CONTAINERS, name) && CONTAINERS[name].imported !== false;
 }
 
 /** The field a container is partitioned on ("/postId" → "postId"). */

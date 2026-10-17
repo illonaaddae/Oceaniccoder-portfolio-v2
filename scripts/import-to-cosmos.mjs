@@ -55,9 +55,15 @@ for (const [id, { imported }] of Object.entries(CONTAINERS)) {
   // Cosmos-only containers (analytics) have no backup file, and --prune must
   // never empty them.
   if (imported === false) continue;
-  // A container with no Appwrite table (expenses) has no backup file.
+  // expenses may have no Appwrite table, so no backup file. Skip it rather
+  // than import it as empty, or --prune would delete every Cosmos expense.
+  // Any other missing file means a broken backup: readFile throws.
   const file = path.join(backupDir, "db", `${id}.json`);
-  const rows = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : [];
+  if (id === "expenses" && !existsSync(file)) {
+    console.log(`  ${id}: no backup file, skipped`);
+    continue;
+  }
+  const rows = JSON.parse(await readFile(file, "utf8"));
   const kept = id === "settings" ? rows.filter((r) => MIGRATED_SETTINGS_KEYS.has(r.key)) : rows;
   for (const row of kept) {
     if (APPWRITE_FILE_URL.test(JSON.stringify(row))) stale.push(`${id}/${row.$id}`);

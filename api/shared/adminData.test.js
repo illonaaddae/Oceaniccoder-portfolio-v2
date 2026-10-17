@@ -9,6 +9,8 @@ describe("isCollection", () => {
     expect(isCollection("expenses")).toBe(true);
     expect(isCollection("constructor")).toBe(false);
     expect(isCollection("__proto__")).toBe(false);
+    // Cosmos-only: raw page views have their own Functions.
+    expect(isCollection("analytics")).toBe(false);
   });
 });
 
