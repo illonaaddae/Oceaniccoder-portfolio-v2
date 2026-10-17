@@ -1,7 +1,7 @@
 import { Permission, Role } from "appwrite";
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { Settings } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageUpdate, usesCosmos } from "./dataApi";
 
 /**
  * Settings the public site reads. The collection itself is admin-read only
@@ -25,18 +25,24 @@ export async function setSetting(key: string, value: string): Promise<Settings> 
   const existing = await getSetting(key);
 
   if (existing) {
-    return databases.updateDocument(DATABASE_ID, COLLECTIONS.SETTINGS, existing.$id, {
-      value,
-    }) as unknown as Settings;
+    return (usesCosmos
+      ? manageUpdate(COLLECTIONS.SETTINGS, existing.$id, {
+          value,
+        })
+      : databases.updateDocument(DATABASE_ID, COLLECTIONS.SETTINGS, existing.$id, {
+          value,
+        })) as unknown as Settings;
   }
 
-  return databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.SETTINGS,
-    ID.unique(),
-    { key, value },
-    PUBLIC_SETTING_KEYS.has(key) ? [Permission.read(Role.any())] : undefined,
-  ) as unknown as Settings;
+  return (usesCosmos
+    ? manageCreate(COLLECTIONS.SETTINGS, { key, value })
+    : databases.createDocument(
+        DATABASE_ID,
+        COLLECTIONS.SETTINGS,
+        ID.unique(),
+        { key, value },
+        PUBLIC_SETTING_KEYS.has(key) ? [Permission.read(Role.any())] : undefined,
+      )) as unknown as Settings;
 }
 
 const PLATFORM_LOGOS_KEY = "platform_logos";

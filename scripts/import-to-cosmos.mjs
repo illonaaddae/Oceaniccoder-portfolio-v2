@@ -3,7 +3,8 @@
 // Creates the `portfolio` database and its containers if missing (layout in
 // api/shared/cosmos.js), then upserts every row by id, so re-running it before
 // cutover just refreshes the data. Rows deleted in Appwrite since the last
-// import are reported; --prune deletes them from Cosmos too.
+// import are reported; --prune deletes them from Cosmos too, except payments
+// and invoices, which are never deleted.
 //
 // Refuses to import a row that still links to Appwrite Storage: that backup
 // was taken before scripts/rewrite-media-urls.mjs ran, so take a new one.
@@ -15,6 +16,7 @@
 //
 // --backup <dir> picks a backup folder (default: the newest backup/<date>).
 
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -27,6 +29,7 @@ const {
   ensureSchema,
   toCosmos,
 } = require("../api/shared/cosmos.js");
+const { canDelete } = require("../api/shared/adminData.js");
 
 const args = new Set(process.argv.slice(2));
 const flagValue = (name) => {
@@ -54,7 +57,15 @@ for (const [id, { imported }] of Object.entries(CONTAINERS)) {
   // Cosmos-only containers (analytics) have no backup file, and --prune must
   // never empty them.
   if (imported === false) continue;
-  const rows = JSON.parse(await readFile(path.join(backupDir, "db", `${id}.json`), "utf8"));
+  // expenses may have no Appwrite table, so no backup file. Skip it rather
+  // than import it as empty, or --prune would delete every Cosmos expense.
+  // Any other missing file means a broken backup: readFile throws.
+  const file = path.join(backupDir, "db", `${id}.json`);
+  if (id === "expenses" && !existsSync(file)) {
+    console.log(`  ${id}: no backup file, skipped`);
+    continue;
+  }
+  const rows = JSON.parse(await readFile(file, "utf8"));
   const kept = id === "settings" ? rows.filter((r) => MIGRATED_SETTINGS_KEYS.has(r.key)) : rows;
   for (const row of kept) {
     if (APPWRITE_FILE_URL.test(JSON.stringify(row))) stale.push(`${id}/${row.$id}`);
@@ -96,15 +107,19 @@ for (const [id, docs] of Object.entries(docsByContainer)) {
   const found = new Set(existing.map((e) => e.id));
   const extra = existing.filter((e) => !wanted.has(e.id));
   const missing = docs.filter((d) => !found.has(d.id));
-  if (prune) {
+  // Payments and invoices are money records: never deleted, even by --prune.
+  const prunes = prune && canDelete(id);
+  if (prunes) {
     for (const e of extra) await container.item(e.id, e.pk).delete();
   }
 
   const extraNote = !extra.length
     ? ""
-    : prune
+    : prunes
       ? `  (${extra.length} pruned)`
-      : `  (${extra.length} not in backup; --prune removes)`;
+      : prune
+        ? `  (${extra.length} not in backup; kept, never pruned)`
+        : `  (${extra.length} not in backup; --prune removes)`;
   const missingNote = missing.length ? `  MISSING ${missing.length}` : "";
   if (missing.length) failed = true;
   console.log(

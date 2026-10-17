@@ -1,10 +1,27 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
-import { submitRow, usesCosmos } from "./dataApi";
+import {
+  manageDelete,
+  manageList,
+  manageUpdate,
+  readsAsAdmin,
+  submitRow,
+  usesCosmos,
+} from "./dataApi";
 import { listAllDocuments } from "./listAll";
 import type { Message } from "../../types";
 
 /** Every message, newest first (Appwrite's 25-row default dropped older ones). */
 export async function getMessages(): Promise<Message[]> {
+  if (usesCosmos) {
+    // Private rows (contact details): /dashboard shows none, as the Appwrite
+    // build does when the collection refuses an anonymous read.
+    if (!readsAsAdmin()) return [];
+    const response = await manageList<Message>(COLLECTIONS.MESSAGES, {
+      orderBy: "$createdAt",
+      dir: "desc",
+    });
+    return response.documents;
+  }
   return listAllDocuments<Message>(COLLECTIONS.MESSAGES);
 }
 
@@ -25,11 +42,17 @@ export async function updateMessageStatus(
   messageId: string,
   status: "new" | "read" | "replied",
 ): Promise<Message> {
-  return databases.updateDocument(DATABASE_ID, COLLECTIONS.MESSAGES, messageId, {
-    status,
-  }) as unknown as Message;
+  return (usesCosmos
+    ? manageUpdate(COLLECTIONS.MESSAGES, messageId, {
+        status,
+      })
+    : databases.updateDocument(DATABASE_ID, COLLECTIONS.MESSAGES, messageId, {
+        status,
+      })) as unknown as Message;
 }
 
 export async function deleteMessage(messageId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.MESSAGES, messageId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.MESSAGES, messageId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.MESSAGES, messageId));
 }

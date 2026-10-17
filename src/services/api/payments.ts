@@ -11,6 +11,7 @@
 // plus paid invoices that have no payment row yet (Analytics/metrics/revenue.ts).
 // Archive and restore go through quoteAdmin (/api/quote-admin), not here.
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query, client } from "./client";
+import { manageCreate, manageList, usesCosmos } from "./dataApi";
 import { listAllDocuments } from "./listAll";
 
 export interface PaymentRecord {
@@ -40,7 +41,9 @@ export async function createPayment(payment: PaymentRecord) {
   if (payment.paystackReference) data.paystackReference = payment.paystackReference;
   if (payment.paidAt) data.paidAt = payment.paidAt;
   if (payment.status) data.status = payment.status;
-  return databases.createDocument(DATABASE_ID, COLLECTIONS.PAYMENTS, ID.unique(), data);
+  return usesCosmos
+    ? manageCreate(COLLECTIONS.PAYMENTS, data)
+    : databases.createDocument(DATABASE_ID, COLLECTIONS.PAYMENTS, ID.unique(), data);
 }
 
 /** A stored row. The fields after PaymentRecord's are set server-side, mostly on quote payments. */
@@ -63,11 +66,25 @@ export interface Payment extends PaymentRecord {
 
 /** Every payment row, newest first (Appwrite's 25-row default dropped older ones). */
 export async function getPayments(): Promise<Payment[]> {
+  if (usesCosmos) {
+    const response = await manageList<Payment>(COLLECTIONS.PAYMENTS, {
+      orderBy: "$createdAt",
+      dir: "desc",
+    });
+    return response.documents;
+  }
   return listAllDocuments<Payment>(COLLECTIONS.PAYMENTS);
 }
 
 /** Payment rows recorded against one invoice number (any status). */
 export async function getPaymentsForInvoice(invoiceNumber: string): Promise<Payment[]> {
+  if (usesCosmos) {
+    const response = await manageList<Payment>(COLLECTIONS.PAYMENTS, {
+      where: { invoiceNumber },
+      limit: 100,
+    });
+    return response.documents;
+  }
   const res = await databases.listDocuments(DATABASE_ID, COLLECTIONS.PAYMENTS, [
     Query.equal("invoiceNumber", [invoiceNumber]),
     Query.limit(100),
@@ -91,8 +108,10 @@ export const PAYMENTS_CHANNELS = [
  * /api/paystack-webhook writes server-side, so the browser has no other way to
  * learn about it. Realtime honours collection permissions, so this only
  * delivers to an authenticated admin session. It can also fail silently, so
- * PaymentsTab polls as well.
+ * PaymentsTab polls as well. Cosmos has no realtime, so there the polling is
+ * all there is.
  */
 export function subscribeToPayments(onChange: () => void): () => void {
+  if (usesCosmos) return () => {};
   return client.subscribe(PAYMENTS_CHANNELS, () => onChange());
 }

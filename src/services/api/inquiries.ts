@@ -1,10 +1,27 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
-import { submitRow, usesCosmos } from "./dataApi";
+import {
+  manageDelete,
+  manageList,
+  manageUpdate,
+  readsAsAdmin,
+  submitRow,
+  usesCosmos,
+} from "./dataApi";
 import { listAllDocuments } from "./listAll";
 import type { ProjectInquiry } from "../../types";
 
 /** Every inquiry, newest first (the old 100-row limit dropped older ones). */
 export async function getInquiries(): Promise<ProjectInquiry[]> {
+  if (usesCosmos) {
+    // Private rows (contact details): /dashboard shows none, as the Appwrite
+    // build does when the collection refuses an anonymous read.
+    if (!readsAsAdmin()) return [];
+    const response = await manageList<ProjectInquiry>(COLLECTIONS.PROJECT_INQUIRIES, {
+      orderBy: "$createdAt",
+      dir: "desc",
+    });
+    return response.documents;
+  }
   return listAllDocuments<ProjectInquiry>(COLLECTIONS.PROJECT_INQUIRIES);
 }
 
@@ -27,14 +44,18 @@ export async function updateInquiry(
   id: string,
   data: Partial<Omit<ProjectInquiry, "$id">>,
 ): Promise<ProjectInquiry> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.PROJECT_INQUIRIES,
-    id,
-    data as Record<string, unknown>,
-  ) as unknown as ProjectInquiry;
+  return (usesCosmos
+    ? manageUpdate(COLLECTIONS.PROJECT_INQUIRIES, id, data as Record<string, unknown>)
+    : databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.PROJECT_INQUIRIES,
+        id,
+        data as Record<string, unknown>,
+      )) as unknown as ProjectInquiry;
 }
 
 export async function deleteInquiry(id: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_INQUIRIES, id);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.PROJECT_INQUIRIES, id)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_INQUIRIES, id));
 }

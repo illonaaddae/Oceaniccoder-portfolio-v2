@@ -55,7 +55,7 @@ function cosmosField(name, collection) {
   if (rule?.omit?.includes(name) || (rule?.fields && !rule.fields.includes(name))) {
     throw new BadRequest(`Field not available: ${name}`);
   }
-  return SYSTEM_FIELDS[name] || name;
+  return Object.hasOwn(SYSTEM_FIELDS, name) ? SYSTEM_FIELDS[name] : name;
 }
 
 /** Validates the query string. Throws BadRequest on anything unexpected. */

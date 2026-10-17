@@ -1,5 +1,5 @@
 const https = require("https");
-const { Client, Account } = require("node-appwrite");
+const { requireAdmin } = require("../shared/adminAuth");
 const {
   esc,
   safeUrl,
@@ -15,13 +15,6 @@ const {
 // so it is restricted to the site itself and to a signed-in admin. It used to
 // allow any origin with no caller identity at all.
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev";
-
-// Same constants the other functions use. This one originally read them from
-// the environment with no fallback, and APPWRITE_PROJECT_ID is not set in
-// Azure — nothing else needs it — so setProject(undefined) made every JWT
-// check throw and every caller was told they were not signed in.
-const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
 
 const CORS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -92,41 +85,6 @@ function httpsRequest(hostname, path, method, headers, body) {
   });
 }
 
-/**
- * Resolves the caller from an Appwrite JWT.
- * Returns the user on success, or null when the token is missing or invalid.
- */
-/**
- * Every token the request might be carrying, best candidate first.
- *
- * x-appwrite-jwt is preferred over Authorization on purpose. Azure Static Web
- * Apps puts its own principal token in Authorization, so reading that header
- * first meant verifying Azure's token against Appwrite and failing with
- * "Signature failed" — a valid-looking token from the wrong issuer, which
- * reads as a broken session rather than as the wrong header being used.
- *
- * Both are returned and tried in turn, so this works whichever header
- * survives the hosting layer.
- */
-function readJwtCandidates(req) {
-  const headers = req.headers || {};
-  const candidates = [];
-  const add = (token) => {
-    const t = (token || "").trim();
-    if (t && !candidates.includes(t)) candidates.push(t);
-  };
-
-  add(headers["x-appwrite-jwt"] || headers["X-Appwrite-JWT"]);
-
-  // The body always survives the hosting layer, unlike headers.
-  add(req.body && req.body.jwt);
-
-  const auth = (headers.authorization || headers.Authorization || "").trim();
-  if (auth.startsWith("Bearer ")) add(auth.slice(7));
-
-  return candidates;
-}
-
 /** Which transports carried something — no token material, only shape. */
 function describeTransports(req) {
   const headers = req.headers || {};
@@ -138,36 +96,6 @@ function describeTransports(req) {
   };
 }
 
-/**
- * Resolves the caller from an Appwrite JWT.
- *
- * Returns { user } on success, or { error } describing why not — the two
- * failures have to be told apart, because reporting a misconfigured function
- * as "you are not signed in" sends you looking in the wrong place.
- */
-async function resolveCaller(context, req) {
-  const candidates = readJwtCandidates(req);
-  if (candidates.length === 0) return { error: "no-token" };
-
-  let lastMessage = "";
-  for (const jwt of candidates) {
-    try {
-      const client = new Client()
-        .setEndpoint(APPWRITE_ENDPOINT)
-        .setProject(APPWRITE_PROJECT_ID)
-        .setJWT(jwt);
-      return { user: await new Account(client).get() };
-    } catch (err) {
-      lastMessage = err.message;
-      context.log.warn(
-        `Newsletter auth: token candidate rejected (len ${jwt.length}) — ${err.message}`,
-      );
-    }
-  }
-
-  return { error: "invalid-token", detail: lastMessage };
-}
-
 const handler = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
@@ -176,33 +104,19 @@ const handler = async function (context, req) {
 
   // Gate first: this used to be anonymous, so anyone who knew the URL could
   // mail the entire subscriber list arbitrary content from the verified
-  // sending domain.
-  const { user: caller, error: authError, detail } = await resolveCaller(context, req);
-  if (!caller) {
+  // sending domain. requireAdmin accepts the Static Web Apps admin session or
+  // the Appwrite JWT, and fails closed when no admin is configured.
+  const auth = await requireAdmin(context, req);
+  if (!auth.user) {
     context.res = {
-      status: 401,
+      status: auth.status,
       headers: CORS,
       body: JSON.stringify({
-        error:
-          authError === "no-token"
-            ? "The request carried no session token. Reload the dashboard and try again."
-            : `Your session was not accepted (${detail || "unknown reason"}). Sign out and back in, then retry.`,
-        // Lengths only, never token material. Which transport survived the
-        // hosting layer is the one thing that cannot be worked out from
-        // outside, and it is what this failure has turned on twice.
-        transports: describeTransports(req),
+        error: auth.error,
+        // Lengths only, never token material: which transport survived the
+        // hosting layer can't be worked out from outside.
+        ...(auth.status === 401 && { transports: describeTransports(req) }),
       }),
-    };
-    return;
-  }
-
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && caller.email?.toLowerCase() !== adminEmail.toLowerCase()) {
-    context.log.warn("Newsletter refused for non-admin account:", caller.$id);
-    context.res = {
-      status: 403,
-      headers: CORS,
-      body: JSON.stringify({ error: "This account cannot send the newsletter." }),
     };
     return;
   }
@@ -348,6 +262,5 @@ const handler = async function (context, req) {
 
 module.exports = handler;
 // Exported for tests; the Azure runtime only uses the default export above.
-module.exports.readJwtCandidates = readJwtCandidates;
 module.exports.describeTransports = describeTransports;
 module.exports.newsletterEmailHtml = newsletterEmailHtml;

@@ -1,5 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { getJson, postJson, usesCosmos } from "./dataApi";
+import { getJson, manageDelete, postJson, usesCosmos } from "./dataApi";
 
 /** /api/counters/reactions: totals plus this visitor's own reaction. */
 interface ReactionState {
@@ -82,5 +82,7 @@ export async function addReaction(
 }
 
 export async function removeReaction(reactionId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BLOG_REACTIONS, reactionId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.BLOG_REACTIONS, reactionId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.BLOG_REACTIONS, reactionId));
 }
