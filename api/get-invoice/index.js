@@ -1,8 +1,11 @@
 // GET /api/get-invoice?number=INV-123456
 // Fetches invoice by invoice number for public access (no auth required).
-// Uses APPWRITE_API_KEY env var — set this in Azure Portal > Configuration.
+// DATA_BACKEND picks the store (see ../shared/backend.js). The Appwrite path
+// uses APPWRITE_API_KEY — set this in Azure Portal > Configuration.
 
 const sdk = require("node-appwrite");
+const cosmos = require("../shared/cosmos");
+const { dataBackend } = require("../shared/backend");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +18,29 @@ const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
 const DATABASE_ID = "6943493400018e7c314c";
 const COLLECTION_ID = "invoices";
+
+async function findInAppwrite(apiKey, number) {
+  const client = new sdk.Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID).setKey(apiKey);
+
+  const db = new sdk.Databases(client);
+
+  const result = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+    sdk.Query.equal("invoiceNumber", [number]),
+  ]);
+  return (result.documents && result.documents[0]) || null;
+}
+
+async function findInCosmos(number) {
+  const { resources } = await cosmos
+    .getDatabase()
+    .container(COLLECTION_ID)
+    .items.query({
+      query: "SELECT TOP 1 * FROM c WHERE c.invoiceNumber = @number",
+      parameters: [{ name: "@number", value: number }],
+    })
+    .fetchAll();
+  return resources[0] || null;
+}
 
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
@@ -33,8 +59,9 @@ module.exports = async function (context, req) {
     return;
   }
 
+  const onCosmos = dataBackend() === "cosmos";
   const apiKey = process.env.APPWRITE_API_KEY;
-  if (!apiKey) {
+  if (!onCosmos && !apiKey) {
     context.res = {
       status: 503,
       headers: CORS,
@@ -44,15 +71,9 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const client = new sdk.Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID).setKey(apiKey);
+    const doc = onCosmos ? await findInCosmos(number) : await findInAppwrite(apiKey, number);
 
-    const db = new sdk.Databases(client);
-
-    const result = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
-      sdk.Query.equal("invoiceNumber", [number]),
-    ]);
-
-    if (!result.documents || result.documents.length === 0) {
+    if (!doc) {
       context.res = {
         status: 404,
         headers: CORS,
@@ -60,8 +81,6 @@ module.exports = async function (context, req) {
       };
       return;
     }
-
-    const doc = result.documents[0];
 
     // Return only safe, public-facing fields — no phone (PII not needed for payment)
     const safe = {
