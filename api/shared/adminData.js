@@ -18,6 +18,14 @@ function isCollection(name) {
   return Object.hasOwn(CONTAINERS, name) && CONTAINERS[name].imported !== false;
 }
 
+/**
+ * Payments are money records: the admin hides one by archiving it
+ * (/api/quote-admin), never by deleting it.
+ */
+function canDelete(collection) {
+  return collection !== "payments";
+}
+
 /** The field a container is partitioned on ("/postId" → "postId"). */
 function partitionField(collection) {
   return CONTAINERS[collection].partitionKey.slice(1);
@@ -69,6 +77,7 @@ function isJsonRequest(req) {
 module.exports = {
   Invalid,
   isCollection,
+  canDelete,
   partitionField,
   writableFields,
   buildAdminQuery,

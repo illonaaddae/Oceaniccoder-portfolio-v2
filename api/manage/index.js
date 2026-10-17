@@ -7,7 +7,7 @@
 //   GET    /api/manage/{collection}/{id}  → document, or 404
 //   POST   /api/manage/{collection}       { fields } → 201 document
 //   PATCH  /api/manage/{collection}/{id}  { fields } → document (merged)
-//   DELETE /api/manage/{collection}/{id}  → 204
+//   DELETE /api/manage/{collection}/{id}  → 204 (405 for payments)
 //
 // Admin only: the route is limited to the admin role in
 // staticwebapp.config.json, and requireAdmin checks again here. Documents use
@@ -23,6 +23,7 @@ const {
   writableFields,
   buildAdminQuery,
   isJsonRequest,
+  canDelete,
 } = require("../shared/adminData");
 
 const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store" };
@@ -46,6 +47,9 @@ module.exports = async function (context, req) {
 
   const { collection, id } = context.bindingData || {};
   if (!isCollection(collection)) return reply(context, 404, { error: "Not found" });
+  if (req.method === "DELETE" && !canDelete(collection)) {
+    return reply(context, 405, { error: "Payments can't be deleted. Archive them instead." });
+  }
   if ((req.method === "POST" || req.method === "PATCH") && !isJsonRequest(req)) {
     return reply(context, 415, { error: "Send JSON" });
   }
