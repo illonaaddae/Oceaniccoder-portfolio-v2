@@ -42,31 +42,46 @@ describe("paystack-webhook with an unverified request", () => {
     delete process.env.RESEND_TO_EMAIL;
   });
 
+  const WRONG_SIG = { "x-paystack-signature": "ab".repeat(64) };
+
   it.each([
     ["no signature header", {}],
-    ["a wrong signature", { "x-paystack-signature": "ab".repeat(64) }],
     ["a signature that isn't hex", { "x-paystack-signature": "not-hex" }],
-  ])("emails once, then only logs, for repeated requests with %s", async (_name, headers) => {
-    const first = await post(headers);
+    ["a hex signature of the wrong length", { "x-paystack-signature": "ab".repeat(10) }],
+  ])("only logs, never emails, for %s", async (_name, headers) => {
+    const ctx = await post(headers);
+    expect(ctx.res.status).toBe(200);
+    expect(ctx.log.error).toHaveBeenCalledWith(expect.stringContaining("not from Paystack"));
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("emails once for a well-formed wrong signature, then logs that it suppressed the rest", async () => {
+    const first = await post(WRONG_SIG);
     expect(first.res.status).toBe(200);
     expect(request).toHaveBeenCalledTimes(1);
 
     for (let i = 0; i < 5; i++) {
       now += 60 * 1000;
-      const later = await post(headers);
+      const later = await post(WRONG_SIG);
       expect(later.res.status).toBe(200);
-      expect(later.log.error).toHaveBeenCalled();
+      expect(later.log.error).toHaveBeenCalledWith(expect.stringContaining("email suppressed"));
     }
     expect(request).toHaveBeenCalledTimes(1);
   });
 
+  it("doesn't let header-less junk use up the alert a key mix-up needs", async () => {
+    for (let i = 0; i < 10; i++) await post({});
+    await post(WRONG_SIG);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it("emails again once an hour has passed", async () => {
-    await post({});
+    await post(WRONG_SIG);
     now += HOUR - 1;
-    await post({});
+    await post(WRONG_SIG);
     expect(request).toHaveBeenCalledTimes(1);
     now += 1;
-    await post({});
+    await post(WRONG_SIG);
     expect(request).toHaveBeenCalledTimes(2);
   });
 

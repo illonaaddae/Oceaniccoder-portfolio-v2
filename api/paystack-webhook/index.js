@@ -3,7 +3,8 @@
 // Handles Paystack payment webhook events.
 // Verifies signature using PAYSTACK_SECRET_KEY, updates invoice status in Appwrite,
 // and sends confirmation emails via Resend.
-// Always returns 200 — Paystack expects 200 even when processing fails.
+// Answers 200 when processing fails on purpose, so Paystack doesn't retry;
+// the admin is emailed instead (see bail()).
 
 const crypto = require("crypto");
 const https = require("https");
@@ -50,6 +51,7 @@ function httpsPost(hostname, path, headers, body) {
 }
 
 // Unverified requests email the admin at most this often (see refuse()).
+const SHA512_HEX = /^[0-9a-f]{128}$/i;
 const UNVERIFIED_ALERT_INTERVAL_MS = 60 * 60 * 1000;
 let lastUnverifiedAlertAt = -Infinity;
 
@@ -172,7 +174,8 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Paystack always expects a 200 response — return early with 200 in all error cases
+  // Every early return answers 200 so Paystack doesn't retry a failure that
+  // a retry wouldn't fix; bail() emails the admin instead.
   const ok = () => {
     context.res = { status: 200, headers: CORS, body: JSON.stringify({ received: true }) };
   };
@@ -186,14 +189,17 @@ module.exports = async function (context, req) {
   /**
    * Abandon processing, but tell someone first.
    *
-   * Every failure path here answers Paystack with 200 (it requires that) and used
+   * Every failure path here answers Paystack with 200 (so it doesn't retry) and used
    * to leave only a log line. The result was a real charge where the invoice
    * stayed "sent", no payment record was written and no email went out, with
    * nothing anywhere to say why. Money moves through this function; it must not
    * fail quietly.
    */
+  const logFailure = (reason, detail, note = "") =>
+    context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}${note}`);
+
   const bail = async (reason, detail) => {
-    context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}`);
+    logFailure(reason, detail);
     if (resendKey && adminEmail) {
       await sendEmail(
         resendKey,
@@ -210,14 +216,25 @@ module.exports = async function (context, req) {
   /**
    * Turn away a request whose signature can't be verified. Anyone can POST
    * here, so emailing on every one would let a loop of junk requests flood the
-   * admin inbox and use up the Resend quota that receipts rely on. A real key
-   * mode mix-up still needs to reach someone, so the email goes out at most
-   * once an hour per instance; every attempt is logged.
+   * admin inbox and use up the Resend quota that receipts rely on.
+   *
+   * A request with no signature, or one that isn't a SHA-512 hex digest, never
+   * came from Paystack: it's only logged. A well-formed signature that doesn't
+   * match is what a key mode mix-up looks like, and that has to reach someone,
+   * because Paystack gets a 200 and won't retry. It emails at most once an hour
+   * per instance (set before the send, so concurrent requests can't both pass;
+   * a failed send still uses up the hour). Every attempt is logged.
    */
-  const refuse = async (reason, detail) => {
+  const refuse = async (reason, detail, { couldBePaystack }) => {
     const now = Date.now();
+    if (!couldBePaystack) {
+      logFailure(reason, detail, " (not from Paystack; no email)");
+      ok();
+      return;
+    }
     if (now - lastUnverifiedAlertAt < UNVERIFIED_ALERT_INTERVAL_MS) {
-      context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}`);
+      const last = new Date(lastUnverifiedAlertAt).toISOString();
+      logFailure(reason, detail, ` (admin email suppressed; last sent ${last})`);
       ok();
       return;
     }
@@ -250,7 +267,9 @@ module.exports = async function (context, req) {
   const signature = req.headers && req.headers["x-paystack-signature"];
 
   if (!signature) {
-    await refuse("request had no x-paystack-signature header");
+    await refuse("request had no x-paystack-signature header", undefined, {
+      couldBePaystack: false,
+    });
     return;
   }
 
@@ -268,6 +287,7 @@ module.exports = async function (context, req) {
         `signature was computed over ${usedRawBody ? "the raw request body" : "a re-serialised body because req.rawBody was empty, which alone can cause this"}. ` +
         `If the transaction was in the other mode, that is the cause — check the mode of this charge in Paystack. ` +
         `Otherwise treat it as an unverified request and ignore it.`,
+      { couldBePaystack: SHA512_HEX.test(signature) },
     );
     return;
   }
@@ -564,6 +584,7 @@ module.exports.emails = {
   clientReceiptEmail,
   adminPaymentEmail,
 };
+// Test-only: clears the hourly throttle between test cases.
 module.exports.resetUnverifiedAlert = () => {
   lastUnverifiedAlertAt = -Infinity;
 };
