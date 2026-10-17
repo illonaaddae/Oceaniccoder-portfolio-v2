@@ -47,11 +47,28 @@ export async function setSetting(key: string, value: string): Promise<Settings> 
 
 const PLATFORM_LOGOS_KEY = "platform_logos";
 
+/**
+ * The saved platform logo URLs. Rejects when the row can't be read or holds
+ * something other than an object of URLs, for callers that must not mistake a
+ * failed read for "no overrides" (Storage Cleanup decides what to delete).
+ */
+export async function readPlatformLogoOverrides(): Promise<Record<string, string>> {
+  const setting = await getSetting(PLATFORM_LOGOS_KEY);
+  if (!setting?.value) return {};
+  const parsed: unknown = JSON.parse(setting.value);
+  const isUrlMap =
+    typeof parsed === "object" &&
+    parsed !== null &&
+    !Array.isArray(parsed) &&
+    Object.values(parsed).every((url) => typeof url === "string");
+  if (!isUrlMap) throw new Error("platform_logos setting is not an object of URLs");
+  return parsed as Record<string, string>;
+}
+
+/** Like readPlatformLogoOverrides, but falls back to {} so logos still render. */
 export async function getPlatformLogoOverrides(): Promise<Record<string, string>> {
   try {
-    const setting = await getSetting(PLATFORM_LOGOS_KEY);
-    if (!setting?.value) return {};
-    return JSON.parse(setting.value) as Record<string, string>;
+    return await readPlatformLogoOverrides();
   } catch {
     return {};
   }

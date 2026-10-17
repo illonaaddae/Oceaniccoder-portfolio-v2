@@ -6,6 +6,7 @@ import type { MediaFile } from "@/services/api/storage";
 const mode = vi.hoisted(() => ({ usesCosmos: false }));
 const manageList = vi.fn();
 const listDocuments = vi.fn();
+const readPlatformLogoOverrides = vi.fn();
 const listMediaFiles = vi.fn();
 const deleteImage = vi.fn();
 
@@ -24,7 +25,7 @@ vi.mock("@/services/api/storage", () => ({
   deleteImage: (...a: unknown[]) => deleteImage(...a),
 }));
 vi.mock("@/services/api/settings", () => ({
-  getPlatformLogoOverrides: () => Promise.resolve({}),
+  readPlatformLogoOverrides: () => readPlatformLogoOverrides(),
   setPlatformLogoUrl: vi.fn(),
 }));
 vi.mock("@/components/AdminDashboard/ImageUpload", () => ({ ImageUpload: () => null }));
@@ -82,6 +83,8 @@ const scanAlert = () => screen.queryByRole("alert");
 beforeEach(() => {
   manageList.mockReset();
   listDocuments.mockReset();
+  readPlatformLogoOverrides.mockReset();
+  readPlatformLogoOverrides.mockResolvedValue({});
   deleteImage.mockReset();
   listMediaFiles.mockReset();
   listMediaFiles.mockResolvedValue(FILES);
@@ -145,5 +148,37 @@ describe("StorageCleanupTab", () => {
     expect(listDocuments).toHaveBeenCalledWith("db", "projects", expect.any(Array));
     expect(screen.getByText("In use")).toBeInTheDocument();
     expect(deleteButton()).toBeEnabled();
+  });
+
+  describe("platform logo overrides", () => {
+    const LOGO = media("logo-file");
+
+    it("counts an override's file as in use even when the overrides load last", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      listMediaFiles.mockResolvedValue([...FILES, LOGO]);
+      // Resolves after the collections and the media list.
+      readPlatformLogoOverrides.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve({ AWS: LOGO.url }), 20)),
+      );
+      await renderTab();
+
+      expect(screen.getAllByText("In use")).toHaveLength(2);
+      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+      expect(screen.getByRole("img", { name: "AWS" })).toHaveAttribute("src", LOGO.url);
+    });
+
+    it("blocks delete when the overrides can't be read", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      listMediaFiles.mockResolvedValue([...FILES, LOGO]);
+      readPlatformLogoOverrides.mockRejectedValue(new Error("Unauthorized"));
+      await renderTab();
+
+      expect(
+        within(scanAlert() as HTMLElement).getByText(/platform logos: Unauthorized/),
+      ).toBeInTheDocument();
+      const buttons = screen.getAllByRole("button", { name: /delete file/i });
+      expect(buttons).toHaveLength(2);
+      for (const button of buttons) expect(button).toBeDisabled();
+    });
   });
 });
