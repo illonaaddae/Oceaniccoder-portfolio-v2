@@ -107,7 +107,10 @@ describe("/api/manage", () => {
         collection: "projects",
         headers: { "x-ms-client-principal": other },
       });
-      expect(r.status).toBe(401);
+      expect(r).toMatchObject({
+        status: 403,
+        body: { error: "This account isn't the site admin." },
+      });
     });
 
     it("refuses the admin's cross-site request", async () => {

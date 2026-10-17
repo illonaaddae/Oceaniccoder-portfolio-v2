@@ -58,4 +58,4 @@ function isAdmin(principal, env = process.env) {
   return rolesFor(principal, env).includes(ADMIN_ROLE);
 }
 
-module.exports = { ADMIN_ROLE, rolesFor, readPrincipal, isAdmin };
+module.exports = { ADMIN_ROLE, adminUserIds, rolesFor, readPrincipal, isAdmin };

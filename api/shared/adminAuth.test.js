@@ -58,3 +58,51 @@ describe("requireAdmin with a Static Web Apps session", () => {
     expect((await requireAdmin(context, req)).user).toBeTruthy();
   });
 });
+
+describe("requireAdmin refusals", () => {
+  const NAMES = ["ADMIN_USER_IDS", "ADMIN_EMAIL", "VITE_ADMIN_EMAIL"];
+  let saved;
+  beforeEach(() => {
+    saved = Object.fromEntries(NAMES.map((name) => [name, process.env[name]]));
+    for (const name of NAMES) delete process.env[name];
+  });
+  afterEach(() => {
+    for (const name of NAMES) {
+      if (saved[name] === undefined) delete process.env[name];
+      else process.env[name] = saved[name];
+    }
+  });
+
+  const signedIn = (userId) => ({
+    method: "GET",
+    headers: {
+      "x-ms-client-principal": principal({ identityProvider: "github", userId, userRoles: [] }),
+    },
+  });
+  const anonymous = { method: "GET", headers: {} };
+
+  it("tells a signed-in user who isn't the admin so (403)", async () => {
+    process.env.ADMIN_USER_IDS = "gh-123";
+    process.env.ADMIN_EMAIL = "admin@example.com";
+    expect(await requireAdmin(context, signedIn("gh-999"))).toEqual({
+      status: 403,
+      error: "This account isn't the site admin.",
+    });
+  });
+
+  it("answers 403, not 500, when only ADMIN_USER_IDS is set", async () => {
+    process.env.ADMIN_USER_IDS = "gh-123";
+    expect(await requireAdmin(context, signedIn("gh-999"))).toMatchObject({ status: 403 });
+    expect(await requireAdmin(context, anonymous)).toMatchObject({ status: 401 });
+  });
+
+  it("answers 401 to a caller with no sign-in and no token", async () => {
+    process.env.ADMIN_EMAIL = "admin@example.com";
+    expect(await requireAdmin(context, anonymous)).toMatchObject({ status: 401 });
+  });
+
+  it("answers 500 only when no admin is configured at all", async () => {
+    expect(await requireAdmin(context, anonymous)).toMatchObject({ status: 500 });
+    expect(await requireAdmin(context, signedIn("gh-123"))).toMatchObject({ status: 500 });
+  });
+});
