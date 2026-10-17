@@ -3,7 +3,7 @@
 // the real store. Email sending is a recorder, so nothing leaves the process.
 import { describe, it, expect, vi } from "vitest";
 
-const { recordInvoiceCharge, claimRetryAlert, NOTIFY_CLAIM_MS } =
+const { recordInvoiceCharge, claimRetryAlert, releaseRetryAlert, NOTIFY_CLAIM_MS } =
   await import("./invoiceCharge.js");
 const { createCosmosInvoiceStore, MAX_REPLACE_ATTEMPTS } =
   await import("../shared/invoices/store.cosmos.js");
@@ -406,12 +406,13 @@ describe("recordInvoiceCharge on Cosmos", () => {
 });
 
 describe("claimRetryAlert", () => {
-  const claim = ({ db, store }) =>
+  const claim = (ctx) =>
     claimRetryAlert({
-      store,
-      locks: createCosmosLocks(db),
+      store: ctx.store,
+      locks: createCosmosLocks(ctx.db),
       reference: REFERENCE,
       invoiceNumber: "INV-2026-0042",
+      log: ctx.log,
     });
 
   it("lets only the first failure before the payment row mail the admin", async () => {
@@ -437,6 +438,38 @@ describe("claimRetryAlert", () => {
     failNext(ctx.invoices, "beforeReplace", 1);
     await expect(ctx.run()).rejects.toThrow();
     expect(await claim(ctx)).toBe(false);
+  });
+
+  it("gives exactly one of several concurrent claims", async () => {
+    const ctx = setup();
+    const results = await Promise.all([claim(ctx), claim(ctx), claim(ctx)]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+  });
+
+  it("can be claimed again once a claim whose email failed is released", async () => {
+    const ctx = setup();
+    failNext(ctx.invoices, "beforeReplace", 1);
+    await expect(ctx.run()).rejects.toThrow();
+    expect(await claim(ctx)).toBe(true);
+    await releaseRetryAlert({
+      store: ctx.store,
+      locks: createCosmosLocks(ctx.db),
+      reference: REFERENCE,
+      invoiceNumber: "INV-2026-0042",
+    });
+    expect(stored(ctx.payments, PAYMENT_ID).alertedAt).toBeNull();
+    expect(ctx.db.container("locks").docs.has(lockId(`alert:${REFERENCE}`))).toBe(false);
+    expect(await claim(ctx)).toBe(true);
+    expect(await claim(ctx)).toBe(false);
+  });
+
+  it("keeps the claim when alertedAt cannot be written", async () => {
+    const ctx = setup();
+    failNext(ctx.invoices, "beforeReplace", 1);
+    await expect(ctx.run()).rejects.toThrow();
+    failNext(ctx.payments, "beforeReplace", 1);
+    expect(await claim(ctx)).toBe(true);
+    expect(ctx.log.error).toHaveBeenCalledWith(expect.stringContaining("could not note alertedAt"));
   });
 
   it("does not write to a row that belongs to another charge", async () => {
