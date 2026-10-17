@@ -11,13 +11,15 @@
 //    in Authorization. The account's email must match ADMIN_EMAIL (or
 //    VITE_ADMIN_EMAIL, which Azure still has left over from the build).
 //
-// Fails closed: with no admin configured, every caller is refused.
+// A signed-in user who isn't the admin gets 403; no sign-in at all gets 401.
+// Fails closed: with no admin configured, every caller is refused (500).
 
 const { Client, Account } = require("node-appwrite");
-const { readPrincipal, isAdmin } = require("./principal");
+const { adminUserIds, readPrincipal, isAdmin } = require("./principal");
 
 const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
 const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
+const NOT_ADMIN = "This account isn't the site admin.";
 
 function readJwtCandidates(req) {
   const headers = req.headers || {};
@@ -66,15 +68,20 @@ async function requireAdmin(context, req) {
     return { user: { email: principal.userDetails, provider: principal.identityProvider } };
   }
 
-  // Appwrite sign-in, until the cutover removes it.
   const adminEmail = (process.env.ADMIN_EMAIL || process.env.VITE_ADMIN_EMAIL || "").toLowerCase();
-  if (!adminEmail) {
-    context.log.error("Admin check: neither ADMIN_EMAIL nor VITE_ADMIN_EMAIL is set");
+  if (!adminEmail && adminUserIds(process.env).size === 0) {
+    context.log.error("Admin check: none of ADMIN_USER_IDS, ADMIN_EMAIL, VITE_ADMIN_EMAIL is set");
     return { status: 500, error: "The server has no admin account configured." };
   }
 
-  const candidates = readJwtCandidates(req);
+  // Appwrite sign-in, until the cutover removes it. A GitHub user who isn't
+  // the admin still gets this chance, in case they also hold an Appwrite token.
+  const candidates = adminEmail ? readJwtCandidates(req) : [];
   if (candidates.length === 0) {
+    if (principal) {
+      context.log.warn("Admin check: refused non-admin sign-in", principal.userId);
+      return { status: 403, error: NOT_ADMIN };
+    }
     return { status: 401, error: "No session token. Reload the dashboard and try again." };
   }
 
@@ -87,7 +94,7 @@ async function requireAdmin(context, req) {
       const user = await new Account(client).get();
       if (user.email?.toLowerCase() === adminEmail) return { user };
       context.log.warn("Admin check: refused non-admin account", user.$id);
-      return { status: 403, error: "This account isn't the site admin." };
+      return { status: 403, error: NOT_ADMIN };
     } catch (err) {
       context.log.warn(`Admin check: token candidate rejected (len ${jwt.length}): ${err.message}`);
     }
