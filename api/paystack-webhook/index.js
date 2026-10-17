@@ -17,7 +17,7 @@ const cosmos = require("../shared/cosmos");
 const { dataBackend, writeHold } = require("../shared/backend");
 const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
 const { createCosmosLocks } = require("../shared/locks");
-const { recordInvoiceCharge, claimRetryAlert } = require("./invoiceCharge");
+const { recordInvoiceCharge, claimRetryAlert, releaseRetryAlert } = require("./invoiceCharge");
 const { shell, heading, p, card, notice, small } = require("../shared/email/ui");
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
@@ -38,12 +38,34 @@ const CORS = {
 // inside that.
 const EMAIL_TIMEOUT_MS = 10 * 1000;
 
-// An invalid DATA_BACKEND fails every delivery the same way until someone
-// fixes the setting, so this process mails the admin about it once.
-let invalidBackendAlerted = false;
-// References already mailed about in this process while Cosmos could not
-// record the alert itself, so an outage does not mail on every retry.
-const alertedWithoutRecord = new Set();
+// Alerts this process has mailed, or is mailing, where Cosmos cannot keep
+// track: an invalid DATA_BACKEND (it fails every delivery the same way until
+// someone fixes the setting) and a reference whose claim could not be
+// recorded. Added before the send so concurrent invocations mail once;
+// removed if the send fails, so a later attempt mails.
+const processAlerts = new Set();
+const claimInProcess = (key) => {
+  if (processAlerts.has(key)) return false;
+  processAlerts.add(key);
+  return true;
+};
+
+/**
+ * Sends an alert only when `claim` wins, and gives the claim back if the send
+ * fails so a later attempt can mail instead. Without that, a Resend outage or
+ * timeout would use up the one alert and nobody would hear.
+ */
+async function alertOnce({ claim, release, send, log }) {
+  if (!(await claim())) return;
+  if (await send()) return;
+  try {
+    await release();
+  } catch (err) {
+    log.error(
+      `paystack-webhook: could not give back the alert claim, so later attempts will not email: ${err.message}`,
+    );
+  }
+}
 
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
@@ -485,16 +507,21 @@ module.exports = async function (context, req) {
     backend = dataBackend();
   } catch (err) {
     context.log.error(`paystack-webhook: DATA_BACKEND is not valid — ${err.message}`);
-    if (!invalidBackendAlerted && resendKey && adminEmail) {
-      invalidBackendAlerted = true;
-      await sendEmail(
-        resendKey,
-        fromEmail,
-        adminEmail,
-        "Action needed: Paystack webhooks are failing and will be retried",
-        webhookRetryEmail("DATA_BACKEND is not valid", err.message),
-        context.log,
-      );
+    if (resendKey && adminEmail) {
+      await alertOnce({
+        claim: async () => claimInProcess("DATA_BACKEND"),
+        release: async () => processAlerts.delete("DATA_BACKEND"),
+        send: () =>
+          sendEmail(
+            resendKey,
+            fromEmail,
+            adminEmail,
+            "Action needed: Paystack webhooks are failing and will be retried",
+            webhookRetryEmail("DATA_BACKEND is not valid", err.message),
+            context.log,
+          ),
+        log: context.log,
+      });
     }
     retry();
     return;
@@ -555,32 +582,41 @@ module.exports = async function (context, req) {
       const reason = "Cosmos rejected the update";
       const detail = `${err.message} (invoice ${invoiceNumber}, reference ${reference})`;
       context.log.error(`paystack-webhook: ${reason}; Paystack will retry — ${detail}`);
-      // When the claim itself fails (Cosmos down or not configured), mail
-      // anyway, once per process: an unrecorded payment nobody hears about is
-      // worse than a repeated email.
-      let mail;
-      try {
-        if (!store) throw err;
-        mail = await claimRetryAlert({
-          store,
-          locks: createCosmosLocks(cosmos.getDatabase()),
-          reference,
-          invoiceNumber,
+      // No email can go, so take no claim that a later attempt would need.
+      if (resendKey && adminEmail) {
+        // When the claim itself fails (Cosmos down or not configured), mail
+        // anyway, once per process: an unrecorded payment nobody hears about
+        // is worse than a repeated email.
+        const alert = { store, reference, invoiceNumber, log: context.log };
+        let claimedInCosmos = false;
+        await alertOnce({
+          claim: async () => {
+            try {
+              if (!store) throw err;
+              alert.locks = createCosmosLocks(cosmos.getDatabase());
+              const claimed = await claimRetryAlert(alert);
+              claimedInCosmos = claimed;
+              return claimed;
+            } catch (claimErr) {
+              context.log.error(
+                `paystack-webhook: could not record the alert: ${claimErr.message}`,
+              );
+              return claimInProcess(`alert:${reference}`);
+            }
+          },
+          release: async () =>
+            claimedInCosmos ? releaseRetryAlert(alert) : processAlerts.delete(`alert:${reference}`),
+          send: () =>
+            sendEmail(
+              resendKey,
+              fromEmail,
+              adminEmail,
+              `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
+              webhookRetryEmail(reason, detail),
+              context.log,
+            ),
+          log: context.log,
         });
-      } catch (claimErr) {
-        context.log.error(`paystack-webhook: could not record the alert: ${claimErr.message}`);
-        mail = !alertedWithoutRecord.has(reference);
-        alertedWithoutRecord.add(reference);
-      }
-      if (mail && resendKey && adminEmail) {
-        await sendEmail(
-          resendKey,
-          fromEmail,
-          adminEmail,
-          `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
-          webhookRetryEmail(reason, detail),
-          context.log,
-        );
       }
       retry();
     }

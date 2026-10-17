@@ -230,23 +230,59 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
   return { outcome: "recorded" };
 }
 
+const ALERT_KEY = (reference) => `alert:${reference}`;
+
 /**
  * Whether this delivery should email the admin about a retryable failure.
- * Paystack retries for days, so only the first failure for a reference is
- * mailed; the caller logs every one. The `alert:<reference>` lock decides;
- * once this charge's payments row exists, its alertedAt saves the lock write
- * on later attempts and shows on the row that the admin was told.
+ * Paystack retries for days, so only one email goes per reference; the
+ * caller logs every attempt. The `alert:<reference>` lock is the only gate:
+ * creating it is atomic, so of any number of concurrent deliveries exactly
+ * one gets true. Once this charge's payments row exists, alertedAt records
+ * on it that the admin was told.
+ *
+ * The claim is taken before the send, not after, because only a claim taken
+ * first keeps concurrent deliveries to one email. If the send fails the
+ * caller gives it back with releaseRetryAlert, so the next retry mails.
  */
-async function claimRetryAlert({ store, locks, reference, invoiceNumber, now = () => new Date() }) {
+async function claimRetryAlert({
+  store,
+  locks,
+  reference,
+  invoiceNumber,
+  log,
+  now = () => new Date(),
+}) {
+  if (!(await locks.take(ALERT_KEY(reference)))) return false;
+  // The claim is the lock. alertedAt is only a record, so failing to write
+  // it must not undo the claim: the lock would stay taken with no email.
+  try {
+    const paymentId = paymentIdFor(reference);
+    const row = await store.readPayment(paymentId);
+    if (row && rowState(row, { reference, invoiceNumber }) !== "conflict") {
+      await store.updatePayment(paymentId, (current) =>
+        current.alertedAt ? null : { alertedAt: now().toISOString() },
+      );
+    }
+  } catch (err) {
+    log.error(`paystack-webhook: could not note alertedAt for ${reference}: ${err.message}`);
+  }
+  return true;
+}
+
+/**
+ * Gives back a claim whose email did not go. alertedAt is cleared before the
+ * lock is released, so a delivery that claims in between cannot have its
+ * own alertedAt wiped.
+ */
+async function releaseRetryAlert({ store, locks, reference, invoiceNumber }) {
   const paymentId = paymentIdFor(reference);
   const row = await store.readPayment(paymentId);
   if (row && rowState(row, { reference, invoiceNumber }) !== "conflict") {
-    const { changed } = await store.updatePayment(paymentId, (current) =>
-      current.alertedAt ? null : { alertedAt: now().toISOString() },
+    await store.updatePayment(paymentId, (current) =>
+      current.alertedAt ? { alertedAt: null } : null,
     );
-    if (!changed) return false;
   }
-  return locks.take(`alert:${reference}`);
+  await locks.release(ALERT_KEY(reference));
 }
 
-module.exports = { recordInvoiceCharge, claimRetryAlert, NOTIFY_CLAIM_MS };
+module.exports = { recordInvoiceCharge, claimRetryAlert, releaseRetryAlert, NOTIFY_CLAIM_MS };

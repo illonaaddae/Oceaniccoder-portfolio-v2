@@ -206,6 +206,56 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(db.container("payments").docs.size).toBe(0);
   });
 
+  it("mails on the next retry when the claimed alert could not be sent", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 3);
+    sent.answers.push(500);
+    expect((await run()).status).toBe(500);
+    expect(payment().alertedAt).toBeNull();
+    expect(db.container("locks").docs.has(lockId(`alert:${REFERENCE}`))).toBe(false);
+    expect((await run()).status).toBe(500);
+    expect((await run()).status).toBe(500);
+    expect(sent.map((m) => [m.subject, m.status])).toEqual([
+      [RETRY_SUBJECT, 500],
+      [RETRY_SUBJECT, 200],
+    ]);
+    expect(payment().alertedAt).toEqual(expect.any(String));
+  });
+
+  it("mails on the next retry when the alert before the payment row could not be sent", async () => {
+    sent.answers.push(503);
+    failNext(db.container("payments"), "beforeRead", 1);
+    expect((await run()).status).toBe(500);
+    expect(db.container("locks").docs.size).toBe(0);
+    failNext(db.container("payments"), "beforeRead", 1);
+    expect((await run()).status).toBe(500);
+    expect(sent.map((m) => m.status)).toEqual([503, 200]);
+    expect(db.container("locks").docs.has(lockId(`alert:${REFERENCE}`))).toBe(true);
+  });
+
+  it("takes no alert claim when no email can be sent", async () => {
+    delete process.env.RESEND_API_KEY;
+    failNext(db.container("invoices"), "beforeReplace", 2);
+    expect((await run()).status).toBe(500);
+    expect(db.container("locks").docs.size).toBe(0);
+    expect(payment().alertedAt).toBeUndefined();
+    process.env.RESEND_API_KEY = "re_test";
+    expect((await run()).status).toBe(500);
+    expect(sent.map((m) => m.subject)).toEqual([RETRY_SUBJECT]);
+  });
+
+  it("mails once per process when Cosmos cannot record the alert, retrying a failed send", async () => {
+    cosmos.getDatabase.mockImplementation(() => {
+      throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+    });
+    const event = signed(chargeOf({ reference: "PAY-INV-2026-0042-send-fails" }));
+    sent.answers.push(500);
+    for (let i = 0; i < 3; i++) expect((await run(event)).status).toBe(500);
+    expect(sent.map((m) => [m.subject, m.status])).toEqual([
+      [RETRY_SUBJECT, 500],
+      [RETRY_SUBJECT, 200],
+    ]);
+  });
+
   it("mails once per process when Cosmos cannot record the alert", async () => {
     cosmos.getDatabase.mockImplementation(() => {
       throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
@@ -279,12 +329,14 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
 
   // The only test in this file with an invalid DATA_BACKEND: the once-per-
   // process flag lives in index.js for the life of the module.
-  it("answers 500 to an invalid DATA_BACKEND and mails about it once", async () => {
+  it("answers 500 to an invalid DATA_BACKEND and mails about it once it is sent", async () => {
     process.env.DATA_BACKEND = "cosmo";
-    expect((await run()).status).toBe(500);
-    expect((await run()).status).toBe(500);
-    expect(subjects()).toEqual([
-      ["admin@example.com", "Action needed: Paystack webhooks are failing and will be retried"],
+    sent.answers.push(500);
+    for (let i = 0; i < 3; i++) expect((await run()).status).toBe(500);
+    // The first send fails, so the flag is not set and the next run mails.
+    expect(sent.map((m) => [m.subject, m.status])).toEqual([
+      ["Action needed: Paystack webhooks are failing and will be retried", 500],
+      ["Action needed: Paystack webhooks are failing and will be retried", 200],
     ]);
     expect(sent[0].html).toContain("DATA_BACKEND is not valid");
     expect(db.container("payments").docs.size).toBe(0);
