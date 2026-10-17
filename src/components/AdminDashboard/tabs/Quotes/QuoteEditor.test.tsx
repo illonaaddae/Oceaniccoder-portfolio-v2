@@ -13,6 +13,9 @@ vi.mock("@/services/api/quotes", async () => {
   };
 });
 
+// These tests never accept a confirm dialog; answer "cancel" if one opens.
+vi.mock("../../ConfirmContext", () => ({ useConfirm: () => async () => false }));
+
 import QuoteEditor from "./QuoteEditor";
 import { QuoteApiError } from "@/services/api/quotes";
 

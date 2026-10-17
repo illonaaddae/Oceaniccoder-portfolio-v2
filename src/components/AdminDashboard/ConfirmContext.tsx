@@ -25,9 +25,17 @@ interface ConfirmOptions {
 // are unaffected.
 type ConfirmFn = (opts: ConfirmOptions | string) => Promise<boolean | string>;
 
-const ConfirmContext = createContext<ConfirmFn>(async () => false);
+// No usable default: a caller outside the provider used to get a function that
+// resolved false, so every delete it guarded was cancelled with no dialog.
+const ConfirmContext = createContext<ConfirmFn | null>(null);
 
-export const useConfirm = () => useContext(ConfirmContext);
+export const useConfirm = (): ConfirmFn => {
+  const confirm = useContext(ConfirmContext);
+  if (!confirm) {
+    throw new Error("useConfirm must be used within a ConfirmProvider");
+  }
+  return confirm;
+};
 
 interface State {
   message: string;
