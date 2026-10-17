@@ -131,6 +131,49 @@ describe("/api/manage", () => {
       expect(writes.deleted).toEqual([]);
     });
 
+    it("refuses to change a payment and leaves it in place", async () => {
+      const writes = useContainer([{ id: "pay1", _etag: "e" }]);
+      const r = await call("PATCH", {
+        collection: "payments",
+        id: "pay1",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body: { status: "success" },
+      });
+      expect(r.status).toBe(405);
+      expect(writes.replaced).toEqual([]);
+    });
+
+    it("refuses to delete an invoice", async () => {
+      const writes = useContainer([{ id: "inv1", _etag: "e" }]);
+      const r = await call("DELETE", { collection: "invoices", id: "inv1" });
+      expect(r.status).toBe(405);
+      expect(writes.deleted).toEqual([]);
+    });
+
+    it("refuses to archive an invoice, which goes through /api/quote-admin", async () => {
+      const writes = useContainer([{ id: "inv1", status: "paid", _etag: "e" }]);
+      const r = await call("PATCH", {
+        collection: "invoices",
+        id: "inv1",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body: { archivedAt: "2026-10-17T00:00:00.000Z" },
+      });
+      expect(r.status).toBe(405);
+      expect(writes.replaced).toEqual([]);
+    });
+
+    it("still edits an invoice", async () => {
+      const writes = useContainer([{ id: "inv1", status: "sent", _etag: "e" }]);
+      const r = await call("PATCH", {
+        collection: "invoices",
+        id: "inv1",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body: { status: "paid" },
+      });
+      expect(r).toMatchObject({ status: 200, body: { status: "paid" } });
+      expect(writes.replaced).toHaveLength(1);
+    });
+
     it("refuses a PATCH that isn't JSON", async () => {
       const writes = useContainer([project]);
       const r = await call("PATCH", {

@@ -5,6 +5,7 @@ const {
   Invalid,
   isCollection,
   canDelete,
+  refusedWrite,
   partitionField,
   writableFields,
   buildAdminQuery,
@@ -12,9 +13,36 @@ const {
 } = await import("./adminData.js");
 
 describe("canDelete", () => {
-  it("never deletes payments, which are archived instead", () => {
+  it("never deletes payments or invoices, which are archived instead", () => {
     expect(canDelete("payments")).toBe(false);
+    expect(canDelete("invoices")).toBe(false);
     expect(canDelete("messages")).toBe(true);
+  });
+});
+
+describe("refusedWrite", () => {
+  it("keeps payments create-only", () => {
+    expect(refusedWrite("POST", "payments", { amount: 1 })).toBeNull();
+    expect(refusedWrite("PATCH", "payments", { note: "x" })).toMatch(/can't be changed/);
+    expect(refusedWrite("DELETE", "payments")).toMatch(/can't be deleted/);
+  });
+
+  it("lets invoices be edited but not deleted", () => {
+    expect(refusedWrite("PATCH", "invoices", { status: "paid" })).toBeNull();
+    expect(refusedWrite("DELETE", "invoices")).toMatch(/can't be deleted/);
+  });
+
+  it.each([["2026-10-17T00:00:00.000Z"], [null]])(
+    "refuses an invoice PATCH that sets archivedAt to %j",
+    (archivedAt) => {
+      expect(refusedWrite("PATCH", "invoices", { archivedAt })).toMatch(/archived from/);
+    },
+  );
+
+  it("leaves other collections alone", () => {
+    expect(refusedWrite("PATCH", "projects", { archivedAt: "x" })).toBeNull();
+    expect(refusedWrite("DELETE", "messages")).toBeNull();
+    expect(refusedWrite("GET", "payments")).toBeNull();
   });
 });
 
