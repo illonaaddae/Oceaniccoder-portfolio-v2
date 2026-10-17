@@ -3,6 +3,7 @@ import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "
 import { Pagination } from "@/components/common/Pagination";
 import { Query } from "appwrite";
 import { databases, DATABASE_ID } from "@/lib/appwrite";
+import { manageList, usesCosmos } from "@/services/api/dataApi";
 import { deleteImage, listMediaFiles } from "@/services/api/storage";
 import { MEDIA_BASE_URL, getOptimizedImageUrl } from "@/utils/imageOptimizer";
 import { getPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
@@ -62,6 +63,13 @@ const HARDCODED_URLS: Record<string, string> = {
 
 const PAGE_SIZE = 10;
 
+// Every row in Cosmos mode; Appwrite mode keeps its old 500-row page.
+async function listCollectionRows(collection: string): Promise<Record<string, unknown>[]> {
+  if (usesCosmos) return (await manageList(collection)).documents;
+  const res = await databases.listDocuments(DATABASE_ID, collection, [Query.limit(500)]);
+  return res.documents;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -87,6 +95,9 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [orphanPage, setOrphanPage] = useState(0);
   const [inUsePage, setInUsePage] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  // A collection that couldn't be read may still use any file listed as an
+  // orphan, so nothing can be deleted until a scan reads them all.
+  const deleteBlocked = collectionErrors.length > 0;
 
   const card = "glass-card";
   const text = theme === "dark" ? "text-white" : "text-slate-900";
@@ -123,8 +134,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     await Promise.allSettled(
       DB_COLLECTIONS.map(async ({ id, fields }) => {
         try {
-          const res = await databases.listDocuments(DATABASE_ID, id, [Query.limit(500)]);
-          for (const doc of res.documents) {
+          const rows = await listCollectionRows(id);
+          for (const doc of rows) {
             for (const field of fields) {
               const val = doc[field];
               if (!val) continue;
@@ -208,6 +219,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   }, []);
 
   const confirmAndDelete = (fileId: string, fileName: string) => {
+    if (deleteBlocked) return;
     setConfirmDelete({ id: fileId, name: fileName });
   };
 
@@ -215,6 +227,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     if (!confirmDelete) return;
     const { id: fileId, name: fileName } = confirmDelete;
     setConfirmDelete(null);
+    if (deleteBlocked) return;
     setDeleting(fileId);
     try {
       await deleteImage(fileId);
@@ -294,9 +307,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         <button
           type="button"
           onClick={() => confirmAndDelete(f.$id, f.name)}
-          disabled={deleting === f.$id}
-          className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-          title="Delete file"
+          disabled={deleting === f.$id || deleteBlocked}
+          className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title={
+            deleteBlocked ? "Delete file (off until every collection is scanned)" : "Delete file"
+          }
         >
           {deleting === f.$id ? (
             <FaSync className="animate-spin w-4 h-4" />
@@ -381,10 +396,13 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           </div>
         )}
         {collectionErrors.length > 0 && (
-          <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs space-y-1">
+          <div
+            role="alert"
+            className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs space-y-1"
+          >
             <p className="font-semibold">
-              Warning: some collections could not be scanned (files in these may be incorrectly
-              flagged as orphans):
+              Some collections could not be scanned, so files listed as orphans may still be in use.
+              Deleting is turned off until a scan reads every collection. Refresh to try again.
             </p>
             {collectionErrors.map((e) => (
               <p key={e}>• {e}</p>
