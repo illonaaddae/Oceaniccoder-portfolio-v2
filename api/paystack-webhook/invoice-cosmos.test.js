@@ -98,11 +98,13 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     for (const key of [...Object.keys(ENV), "WRITE_HOLD"]) delete process.env[key];
   });
 
+  // Shared by every run in a test, so a test can count log lines across runs.
+  let handlerLog;
+  beforeEach(() => {
+    handlerLog = Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() });
+  });
   const run = async (req = signed(chargeOf())) => {
-    const context = {
-      res: null,
-      log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
-    };
+    const context = { res: null, log: handlerLog };
     await handler(context, req);
     return context.res;
   };
@@ -148,26 +150,12 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(sent[0].html).toContain("Currency mismatch. Paid in USD, invoiced in GHS.");
   });
 
-  it("alerts and answers 500 on a transient Cosmos error, then completes on retry", async () => {
-    let failures = 1;
-    db.container("invoices").hooks.beforeReplace = async () => {
-      if (failures-- > 0) throw Object.assign(new Error("Service Unavailable"), { code: 503 });
-    };
-    expect((await run()).status).toBe(500);
-    expect(subjects()).toEqual([
-      ["admin@example.com", "Action needed: a Paystack webhook was not processed"],
-    ]);
-    expect(sent[0].html).toContain("Cosmos rejected the update; Paystack will retry");
-
-    sent.length = 0;
-    expect((await run()).status).toBe(200);
-    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
-    expect(subjects()).toHaveLength(2);
-  });
+  const FAILED_SUBJECT = "Action needed: a Paystack webhook was not processed";
 
   it("answers 500 without an alert while another delivery holds the emails", async () => {
     db.container("payments").seed({
       id: paymentIdFor(REFERENCE),
+      invoiceNumber: "INV-2026-0042",
       paystackReference: REFERENCE,
       invoiceApplied: true,
       notifyClaimedAt: new Date().toISOString(),
@@ -179,16 +167,65 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
   it("alerts and answers 200 when no invoice matches", async () => {
     db.container("invoices").docs.clear();
     expect((await run()).status).toBe(200);
-    expect(subjects()).toEqual([
-      ["admin@example.com", "Action needed: a Paystack webhook was not processed"],
-    ]);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
     expect(db.container("payments").docs.size).toBe(0);
+  });
+
+  it("alerts and answers 200 without marking anything when two invoices share the number", async () => {
+    db.container("invoices").seed(invoiceDoc({ id: "inv2" }));
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
+    expect(sent[0].html).toContain("more than one invoice has this number");
+    expect(db.container("invoices").docs.get("inv1").status).toBe("sent");
+    expect(db.container("invoices").docs.get("inv2").status).toBe("sent");
+    expect(db.container("payments").docs.size).toBe(0);
+  });
+
+  it("alerts, answers 200 and leaves alone a row at our id that belongs to a quote", async () => {
+    const quoteRow = db.container("payments").seed({
+      id: paymentIdFor(REFERENCE),
+      paystackReference: REFERENCE,
+      quoteNumber: "Q-2026-0001",
+      stageId: "deposit",
+      invoiceApplied: false,
+    });
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
+    expect(sent[0].html).toContain("belongs to another charge");
+    expect(payment()._etag).toBe(quoteRow._etag);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("sent");
+  });
+
+  it("records a payment against an invoice with no total but leaves it open", async () => {
+    db.container("invoices").seed(invoiceDoc({ total: null }));
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("sent");
+    expect(payment()).toMatchObject({ amount: 500, invoiceApplied: true });
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Action needed: payment on invoice INV-2026-0042 could not be checked"],
+    ]);
+    expect(sent[0].html).toContain("has no usable total");
   });
 
   it("alerts and answers 200 for a charge without a reference", async () => {
     expect((await run(signed(chargeOf({ reference: "" })))).status).toBe(200);
     expect(sent[0].html).toContain("payment has no Paystack reference");
     expect(db.container("payments").docs.size).toBe(0);
+  });
+
+  it("alerts and answers 500 on a transient Cosmos error, then completes on retry", async () => {
+    let failures = 1;
+    db.container("invoices").hooks.beforeReplace = async () => {
+      if (failures-- > 0) throw Object.assign(new Error("Service Unavailable"), { code: 503 });
+    };
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
+    expect(sent[0].html).toContain("Cosmos rejected the update; Paystack will retry");
+
+    sent.length = 0;
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(subjects()).toHaveLength(2);
   });
 
   it("alerts and answers 500 when DATA_BACKEND is not valid", async () => {

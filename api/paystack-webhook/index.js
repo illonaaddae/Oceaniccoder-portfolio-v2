@@ -236,24 +236,31 @@ async function sendPaymentEmails(
           tone: "danger",
           text: `Currency mismatch. Paid in ${paidCurrency}, invoiced in ${invoiceCurrency}. The invoice has been left open.`,
         }
-      : underpaid
+      : settlement.unverifiedTotal
         ? {
             tone: "danger",
-            text: `Underpaid by ${sym}${shortfall.toFixed(2)}. Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.`,
+            text: "The invoice has no usable total, so this payment could not be checked against it. The invoice has been left open and the client has not been sent a confirmation.",
           }
-        : overpaid
+        : underpaid
           ? {
-              tone: "warn",
-              text: `Overpaid by ${sym}${surplus.toFixed(2)}. The invoice has been marked paid.`,
+              tone: "danger",
+              text: `Underpaid by ${sym}${shortfall.toFixed(2)}. Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.`,
             }
-          : null;
+          : overpaid
+            ? {
+                tone: "warn",
+                text: `Overpaid by ${sym}${surplus.toFixed(2)}. The invoice has been marked paid.`,
+              }
+            : null;
     await sendEmail(
       resendKey,
       fromEmail,
       adminEmail,
       settles
         ? `Payment received for invoice ${invoiceNumber}`
-        : `Action needed: underpayment on invoice ${invoiceNumber}`,
+        : settlement.unverifiedTotal && !currencyMismatch
+          ? `Action needed: payment on invoice ${invoiceNumber} could not be checked`
+          : `Action needed: underpayment on invoice ${invoiceNumber}`,
       adminPaymentEmail({
         invoiceNumber,
         clientName,
@@ -467,6 +474,20 @@ module.exports = async function (context, req) {
         await bail(
           "no invoice matches this payment",
           `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference}`,
+        );
+        return;
+      }
+      if (outcome === "ambiguous-invoice") {
+        await bail(
+          "more than one invoice has this number, so none was marked",
+          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference}`,
+        );
+        return;
+      }
+      if (outcome === "conflict") {
+        await bail(
+          "the payments row for this reference belongs to another charge, so it was left alone",
+          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference}`,
         );
         return;
       }
