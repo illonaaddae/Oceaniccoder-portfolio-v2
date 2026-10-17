@@ -1,6 +1,6 @@
 import React from "react";
 import { FaGithub } from "react-icons/fa";
-import { loginUrl } from "@/services/api/session";
+import { loginUrl, logoutUrl } from "@/services/api/session";
 
 interface ProviderLoginProps {
   theme: string;
@@ -32,9 +32,9 @@ const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
       {signedInId && (
         <div role="alert" className="text-sm text-red-500 space-y-1">
           <p>You&apos;re signed in, but this account isn&apos;t the site admin.</p>
-          <p className="break-all">
-            Setting up? Your sign-in id is <code>{signedInId}</code>. Add it to{" "}
-            <code>ADMIN_USER_IDS</code> in the Static Web App&apos;s environment variables, then
+          <p>
+            Setting up? Your sign-in id is <code className="break-all">{signedInId}</code>. Add it
+            to <code>ADMIN_USER_IDS</code> in the Static Web App&apos;s environment variables, then
             sign out and in again.
           </p>
         </div>
@@ -42,6 +42,16 @@ const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
       <a href={loginUrl("github")} className={button}>
         <FaGithub /> Sign in with GitHub
       </a>
+      {signedInId && (
+        <p className="text-sm text-center">
+          <a
+            href={logoutUrl()}
+            className={`underline underline-offset-2 ${dk ? "text-slate-300" : "text-slate-700"}`}
+          >
+            Sign out
+          </a>
+        </p>
+      )}
     </div>
   );
 };
