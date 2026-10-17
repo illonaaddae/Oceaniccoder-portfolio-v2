@@ -1,15 +1,17 @@
-// Confirms a request comes from the signed-in admin, using a short-lived
-// Appwrite JWT (account.createJWT() in the browser). Same transport handling as
-// send-newsletter: x-appwrite-jwt first, then the body, then Authorization,
-// because Static Web Apps can put its own token in Authorization.
+// Confirms a request comes from the signed-in admin. Used by /api/manage,
+// send-newsletter and the other admin-only Functions. Two ways in:
 //
-// Unlike send-newsletter, this fails closed: with no admin email configured
-// every caller is refused. Otherwise any Appwrite account would pass. Azure
-// currently has VITE_ADMIN_EMAIL (left over from the build) but not
-// ADMIN_EMAIL, so both are accepted.
+// 1. A Static Web Apps session (GitHub). The admin role in
+//    x-ms-client-principal is re-checked against ADMIN_USER_IDS (see
+//    api/shared/principal.js), and because the session is a cookie,
+//    cross-site requests and non-JSON POSTs are refused (crossSiteError).
+// 2. Until the Appwrite cutover, a short-lived Appwrite JWT
+//    (account.createJWT() in the browser), tried from x-appwrite-jwt, then the
+//    body, then Authorization, because Static Web Apps can put its own token
+//    in Authorization. The account's email must match ADMIN_EMAIL (or
+//    VITE_ADMIN_EMAIL, which Azure still has left over from the build).
 //
-// Also accepts a Static Web Apps session with the admin role (see
-// api/shared/principal.js); the Appwrite path goes away at cutover.
+// Fails closed: with no admin configured, every caller is refused.
 
 const { Client, Account } = require("node-appwrite");
 const { readPrincipal, isAdmin } = require("./principal");
