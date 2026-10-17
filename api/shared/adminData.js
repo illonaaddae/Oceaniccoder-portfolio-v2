@@ -18,12 +18,31 @@ function isCollection(name) {
   return Object.hasOwn(CONTAINERS, name) && CONTAINERS[name].imported !== false;
 }
 
-/**
- * Payments are money records: the admin hides one by archiving it
- * (/api/quote-admin), never by deleting it.
- */
+// Money records. The admin hides one by archiving it through
+// /api/quote-admin, which checks paid status first, never by deleting it.
+const NOT_DELETABLE = new Set(["payments", "invoices"]);
+// Archived only through /api/quote-admin, never by a plain PATCH.
+const ARCHIVED_ELSEWHERE = new Set(["payments", "invoices"]);
+// Written once, when the payment is recorded.
+const CREATE_ONLY = new Set(["payments"]);
+
 function canDelete(collection) {
-  return collection !== "payments";
+  return !NOT_DELETABLE.has(collection);
+}
+
+/** Why /api/manage refuses this write (answered with 405), or null. */
+function refusedWrite(method, collection, body) {
+  const label = collection.charAt(0).toUpperCase() + collection.slice(1);
+  if (method === "DELETE" && !canDelete(collection)) {
+    return `${label} can't be deleted. Archive them instead.`;
+  }
+  if (method !== "PATCH") return null;
+  if (CREATE_ONLY.has(collection)) return `${label} can't be changed once recorded.`;
+  const setsArchive = body && typeof body === "object" && Object.hasOwn(body, "archivedAt");
+  if (setsArchive && ARCHIVED_ELSEWHERE.has(collection)) {
+    return `${label} are archived from their own tab, which checks paid status.`;
+  }
+  return null;
 }
 
 /** The field a container is partitioned on ("/postId" → "postId"). */
@@ -78,6 +97,7 @@ module.exports = {
   Invalid,
   isCollection,
   canDelete,
+  refusedWrite,
   partitionField,
   writableFields,
   buildAdminQuery,

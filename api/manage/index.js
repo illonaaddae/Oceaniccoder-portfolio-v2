@@ -7,7 +7,10 @@
 //   GET    /api/manage/{collection}/{id}  → document, or 404
 //   POST   /api/manage/{collection}       { fields } → 201 document
 //   PATCH  /api/manage/{collection}/{id}  { fields } → document (merged)
-//   DELETE /api/manage/{collection}/{id}  → 204 (405 for payments)
+//   DELETE /api/manage/{collection}/{id}  → 204
+//
+// Payments are create-only and invoices can't be deleted (405); neither is
+// archived here (see refusedWrite in api/shared/adminData.js).
 //
 // Admin only: the route is limited to the admin role in
 // staticwebapp.config.json, and requireAdmin checks again here. Documents use
@@ -23,7 +26,7 @@ const {
   writableFields,
   buildAdminQuery,
   isJsonRequest,
-  canDelete,
+  refusedWrite,
 } = require("../shared/adminData");
 
 const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store" };
@@ -47,9 +50,8 @@ module.exports = async function (context, req) {
 
   const { collection, id } = context.bindingData || {};
   if (!isCollection(collection)) return reply(context, 404, { error: "Not found" });
-  if (req.method === "DELETE" && !canDelete(collection)) {
-    return reply(context, 405, { error: "Payments can't be deleted. Archive them instead." });
-  }
+  const refused = refusedWrite(req.method, collection, req.body);
+  if (refused) return reply(context, 405, { error: refused });
   if ((req.method === "POST" || req.method === "PATCH") && !isJsonRequest(req)) {
     return reply(context, 415, { error: "Send JSON" });
   }
