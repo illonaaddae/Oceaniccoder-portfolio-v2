@@ -74,8 +74,19 @@ export async function getPlatformLogoOverrides(): Promise<Record<string, string>
   }
 }
 
+/**
+ * Saves one platform's logo into the overrides. Rejects without saving if the
+ * current overrides can't be read, since saving {} plus this logo would wipe
+ * the others.
+ */
 export async function setPlatformLogoUrl(platformName: string, url: string): Promise<void> {
-  const current = await getPlatformLogoOverrides();
+  let current: Record<string, string>;
+  try {
+    current = await readPlatformLogoOverrides();
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(`Couldn't read the saved platform logos, so nothing was saved: ${reason}`);
+  }
   current[platformName] = url;
   await setSetting(PLATFORM_LOGOS_KEY, JSON.stringify(current));
 }
