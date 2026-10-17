@@ -5,7 +5,7 @@ import type { MediaFile } from "@/services/api/storage";
 
 const mode = vi.hoisted(() => ({ usesCosmos: false }));
 const manageList = vi.fn();
-const listDocuments = vi.fn();
+const listAllDocuments = vi.fn();
 const readPlatformLogoOverrides = vi.fn();
 const listMediaFiles = vi.fn();
 const deleteImage = vi.fn();
@@ -16,9 +16,9 @@ vi.mock("@/services/api/dataApi", () => ({
   },
   manageList: (...a: unknown[]) => manageList(...a),
 }));
-vi.mock("@/lib/appwrite", () => ({
-  DATABASE_ID: "db",
-  databases: { listDocuments: (...a: unknown[]) => listDocuments(...a) },
+vi.mock("@/services/api/listAll", () => ({
+  LIST_ALL_CAP: 2000,
+  listAllDocuments: (...a: unknown[]) => listAllDocuments(...a),
 }));
 vi.mock("@/services/api/storage", () => ({
   listMediaFiles: () => listMediaFiles(),
@@ -66,10 +66,7 @@ function serveCosmos(rows: Rows) {
 function serveAppwrite(rows: Rows) {
   mode.usesCosmos = false;
   const read = rowsFor(rows);
-  listDocuments.mockImplementation(async (_db: string, collection: string) => {
-    const documents = await read(collection);
-    return { total: documents.length, documents };
-  });
+  listAllDocuments.mockImplementation(read);
 }
 
 async function renderTab() {
@@ -82,7 +79,7 @@ const scanAlert = () => screen.queryByRole("alert");
 
 beforeEach(() => {
   manageList.mockReset();
-  listDocuments.mockReset();
+  listAllDocuments.mockReset();
   readPlatformLogoOverrides.mockReset();
   readPlatformLogoOverrides.mockResolvedValue({});
   deleteImage.mockReset();
@@ -95,7 +92,7 @@ describe("StorageCleanupTab", () => {
     serveCosmos({ projects: [PROJECT] });
     await renderTab();
 
-    expect(listDocuments).not.toHaveBeenCalled();
+    expect(listAllDocuments).not.toHaveBeenCalled();
     expect(manageList).toHaveBeenCalledWith("projects");
     expect(manageList).toHaveBeenCalledWith("testimonials");
     // No limit: every row counts, or a file used by row 501 looks orphaned.
@@ -140,14 +137,28 @@ describe("StorageCleanupTab", () => {
     expect(deleteImage).not.toHaveBeenCalled();
   });
 
-  it("reads Appwrite and allows delete in Appwrite mode when every read succeeds", async () => {
-    serveAppwrite({ projects: [PROJECT] });
+  it("reads every Appwrite row in Appwrite mode, past the old 500-row page", async () => {
+    const filler = Array.from({ length: 600 }, (_, i) => ({ $id: `p${i}`, image: "" }));
+    serveAppwrite({ projects: [...filler, PROJECT] });
     await renderTab();
 
     expect(manageList).not.toHaveBeenCalled();
-    expect(listDocuments).toHaveBeenCalledWith("db", "projects", expect.any(Array));
+    expect(listAllDocuments).toHaveBeenCalledWith("projects");
     expect(screen.getByText("In use")).toBeInTheDocument();
     expect(deleteButton()).toBeEnabled();
+  });
+
+  it("blocks delete when an Appwrite collection reaches the row cap", async () => {
+    const full = Array.from({ length: 2000 }, (_, i) => ({ $id: `p${i}`, image: "" }));
+    serveAppwrite({ projects: full });
+    await renderTab();
+
+    expect(
+      within(scanAlert() as HTMLElement).getByText(/projects: more than 1999 rows/),
+    ).toBeInTheDocument();
+    for (const button of screen.getAllByRole("button", { name: /delete file/i })) {
+      expect(button).toBeDisabled();
+    }
   });
 
   describe("platform logo overrides", () => {
