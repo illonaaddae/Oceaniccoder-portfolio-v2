@@ -12,10 +12,13 @@ class Invalid extends Error {}
 
 /**
  * Containers the admin edits. Cosmos-only ones (analytics: raw page views,
- * partitioned by day with a TTL) are written and read by their own Functions.
+ * partitioned by day with a TTL) and `manage: false` ones (quotes, locks:
+ * tokens and payment state) are written and read by their own Functions.
  */
 function isCollection(name) {
-  return Object.hasOwn(CONTAINERS, name) && CONTAINERS[name].imported !== false;
+  if (!Object.hasOwn(CONTAINERS, name)) return false;
+  const { imported, manage } = CONTAINERS[name];
+  return imported !== false && manage !== false;
 }
 
 // Money records. The admin hides one by archiving it through
