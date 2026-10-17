@@ -1,0 +1,300 @@
+// @vitest-environment node
+// The webhook invoice flow on Cosmos, run against the in-memory fake with
+// the real store. Email sending is a recorder, so nothing leaves the process.
+import { describe, it, expect, vi } from "vitest";
+
+const { recordInvoiceCharge, NOTIFY_CLAIM_MS } = await import("./invoiceCharge.js");
+const { createCosmosInvoiceStore, MAX_REPLACE_ATTEMPTS } =
+  await import("../shared/invoices/store.cosmos.js");
+const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
+const { paymentIdFor } = await import("../shared/quotes/repo.cosmos.js");
+
+const REFERENCE = "PAY-INV-2026-0042-1760000000";
+const PAYMENT_ID = paymentIdFor(REFERENCE);
+
+const charge = (over = {}) => ({
+  reference: REFERENCE,
+  invoiceNumber: "INV-2026-0042",
+  amountPaid: 500,
+  currency: "GHS",
+  method: "momo",
+  ...over,
+});
+
+const invoiceDoc = (over = {}) => ({
+  id: "inv1",
+  invoiceNumber: "INV-2026-0042",
+  clientName: "Ama Owusu",
+  clientEmail: "ama@example.com",
+  total: 500,
+  currency: "GHS",
+  status: "sent",
+  ...over,
+});
+
+const transient = () => Object.assign(new Error("Service Unavailable"), { code: 503 });
+
+function setup({ invoice = invoiceDoc(), now = () => new Date("2026-10-17T10:00:00.000Z") } = {}) {
+  const db = createFakeCosmos();
+  const invoices = db.container("invoices");
+  const payments = db.container("payments");
+  if (invoice) invoices.seed(invoice);
+  const store = createCosmosInvoiceStore(db, { now });
+  const sendEmails = vi.fn(async () => {});
+  const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+  const run = (over = {}) =>
+    recordInvoiceCharge({ store, charge: charge(over), sendEmails, log, now });
+  return { invoices, payments, sendEmails, log, run };
+}
+
+const stored = (container, id) => {
+  const { _rid, _self, _etag, _attachments, _ts, ...fields } = container.docs.get(id);
+  return fields;
+};
+
+// Fails the next `count` calls of a fake-container hook, then lets them through.
+function failNext(container, hook, count = 1, error = transient) {
+  let left = count;
+  container.hooks[hook] = async () => {
+    if (left > 0) {
+      left -= 1;
+      throw error();
+    }
+  };
+}
+
+describe("recordInvoiceCharge on Cosmos", () => {
+  it("records a settling payment, marks the invoice paid and sends the emails once", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    expect(await run()).toEqual({ outcome: "recorded" });
+
+    expect(stored(invoices, "inv1")).toMatchObject({ status: "paid" });
+    expect(payments.docs.size).toBe(1);
+    expect(stored(payments, PAYMENT_ID)).toMatchObject({
+      id: PAYMENT_ID,
+      invoiceNumber: "INV-2026-0042",
+      clientName: "Ama Owusu",
+      clientEmail: "ama@example.com",
+      amount: 500,
+      currency: "GHS",
+      method: "momo",
+      paystackReference: REFERENCE,
+      paidAt: "2026-10-17T10:00:00.000Z",
+      status: "success",
+      invoiceApplied: true,
+      notifiedAt: "2026-10-17T10:00:00.000Z",
+    });
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+    expect(sendEmails.mock.calls[0][0]).toMatchObject({
+      invoiceNumber: "INV-2026-0042",
+      clientName: "Ama Owusu",
+      clientEmail: "ama@example.com",
+      amountPaid: 500,
+      currency: "GHS",
+      reference: REFERENCE,
+      settlement: expect.objectContaining({ settles: true }),
+    });
+  });
+
+  it("ignores a second delivery of the same charge", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    await run();
+    const invoiceAfterFirst = stored(invoices, "inv1");
+    expect(await run()).toEqual({ outcome: "duplicate" });
+    expect(payments.docs.size).toBe(1);
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+    expect(stored(invoices, "inv1")).toEqual(invoiceAfterFirst);
+  });
+
+  it("treats a row imported from Appwrite under its old id as already recorded", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    payments.seed({ id: "6702appwriteid", paystackReference: REFERENCE, status: "success" });
+    expect(await run()).toEqual({ outcome: "duplicate" });
+    expect(payments.docs.size).toBe(1);
+    expect(stored(invoices, "inv1").status).toBe("sent");
+    expect(sendEmails).not.toHaveBeenCalled();
+  });
+
+  it("finishes on retry after a crash between the payment row and the invoice", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    failNext(invoices, "beforeReplace");
+    await expect(run()).rejects.toThrow("Service Unavailable");
+    expect(stored(payments, PAYMENT_ID).invoiceApplied).toBe(false);
+    expect(stored(invoices, "inv1").status).toBe("sent");
+    expect(sendEmails).not.toHaveBeenCalled();
+
+    expect(await run()).toEqual({ outcome: "recorded" });
+    expect(payments.docs.size).toBe(1);
+    expect(stored(invoices, "inv1").status).toBe("paid");
+    expect(stored(payments, PAYMENT_ID)).toMatchObject({ invoiceApplied: true });
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the emails once on retry after a crash between the invoice and the emails", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    // The invoice write succeeds; setting invoiceApplied on the row fails.
+    failNext(payments, "beforeReplace");
+    await expect(run()).rejects.toThrow("Service Unavailable");
+    expect(stored(invoices, "inv1").status).toBe("paid");
+    expect(sendEmails).not.toHaveBeenCalled();
+
+    expect(await run()).toEqual({ outcome: "recorded" });
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+    expect(await run()).toEqual({ outcome: "duplicate" });
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+  });
+
+  it("resends the emails, once the claim is stale, when notifiedAt could not be saved", async () => {
+    let clock = new Date("2026-10-17T10:00:00.000Z");
+    const { payments, sendEmails, run } = setup({ now: () => clock });
+    let replaces = 0;
+    payments.hooks.beforeReplace = async (id, body) => {
+      replaces += 1;
+      if (body.notifiedAt && replaces === 3) throw transient();
+    };
+    await expect(run()).rejects.toThrow("Service Unavailable");
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+
+    // A retry inside the claim window leaves the claimer to finish.
+    clock = new Date(clock.getTime() + NOTIFY_CLAIM_MS - 1);
+    expect(await run()).toEqual({ outcome: "busy" });
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+
+    // After it, the claimer is presumed dead and the emails go again.
+    clock = new Date(clock.getTime() + 2);
+    expect(await run()).toEqual({ outcome: "recorded" });
+    expect(sendEmails).toHaveBeenCalledTimes(2);
+    expect(stored(payments, PAYMENT_ID).notifiedAt).toBe(clock.toISOString());
+  });
+
+  it("records an underpayment but leaves the invoice open", async () => {
+    const { invoices, payments, sendEmails, log, run } = setup({
+      invoice: invoiceDoc({ total: 1000 }),
+    });
+    expect(await run()).toEqual({ outcome: "recorded" });
+    expect(stored(invoices, "inv1").status).toBe("sent");
+    expect(stored(payments, PAYMENT_ID)).toMatchObject({ amount: 500, invoiceApplied: true });
+    expect(sendEmails.mock.calls[0][0].settlement).toMatchObject({
+      settles: false,
+      underpaid: true,
+      shortfall: 500,
+    });
+    expect(log.error).toHaveBeenCalledWith(
+      "paystack-webhook: invoice INV-2026-0042 NOT marked paid — paid ₵500.00 against a total of ₵1000.00",
+    );
+  });
+
+  it("leaves the invoice open when paid in another currency", async () => {
+    const { invoices, payments, sendEmails, log, run } = setup();
+    expect(await run({ currency: "USD" })).toEqual({ outcome: "recorded" });
+    expect(stored(invoices, "inv1").status).toBe("sent");
+    expect(stored(payments, PAYMENT_ID)).toMatchObject({ currency: "USD" });
+    expect(sendEmails.mock.calls[0][0].settlement).toMatchObject({
+      settles: false,
+      currencyMismatch: true,
+    });
+    expect(log.error).toHaveBeenCalledWith(
+      "paystack-webhook: invoice INV-2026-0042 NOT marked paid — paid in USD but invoiced in GHS",
+    );
+  });
+
+  it("un-archives an archived invoice when it is paid", async () => {
+    const { invoices, run } = setup({
+      invoice: invoiceDoc({ archivedAt: "2026-10-11T00:00:00.000Z" }),
+    });
+    await run();
+    expect(stored(invoices, "inv1")).toMatchObject({ status: "paid", archivedAt: null });
+  });
+
+  it("un-archives but does not close an archived invoice on a part-payment", async () => {
+    const { invoices, run } = setup({
+      invoice: invoiceDoc({ total: 1000, archivedAt: "2026-10-11T00:00:00.000Z" }),
+    });
+    await run();
+    expect(stored(invoices, "inv1")).toMatchObject({ status: "sent", archivedAt: null });
+  });
+
+  it("un-archives an archived invoice paid in another currency", async () => {
+    const { invoices, run } = setup({
+      invoice: invoiceDoc({ archivedAt: "2026-10-11T00:00:00.000Z" }),
+    });
+    await run({ currency: "USD" });
+    expect(stored(invoices, "inv1")).toMatchObject({ status: "sent", archivedAt: null });
+  });
+
+  it("leaves a never-archived part-paid invoice untouched", async () => {
+    const { invoices, run } = setup({ invoice: invoiceDoc({ total: 1000 }) });
+    const before = invoices.docs.get("inv1")._etag;
+    await run();
+    expect(invoices.docs.get("inv1")._etag).toBe(before);
+  });
+
+  it("clears an archive that landed between the read and the paid write", async () => {
+    const { invoices, run } = setup();
+    let raced = false;
+    invoices.hooks.beforeReplace = async (id) => {
+      if (raced) return;
+      raced = true;
+      const { _rid, _self, _etag, _attachments, _ts, ...doc } = invoices.docs.get(id);
+      invoices.seed({ ...doc, archivedAt: "2026-10-12T00:00:00Z" });
+    };
+    await run();
+    expect(stored(invoices, "inv1")).toMatchObject({ status: "paid", archivedAt: null });
+  });
+
+  it("records two concurrent deliveries once and sends one set of emails", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    const outcomes = (await Promise.all([run(), run()])).map((r) => r.outcome);
+    expect(outcomes).toContain("recorded");
+    for (const outcome of outcomes) expect(["recorded", "busy"]).toContain(outcome);
+    expect(payments.docs.size).toBe(1);
+    expect(stored(invoices, "inv1").status).toBe("paid");
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+
+    // Whichever delivery was told to retry now finds the work done.
+    expect(await run()).toEqual({ outcome: "duplicate" });
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumes the other delivery's row when the create conflicts", async () => {
+    const { payments, sendEmails, run } = setup();
+    // Another delivery creates the row after our read but before our create.
+    payments.hooks.beforeCreate = async (body) => {
+      payments.hooks.beforeCreate = null;
+      payments.seed({ ...body, createdAt: "x", updatedAt: "x" });
+    };
+    expect(await run()).toEqual({ outcome: "recorded" });
+    expect(payments.docs.size).toBe(1);
+    expect(stored(payments, PAYMENT_ID)).toMatchObject({ invoiceApplied: true });
+    expect(sendEmails).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes nothing when no invoice matches", async () => {
+    const { payments, sendEmails, run } = setup({ invoice: null });
+    expect(await run()).toEqual({ outcome: "no-invoice" });
+    expect(payments.docs.size).toBe(0);
+    expect(sendEmails).not.toHaveBeenCalled();
+  });
+
+  it("refuses a charge without a reference", async () => {
+    const { payments, run } = setup();
+    await expect(run({ reference: "" })).rejects.toThrow(/without a Paystack reference/);
+    expect(payments.docs.size).toBe(0);
+  });
+
+  it("throws a transient read error for the caller to retry", async () => {
+    const { payments, run } = setup();
+    failNext(payments, "beforeRead");
+    await expect(run()).rejects.toThrow("Service Unavailable");
+    expect(payments.docs.size).toBe(0);
+  });
+
+  it("gives up after repeated etag conflicts on the invoice", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    const conflict = () => Object.assign(new Error("Precondition Failed"), { code: 412 });
+    failNext(invoices, "beforeReplace", MAX_REPLACE_ATTEMPTS, conflict);
+    await expect(run()).rejects.toMatchObject({ code: 412 });
+    expect(stored(payments, PAYMENT_ID).invoiceApplied).toBe(false);
+    expect(sendEmails).not.toHaveBeenCalled();
+  });
+});
