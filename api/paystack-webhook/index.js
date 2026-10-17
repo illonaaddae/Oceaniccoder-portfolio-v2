@@ -1,15 +1,22 @@
 /* global require, module, Buffer */
 // POST /api/paystack-webhook
 // Handles Paystack payment webhook events.
-// Verifies signature using PAYSTACK_SECRET_KEY, updates invoice status in Appwrite,
-// and sends confirmation emails via Resend.
-// Always returns 200 — Paystack expects 200 even when processing fails.
+// Verifies signature using PAYSTACK_SECRET_KEY, updates invoice status in Appwrite
+// (or Cosmos when DATA_BACKEND=cosmos, see invoiceCharge.js), and sends
+// confirmation emails via Resend.
+// Answers 200 for anything a retry would not fix. Answers 500 for a failure a
+// retry can finish (quote payments, the Cosmos invoice branch) and 503 while
+// WRITE_HOLD is on, because Paystack retries any non-2xx.
 
 const crypto = require("crypto");
 const https = require("https");
 const sdk = require("node-appwrite");
 const { evaluateSettlement } = require("./settlement");
 const quoteService = require("../shared/quotes/service");
+const cosmos = require("../shared/cosmos");
+const { dataBackend, writeHold } = require("../shared/backend");
+const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
+const { recordInvoiceCharge } = require("./invoiceCharge");
 const { shell, heading, p, card, notice, small } = require("../shared/email/ui");
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
@@ -270,15 +277,16 @@ module.exports = async function (context, req) {
   const adminEmail = process.env.RESEND_TO_EMAIL;
 
   /**
-   * Abandon processing, but tell someone first.
+   * Tell the admin a delivery was not processed. bail() then answers 200
+   * because a retry would not help; the Cosmos branch answers 500 instead
+   * so Paystack retries.
    *
-   * Every failure path here answers Paystack with 200 (it requires that) and used
-   * to leave only a log line. The result was a real charge where the invoice
-   * stayed "sent", no payment record was written and no email went out, with
-   * nothing anywhere to say why. Money moves through this function; it must not
+   * The failure paths here used to leave only a log line. The result was a
+   * real charge where the invoice stayed "sent", no payment record was
+   * written and no email went out, with nothing anywhere to say why. Money moves through this function; it must not
    * fail quietly.
    */
-  const bail = async (reason, detail) => {
+  const alert = async (reason, detail) => {
     context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}`);
     if (resendKey && adminEmail) {
       await sendEmail(
@@ -290,7 +298,13 @@ module.exports = async function (context, req) {
         context.log,
       );
     }
+  };
+  const bail = async (reason, detail) => {
+    await alert(reason, detail);
     ok();
+  };
+  const retry = () => {
+    context.res = { status: 500, headers: CORS, body: JSON.stringify({ error: "retry" }) };
   };
 
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -340,6 +354,15 @@ module.exports = async function (context, req) {
     return;
   }
 
+  // The data is being moved between databases. Paystack retries any non-2xx,
+  // so nothing is lost: the charge is recorded once the hold is lifted. Checked
+  // after the signature so a misconfigured key still raises its alert now.
+  if (writeHold()) {
+    context.log.warn("paystack-webhook: WRITE_HOLD is on — answering 503 so Paystack retries");
+    context.res = { status: 503, headers: CORS, body: JSON.stringify({ error: "write hold" }) };
+    return;
+  }
+
   const event = req.body;
 
   if (!event || event.event !== "charge.success") {
@@ -381,7 +404,7 @@ module.exports = async function (context, req) {
       ok();
     } catch (err) {
       context.log.error(`paystack-webhook: quote payment ${data.reference} failed: ${err.message}`);
-      context.res = { status: 500, headers: CORS, body: JSON.stringify({ error: "retry" }) };
+      retry();
     }
     return;
   }
@@ -402,6 +425,59 @@ module.exports = async function (context, req) {
   const amountPaid = (data.amount || 0) / 100; // convert from pesewas back to base unit
   const currency = data.currency || "GHS";
   const sym = currencySymbol(currency);
+
+  let backend;
+  try {
+    backend = dataBackend();
+  } catch (err) {
+    await alert("DATA_BACKEND is not valid; Paystack will retry", err.message);
+    retry();
+    return;
+  }
+
+  if (backend === "cosmos") {
+    // The Cosmos rows are keyed by reference; Paystack always sends one.
+    if (!data.reference) {
+      await bail("payment has no Paystack reference", `invoice ${invoiceNumber}`);
+      return;
+    }
+    try {
+      const { outcome } = await recordInvoiceCharge({
+        store: createCosmosInvoiceStore(cosmos.getDatabase()),
+        charge: {
+          reference: data.reference,
+          invoiceNumber,
+          amountPaid,
+          currency,
+          method: paymentMethod(data.channel),
+        },
+        sendEmails: (payment) =>
+          sendPaymentEmails(payment, { resendKey, fromEmail, adminEmail, log: context.log }),
+        log: context.log,
+      });
+      if (outcome === "no-invoice") {
+        await bail(
+          "no invoice matches this payment",
+          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference}`,
+        );
+        return;
+      }
+      // Another delivery is mid-way through the emails; the retry finds them sent.
+      if (outcome === "busy") {
+        retry();
+        return;
+      }
+      ok();
+    } catch (err) {
+      // Every step is recorded on the payments row, so the retry resumes here.
+      await alert(
+        "Cosmos rejected the update; Paystack will retry",
+        `${err.message} (invoice ${invoiceNumber}, reference ${data.reference})`,
+      );
+      retry();
+    }
+    return;
+  }
 
   const apiKey = process.env.APPWRITE_API_KEY;
 

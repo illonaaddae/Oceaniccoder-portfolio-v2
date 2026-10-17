@@ -1,0 +1,259 @@
+// @vitest-environment node
+// The webhook handler with DATA_BACKEND=cosmos and WRITE_HOLD: status codes,
+// alerts and the emails it sends. The step-by-step flow is in
+// invoiceCharge.test.js.
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import crypto from "crypto";
+import { createRequire } from "module";
+
+// Load through Node's require so the spies and index.js share one module
+// object (vi.mock does not intercept CommonJS require).
+const require = createRequire(import.meta.url);
+const https = require("https");
+const sdk = require("node-appwrite");
+const cosmos = require("../shared/cosmos.js");
+const quoteService = require("../shared/quotes/service.js");
+const { createFakeCosmos } = require("../shared/fakeCosmos.js");
+const { paymentIdFor } = require("../shared/quotes/repo.cosmos.js");
+const handler = require("./index.js");
+
+const SECRET = "sk_test_webhook";
+const REFERENCE = "PAY-INV-2026-0042-1760000000";
+
+function signed(event, secret = SECRET) {
+  const rawBody = JSON.stringify(event);
+  const signature = crypto.createHmac("sha512", secret).update(rawBody).digest("hex");
+  return { method: "POST", rawBody, body: event, headers: { "x-paystack-signature": signature } };
+}
+
+const chargeOf = (over = {}) => ({
+  event: "charge.success",
+  data: {
+    reference: REFERENCE,
+    domain: "test",
+    amount: 50000,
+    currency: "GHS",
+    channel: "card",
+    metadata: { invoiceNumber: "INV-2026-0042" },
+    ...over,
+  },
+});
+
+const invoiceDoc = (over = {}) => ({
+  id: "inv1",
+  invoiceNumber: "INV-2026-0042",
+  clientName: "Ama Owusu",
+  clientEmail: "ama@example.com",
+  total: 500,
+  currency: "GHS",
+  status: "sent",
+  ...over,
+});
+
+// Records every email instead of calling Resend.
+function captureEmails() {
+  const sent = [];
+  vi.spyOn(https, "request").mockImplementation((options, onResponse) => {
+    let raw = "";
+    return {
+      on: () => {},
+      write: (chunk) => {
+        raw += chunk;
+      },
+      end: () => {
+        sent.push({ host: options.hostname, ...JSON.parse(raw) });
+        onResponse({ statusCode: 200, on: (ev, fn) => ev === "end" && fn() });
+      },
+    };
+  });
+  return sent;
+}
+
+const ENV = {
+  PAYSTACK_SECRET_KEY: SECRET,
+  RESEND_API_KEY: "re_test",
+  RESEND_TO_EMAIL: "admin@example.com",
+  DATA_BACKEND: "cosmos",
+};
+
+describe("paystack-webhook invoice branch on Cosmos", () => {
+  let db;
+  let sent;
+  beforeEach(() => {
+    Object.assign(process.env, ENV);
+    delete process.env.WRITE_HOLD;
+    delete process.env.APPWRITE_API_KEY;
+    db = createFakeCosmos();
+    db.container("invoices").seed(invoiceDoc());
+    vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
+    sent = captureEmails();
+    // The Cosmos branch must never reach Appwrite.
+    for (const method of ["listDocuments", "createDocument", "updateDocument"]) {
+      vi.spyOn(sdk.Databases.prototype, method).mockRejectedValue(new Error("Appwrite called"));
+    }
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const key of [...Object.keys(ENV), "WRITE_HOLD"]) delete process.env[key];
+  });
+
+  const run = async (req = signed(chargeOf())) => {
+    const context = {
+      res: null,
+      log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+    };
+    await handler(context, req);
+    return context.res;
+  };
+  const subjects = () => sent.map((m) => [m.to[0], m.subject]);
+  const payment = () => db.container("payments").docs.get(paymentIdFor(REFERENCE));
+
+  it("marks the invoice paid, records the payment and mails client and admin", async () => {
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(payment()).toMatchObject({ method: "card", invoiceApplied: true });
+    expect(subjects()).toEqual([
+      ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+    ]);
+    expect(sent[0].html).toContain("₵500.00 GHS");
+    expect(sent[1].html).toContain(REFERENCE);
+  });
+
+  it("answers 200 and sends nothing for a repeated delivery", async () => {
+    await run();
+    sent.length = 0;
+    expect((await run()).status).toBe(200);
+    expect(sent).toEqual([]);
+    expect(db.container("payments").docs.size).toBe(1);
+  });
+
+  it("only alerts the admin on an underpayment", async () => {
+    db.container("invoices").seed(invoiceDoc({ total: 1000 }));
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("sent");
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Action needed: underpayment on invoice INV-2026-0042"],
+    ]);
+    expect(sent[0].html).toContain("Underpaid by ₵500.00. Expected ₵1000.00.");
+  });
+
+  it("only alerts the admin on a currency mismatch", async () => {
+    expect((await run(signed(chargeOf({ currency: "USD" })))).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("sent");
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Action needed: underpayment on invoice INV-2026-0042"],
+    ]);
+    expect(sent[0].html).toContain("Currency mismatch. Paid in USD, invoiced in GHS.");
+  });
+
+  it("alerts and answers 500 on a transient Cosmos error, then completes on retry", async () => {
+    let failures = 1;
+    db.container("invoices").hooks.beforeReplace = async () => {
+      if (failures-- > 0) throw Object.assign(new Error("Service Unavailable"), { code: 503 });
+    };
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Action needed: a Paystack webhook was not processed"],
+    ]);
+    expect(sent[0].html).toContain("Cosmos rejected the update; Paystack will retry");
+
+    sent.length = 0;
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(subjects()).toHaveLength(2);
+  });
+
+  it("answers 500 without an alert while another delivery holds the emails", async () => {
+    db.container("payments").seed({
+      id: paymentIdFor(REFERENCE),
+      paystackReference: REFERENCE,
+      invoiceApplied: true,
+      notifyClaimedAt: new Date().toISOString(),
+    });
+    expect((await run()).status).toBe(500);
+    expect(sent).toEqual([]);
+  });
+
+  it("alerts and answers 200 when no invoice matches", async () => {
+    db.container("invoices").docs.clear();
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Action needed: a Paystack webhook was not processed"],
+    ]);
+    expect(db.container("payments").docs.size).toBe(0);
+  });
+
+  it("alerts and answers 200 for a charge without a reference", async () => {
+    expect((await run(signed(chargeOf({ reference: "" })))).status).toBe(200);
+    expect(sent[0].html).toContain("payment has no Paystack reference");
+    expect(db.container("payments").docs.size).toBe(0);
+  });
+
+  it("alerts and answers 500 when DATA_BACKEND is not valid", async () => {
+    process.env.DATA_BACKEND = "cosmo";
+    expect((await run()).status).toBe(500);
+    expect(sent[0].html).toContain("DATA_BACKEND is not valid");
+    expect(db.container("payments").docs.size).toBe(0);
+  });
+
+  it("does not touch Cosmos when DATA_BACKEND is unset", async () => {
+    delete process.env.DATA_BACKEND;
+    await run();
+    expect(cosmos.getDatabase).not.toHaveBeenCalled();
+  });
+});
+
+describe("paystack-webhook under WRITE_HOLD", () => {
+  let sent;
+  let quote;
+  beforeEach(() => {
+    Object.assign(process.env, ENV, { WRITE_HOLD: "1", APPWRITE_API_KEY: "test-key" });
+    sent = captureEmails();
+    vi.spyOn(cosmos, "getDatabase").mockImplementation(() => {
+      throw new Error("Cosmos called");
+    });
+    quote = vi.spyOn(quoteService, "handleQuoteCharge");
+    for (const method of ["listDocuments", "createDocument", "updateDocument"]) {
+      vi.spyOn(sdk.Databases.prototype, method).mockRejectedValue(new Error("Appwrite called"));
+    }
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const key of [...Object.keys(ENV), "WRITE_HOLD", "APPWRITE_API_KEY"])
+      delete process.env[key];
+  });
+
+  const run = async (req) => {
+    const context = {
+      res: null,
+      log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+    };
+    await handler(context, req);
+    return context.res;
+  };
+
+  it.each(["cosmos", "appwrite"])(
+    "answers 503 to an invoice charge on %s and does no work",
+    async (backend) => {
+      process.env.DATA_BACKEND = backend;
+      expect((await run(signed(chargeOf()))).status).toBe(503);
+      expect(cosmos.getDatabase).not.toHaveBeenCalled();
+      expect(sdk.Databases.prototype.listDocuments).not.toHaveBeenCalled();
+      expect(sent).toEqual([]);
+    },
+  );
+
+  it("answers 503 to a quote charge without calling the quote service", async () => {
+    const event = chargeOf({ reference: "Q-2026-0001-1-ABCDEFGH", metadata: { kind: "quote" } });
+    expect((await run(signed(event))).status).toBe(503);
+    expect(quote).not.toHaveBeenCalled();
+  });
+
+  it("still rejects and reports a bad signature", async () => {
+    expect((await run(signed(chargeOf(), "sk_test_other"))).status).toBe(200);
+    expect(sent.map((m) => m.subject)).toEqual([
+      "Action needed: a Paystack webhook was not processed",
+    ]);
+  });
+});
