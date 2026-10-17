@@ -194,6 +194,16 @@ describe("paystack-webhook invoice branch on Appwrite", () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 
+  it("names a currency mismatch in the admin subject", async () => {
+    withRows([], [invoice()]);
+    expect((await run(chargeOf({ currency: "USD" }))).status).toBe(200);
+    expect(update).not.toHaveBeenCalled();
+    expect(sent.map((m) => [m.to[0], m.subject])).toEqual([
+      ["admin@example.com", "Action needed: currency mismatch on invoice INV-2026-0042"],
+    ]);
+    expect(sent[0].html).toContain("Currency mismatch. Paid in USD, invoiced in GHS.");
+  });
+
   it("ignores a reference that is already recorded", async () => {
     withRows([{ $id: "p0" }], []);
     expect((await run()).status).toBe(200);

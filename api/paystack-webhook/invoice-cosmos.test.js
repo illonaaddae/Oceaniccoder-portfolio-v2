@@ -150,7 +150,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect((await run(signed(chargeOf({ currency: "USD" })))).status).toBe(200);
     expect(db.container("invoices").docs.get("inv1").status).toBe("sent");
     expect(subjects()).toEqual([
-      ["admin@example.com", "Action needed: underpayment on invoice INV-2026-0042"],
+      ["admin@example.com", "Action needed: currency mismatch on invoice INV-2026-0042"],
     ]);
     expect(sent[0].html).toContain("Currency mismatch. Paid in USD, invoiced in GHS.");
   });

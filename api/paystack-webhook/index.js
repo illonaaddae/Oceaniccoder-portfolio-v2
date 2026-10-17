@@ -349,9 +349,11 @@ async function sendPaymentEmails(
       adminEmail,
       settles
         ? `Payment received for invoice ${invoiceNumber}`
-        : settlement.unverifiedTotal && !currencyMismatch
-          ? `Action needed: payment on invoice ${invoiceNumber} could not be checked`
-          : `Action needed: underpayment on invoice ${invoiceNumber}`,
+        : currencyMismatch
+          ? `Action needed: currency mismatch on invoice ${invoiceNumber}`
+          : settlement.unverifiedTotal
+            ? `Action needed: payment on invoice ${invoiceNumber} could not be checked`
+            : `Action needed: underpayment on invoice ${invoiceNumber}`,
       adminPaymentEmail({
         invoiceNumber,
         clientName,
