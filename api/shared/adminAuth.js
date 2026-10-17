@@ -35,7 +35,7 @@ function readJwtCandidates(req) {
  * Returns { user } for the admin, or { status, error } to send back.
  */
 async function requireAdmin(context, req) {
-  // Static Web Apps sign-in (GitHub or Entra email): the admin role was
+  // Static Web Apps sign-in (GitHub): the admin role was
   // assigned by /api/get-roles and SWA vouches for it in this header.
   const principal = readPrincipal(req);
   if (isAdmin(principal)) {

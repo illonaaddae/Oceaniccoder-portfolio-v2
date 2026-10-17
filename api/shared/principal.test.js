@@ -3,20 +3,20 @@ import { describe, it, expect } from "vitest";
 
 const { rolesFor, readPrincipal, isAdmin } = await import("./principal.js");
 
-const env = { ADMIN_USER_IDS: "gh-123, entra-456" };
+const env = { ADMIN_USER_IDS: "gh-123, gh-456" };
 
 describe("rolesFor", () => {
-  it("makes the configured SWA user ids admin, for either provider", () => {
+  it("makes each configured SWA user id admin", () => {
     expect(rolesFor({ identityProvider: "github", userId: "gh-123" }, env)).toEqual(["admin"]);
-    expect(rolesFor({ identityProvider: "entra", userId: "entra-456" }, env)).toEqual(["admin"]);
+    expect(rolesFor({ identityProvider: "github", userId: "gh-456" }, env)).toEqual(["admin"]);
   });
 
   it.each([
     // A name or email that looks like the admin's counts for nothing.
-    [{ identityProvider: "entra", userId: "x", userDetails: "admin@example.com" }],
+    [{ identityProvider: "github", userId: "x", userDetails: "admin@example.com" }],
     [
       {
-        identityProvider: "entra",
+        identityProvider: "github",
         userId: "x",
         claims: [{ typ: "emails", val: "admin@example.com" }],
       },
@@ -24,6 +24,7 @@ describe("rolesFor", () => {
     [{ identityProvider: "github", userId: "x", userDetails: "illonaaddae" }],
     // A right id through a provider we don't use.
     [{ identityProvider: "aad", userId: "gh-123" }],
+    [{ identityProvider: "entra", userId: "gh-123" }],
     [{ identityProvider: "github", userId: "" }],
     [{ identityProvider: "github", userId: ["gh-123"] }],
     [{}],
