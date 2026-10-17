@@ -463,6 +463,24 @@ describe("claimRetryAlert", () => {
     expect(await claim(ctx)).toBe(false);
   });
 
+  it("still gives the lock back when alertedAt cannot be cleared", async () => {
+    const ctx = setup();
+    failNext(ctx.invoices, "beforeReplace", 1);
+    await expect(ctx.run()).rejects.toThrow();
+    expect(await claim(ctx)).toBe(true);
+    failNext(ctx.payments, "beforeReplace", 10);
+    const log = { warn: vi.fn() };
+    await releaseRetryAlert({
+      store: ctx.store,
+      locks: createCosmosLocks(ctx.db),
+      reference: REFERENCE,
+      invoiceNumber: "INV-2026-0042",
+      log,
+    });
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("could not clear alertedAt"));
+    expect(ctx.db.container("locks").docs.has(lockId(`alert:${REFERENCE}`))).toBe(false);
+  });
+
   it("keeps the claim when alertedAt cannot be written", async () => {
     const ctx = setup();
     failNext(ctx.invoices, "beforeReplace", 1);

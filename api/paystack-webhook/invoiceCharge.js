@@ -274,15 +274,21 @@ async function claimRetryAlert({
 /**
  * Gives back a claim whose email did not go. alertedAt is cleared before the
  * lock is released, so a delivery that claims in between cannot have its
- * own alertedAt wiped.
+ * own alertedAt wiped. The lock is released even if the clear fails: the lock
+ * is the claim, and a stale alertedAt is only a wrong record, while a lock
+ * left behind would stop every later retry from emailing.
  */
-async function releaseRetryAlert({ store, locks, reference, invoiceNumber }) {
+async function releaseRetryAlert({ store, locks, reference, invoiceNumber, log }) {
   const paymentId = paymentIdFor(reference);
-  const row = await store.readPayment(paymentId);
-  if (row && rowState(row, { reference, invoiceNumber }) !== "conflict") {
-    await store.updatePayment(paymentId, (current) =>
-      current.alertedAt ? { alertedAt: null } : null,
-    );
+  try {
+    const row = await store.readPayment(paymentId);
+    if (row && rowState(row, { reference, invoiceNumber }) !== "conflict") {
+      await store.updatePayment(paymentId, (current) =>
+        current.alertedAt ? { alertedAt: null } : null,
+      );
+    }
+  } catch (err) {
+    log?.warn(`paystack-webhook: could not clear alertedAt for ${reference}: ${err.message}`);
   }
   await locks.release(ALERT_KEY(reference));
 }
