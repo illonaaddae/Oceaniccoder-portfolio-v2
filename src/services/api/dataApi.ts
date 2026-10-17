@@ -20,8 +20,9 @@ let adminReads = false;
 export function setAdminReads(enabled: boolean): void {
   adminReads = enabled;
 }
-const readBase = () =>
-  adminReads && window.location.pathname.startsWith("/admin") ? "/api/manage" : "/api/data";
+/** True only in the signed-in admin dashboard, the one place private rows are read. */
+export const readsAsAdmin = () => adminReads && window.location.pathname.startsWith("/admin");
+const readBase = () => (readsAsAdmin() ? "/api/manage" : "/api/data");
 
 export interface ListOptions {
   /** Equality filters. `$id`, `$createdAt` and `$updatedAt` work too. */

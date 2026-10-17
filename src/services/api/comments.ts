@@ -6,6 +6,7 @@ import {
   manageDelete,
   manageList,
   manageUpdate,
+  readsAsAdmin,
   submitRow,
   usesCosmos,
   type DocumentList,
@@ -29,6 +30,9 @@ export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
 
 /** Every comment, with emails. Admin only. */
 export async function getAllComments(): Promise<Comment[]> {
+  // Commenter emails: /dashboard shows no comments, as the Appwrite build
+  // does once the collection refuses an anonymous read.
+  if (usesCosmos && !readsAsAdmin()) return [];
   const response = usesCosmos
     ? await manageList(COLLECTIONS.COMMENTS, { orderBy: "$createdAt", dir: "desc", limit: 100 })
     : await databases.listDocuments(DATABASE_ID, COLLECTIONS.COMMENTS, [
