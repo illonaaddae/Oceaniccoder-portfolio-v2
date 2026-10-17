@@ -1,5 +1,5 @@
 import React from "react";
-import { FaGithub, FaEnvelope } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 import { loginUrl } from "@/services/api/session";
 
 interface ProviderLoginProps {
@@ -10,8 +10,7 @@ interface ProviderLoginProps {
 
 /**
  * Admin sign-in through Static Web Apps (used with VITE_DATA_BACKEND=cosmos):
- * GitHub, or email + password on Microsoft's sign-in page, which also handles
- * forgotten passwords. Whether the account is the admin is decided on the
+ * GitHub only. Whether the account is the admin is decided on the
  * server (/api/get-roles).
  */
 const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
@@ -43,13 +42,6 @@ const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
       <a href={loginUrl("github")} className={button}>
         <FaGithub /> Sign in with GitHub
       </a>
-      <a href={loginUrl("entra")} className={button}>
-        <FaEnvelope /> Sign in with email
-      </a>
-      <p className={`text-xs text-center ${dk ? "text-gray-400" : "text-slate-500"}`}>
-        Forgot your password? Use &ldquo;Sign in with email&rdquo; and choose &ldquo;Forgot
-        password&rdquo; on the sign-in page.
-      </p>
     </div>
   );
 };
