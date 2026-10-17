@@ -338,7 +338,14 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
       ["Action needed: Paystack webhooks are failing and will be retried", 500],
       ["Action needed: Paystack webhooks are failing and will be retried", 200],
     ]);
-    expect(sent[0].html).toContain("DATA_BACKEND is not valid");
+    const { html } = sent[1];
+    expect(html).toContain("DATA_BACKEND is not valid");
+    expect(html).toContain("within Paystack&#39;s 72-hour retry window");
+    expect(html).toContain("are lost and must be recorded by hand");
+    expect(html).toContain("Paystack dashboard");
+    expect(html).toContain("function logs");
+    expect(html).toContain("sent once while the setting is wrong");
+    expect(html).not.toContain("once per payment");
     expect(db.container("payments").docs.size).toBe(0);
   });
 

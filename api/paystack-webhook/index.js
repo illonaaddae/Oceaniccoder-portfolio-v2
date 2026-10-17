@@ -165,6 +165,35 @@ function webhookRetryEmail(reason, detail) {
   });
 }
 
+// For an invalid DATA_BACKEND, which fails every delivery until the setting
+// is fixed. Paystack retries for 72 hours; after that the charges are not
+// delivered again and must be recorded by hand.
+function invalidBackendEmail(detail) {
+  return shell({
+    preview: "Paystack webhooks are failing: DATA_BACKEND is not valid",
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Webhooks failing",
+        tone: "danger",
+        title: "Paystack payments are not being recorded",
+        intro:
+          "DATA_BACKEND is not valid, so every Paystack webhook is refused and Paystack will retry it.",
+      }) +
+      notice({
+        tone: "danger",
+        text: "Fix DATA_BACKEND in the Static Web App configuration within Paystack's 72-hour retry window. Charges whose retries run out before then are lost and must be recorded by hand.",
+      }) +
+      notice({ tone: "warn", text: `Detail: ${detail}` }) +
+      p(
+        'Once it is fixed, the next retries record the payments automatically; do not mark those invoices paid by hand. To find the affected charges, look in the Paystack dashboard for webhooks that failed since this email, and in the function logs for "DATA_BACKEND is not valid".',
+      ) +
+      small(
+        "This email is sent once while the setting is wrong (per running function instance). Every refused webhook is still logged.",
+      ),
+  });
+}
+
 function recordFailedEmail({ invoiceNumber, error, amount, reference }) {
   return shell({
     preview: `Payment record failed for invoice ${invoiceNumber}`,
@@ -517,7 +546,7 @@ module.exports = async function (context, req) {
             fromEmail,
             adminEmail,
             "Action needed: Paystack webhooks are failing and will be retried",
-            webhookRetryEmail("DATA_BACKEND is not valid", err.message),
+            invalidBackendEmail(err.message),
             context.log,
           ),
         log: context.log,
@@ -781,6 +810,7 @@ module.exports = async function (context, req) {
 module.exports.emails = {
   webhookFailedEmail,
   webhookRetryEmail,
+  invalidBackendEmail,
   recordFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
