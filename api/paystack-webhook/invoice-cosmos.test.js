@@ -15,6 +15,7 @@ const cosmos = require("../shared/cosmos.js");
 const quoteService = require("../shared/quotes/service.js");
 const { createFakeCosmos } = require("../shared/fakeCosmos.js");
 const { paymentIdFor } = require("../shared/quotes/repo.cosmos.js");
+const { lockId } = require("../shared/tokens.js");
 const handler = require("./index.js");
 
 const SECRET = "sk_test_webhook";
@@ -150,7 +151,66 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(sent[0].html).toContain("Currency mismatch. Paid in USD, invoiced in GHS.");
   });
 
+  const unavailable = () => Object.assign(new Error("Service Unavailable"), { code: 503 });
+  // Fails the next `count` calls of a fake-container hook, then lets them through.
+  const failNext = (container, hook, count) => {
+    let left = count;
+    container.hooks[hook] = async () => {
+      if (left-- > 0) throw unavailable();
+    };
+  };
+  const RETRY_SUBJECT = "Action needed: Paystack will retry a payment for invoice INV-2026-0042";
   const FAILED_SUBJECT = "Action needed: a Paystack webhook was not processed";
+
+  it("says a retryable failure will be recorded and must not be marked paid by hand", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 1);
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+    const { html } = sent[0];
+    expect(html).toContain("Paystack will retry it");
+    expect(html).toContain("the payment will be recorded automatically");
+    expect(html).toContain("Do not mark the invoice paid by hand.");
+    expect(html).not.toContain("mark the invoice paid by hand if the money did arrive");
+    expect(html).toContain("Cosmos rejected the update");
+
+    sent.length = 0;
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(subjects()).toHaveLength(2);
+  });
+
+  it("mails a retryable failure once per reference once the payment row exists", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 2);
+    const first = await run();
+    const second = await run();
+    expect([first.status, second.status]).toEqual([500, 500]);
+    expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+    expect(payment().alertedAt).toEqual(expect.any(String));
+    expect(handlerLog.error).toHaveBeenCalledWith(
+      expect.stringContaining("Cosmos rejected the update; Paystack will retry"),
+    );
+    expect(handlerLog.error.mock.calls.filter(([m]) => m.includes("will retry"))).toHaveLength(2);
+  });
+
+  it("mails a retryable failure once per reference before the payment row exists", async () => {
+    failNext(db.container("payments"), "beforeRead", 1);
+    expect((await run()).status).toBe(500);
+    failNext(db.container("payments"), "beforeRead", 1);
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+    expect(db.container("locks").docs.has(lockId(`alert:${REFERENCE}`))).toBe(true);
+    expect(db.container("payments").docs.size).toBe(0);
+  });
+
+  it("mails once per process when Cosmos cannot record the alert", async () => {
+    cosmos.getDatabase.mockImplementation(() => {
+      throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+    });
+    const event = signed(chargeOf({ reference: "PAY-INV-2026-0042-unconfigured" }));
+    expect((await run(event)).status).toBe(500);
+    expect((await run(event)).status).toBe(500);
+    expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+  });
 
   it("answers 500 without an alert while another delivery holds the emails", async () => {
     db.container("payments").seed({
@@ -213,24 +273,15 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(db.container("payments").docs.size).toBe(0);
   });
 
-  it("alerts and answers 500 on a transient Cosmos error, then completes on retry", async () => {
-    let failures = 1;
-    db.container("invoices").hooks.beforeReplace = async () => {
-      if (failures-- > 0) throw Object.assign(new Error("Service Unavailable"), { code: 503 });
-    };
-    expect((await run()).status).toBe(500);
-    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
-    expect(sent[0].html).toContain("Cosmos rejected the update; Paystack will retry");
-
-    sent.length = 0;
-    expect((await run()).status).toBe(200);
-    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
-    expect(subjects()).toHaveLength(2);
-  });
-
-  it("alerts and answers 500 when DATA_BACKEND is not valid", async () => {
+  // The only test in this file with an invalid DATA_BACKEND: the once-per-
+  // process flag lives in index.js for the life of the module.
+  it("answers 500 to an invalid DATA_BACKEND and mails about it once", async () => {
     process.env.DATA_BACKEND = "cosmo";
     expect((await run()).status).toBe(500);
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Action needed: Paystack webhooks are failing and will be retried"],
+    ]);
     expect(sent[0].html).toContain("DATA_BACKEND is not valid");
     expect(db.container("payments").docs.size).toBe(0);
   });
