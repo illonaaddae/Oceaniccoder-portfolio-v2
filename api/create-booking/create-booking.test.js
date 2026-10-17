@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import https from "https";
 import querystring from "querystring";
+import { createRequire } from "module";
 
 // ── Spy on built-in modules ───────────────────────────────────────────────────
 // vi.mock() doesn't intercept CJS require() calls reliably in Node environment.
@@ -12,6 +13,11 @@ vi.spyOn(querystring, "stringify").mockImplementation((o) => new URLSearchParams
 
 // Import handler once at module level (no resetModules — would break spies).
 const { default: handler } = await import("./index.js");
+
+// The same CommonJS instances index.js requires, so a spy on getDatabase reaches it.
+const require = createRequire(import.meta.url);
+const cosmos = require("../shared/cosmos.js");
+const { createFakeCosmos } = require("../shared/fakeCosmos.js");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -328,5 +334,83 @@ describe("create-booking Azure Function", () => {
 
     delete process.env.RESEND_API_KEY;
     delete process.env.RESEND_TO_EMAIL;
+  });
+});
+
+describe("create-booking slot check on Cosmos", () => {
+  let bookings;
+  beforeEach(() => {
+    process.env.DATA_BACKEND = "cosmos";
+    const db = createFakeCosmos();
+    bookings = db.container("bookings");
+    vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
+  });
+  afterEach(() => {
+    vi.mocked(cosmos.getDatabase).mockRestore();
+    delete process.env.DATA_BACKEND;
+  });
+
+  const setGoogleEnv = () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "fake-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+  };
+
+  it("returns 409 before any invite or email when the slot is booked", async () => {
+    setGoogleEnv();
+    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "09:00 AM" });
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(409);
+    expect(JSON.parse(ctx.res.body).error).toBe("slot_taken");
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it("proceeds when only other times or dates are booked, without asking Appwrite", async () => {
+    process.env.APPWRITE_API_KEY = "test-api-key";
+    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "10:00 AM" });
+    bookings.seed({ id: "b2", preferredDate: "2099-06-16", preferredTime: "09:00 AM" });
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(200);
+    expect(JSON.parse(ctx.res.body).success).toBe(true);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it("queries with parameters, not values in the SQL", async () => {
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(bookings.queries).toEqual([
+      {
+        query: "SELECT TOP 1 c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
+        parameters: [
+          { name: "@date", value: "2099-06-15" },
+          { name: "@time", value: "09:00 AM" },
+        ],
+      },
+    ]);
+  });
+
+  // Fails closed: an invite and a confirmation email for a slot that may be
+  // taken are worse than a booking saved (by /api/submit) without them.
+  it("answers 503 and sends no invite or email when the check fails", async () => {
+    setGoogleEnv();
+    vi.spyOn(bookings.items, "query").mockImplementation(() => {
+      throw new Error("Request rate is large");
+    });
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(503);
+    expect(JSON.parse(ctx.res.body).error).toBe("slot_check_failed");
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "Request rate is large");
   });
 });
