@@ -54,6 +54,10 @@ const claimInProcess = (key) => {
  * Sends an alert only when `claim` wins, and gives the claim back if the send
  * fails so a later attempt can mail instead. Without that, a Resend outage or
  * timeout would use up the one alert and nobody would hear.
+ *
+ * At most one claim is held at a time, but delivery is at-least-once: a send
+ * that times out after Resend accepted it counts as failed, so the next retry
+ * can mail the same alert again. A duplicate alert beats a silent one.
  */
 async function alertOnce({ claim, release, send, log }) {
   if (!(await claim())) return;
