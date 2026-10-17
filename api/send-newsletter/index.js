@@ -85,37 +85,6 @@ function httpsRequest(hostname, path, method, headers, body) {
   });
 }
 
-/**
- * Every token the request might be carrying, best candidate first.
- *
- * x-appwrite-jwt is preferred over Authorization on purpose. Azure Static Web
- * Apps puts its own principal token in Authorization, so reading that header
- * first meant verifying Azure's token against Appwrite and failing with
- * "Signature failed" — a valid-looking token from the wrong issuer, which
- * reads as a broken session rather than as the wrong header being used.
- *
- * Both are returned and tried in turn, so this works whichever header
- * survives the hosting layer.
- */
-function readJwtCandidates(req) {
-  const headers = req.headers || {};
-  const candidates = [];
-  const add = (token) => {
-    const t = (token || "").trim();
-    if (t && !candidates.includes(t)) candidates.push(t);
-  };
-
-  add(headers["x-appwrite-jwt"] || headers["X-Appwrite-JWT"]);
-
-  // The body always survives the hosting layer, unlike headers.
-  add(req.body && req.body.jwt);
-
-  const auth = (headers.authorization || headers.Authorization || "").trim();
-  if (auth.startsWith("Bearer ")) add(auth.slice(7));
-
-  return candidates;
-}
-
 /** Which transports carried something — no token material, only shape. */
 function describeTransports(req) {
   const headers = req.headers || {};
@@ -293,6 +262,5 @@ const handler = async function (context, req) {
 
 module.exports = handler;
 // Exported for tests; the Azure runtime only uses the default export above.
-module.exports.readJwtCandidates = readJwtCandidates;
 module.exports.describeTransports = describeTransports;
 module.exports.newsletterEmailHtml = newsletterEmailHtml;

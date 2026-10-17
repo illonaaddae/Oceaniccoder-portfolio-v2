@@ -43,12 +43,26 @@ describe("readPrincipal / isAdmin", () => {
     headers: { "x-ms-client-principal": Buffer.from(JSON.stringify(p)).toString("base64") },
   });
 
+  const admin = { identityProvider: "github", userId: "gh-123" };
+
   it("decodes the SWA header and checks the admin role", () => {
-    const principal = readPrincipal(header({ userId: "u1", userRoles: ["anonymous", "admin"] }));
-    expect(isAdmin(principal)).toBe(true);
-    expect(isAdmin(readPrincipal(header({ userId: "u1", userRoles: ["authenticated"] })))).toBe(
+    const principal = readPrincipal(header({ ...admin, userRoles: ["anonymous", "admin"] }));
+    expect(isAdmin(principal, env)).toBe(true);
+    expect(isAdmin(readPrincipal(header({ ...admin, userRoles: ["authenticated"] })), env)).toBe(
       false,
     );
+  });
+
+  it.each([
+    [{ identityProvider: "github", userId: "someone-else", userRoles: ["admin"] }],
+    [{ identityProvider: "aad", userId: "gh-123", userRoles: ["admin"] }],
+    [{ userId: "gh-123", userRoles: ["admin"] }],
+  ])("refuses a header that claims the role without the admin's id: %j", (p) => {
+    expect(isAdmin(readPrincipal(header(p)), env)).toBe(false);
+  });
+
+  it("refuses everyone when ADMIN_USER_IDS is unset", () => {
+    expect(isAdmin({ ...admin, userRoles: ["admin"] }, {})).toBe(false);
   });
 
   it("treats a missing or garbled header as signed out", () => {

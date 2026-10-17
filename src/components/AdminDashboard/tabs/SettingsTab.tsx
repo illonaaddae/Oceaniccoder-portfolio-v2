@@ -28,10 +28,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ theme }) => {
       </div>
 
       {usesCosmos ? (
-        // Signed in through GitHub or Microsoft: the password lives there.
+        // Signed in through GitHub: the password lives there.
         <p className={`text-sm ${theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"}`}>
-          You sign in with GitHub or your email account. To change the email password, use
-          &ldquo;Forgot password&rdquo; on the email sign-in page.
+          You sign in with GitHub. Change your password and two-factor settings on GitHub.
         </p>
       ) : (
         <ChangePasswordCard theme={theme} />

@@ -48,8 +48,14 @@ function readPrincipal(req) {
   }
 }
 
-function isAdmin(principal) {
-  return Boolean(principal && (principal.userRoles || []).includes(ADMIN_ROLE));
+/**
+ * True for the admin. Checks the role SWA attached and, again, the provider
+ * and id that /api/get-roles granted it on, so a forged header that only
+ * claims the role gets nothing.
+ */
+function isAdmin(principal, env = process.env) {
+  if (!principal || !(principal.userRoles || []).includes(ADMIN_ROLE)) return false;
+  return rolesFor(principal, env).includes(ADMIN_ROLE);
 }
 
 module.exports = { ADMIN_ROLE, rolesFor, readPrincipal, isAdmin };
