@@ -51,6 +51,7 @@ function captureEmails() {
     let raw = "";
     return {
       on: () => {},
+      setTimeout: () => {},
       write: (chunk) => {
         raw += chunk;
       },
@@ -139,6 +140,37 @@ describe("paystack-webhook invoice branch on Appwrite", () => {
     ]);
     expect(sent[0].html).toContain("Underpaid by ₵500.00");
   });
+
+  it("gives up on a Resend request with no response and still finishes", async () => {
+    withRows([], [invoice()]);
+    const timeouts = [];
+    // Resend accepts the request and never answers; the socket timeout fires.
+    https.request.mockImplementation(() => {
+      const listeners = {};
+      const req = {
+        on: (ev, fn) => {
+          listeners[ev] = fn;
+        },
+        setTimeout: (ms, fn) => timeouts.push({ ms, fn }),
+        destroy: (err) => listeners.error(err),
+        write: () => {},
+        end: () => timeouts.at(-1).fn(),
+      };
+      return req;
+    });
+    const context = {
+      res: null,
+      log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+    };
+    await handler(context, signed(chargeOf()));
+    expect(context.res.status).toBe(200);
+    expect(timeouts.map((t) => t.ms)).toEqual([10000, 10000]);
+    expect(context.log.warn).toHaveBeenCalledWith(
+      "Email send failed:",
+      "no response from api.resend.com in 10s",
+    );
+    expect(create).toHaveBeenCalledTimes(1);
+  }, 2000);
 
   it("ignores a reference that is already recorded", async () => {
     withRows([{ $id: "p0" }], []);
