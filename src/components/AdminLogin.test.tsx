@@ -49,6 +49,17 @@ describe("AdminLogin", () => {
     expect(screen.queryByPlaceholderText("Enter password...")).not.toBeInTheDocument();
   });
 
+  test("says the dashboard is password protected only when it has a password", () => {
+    const { unmount } = render(<AdminLogin onLogin={vi.fn()} />);
+    expect(screen.getByText(/password protected/)).toBeInTheDocument();
+    unmount();
+
+    mode.usesCosmos = true;
+    render(<AdminLogin onLogin={vi.fn()} />);
+    expect(screen.queryByText(/password protected/)).not.toBeInTheDocument();
+    expect(screen.getByText("This dashboard is for the site admin only.")).toBeInTheDocument();
+  });
+
   test("shows a signed-in non-admin their id on Cosmos", async () => {
     mode.usesCosmos = true;
     mode.user = {
