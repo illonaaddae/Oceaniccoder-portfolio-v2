@@ -1,11 +1,21 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
-import { manageDelete, manageList, manageUpdate, submitRow, usesCosmos } from "./dataApi";
+import {
+  manageDelete,
+  manageList,
+  manageUpdate,
+  readsAsAdmin,
+  submitRow,
+  usesCosmos,
+} from "./dataApi";
 import { listAllDocuments } from "./listAll";
 import type { ProjectInquiry } from "../../types";
 
 /** Every inquiry, newest first (the old 100-row limit dropped older ones). */
 export async function getInquiries(): Promise<ProjectInquiry[]> {
   if (usesCosmos) {
+    // Private rows (contact details): /dashboard shows none, as the Appwrite
+    // build does when the collection refuses an anonymous read.
+    if (!readsAsAdmin()) return [];
     const response = await manageList<ProjectInquiry>(COLLECTIONS.PROJECT_INQUIRIES, {
       orderBy: "$createdAt",
       dir: "desc",
