@@ -3,7 +3,8 @@
 // Creates the `portfolio` database and its containers if missing (layout in
 // api/shared/cosmos.js), then upserts every row by id, so re-running it before
 // cutover just refreshes the data. Rows deleted in Appwrite since the last
-// import are reported; --prune deletes them from Cosmos too.
+// import are reported; --prune deletes them from Cosmos too, except payments
+// and invoices, which are never deleted.
 //
 // Refuses to import a row that still links to Appwrite Storage: that backup
 // was taken before scripts/rewrite-media-urls.mjs ran, so take a new one.
@@ -28,6 +29,7 @@ const {
   ensureSchema,
   toCosmos,
 } = require("../api/shared/cosmos.js");
+const { canDelete } = require("../api/shared/adminData.js");
 
 const args = new Set(process.argv.slice(2));
 const flagValue = (name) => {
@@ -105,15 +107,19 @@ for (const [id, docs] of Object.entries(docsByContainer)) {
   const found = new Set(existing.map((e) => e.id));
   const extra = existing.filter((e) => !wanted.has(e.id));
   const missing = docs.filter((d) => !found.has(d.id));
-  if (prune) {
+  // Payments and invoices are money records: never deleted, even by --prune.
+  const prunes = prune && canDelete(id);
+  if (prunes) {
     for (const e of extra) await container.item(e.id, e.pk).delete();
   }
 
   const extraNote = !extra.length
     ? ""
-    : prune
+    : prunes
       ? `  (${extra.length} pruned)`
-      : `  (${extra.length} not in backup; --prune removes)`;
+      : prune
+        ? `  (${extra.length} not in backup; kept, never pruned)`
+        : `  (${extra.length} not in backup; --prune removes)`;
   const missingNote = missing.length ? `  MISSING ${missing.length}` : "";
   if (missing.length) failed = true;
   console.log(
