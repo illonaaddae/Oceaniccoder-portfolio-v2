@@ -49,6 +49,10 @@ function httpsPost(hostname, path, headers, body) {
   });
 }
 
+// Unverified requests email the admin at most this often (see refuse()).
+const UNVERIFIED_ALERT_INTERVAL_MS = 60 * 60 * 1000;
+let lastUnverifiedAlertAt = -Infinity;
+
 async function sendEmail(apiKey, fromEmail, to, subject, html, log) {
   try {
     await httpsPost(
@@ -203,6 +207,24 @@ module.exports = async function (context, req) {
     ok();
   };
 
+  /**
+   * Turn away a request whose signature can't be verified. Anyone can POST
+   * here, so emailing on every one would let a loop of junk requests flood the
+   * admin inbox and use up the Resend quota that receipts rely on. A real key
+   * mode mix-up still needs to reach someone, so the email goes out at most
+   * once an hour per instance; every attempt is logged.
+   */
+  const refuse = async (reason, detail) => {
+    const now = Date.now();
+    if (now - lastUnverifiedAlertAt < UNVERIFIED_ALERT_INTERVAL_MS) {
+      context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}`);
+      ok();
+      return;
+    }
+    lastUnverifiedAlertAt = now;
+    await bail(reason, detail);
+  };
+
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
     await bail("PAYSTACK_SECRET_KEY is not set in Azure configuration");
@@ -228,7 +250,7 @@ module.exports = async function (context, req) {
   const signature = req.headers && req.headers["x-paystack-signature"];
 
   if (!signature) {
-    await bail("request had no x-paystack-signature header");
+    await refuse("request had no x-paystack-signature header");
     return;
   }
 
@@ -240,7 +262,7 @@ module.exports = async function (context, req) {
   const sigMatch = sigBuf.length === expBuf.length && crypto.timingSafeEqual(expBuf, sigBuf);
 
   if (!sigMatch) {
-    await bail(
+    await refuse(
       "signature verification failed",
       `PAYSTACK_SECRET_KEY is a ${keyMode} key; ` +
         `signature was computed over ${usedRawBody ? "the raw request body" : "a re-serialised body because req.rawBody was empty, which alone can cause this"}. ` +
@@ -541,4 +563,7 @@ module.exports.emails = {
   recordFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
+};
+module.exports.resetUnverifiedAlert = () => {
+  lastUnverifiedAlertAt = -Infinity;
 };
