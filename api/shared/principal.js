@@ -1,8 +1,9 @@
 // Static Web Apps sign-in: who is calling, and whether they're the admin.
 //
-// Sign-in goes through two custom providers configured in
-// public/staticwebapp.config.json: "github" and "entra" (email + password via
-// Microsoft Entra External ID). After each sign-in, SWA calls /api/get-roles,
+// Sign-in goes through one custom provider, "github", registered in
+// public/staticwebapp.config.json. Function-assigned roles (rolesSource) only
+// work with a custom registration, which is why GitHub has its own OAuth app
+// rather than SWA's built-in one. After each sign-in, SWA calls /api/get-roles,
 // which uses rolesFor() below; the roles it returns ride along on every later
 // request in the x-ms-client-principal header. SWA sets that header itself and
 // drops any copy a client sends, so Functions can trust it.
@@ -13,9 +14,9 @@
 // login page shows a signed-in user their id, to copy into ADMIN_USER_IDS.
 
 const ADMIN_ROLE = "admin";
-const PROVIDERS = new Set(["github", "entra"]);
+const PROVIDERS = new Set(["github"]);
 
-/** ADMIN_USER_IDS: comma-separated SWA user ids (one per sign-in method). */
+/** ADMIN_USER_IDS: comma-separated SWA user ids (more than one if the admin has several GitHub accounts). */
 function adminUserIds(env) {
   return new Set(
     String(env.ADMIN_USER_IDS || "")

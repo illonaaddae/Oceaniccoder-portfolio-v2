@@ -96,16 +96,17 @@ browser ──(fetch /api/*)──▶ Azure Functions (SWA managed API) ──�
 
 The key change: today the browser talks to Appwrite directly, and Appwrite permissions protect the data. Cosmos keys can never go to the browser, so **every read and write goes through a Function**, and the permission table above becomes code.
 
-| Need                | Azure service                                                                                                                                                                                     | Why                                                                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Database            | **Cosmos DB for NoSQL, free tier** (1,000 RU/s and 25 GB free, one per subscription), one database with shared throughput, one container per collection (21, under the 25-container shared limit) | Document model maps 1:1 to Appwrite documents, so no schema redesign.                                                                             |
-| Admin auth          | **Static Web Apps custom auth** with two OpenID Connect providers: GitHub, and email + password through **Microsoft Entra External ID**. Plus a custom `admin` role (decided 2026-10-03)          | We store no passwords; Entra handles sign-up, reset and lockout. Route rules in `staticwebapp.config.json` are enforced by Azure, not the client. |
-| Realtime (payments) | Poll every 15s while the Payments tab is open                                                                                                                                                     | One admin user, so Web PubSub is overkill. Revisit if needed.                                                                                     |
-| Contact email       | Send it inside the `POST /api/messages` Function (Resend is already in use)                                                                                                                       | Replaces the Appwrite Function.                                                                                                                   |
+| Need                | Azure service                                                                                                                                                                                                         | Why                                                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database            | **Cosmos DB for NoSQL, free tier** (1,000 RU/s and 25 GB free, one per subscription), one database with shared throughput, one container per collection (21, under the 25-container shared limit)                     | Document model maps 1:1 to Appwrite documents, so no schema redesign.                                                                             |
+| Admin auth          | **Static Web Apps custom auth** with one provider, GitHub (own OAuth app registration), plus a custom `admin` role from `/api/get-roles`. Entra email sign-in was dropped on 2026-10-17 to meet the Appwrite deadline | We store no passwords; Entra handles sign-up, reset and lockout. Route rules in `staticwebapp.config.json` are enforced by Azure, not the client. |
+| Realtime (payments) | Poll every 15s while the Payments tab is open                                                                                                                                                                         | One admin user, so Web PubSub is overkill. Revisit if needed.                                                                                     |
+| Contact email       | Send it inside the `POST /api/messages` Function (Resend is already in use)                                                                                                                                           | Replaces the Appwrite Function.                                                                                                                   |
 
-> **Auth note:** any custom provider switches off the SWA built-in ones, so
-> GitHub needs its own OAuth app registration as well as the Entra one. Both
-> need the Standard plan, which the site has.
+> **Auth note:** roles from a function (`rolesSource`) only work with custom
+> auth, so GitHub needs its own OAuth app registration even as the only
+> provider. That switches off the SWA built-in providers. Needs the Standard
+> plan, which the site has.
 
 ### 3.2 Steps
 

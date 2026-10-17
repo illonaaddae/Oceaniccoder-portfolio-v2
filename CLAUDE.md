@@ -128,8 +128,6 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `ADMIN_USER_IDS`          | SWA sign-in ids that get the admin role                                                                                                                        |
 | `GITHUB_CLIENT_ID`        | GitHub OAuth app for admin sign-in                                                                                                                             |
 | `GITHUB_CLIENT_SECRET`    | GitHub OAuth app secret                                                                                                                                        |
-| `ENTRA_CLIENT_ID`         | Entra External ID app (email sign-in)                                                                                                                          |
-| `ENTRA_CLIENT_SECRET`     | Entra External ID app secret                                                                                                                                   |
 
 > `GOOGLE_REFRESH_TOKEN` expires after **7 days** while the OAuth consent screen
 > sits in "Testing" (Google Cloud Console → APIs & Services → OAuth consent
