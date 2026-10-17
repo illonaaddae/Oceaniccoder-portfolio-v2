@@ -266,8 +266,14 @@ function hostNotificationHtml({
   joinLink,
   calendarEventLink,
   failureReason,
+  alert,
 }) {
   const when = `${preferredDate} at ${preferredTime}`;
+  // `alert` replaces the default no-link notice for other failures.
+  const actionNeeded = Boolean(alert || failureReason);
+  const noticeText =
+    alert?.notice ??
+    `No meeting link was created\n${failureReason}\nSend this booker a link by hand, then check the Google credentials in Azure configuration.`;
   const links = [
     joinLink ? button({ href: joinLink, label: `Join ${platform} meeting` }) : "",
     calendarEventLink
@@ -275,26 +281,23 @@ function hostNotificationHtml({
       : "",
   ].filter(Boolean);
   return shell({
-    preview: failureReason
-      ? `No meeting link was created for ${name} on ${when}`
-      : `${name} booked a ${label} on ${when}`,
+    preview: alert
+      ? alert.subject
+      : failureReason
+        ? `No meeting link was created for ${name} on ${when}`
+        : `${name} booked a ${label} on ${when}`,
     meta: { label: "Booking", number: preferredDate },
     reason: ADMIN_REASON,
     body:
       heading({
-        eyebrow: failureReason ? "Action needed" : "New booking",
-        tone: failureReason ? "danger" : "info",
+        eyebrow: actionNeeded ? "Action needed" : "New booking",
+        tone: actionNeeded ? "danger" : "info",
         title: `${label} with ${name}`,
       }) +
       // A booking with no meeting link is not obviously broken from the outside:
       // the visitor is told a link is coming within 24 hours, and nothing says
       // why one was never made. Say it here, where it will actually be read.
-      (failureReason
-        ? notice({
-            tone: "danger",
-            text: `No meeting link was created\n${failureReason}\nSend this booker a link by hand, then check the Google credentials in Azure configuration.`,
-          })
-        : "") +
+      (actionNeeded ? notice({ tone: "danger", text: noticeText }) : "") +
       card({
         title: "Booking details",
         highlightLabel: "Date & time",
@@ -378,6 +381,7 @@ async function sendNotificationEmail(
     zoomLink,
     calendarEventLink,
     failureReason,
+    alert,
   },
 ) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -411,6 +415,7 @@ async function sendNotificationEmail(
     joinLink,
     calendarEventLink,
     failureReason,
+    alert,
   });
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
@@ -423,9 +428,11 @@ async function sendNotificationEmail(
     {
       from: `OceanicCoder Bookings <${fromEmail}>`,
       to: [toEmail],
-      subject: failureReason
-        ? `Action needed: booking with ${name} on ${preferredDate} has no meeting link`
-        : `New Booking: ${label} with ${name} on ${preferredDate} at ${preferredTime}`,
+      subject: alert
+        ? alert.subject
+        : failureReason
+          ? `Action needed: booking with ${name} on ${preferredDate} has no meeting link`
+          : `New Booking: ${label} with ${name} on ${preferredDate} at ${preferredTime}`,
       html,
     },
   );
@@ -566,6 +573,25 @@ module.exports = async function (context, req) {
       taken = await isSlotTakenInCosmos(preferredDate, preferredTime);
     } catch (err) {
       context.log.error("Slot check failed:", err.message);
+      // The booking may still save through /api/submit, but with no invite or
+      // confirmation, so tell the owner, who can send both by hand.
+      await sendNotificationEmail(context, {
+        name,
+        email,
+        phone,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        message,
+        meetLink: null,
+        zoomLink: null,
+        calendarEventLink: null,
+        alert: {
+          subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} got no invite or confirmation`,
+          notice: `No invite or confirmation was sent\nThe server couldn't check whether ${preferredTime} on ${preferredDate} was free (${err.message}), so it sent no calendar invite and no confirmation email.\nIf the booking saved, it is under Bookings in the dashboard. Check the slot is still free, then send the invite and confirmation by hand.`,
+        },
+      }).catch((e) => context.log.error("Notification error:", e.message));
       context.res = {
         status: 503,
         headers: CORS,

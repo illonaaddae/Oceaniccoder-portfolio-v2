@@ -413,4 +413,60 @@ describe("create-booking slot check on Cosmos", () => {
     expect(mockRequest).not.toHaveBeenCalled();
     expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "Request rate is large");
   });
+
+  describe("owner alert when the check fails", () => {
+    beforeEach(() => {
+      setGoogleEnv();
+      process.env.RESEND_API_KEY = "resend-key";
+      process.env.RESEND_TO_EMAIL = "host@example.com";
+      vi.spyOn(bookings.items, "query").mockImplementation(() => {
+        throw Object.assign(new Error("getaddrinfo ENOTFOUND oceaniccoder-db"), {
+          code: "ENOTFOUND",
+        });
+      });
+    });
+    afterEach(() => {
+      delete process.env.RESEND_API_KEY;
+      delete process.env.RESEND_TO_EMAIL;
+    });
+
+    const run = async () => {
+      const ctx = { res: null, log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } };
+      await handler(ctx, { method: "POST", body: validBody, query: {} });
+      return ctx;
+    };
+
+    it("emails the owner the date and time, and sends no invite or confirmation", async () => {
+      stubHttps(200, { id: "email-alert" });
+
+      const ctx = await run();
+
+      expect(ctx.res.status).toBe(503);
+      expect(JSON.parse(ctx.res.body)).toEqual({ error: "slot_check_failed" });
+      // One request in all: the alert. No OAuth, no calendar insert, no booker email.
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
+      const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+      expect(sent.to).toEqual(["host@example.com"]);
+      expect(sent.subject).toBe(
+        "Action needed: booking with Ada Lovelace on 2099-06-15 at 09:00 AM got no invite or confirmation",
+      );
+      expect(sent.html).toContain("No invite or confirmation was sent");
+      expect(sent.html).toContain("09:00 AM on 2099-06-15");
+      expect(sent.html).toContain("send the invite and confirmation by hand");
+      expect(sent.html).not.toContain("Google credentials");
+    });
+
+    it("still answers 503 when the alert itself can't be sent", async () => {
+      mockRequest.mockImplementationOnce(() => {
+        throw new Error("socket hang up");
+      });
+
+      const ctx = await run();
+
+      expect(ctx.res.status).toBe(503);
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      expect(ctx.log.error).toHaveBeenCalledWith("Notification error:", "socket hang up");
+    });
+  });
 });
