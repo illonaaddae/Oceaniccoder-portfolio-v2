@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
 import { Pagination } from "@/components/common/Pagination";
-import { Query } from "appwrite";
-import { databases, DATABASE_ID } from "@/lib/appwrite";
 import { manageList, usesCosmos } from "@/services/api/dataApi";
+import { LIST_ALL_CAP, listAllDocuments } from "@/services/api/listAll";
 import { deleteImage, listMediaFiles } from "@/services/api/storage";
 import { MEDIA_BASE_URL, getOptimizedImageUrl } from "@/utils/imageOptimizer";
 import { readPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
@@ -63,11 +62,15 @@ const HARDCODED_URLS: Record<string, string> = {
 
 const PAGE_SIZE = 10;
 
-// Every row in Cosmos mode; Appwrite mode keeps its old 500-row page.
+// Every row of a collection. A partial read would make the files used by the
+// missing rows look orphaned, so hitting the Appwrite cap counts as a failure.
 async function listCollectionRows(collection: string): Promise<Record<string, unknown>[]> {
   if (usesCosmos) return (await manageList(collection)).documents;
-  const res = await databases.listDocuments(DATABASE_ID, collection, [Query.limit(500)]);
-  return res.documents;
+  const rows = await listAllDocuments<{ $id: string } & Record<string, unknown>>(collection);
+  if (rows.length >= LIST_ALL_CAP) {
+    throw new Error(`more than ${LIST_ALL_CAP - 1} rows, so the scan may be incomplete`);
+  }
+  return rows;
 }
 
 /** Every platform with its logo: the saved override, else the bundled default. */
