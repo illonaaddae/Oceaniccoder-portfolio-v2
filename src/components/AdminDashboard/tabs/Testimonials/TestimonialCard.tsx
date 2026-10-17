@@ -51,14 +51,26 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
               >
                 {testimonial.name}
                 {pending && (
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full">
-                    Pending approval
-                  </span>
+                  <>
+                    {" "}
+                    <span
+                      className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                        theme === "dark"
+                          ? "bg-warning-400/10 text-warning-400 border border-warning-400/30"
+                          : "bg-warning-100 text-warning-700"
+                      }`}
+                    >
+                      Pending approval
+                    </span>
+                  </>
                 )}
                 {testimonial.featured && (
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-oceanic-500/20 text-brand-link dark:text-oceanic-300 rounded-full">
-                    Featured
-                  </span>
+                  <>
+                    {" "}
+                    <span className="ml-2 px-2 py-0.5 text-xs bg-oceanic-500/20 text-brand-link dark:text-oceanic-300 rounded-full">
+                      Featured
+                    </span>
+                  </>
                 )}
               </h3>
               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -87,8 +99,8 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
                   onClick={() => onApprove(testimonial.$id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     theme === "dark"
-                      ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                      : "bg-green-100 text-green-700 hover:bg-green-200"
+                      ? "bg-success-400/10 text-success-400 border border-success-400/30 hover:bg-success-400/20"
+                      : "bg-success-100 text-success-700 hover:bg-success-100/70"
                   }`}
                 >
                   <FaCheck className="w-3 h-3" />
