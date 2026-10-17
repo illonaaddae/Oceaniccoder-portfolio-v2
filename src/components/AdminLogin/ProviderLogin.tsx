@@ -18,7 +18,7 @@ const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
   const button = `w-full border font-medium py-3 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg ${
     dk
       ? "bg-gradient-to-r from-oceanic-600 to-oceanic-900 border-oceanic-500/50 hover:from-oceanic-500 hover:to-oceanic-900 text-white shadow-oceanic-500/20"
-      : "bg-gradient-to-r from-blue-500 to-oceanic-500 border-oceanic-500/50 hover:from-blue-600 hover:to-oceanic-600 text-white shadow-oceanic-500/20"
+      : "bg-gradient-to-r from-oceanic-600 to-oceanic-700 border-oceanic-500/50 hover:from-oceanic-700 hover:to-oceanic-800 text-white shadow-oceanic-500/20"
   }`;
 
   return (
@@ -30,7 +30,10 @@ const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
       }`}
     >
       {signedInId && (
-        <div role="alert" className="text-sm text-red-500 space-y-1">
+        <div
+          role="alert"
+          className={`text-sm space-y-1 ${dk ? "text-error-400" : "text-error-700"}`}
+        >
           <p>You&apos;re signed in, but this account isn&apos;t the site admin.</p>
           <p>
             Setting up? Your sign-in id is <code className="break-all">{signedInId}</code>. Add it
