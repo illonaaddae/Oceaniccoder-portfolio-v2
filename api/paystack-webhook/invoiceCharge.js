@@ -9,8 +9,10 @@
 //      recorded before the cutover, so stop. So is a row at our id that
 //      this flow did not write (no invoiceApplied field). A row at our id
 //      for another charge is a conflict and is left alone.
-//   2. Find the invoice (exactly one); evaluateSettlement decides paid or
-//      left open. An invoice without a usable total is never closed here.
+//   2. Find the invoice (exactly one; several with the number stop here).
+//      settle() decides paid or left open: evaluateSettlement as on
+//      Appwrite, except that an invoice without a currency is in GHS and
+//      one without a usable total stays open.
 //   3. Create the row at paymentIdFor(reference) with invoiceApplied false.
 //      A 409 means another delivery created it first; carry on from it.
 //   4. Not applied yet: change the invoice, then set invoiceApplied.
@@ -18,7 +20,7 @@
 //      crash between sending and notifiedAt resends them (at least once).
 //
 // Store errors are thrown. The caller alerts (once per reference, see
-// claimRetryAlert) and answers 500, so Paystack retries and the next delivery
+// claimRetryAlert and releaseRetryAlert) and answers 500, so Paystack retries and the next delivery
 // resumes at the first step not done.
 
 const { evaluateSettlement } = require("./settlement");
