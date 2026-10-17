@@ -17,8 +17,9 @@
 //   5. Not notified yet: claim the emails, send them, set notifiedAt. A
 //      crash between sending and notifiedAt resends them (at least once).
 //
-// Store errors are thrown. The caller alerts and answers 500, so Paystack
-// retries and the next delivery resumes at the first step not done.
+// Store errors are thrown. The caller alerts (once per reference, see
+// claimRetryAlert) and answers 500, so Paystack retries and the next delivery
+// resumes at the first step not done.
 
 const { evaluateSettlement } = require("./settlement");
 const { paymentIdFor } = require("../shared/quotes/repo.cosmos");
@@ -229,4 +230,23 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
   return { outcome: "recorded" };
 }
 
-module.exports = { recordInvoiceCharge, NOTIFY_CLAIM_MS };
+/**
+ * Whether this delivery should email the admin about a retryable failure.
+ * Paystack retries for days, so only the first failure for a reference is
+ * mailed; the caller logs every one. The `alert:<reference>` lock decides;
+ * once this charge's payments row exists, its alertedAt saves the lock write
+ * on later attempts and shows on the row that the admin was told.
+ */
+async function claimRetryAlert({ store, locks, reference, invoiceNumber, now = () => new Date() }) {
+  const paymentId = paymentIdFor(reference);
+  const row = await store.readPayment(paymentId);
+  if (row && rowState(row, { reference, invoiceNumber }) !== "conflict") {
+    const { changed } = await store.updatePayment(paymentId, (current) =>
+      current.alertedAt ? null : { alertedAt: now().toISOString() },
+    );
+    if (!changed) return false;
+  }
+  return locks.take(`alert:${reference}`);
+}
+
+module.exports = { recordInvoiceCharge, claimRetryAlert, NOTIFY_CLAIM_MS };

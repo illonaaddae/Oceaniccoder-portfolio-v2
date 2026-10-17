@@ -3,11 +3,14 @@
 // the real store. Email sending is a recorder, so nothing leaves the process.
 import { describe, it, expect, vi } from "vitest";
 
-const { recordInvoiceCharge, NOTIFY_CLAIM_MS } = await import("./invoiceCharge.js");
+const { recordInvoiceCharge, claimRetryAlert, NOTIFY_CLAIM_MS } =
+  await import("./invoiceCharge.js");
 const { createCosmosInvoiceStore, MAX_REPLACE_ATTEMPTS } =
   await import("../shared/invoices/store.cosmos.js");
 const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
 const { paymentIdFor } = await import("../shared/quotes/repo.cosmos.js");
+const { createCosmosLocks } = await import("../shared/locks.js");
+const { lockId } = await import("../shared/tokens.js");
 
 const REFERENCE = "PAY-INV-2026-0042-1760000000";
 const PAYMENT_ID = paymentIdFor(REFERENCE);
@@ -44,7 +47,7 @@ function setup({ invoice = invoiceDoc(), now = () => new Date("2026-10-17T10:00:
   const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   const run = (over = {}) =>
     recordInvoiceCharge({ store, charge: charge(over), sendEmails, log, now });
-  return { invoices, payments, sendEmails, log, run };
+  return { db, store, invoices, payments, sendEmails, log, run };
 }
 
 const stored = (container, id) => {
@@ -399,5 +402,51 @@ describe("recordInvoiceCharge on Cosmos", () => {
       expect(payments.docs.size).toBe(0);
       expect(sendEmails).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("claimRetryAlert", () => {
+  const claim = ({ db, store }) =>
+    claimRetryAlert({
+      store,
+      locks: createCosmosLocks(db),
+      reference: REFERENCE,
+      invoiceNumber: "INV-2026-0042",
+    });
+
+  it("lets only the first failure before the payment row mail the admin", async () => {
+    const ctx = setup();
+    expect(await claim(ctx)).toBe(true);
+    expect(await claim(ctx)).toBe(false);
+    expect(ctx.db.container("locks").docs.has(lockId(`alert:${REFERENCE}`))).toBe(true);
+  });
+
+  it("records the alert on the payment row once it exists", async () => {
+    const ctx = setup();
+    failNext(ctx.invoices, "beforeReplace", 2);
+    await expect(ctx.run()).rejects.toThrow();
+    expect(await claim(ctx)).toBe(true);
+    expect(stored(ctx.payments, PAYMENT_ID).alertedAt).toEqual(expect.any(String));
+    await expect(ctx.run()).rejects.toThrow();
+    expect(await claim(ctx)).toBe(false);
+  });
+
+  it("does not mail again after the row appears if it mailed before", async () => {
+    const ctx = setup();
+    expect(await claim(ctx)).toBe(true);
+    failNext(ctx.invoices, "beforeReplace", 1);
+    await expect(ctx.run()).rejects.toThrow();
+    expect(await claim(ctx)).toBe(false);
+  });
+
+  it("does not write to a row that belongs to another charge", async () => {
+    const ctx = setup();
+    const seeded = ctx.payments.seed({
+      id: PAYMENT_ID,
+      paystackReference: REFERENCE,
+      quoteNumber: "Q-2026-0001",
+    });
+    expect(await claim(ctx)).toBe(true);
+    expect(ctx.payments.docs.get(PAYMENT_ID)._etag).toBe(seeded._etag);
   });
 });

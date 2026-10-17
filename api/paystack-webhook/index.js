@@ -16,7 +16,8 @@ const quoteService = require("../shared/quotes/service");
 const cosmos = require("../shared/cosmos");
 const { dataBackend, writeHold } = require("../shared/backend");
 const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
-const { recordInvoiceCharge } = require("./invoiceCharge");
+const { createCosmosLocks } = require("../shared/locks");
+const { recordInvoiceCharge, claimRetryAlert } = require("./invoiceCharge");
 const { shell, heading, p, card, notice, small } = require("../shared/email/ui");
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
@@ -36,6 +37,13 @@ const CORS = {
 // the emails for NOTIFY_CLAIM_MS (2 minutes), and a run must finish well
 // inside that.
 const EMAIL_TIMEOUT_MS = 10 * 1000;
+
+// An invalid DATA_BACKEND fails every delivery the same way until someone
+// fixes the setting, so this process mails the admin about it once.
+let invalidBackendAlerted = false;
+// References already mailed about in this process while Cosmos could not
+// record the alert itself, so an outage does not mail on every retry.
+const alertedWithoutRecord = new Set();
 
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
@@ -99,6 +107,33 @@ function webhookFailedEmail(reason, detail) {
       (detail ? p(`Detail: ${detail}`) : "") +
       small(
         "Check the Payments tab against the Paystack dashboard, and mark the invoice paid by hand if the money did arrive.",
+      ),
+  });
+}
+
+// For a failure Paystack's retry will finish. Unlike webhookFailedEmail it
+// must not suggest marking the invoice paid by hand: the retry records the
+// payment anyway, and a hand-marked invoice would get a second receipt.
+function webhookRetryEmail(reason, detail) {
+  return shell({
+    preview: `Paystack webhook will be retried: ${reason}`,
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Webhook will be retried",
+        tone: "warn",
+        title: "A Paystack payment is waiting to be recorded",
+        intro:
+          "A Paystack webhook arrived but could not be processed yet. Paystack will retry it, and the payment will be recorded automatically when a retry succeeds.",
+      }) +
+      notice({
+        tone: "danger",
+        text: "Do not mark the invoice paid by hand. The retry records the payment and emails the client; marking it by hand as well sends a second receipt.",
+      }) +
+      notice({ tone: "warn", text: `Reason: ${reason}` }) +
+      (detail ? p(`Detail: ${detail}`) : "") +
+      small(
+        "This email is sent once per payment. Later attempts are only logged. If the payment is still missing from the Payments tab after a day, check the function logs.",
       ),
   });
 }
@@ -280,7 +315,8 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Paystack always expects a 200 response — return early with 200 in all error cases
+  // Acknowledged: Paystack stops retrying. Used for success and for failures a
+  // retry would not fix.
   const ok = () => {
     context.res = { status: 200, headers: CORS, body: JSON.stringify({ received: true }) };
   };
@@ -292,16 +328,16 @@ module.exports = async function (context, req) {
   const adminEmail = process.env.RESEND_TO_EMAIL;
 
   /**
-   * Tell the admin a delivery was not processed. bail() then answers 200
-   * because a retry would not help; the Cosmos branch answers 500 instead
-   * so Paystack retries.
+   * Abandon processing, but tell someone first, and answer 200 because a
+   * retry would not help. Retryable failures (the Cosmos branch) answer 500
+   * and send webhookRetryEmail instead.
    *
    * The failure paths here used to leave only a log line. The result was a
    * real charge where the invoice stayed "sent", no payment record was
    * written and no email went out, with nothing anywhere to say why. Money
    * moves through this function; it must not fail quietly.
    */
-  const alert = async (reason, detail) => {
+  const bail = async (reason, detail) => {
     context.log.error(`paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""}`);
     if (resendKey && adminEmail) {
       await sendEmail(
@@ -313,9 +349,6 @@ module.exports = async function (context, req) {
         context.log,
       );
     }
-  };
-  const bail = async (reason, detail) => {
-    await alert(reason, detail);
     ok();
   };
   const retry = () => {
@@ -404,8 +437,9 @@ module.exports = async function (context, req) {
   // Quote stage payments carry metadata.kind = "quote". They are settled by
   // the quote service, which re-fetches the transaction from Paystack rather
   // than trusting this payload, and uses lock documents so the webhook, the
-  // return page and polling record each payment exactly once. Unlike the
-  // invoice path, a transient failure answers 500 so Paystack retries.
+  // return page and polling record each payment exactly once. A transient
+  // failure answers 500 so Paystack retries, as on the Cosmos invoice path
+  // (the Appwrite invoice path answers 200).
   if (metadata.kind === "quote") {
     try {
       const result = await quoteService.handleQuoteCharge(data.reference);
@@ -445,7 +479,18 @@ module.exports = async function (context, req) {
   try {
     backend = dataBackend();
   } catch (err) {
-    await alert("DATA_BACKEND is not valid; Paystack will retry", err.message);
+    context.log.error(`paystack-webhook: DATA_BACKEND is not valid — ${err.message}`);
+    if (!invalidBackendAlerted && resendKey && adminEmail) {
+      invalidBackendAlerted = true;
+      await sendEmail(
+        resendKey,
+        fromEmail,
+        adminEmail,
+        "Action needed: Paystack webhooks are failing and will be retried",
+        webhookRetryEmail("DATA_BACKEND is not valid", err.message),
+        context.log,
+      );
+    }
     retry();
     return;
   }
@@ -456,11 +501,14 @@ module.exports = async function (context, req) {
       await bail("payment has no Paystack reference", `invoice ${invoiceNumber}`);
       return;
     }
+    const reference = data.reference;
+    let store;
     try {
+      store = createCosmosInvoiceStore(cosmos.getDatabase());
       const { outcome } = await recordInvoiceCharge({
-        store: createCosmosInvoiceStore(cosmos.getDatabase()),
+        store,
         charge: {
-          reference: data.reference,
+          reference,
           invoiceNumber,
           amountPaid,
           currency,
@@ -473,21 +521,21 @@ module.exports = async function (context, req) {
       if (outcome === "no-invoice") {
         await bail(
           "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference}`,
+          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
         );
         return;
       }
       if (outcome === "ambiguous-invoice") {
         await bail(
           "more than one invoice has this number, so none was marked",
-          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference}`,
+          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
         );
         return;
       }
       if (outcome === "conflict") {
         await bail(
           "the payments row for this reference belongs to another charge, so it was left alone",
-          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference}`,
+          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
         );
         return;
       }
@@ -499,10 +547,36 @@ module.exports = async function (context, req) {
       ok();
     } catch (err) {
       // Every step is recorded on the payments row, so the retry resumes here.
-      await alert(
-        "Cosmos rejected the update; Paystack will retry",
-        `${err.message} (invoice ${invoiceNumber}, reference ${data.reference})`,
-      );
+      const reason = "Cosmos rejected the update";
+      const detail = `${err.message} (invoice ${invoiceNumber}, reference ${reference})`;
+      context.log.error(`paystack-webhook: ${reason}; Paystack will retry — ${detail}`);
+      // When the claim itself fails (Cosmos down or not configured), mail
+      // anyway, once per process: an unrecorded payment nobody hears about is
+      // worse than a repeated email.
+      let mail;
+      try {
+        if (!store) throw err;
+        mail = await claimRetryAlert({
+          store,
+          locks: createCosmosLocks(cosmos.getDatabase()),
+          reference,
+          invoiceNumber,
+        });
+      } catch (claimErr) {
+        context.log.error(`paystack-webhook: could not record the alert: ${claimErr.message}`);
+        mail = !alertedWithoutRecord.has(reference);
+        alertedWithoutRecord.add(reference);
+      }
+      if (mail && resendKey && adminEmail) {
+        await sendEmail(
+          resendKey,
+          fromEmail,
+          adminEmail,
+          `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
+          webhookRetryEmail(reason, detail),
+          context.log,
+        );
+      }
       retry();
     }
     return;
@@ -665,6 +739,7 @@ module.exports = async function (context, req) {
 // Exposed for tests only; the Functions host calls the default export.
 module.exports.emails = {
   webhookFailedEmail,
+  webhookRetryEmail,
   recordFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
