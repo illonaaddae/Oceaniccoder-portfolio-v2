@@ -297,4 +297,107 @@ describe("recordInvoiceCharge on Cosmos", () => {
     expect(stored(payments, PAYMENT_ID).invoiceApplied).toBe(false);
     expect(sendEmails).not.toHaveBeenCalled();
   });
+  describe("a row already at our id", () => {
+    const ours = (over = {}) => ({
+      id: PAYMENT_ID,
+      invoiceNumber: "INV-2026-0042",
+      paystackReference: REFERENCE,
+      invoiceApplied: false,
+      ...over,
+    });
+
+    it.each([
+      ["a quote payment", { quoteNumber: "Q-2026-0001" }],
+      ["a quote stage", { stageId: "deposit" }],
+      ["another invoice", { invoiceNumber: "INV-2026-0099" }],
+      ["another reference", { paystackReference: "PAY-OTHER" }],
+    ])("is left alone when it belongs to %s", async (_, over) => {
+      const { invoices, payments, sendEmails, log, run } = setup();
+      const seeded = payments.seed(ours(over));
+      expect(await run()).toEqual({ outcome: "conflict" });
+      expect(payments.docs.get(PAYMENT_ID)._etag).toBe(seeded._etag);
+      expect(stored(invoices, "inv1").status).toBe("sent");
+      expect(sendEmails).not.toHaveBeenCalled();
+      expect(log.error).toHaveBeenCalledWith(expect.stringContaining("does not belong"));
+    });
+
+    it("is left alone when another charge's row wins the create", async () => {
+      const { invoices, payments, sendEmails, run } = setup();
+      payments.hooks.beforeCreate = async () => {
+        payments.hooks.beforeCreate = null;
+        payments.seed(ours({ quoteNumber: "Q-2026-0001" }));
+      };
+      expect(await run()).toEqual({ outcome: "conflict" });
+      expect(stored(invoices, "inv1").status).toBe("sent");
+      expect(sendEmails).not.toHaveBeenCalled();
+    });
+
+    it("counts as already processed when it has no invoiceApplied field", async () => {
+      const { invoices, payments, sendEmails, run } = setup();
+      const { invoiceApplied, ...imported } = ours();
+      const seeded = payments.seed(imported);
+      expect(await run()).toEqual({ outcome: "duplicate" });
+      expect(payments.docs.get(PAYMENT_ID)._etag).toBe(seeded._etag);
+      expect(stored(invoices, "inv1").status).toBe("sent");
+      expect(sendEmails).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("an invoice that cannot be checked", () => {
+    it("records the payment but leaves an invoice with no total open", async () => {
+      const { invoices, payments, sendEmails, log, run } = setup({
+        invoice: invoiceDoc({ total: undefined }),
+      });
+      expect(await run()).toEqual({ outcome: "recorded" });
+      expect(stored(invoices, "inv1").status).toBe("sent");
+      expect(stored(payments, PAYMENT_ID)).toMatchObject({ amount: 500, invoiceApplied: true });
+      expect(sendEmails.mock.calls[0][0].settlement).toMatchObject({
+        settles: false,
+        unverifiedTotal: true,
+      });
+      expect(log.error).toHaveBeenCalledWith(
+        "paystack-webhook: invoice INV-2026-0042 NOT marked paid — it has no usable total (undefined) to check ₵500.00 against",
+      );
+    });
+
+    it.each([0, -5, "abc"])("does not close an invoice whose total is %s", async (total) => {
+      const { invoices, run } = setup({ invoice: invoiceDoc({ total }) });
+      await run();
+      expect(stored(invoices, "inv1").status).toBe("sent");
+    });
+
+    it("un-archives but does not close an archived invoice with no total", async () => {
+      const { invoices, run } = setup({
+        invoice: invoiceDoc({ total: null, archivedAt: "2026-10-11T00:00:00.000Z" }),
+      });
+      await run();
+      expect(stored(invoices, "inv1")).toMatchObject({ status: "sent", archivedAt: null });
+    });
+
+    it("treats an invoice without a currency as cedis", async () => {
+      const { invoices, sendEmails, run } = setup({ invoice: invoiceDoc({ currency: undefined }) });
+      await run({ currency: "USD" });
+      expect(stored(invoices, "inv1").status).toBe("sent");
+      expect(sendEmails.mock.calls[0][0].settlement).toMatchObject({
+        currencyMismatch: true,
+        invoiceCurrency: "GHS",
+      });
+    });
+
+    it("still closes an invoice without a currency paid in cedis", async () => {
+      const { invoices, run } = setup({ invoice: invoiceDoc({ currency: undefined }) });
+      await run();
+      expect(stored(invoices, "inv1").status).toBe("paid");
+    });
+
+    it("marks nothing when two invoices share the number", async () => {
+      const { invoices, payments, sendEmails, run } = setup();
+      invoices.seed(invoiceDoc({ id: "inv2" }));
+      expect(await run()).toEqual({ outcome: "ambiguous-invoice" });
+      expect(stored(invoices, "inv1").status).toBe("sent");
+      expect(stored(invoices, "inv2").status).toBe("sent");
+      expect(payments.docs.size).toBe(0);
+      expect(sendEmails).not.toHaveBeenCalled();
+    });
+  });
 });

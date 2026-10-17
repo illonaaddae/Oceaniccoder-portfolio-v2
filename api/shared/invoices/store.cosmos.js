@@ -81,10 +81,16 @@ function createCosmosInvoiceStore(db, { now = () => new Date() } = {}) {
 
     updatePayment: (id, decide) => updateWith(payments, id, decide, now),
 
-    findInvoiceByNumber: (invoiceNumber) =>
-      queryFirst(invoices, "SELECT TOP 1 * FROM c WHERE c.invoiceNumber = @number", [
-        { name: "@number", value: invoiceNumber },
-      ]),
+    /** Up to two invoices with that number: enough to tell one from several. */
+    async findInvoicesByNumber(invoiceNumber) {
+      const { resources } = await invoices.items
+        .query({
+          query: "SELECT TOP 2 * FROM c WHERE c.invoiceNumber = @number",
+          parameters: [{ name: "@number", value: invoiceNumber }],
+        })
+        .fetchAll();
+      return resources;
+    },
 
     updateInvoice: (id, decide) => updateWith(invoices, id, decide, now),
   };
