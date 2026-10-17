@@ -43,6 +43,14 @@ describe("parseListQuery", () => {
     expect(options.orderBy).toBe("authorEmail");
   });
 
+  it("maps Appwrite system fields but not names inherited from Object", () => {
+    expect(parseListQuery({ orderBy: "$createdAt" }).orderBy).toBe("createdAt");
+    expect(parseListQuery({ orderBy: "constructor" }).orderBy).toBe("constructor");
+    expect(parseListQuery({ where: JSON.stringify({ toString: "x" }) }).where).toEqual([
+      { field: "toString", value: "x" },
+    ]);
+  });
+
   it("caps the limit", () => {
     expect(parseListQuery({ limit: "100000" }).limit).toBe(500);
   });
