@@ -11,7 +11,7 @@ vi.mock("@/services/api/inquiries", () => ({
 vi.mock("@/services/api/invoices", () => ({ getInvoices: () => getInvoices() }));
 vi.mock("@/services/api/adminHeaders", () => ({ adminHeaders: async () => ({}) }));
 
-// These tests never accept a confirm dialog; answer "cancel" if one opens.
+// Treat any confirmation as cancelled; these tests never accept one.
 vi.mock("../ConfirmContext", () => ({ useConfirm: () => async () => false }));
 
 import ClientWorkTab from "./ClientWorkTab";

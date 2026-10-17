@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useRef, useState } from "react";
 import { FaTrash, FaCheckCircle } from "react-icons/fa";
 
 export interface ConfirmChoice {
@@ -52,14 +52,16 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [choice, setChoice] = useState<string>("");
   const resolveRef = useRef<((v: boolean | string) => void) | null>(null);
 
-  const confirm: ConfirmFn = (opts) => {
+  // Stable across renders: the whole dashboard reads this context, so a new
+  // function each time would re-render it whenever the dialog opens or closes.
+  const confirm = useCallback<ConfirmFn>((opts) => {
     const normalised: State = typeof opts === "string" ? { message: opts } : opts;
     return new Promise<boolean | string>((resolve) => {
       resolveRef.current = resolve;
       setChoice(normalised.defaultChoice ?? normalised.choices?.[0]?.value ?? "");
       setState(normalised);
     });
-  };
+  }, []);
 
   const close = (value: boolean | string) => {
     resolveRef.current?.(value);
