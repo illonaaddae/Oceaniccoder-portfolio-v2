@@ -45,4 +45,23 @@ describe("ProviderLogin", () => {
     expect(screen.getByText("abc123")).toHaveClass("break-all");
     expect(screen.getByText(/Setting up\?/)).not.toHaveClass("break-all");
   });
+
+  test.each([
+    ["light", "text-error-700"],
+    ["dark", "text-error-400"],
+  ])("shows the not-admin alert in an AA-contrast error colour (%s)", (theme, colour) => {
+    render(<ProviderLogin theme={theme} signedInId="abc123" />);
+
+    expect(screen.getByRole("alert")).toHaveClass(colour);
+  });
+
+  test("puts white sign-in text on dark enough oceanic in the light theme", () => {
+    render(<ProviderLogin theme="light" />);
+
+    expect(screen.getByRole("link", { name: /sign in with github/i })).toHaveClass(
+      "from-oceanic-600",
+      "to-oceanic-700",
+      "text-white",
+    );
+  });
 });
