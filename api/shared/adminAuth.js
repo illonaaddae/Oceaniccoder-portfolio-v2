@@ -32,6 +32,20 @@ function readJwtCandidates(req) {
 }
 
 /**
+ * The SWA session is a cookie, so a hostile page could make the admin's
+ * browser send it. Cross-site requests are refused outright, and a POST must
+ * be JSON: a cross-site form or no-cors fetch can only send text/plain,
+ * form-encoded or multipart without a CORS preflight.
+ */
+function crossSiteError(req) {
+  const headers = req.headers || {};
+  if (headers["sec-fetch-site"] === "cross-site") return "Cross-site requests are not accepted.";
+  const type = String(headers["content-type"] || "").toLowerCase();
+  if (req.method === "POST" && !type.startsWith("application/json")) return "Send JSON.";
+  return null;
+}
+
+/**
  * Returns { user } for the admin, or { status, error } to send back.
  */
 async function requireAdmin(context, req) {
@@ -39,6 +53,8 @@ async function requireAdmin(context, req) {
   // assigned by /api/get-roles and SWA vouches for it in this header.
   const principal = readPrincipal(req);
   if (isAdmin(principal)) {
+    const refused = crossSiteError(req);
+    if (refused) return { status: 403, error: refused };
     return { user: { email: principal.userDetails, provider: principal.identityProvider } };
   }
 
@@ -71,4 +87,4 @@ async function requireAdmin(context, req) {
   return { status: 401, error: "Your session was not accepted. Sign out and back in, then retry." };
 }
 
-module.exports = { requireAdmin };
+module.exports = { requireAdmin, readJwtCandidates };
