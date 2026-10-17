@@ -33,15 +33,21 @@ function readJwtCandidates(req) {
   return candidates;
 }
 
+// Sec-Fetch-Site values for a request the dashboard itself made ("none" is
+// the admin typing the URL). Absent means a client that doesn't send it.
+const OWN_ORIGIN = new Set(["same-origin", "none"]);
+
 /**
  * The SWA session is a cookie, so a hostile page could make the admin's
- * browser send it. Cross-site requests are refused outright, and a POST must
- * be JSON: a cross-site form or no-cors fetch can only send text/plain,
- * form-encoded or multipart without a CORS preflight.
+ * browser send it. Requests from any other origin are refused outright,
+ * including same-site ones (another subdomain), and a POST must be JSON: a
+ * cross-site form or no-cors fetch can only send text/plain, form-encoded or
+ * multipart without a CORS preflight.
  */
 function crossSiteError(req) {
   const headers = req.headers || {};
-  if (headers["sec-fetch-site"] === "cross-site") return "Cross-site requests are not accepted.";
+  const site = headers["sec-fetch-site"];
+  if (site && !OWN_ORIGIN.has(site)) return "Cross-site requests are not accepted.";
   const type = String(headers["content-type"] || "").toLowerCase();
   if (req.method === "POST" && !type.startsWith("application/json")) return "Send JSON.";
   return null;
