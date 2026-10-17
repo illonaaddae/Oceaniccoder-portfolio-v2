@@ -1,5 +1,13 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { getJson, manageDelete, manageList, manageUpdate, submitRow, usesCosmos } from "./dataApi";
+import {
+  getJson,
+  manageDelete,
+  manageList,
+  manageUpdate,
+  readsAsAdmin,
+  submitRow,
+  usesCosmos,
+} from "./dataApi";
 import { listAllDocuments } from "./listAll";
 
 export interface Booking {
@@ -36,6 +44,9 @@ export async function createBooking(
 /** Every booking, newest first (the old 200-row limit dropped older ones). */
 export async function getBookings(): Promise<Booking[]> {
   if (usesCosmos) {
+    // Private rows (contact details): /dashboard shows none, as the Appwrite
+    // build does when the collection refuses an anonymous read.
+    if (!readsAsAdmin()) return [];
     const response = await manageList<Booking>(COLLECTIONS.BOOKINGS, {
       orderBy: "$createdAt",
       dir: "desc",

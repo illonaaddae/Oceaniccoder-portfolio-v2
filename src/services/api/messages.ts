@@ -3,6 +3,7 @@ import {
   manageDelete,
   manageList,
   manageUpdate,
+  readsAsAdmin,
   submitRow,
   usesCosmos,
   type RequestOptions,
@@ -13,6 +14,9 @@ import type { Message } from "../../types";
 /** Every message, newest first (Appwrite's 25-row default dropped older ones). */
 export async function getMessages(): Promise<Message[]> {
   if (usesCosmos) {
+    // Private rows (contact details): /dashboard shows none, as the Appwrite
+    // build does when the collection refuses an anonymous read.
+    if (!readsAsAdmin()) return [];
     const response = await manageList<Message>(COLLECTIONS.MESSAGES, {
       orderBy: "$createdAt",
       dir: "desc",
