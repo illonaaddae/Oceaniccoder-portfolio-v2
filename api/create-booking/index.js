@@ -15,6 +15,8 @@ const {
   divider,
   small,
 } = require("../shared/email/ui");
+const cosmos = require("../shared/cosmos");
+const { dataBackend } = require("../shared/backend");
 
 const MEETING_DURATIONS = { discovery: 30, project: 60, mentorship: 45, general: 30 };
 const MEETING_LABELS = {
@@ -212,6 +214,22 @@ async function isSlotTaken(date, time) {
   if (res.status !== 200) return false;
   const data = JSON.parse(res.body);
   return (data.total ?? 0) > 0;
+}
+
+// Same match as the bookings check in /api/submit, which guards the row write.
+async function isSlotTakenInCosmos(date, time) {
+  const { resources } = await cosmos
+    .getDatabase()
+    .container("bookings")
+    .items.query({
+      query: "SELECT TOP 1 c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
+      parameters: [
+        { name: "@date", value: date },
+        { name: "@time", value: time },
+      ],
+    })
+    .fetchAll();
+  return resources.length > 0;
 }
 
 const CLIENT_REASON = "OceanicCoder · Web and app development";
@@ -536,22 +554,42 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Server-side double-booking guard
-  try {
-    const taken = await isSlotTaken(preferredDate, preferredTime);
-    if (taken) {
+  // Server-side double-booking guard. The Appwrite check fails open. The
+  // Cosmos check fails closed: this function sends the calendar invite and
+  // the confirmation emails before the browser saves the row, so carrying on
+  // after a failed read could confirm a slot someone else holds. On a 503 the
+  // browser still saves through /api/submit, which checks the slot again, so
+  // the booking is kept; only its invite and emails are skipped.
+  let taken = false;
+  if (dataBackend() === "cosmos") {
+    try {
+      taken = await isSlotTakenInCosmos(preferredDate, preferredTime);
+    } catch (err) {
+      context.log.error("Slot check failed:", err.message);
       context.res = {
-        status: 409,
+        status: 503,
         headers: CORS,
-        body: JSON.stringify({
-          error: "slot_taken",
-          message: `${preferredTime} on ${preferredDate} is already booked. Please choose a different time.`,
-        }),
+        body: JSON.stringify({ error: "slot_check_failed" }),
       };
       return;
     }
-  } catch (err) {
-    context.log.warn("Slot check failed (non-fatal):", err.message);
+  } else {
+    try {
+      taken = await isSlotTaken(preferredDate, preferredTime);
+    } catch (err) {
+      context.log.warn("Slot check failed (non-fatal):", err.message);
+    }
+  }
+  if (taken) {
+    context.res = {
+      status: 409,
+      headers: CORS,
+      body: JSON.stringify({
+        error: "slot_taken",
+        message: `${preferredTime} on ${preferredDate} is already booked. Please choose a different time.`,
+      }),
+    };
+    return;
   }
 
   // ── Zoom path ────────────────────────────────────────────────────────────────
