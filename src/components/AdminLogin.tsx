@@ -81,7 +81,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
             handleForgotPassword={handleForgotPassword}
           />
         )}
-        <LoginFooter theme={theme} />
+        <LoginFooter theme={theme} passwordProtected={!usesCosmos} />
       </div>
     </div>
   );
