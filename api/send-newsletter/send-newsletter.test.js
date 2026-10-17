@@ -66,7 +66,10 @@ describe("send-newsletter access", () => {
     saved.email = process.env.ADMIN_EMAIL;
     process.env.ADMIN_USER_IDS = "gh-123";
     process.env.ADMIN_EMAIL = "admin@example.com";
-    request = vi.spyOn(https, "request");
+    // A test that got past the gate must not reach Resend.
+    request = vi.spyOn(https, "request").mockImplementation(() => {
+      throw new Error("network in test");
+    });
   });
   afterEach(() => {
     vi.restoreAllMocks();
