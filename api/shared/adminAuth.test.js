@@ -45,11 +45,16 @@ describe("requireAdmin with a Static Web Apps session", () => {
     expect(await requireAdmin(context, request("POST", headers))).toMatchObject({ status: 403 });
   });
 
-  it("refuses any cross-site request, even a JSON one", async () => {
-    const req = request("POST", {
-      "content-type": "application/json",
-      "sec-fetch-site": "cross-site",
-    });
-    expect(await requireAdmin(context, req)).toMatchObject({ status: 403 });
+  it.each(["cross-site", "same-site"])(
+    "refuses a %s request from another origin, even a JSON one",
+    async (site) => {
+      const req = request("POST", { "content-type": "application/json", "sec-fetch-site": site });
+      expect(await requireAdmin(context, req)).toMatchObject({ status: 403 });
+    },
+  );
+
+  it.each(["same-origin", "none"])("accepts Sec-Fetch-Site %s", async (site) => {
+    const req = request("GET", { "sec-fetch-site": site });
+    expect((await requireAdmin(context, req)).user).toBeTruthy();
   });
 });
