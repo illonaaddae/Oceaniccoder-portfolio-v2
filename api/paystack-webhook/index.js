@@ -72,16 +72,21 @@ function httpsPost(hostname, path, headers, body) {
   });
 }
 
+/** True when Resend accepted the email (2xx). A failure is logged, never thrown. */
 async function sendEmail(apiKey, fromEmail, to, subject, html, log) {
   try {
-    await httpsPost(
+    const { status } = await httpsPost(
       "api.resend.com",
       "/emails",
       { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       { from: `OceanicCoder <${fromEmail}>`, to: [to], subject, html },
     );
+    if (status >= 200 && status < 300) return true;
+    if (log) log.warn("Email send failed:", `Resend answered ${status}`);
+    return false;
   } catch (err) {
     if (log) log.warn("Email send failed:", err.message);
+    return false;
   }
 }
 

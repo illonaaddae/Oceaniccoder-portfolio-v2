@@ -51,9 +51,12 @@ const invoiceDoc = (over = {}) => ({
   ...over,
 });
 
-// Records every email instead of calling Resend.
+// Records every email attempt instead of calling Resend. Push statuses onto
+// sent.answers to have the next attempts answered with them (default 200).
 function captureEmails() {
   const sent = [];
+  // Not enumerable, so `expect(sent).toEqual([])` still means "no attempts".
+  Object.defineProperty(sent, "answers", { value: [] });
   vi.spyOn(https, "request").mockImplementation((options, onResponse) => {
     let raw = "";
     return {
@@ -63,8 +66,9 @@ function captureEmails() {
         raw += chunk;
       },
       end: () => {
-        sent.push({ host: options.hostname, ...JSON.parse(raw) });
-        onResponse({ statusCode: 200, on: (ev, fn) => ev === "end" && fn() });
+        const statusCode = sent.answers.length ? sent.answers.shift() : 200;
+        sent.push({ host: options.hostname, status: statusCode, ...JSON.parse(raw) });
+        onResponse({ statusCode, on: (ev, fn) => ev === "end" && fn() });
       },
     };
   });
