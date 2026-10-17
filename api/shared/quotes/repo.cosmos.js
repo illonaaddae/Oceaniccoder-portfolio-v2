@@ -54,7 +54,7 @@ function withoutSystemFields(doc) {
 }
 
 function parse(raw, fallback) {
-  if (raw == null || raw === "") return structuredClone(fallback);
+  if (raw === null || raw === undefined || raw === "") return structuredClone(fallback);
   if (typeof raw !== "string") return raw;
   try {
     return JSON.parse(raw);
