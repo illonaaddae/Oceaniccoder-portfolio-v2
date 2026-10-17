@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { FaUser, FaEdit, FaTrash, FaCheck } from "react-icons/fa";
 import type { Testimonial } from "@/types";
 import { StarRating } from "./StarRating";
@@ -24,6 +24,7 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
 }) => {
   const pending = testimonial.approved === false;
   const confirm = useConfirm();
+  const editRef = useRef<HTMLButtonElement>(null);
   return (
     <div className="glass-card card-hover p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -96,7 +97,12 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
             <div className="flex gap-2">
               {pending && onApprove && (
                 <button
-                  onClick={() => onApprove(testimonial.$id)}
+                  onClick={() => {
+                    onApprove(testimonial.$id);
+                    // The Approve button goes once the card is approved; keep
+                    // keyboard focus on this card rather than dropping to <body>.
+                    editRef.current?.focus();
+                  }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     theme === "dark"
                       ? "bg-success-400/10 text-success-400 border border-success-400/30 hover:bg-success-400/20"
@@ -108,6 +114,7 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
                 </button>
               )}
               <button
+                ref={editRef}
                 onClick={() => onEdit?.(testimonial)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   theme === "dark"
