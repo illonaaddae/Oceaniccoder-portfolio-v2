@@ -32,6 +32,11 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
+// A hung Resend request must not hold a run open: the Cosmos branch claims
+// the emails for NOTIFY_CLAIM_MS (2 minutes), and a run must finish well
+// inside that.
+const EMAIL_TIMEOUT_MS = 10 * 1000;
+
 function httpsPost(hostname, path, headers, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
@@ -51,6 +56,9 @@ function httpsPost(hostname, path, headers, body) {
       },
     );
     req.on("error", reject);
+    req.setTimeout(EMAIL_TIMEOUT_MS, () => {
+      req.destroy(new Error(`no response from ${hostname} in ${EMAIL_TIMEOUT_MS / 1000}s`));
+    });
     req.write(data);
     req.end();
   });

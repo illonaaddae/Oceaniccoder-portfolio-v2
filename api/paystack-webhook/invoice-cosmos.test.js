@@ -57,6 +57,7 @@ function captureEmails() {
     let raw = "";
     return {
       on: () => {},
+      setTimeout: () => {},
       write: (chunk) => {
         raw += chunk;
       },
