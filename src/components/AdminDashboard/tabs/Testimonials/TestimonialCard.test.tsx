@@ -81,4 +81,16 @@ describe("TestimonialCard", () => {
       expect(approveButton()).toHaveClass(...approve);
     },
   );
+
+  test("keeps keyboard focus on the card's Edit button once Approve goes away", () => {
+    const card = renderCard({ ...TESTIMONIAL, approved: false });
+    const approve = approveButton()!;
+    approve.focus();
+
+    fireEvent.click(approve);
+    card.rerender({ ...TESTIMONIAL, approved: true });
+
+    expect(approveButton()).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /edit/i })).toHaveFocus();
+  });
 });
