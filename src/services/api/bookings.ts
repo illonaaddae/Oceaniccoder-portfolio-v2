@@ -56,15 +56,6 @@ export async function getBookings(): Promise<Booking[]> {
   return listAllDocuments<Booking & { $id: string }>(COLLECTIONS.BOOKINGS);
 }
 
-export async function isSlotBooked(preferredDate: string, preferredTime: string): Promise<boolean> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
-    Query.limit(500),
-  ]);
-  return response.documents.some(
-    (doc) => doc.preferredDate === preferredDate && doc.preferredTime === preferredTime,
-  );
-}
-
 export async function getBookedTimesForDate(preferredDate: string): Promise<Set<string>> {
   if (usesCosmos) {
     const { times } = await getJson<{ times: string[] }>(
