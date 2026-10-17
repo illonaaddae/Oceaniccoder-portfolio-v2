@@ -44,9 +44,12 @@ const invoice = (over = {}) => ({
   ...over,
 });
 
-// Records every email instead of calling Resend.
+// Records every email attempt instead of calling Resend. Push statuses onto
+// sent.answers to have the next attempts answered with them (default 200).
 function captureEmails() {
   const sent = [];
+  // Not enumerable, so `expect(sent).toEqual([])` still means "no attempts".
+  Object.defineProperty(sent, "answers", { value: [] });
   vi.spyOn(https, "request").mockImplementation((options, onResponse) => {
     let raw = "";
     return {
@@ -56,8 +59,9 @@ function captureEmails() {
         raw += chunk;
       },
       end: () => {
-        sent.push({ host: options.hostname, ...JSON.parse(raw) });
-        const res = { statusCode: 200, on: (ev, fn) => ev === "end" && fn() };
+        const statusCode = sent.answers.length ? sent.answers.shift() : 200;
+        sent.push({ host: options.hostname, status: statusCode, ...JSON.parse(raw) });
+        const res = { statusCode, on: (ev, fn) => ev === "end" && fn() };
         onResponse(res);
       },
     };
@@ -171,6 +175,24 @@ describe("paystack-webhook invoice branch on Appwrite", () => {
     );
     expect(create).toHaveBeenCalledTimes(1);
   }, 2000);
+
+  it("warns with the status when Resend refuses an email and carries on", async () => {
+    withRows([], [invoice()]);
+    sent.answers.push(422, 200);
+    const context = {
+      res: null,
+      log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+    };
+    await handler(context, signed(chargeOf()));
+    expect(context.res.status).toBe(200);
+    expect(context.log.warn).toHaveBeenCalledWith("Email send failed:", "Resend answered 422");
+    expect(sent.map((m) => [m.to[0], m.status])).toEqual([
+      ["ama@example.com", 422],
+      ["admin@example.com", 200],
+    ]);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
 
   it("ignores a reference that is already recorded", async () => {
     withRows([{ $id: "p0" }], []);
