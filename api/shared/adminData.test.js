@@ -1,8 +1,22 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 
-const { Invalid, isCollection, partitionField, writableFields, buildAdminQuery, isJsonRequest } =
-  await import("./adminData.js");
+const {
+  Invalid,
+  isCollection,
+  canDelete,
+  partitionField,
+  writableFields,
+  buildAdminQuery,
+  isJsonRequest,
+} = await import("./adminData.js");
+
+describe("canDelete", () => {
+  it("never deletes payments, which are archived instead", () => {
+    expect(canDelete("payments")).toBe(false);
+    expect(canDelete("messages")).toBe(true);
+  });
+});
 
 describe("isCollection", () => {
   it("accepts containers and rejects inherited keys", () => {
