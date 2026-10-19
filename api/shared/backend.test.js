@@ -22,10 +22,17 @@ describe("dataBackend", () => {
 });
 
 describe("writeHold", () => {
-  it("is on only for exactly '1'", () => {
+  it("is on for '1' and off when unset, empty or '0'", () => {
     expect(writeHold({ WRITE_HOLD: "1" })).toBe(true);
-    for (const value of [undefined, "", "0", "true", "yes", " 1"]) {
+    expect(writeHold({})).toBe(false);
+    for (const value of [undefined, "", "0"]) {
       expect(writeHold({ WRITE_HOLD: value })).toBe(false);
+    }
+  });
+
+  it("throws on any other value, so a typo fails closed", () => {
+    for (const value of ["true", "yes", " 1", "1 ", "on", "false"]) {
+      expect(() => writeHold({ WRITE_HOLD: value })).toThrow(/WRITE_HOLD must be/);
     }
   });
 });
