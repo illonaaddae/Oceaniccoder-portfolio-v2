@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import type { Certification, Project } from "@/types";
 
 const project = { $id: "p1", title: "Shop", $createdAt: "2026-10-01T00:00:00.000Z" } as Project;
@@ -49,8 +49,8 @@ describe("AdminDashboard delete confirmation", () => {
     const [trash] = await screen.findAllByTitle("Delete project");
     fireEvent.click(trash);
 
-    expect(await screen.findByRole("heading", { name: "Delete project?" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("alertdialog", { name: 'Delete "Shop"?' });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete project" }));
     await waitFor(() => expect(deleteProject).toHaveBeenCalledWith("p1"));
   });
 
@@ -61,10 +61,8 @@ describe("AdminDashboard delete confirmation", () => {
     const [trash] = await screen.findAllByTitle("Delete certification");
     fireEvent.click(trash);
 
-    expect(
-      await screen.findByRole("heading", { name: "Delete certification?" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("alertdialog", { name: 'Delete "Cloud Practitioner"?' });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete certification" }));
     await waitFor(() => expect(deleteCertification).toHaveBeenCalledWith("c1"));
   });
 
@@ -75,11 +73,9 @@ describe("AdminDashboard delete confirmation", () => {
     const [trash] = await screen.findAllByTitle("Delete project");
     fireEvent.click(trash);
 
-    await screen.findByRole("heading", { name: "Delete project?" });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() =>
-      expect(screen.queryByRole("heading", { name: "Delete project?" })).not.toBeInTheDocument(),
-    );
+    const dialog = await screen.findByRole("alertdialog", { name: 'Delete "Shop"?' });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(deleteProject).not.toHaveBeenCalled();
   });
 });
