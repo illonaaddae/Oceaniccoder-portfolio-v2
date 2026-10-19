@@ -60,49 +60,54 @@ async function checkAgainstData(db, collection, doc) {
   return null;
 }
 
-module.exports = async function (context, req) {
-  const collection = context.bindingData && context.bindingData.collection;
-  const { turnstileToken, imageData, ...fields } = req.body || {};
+function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage }) {
+  return async function (context, req) {
+    const collection = context.bindingData && context.bindingData.collection;
+    const { turnstileToken, imageData, ...fields } = req.body || {};
 
-  let doc;
-  try {
-    doc = validateSubmission(collection, fields);
-  } catch (err) {
-    if (err instanceof Invalid) {
-      reply(context, err.message === "Unknown form" ? 404 : 400, { error: err.message });
-      return;
+    let doc;
+    try {
+      doc = validateSubmission(collection, fields);
+    } catch (err) {
+      if (err instanceof Invalid) {
+        reply(context, err.message === "Unknown form" ? 404 : 400, { error: err.message });
+        return;
+      }
+      throw err;
     }
-    throw err;
-  }
-  if (imageData !== undefined && collection !== "testimonials") {
-    reply(context, 400, { error: "Unexpected field: imageData" });
-    return;
-  }
-
-  const spam = await verifyTurnstile(turnstileToken, clientIp(req));
-  if (!spam.ok) {
-    reply(context, spam.status, { error: spam.error });
-    return;
-  }
-
-  try {
-    const db = getDatabase();
-    const conflict = await checkAgainstData(db, collection, doc);
-    if (conflict) {
-      reply(context, conflict[0], { error: conflict[1] });
+    if (imageData !== undefined && collection !== "testimonials") {
+      reply(context, 400, { error: "Unexpected field: imageData" });
       return;
     }
 
-    if (imageData) doc.image = await storeVisitorImage(imageData);
-
-    const { resource } = await db.container(collection).items.create(newDocument(doc));
-    reply(context, 201, fromCosmos(resource));
-  } catch (err) {
-    if (err.status === 400) {
-      reply(context, 400, { error: err.message });
+    const spam = await verifyTurnstile(turnstileToken, clientIp(req));
+    if (!spam.ok) {
+      reply(context, spam.status, { error: spam.error });
       return;
     }
-    context.log.error(`submit/${collection} failed:`, err.message);
-    reply(context, 500, { error: "Couldn't save that. Please try again." });
-  }
-};
+
+    try {
+      const db = getDatabase();
+      const conflict = await checkAgainstData(db, collection, doc);
+      if (conflict) {
+        reply(context, conflict[0], { error: conflict[1] });
+        return;
+      }
+
+      if (imageData) doc.image = await storeVisitorImage(imageData);
+
+      const { resource } = await db.container(collection).items.create(newDocument(doc));
+      reply(context, 201, fromCosmos(resource));
+    } catch (err) {
+      if (err.status === 400) {
+        reply(context, 400, { error: err.message });
+        return;
+      }
+      context.log.error(`submit/${collection} failed:`, err.message);
+      reply(context, 500, { error: "Couldn't save that. Please try again." });
+    }
+  };
+}
+
+module.exports = createHandler({ getDatabase, verifyTurnstile, storeVisitorImage });
+module.exports.createHandler = createHandler;
