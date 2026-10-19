@@ -7,6 +7,7 @@ const quoteEmails = require("./quoteEmails");
 const booking = require("../../create-booking/index.js");
 const { welcomeEmailHtml } = require("../../newsletter-signup/index.js");
 const { inquiryEmail } = require("../../notify-inquiry/index.js");
+const { messageAlertEmail } = require("../../submit/messageAlert.js");
 const { emails: webhook } = require("../../paystack-webhook/index.js");
 const { buildStatusEmail } = require("../../send-inquiry-status/index.js");
 const { renderInvoiceEmail } = require("../../send-invoice/index.js");
@@ -262,6 +263,20 @@ const CATALOG = [
           projectType: "E-commerce Website",
         }),
       ),
+  },
+  {
+    id: "messageReceivedAlert",
+    group: "admin",
+    name: "New message",
+    when: "Someone sends the contact form",
+    render: () =>
+      messageAlertEmail({
+        name: "Kofi Mensah",
+        email: "kofi@example.com",
+        subject: "An online store for my crafts",
+        message:
+          "Hello,\n\nI sell handmade baskets and want customers to order and pay online. Could we talk about what that would take?",
+      }),
   },
   {
     id: "bookingHostNotice",

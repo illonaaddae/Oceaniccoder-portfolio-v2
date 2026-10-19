@@ -39,6 +39,7 @@ describe("email catalog", () => {
       "invoiceRecordFailed",
       "webhookFailed",
       "inquiryReceivedAlert",
+      "messageReceivedAlert",
       "inquiryReviewed",
       "inquiryQuoted",
       "inquiryWon",
