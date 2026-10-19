@@ -63,6 +63,12 @@ describe("WRITE_HOLD", () => {
     expect(log.error).not.toHaveBeenCalled();
   });
 
+  it("makes createServices throw on an unrecognised value", () => {
+    vi.stubEnv("WRITE_HOLD", "true");
+    vi.stubEnv("APPWRITE_API_KEY", "test-key");
+    expect(() => createServices()).toThrow(/WRITE_HOLD must be/);
+  });
+
   it("makes a webhook settle fail, so Paystack retries", async () => {
     vi.stubEnv("WRITE_HOLD", "1");
     await expect(handleQuoteCharge("REF-1")).rejects.toMatchObject({ status: 503 });

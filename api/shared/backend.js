@@ -8,6 +8,9 @@
 //
 // WRITE_HOLD=1 pauses the quote service during the data move: its functions
 // answer 503, and Paystack retries its webhooks after the hold is lifted.
+// Unset, "" or "0" means off. Any other value throws, so "true" or "yes"
+// fails closed (every quote function answers 500) instead of leaving writes
+// running during the move.
 
 const BACKENDS = new Set(["appwrite", "cosmos"]);
 
@@ -19,9 +22,14 @@ function dataBackend(env = process.env) {
   throw new Error(`DATA_BACKEND must be "appwrite" or "cosmos", not "${value}"`);
 }
 
-/** True only when WRITE_HOLD is exactly "1". */
+const HOLD_OFF = new Set([undefined, "", "0"]);
+
+/** True for "1", false for unset, "" or "0". Throws on any other value. */
 function writeHold(env = process.env) {
-  return env.WRITE_HOLD === "1";
+  const value = env.WRITE_HOLD;
+  if (value === "1") return true;
+  if (HOLD_OFF.has(value)) return false;
+  throw new Error(`WRITE_HOLD must be "1" or "0", not "${value}"`);
 }
 
 module.exports = { dataBackend, writeHold };
