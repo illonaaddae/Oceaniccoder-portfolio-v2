@@ -127,6 +127,8 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `CONTACT_WHATSAPP`        | Optional WhatsApp number shown on client quote pages (digits, with country code)                                                                               |
 | `ANTHROPIC_API_KEY`       | Claude API key for the AI quote drafter (PR 1b)                                                                                                                |
 | `CRON_SECRET`             | Lets the daily GitHub Action trigger maintenance offer emails                                                                                                  |
+| `DATA_BACKEND`            | Server data store: `appwrite` (default) or `cosmos`; other values throw. Flip with `VITE_DATA_BACKEND` (runbook in `docs/plans/`)                              |
+| `WRITE_HOLD`              | `1` holds quote writes during the cutover (quote service 503, webhook quote branch 500); unset, empty or `0` is off; others throw                              |
 | `ADMIN_USER_IDS`          | SWA sign-in ids that get the admin role                                                                                                                        |
 | `GITHUB_CLIENT_ID`        | GitHub OAuth app for admin sign-in                                                                                                                             |
 | `GITHUB_CLIENT_SECRET`    | GitHub OAuth app secret                                                                                                                                        |
