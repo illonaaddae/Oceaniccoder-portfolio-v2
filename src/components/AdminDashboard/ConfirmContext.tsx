@@ -225,8 +225,8 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                   onClick={accept}
                   className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition ${
                     state.variant === "success"
-                      ? "bg-green-600 hover:bg-green-700"
-                      : "bg-red-500 hover:bg-red-600"
+                      ? "bg-success-700 hover:bg-success-800"
+                      : "bg-error-700 hover:bg-error-800"
                   }`}
                 >
                   {state.confirmLabel ?? (state.variant === "success" ? "Confirm" : "Delete")}
