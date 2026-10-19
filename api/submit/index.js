@@ -8,11 +8,17 @@
 // (tokens are single-use), and the row is written only after both pass. What
 // each form may send, and what the server sets itself, is in
 // api/shared/submissions.js.
+//
+// A saved contact message also emails the admin (RESEND_TO_EMAIL). The email
+// goes only after the row is saved, and a failed send is logged, never
+// returned: the visitor's message is already stored.
 
 const { getDatabase, newDocument, fromCosmos } = require("../shared/cosmos");
 const { Invalid, validateSubmission } = require("../shared/submissions");
 const { verifyTurnstile, clientIp } = require("../shared/turnstile");
 const { storeVisitorImage } = require("../shared/media");
+const { sendEmail } = require("../shared/email/send");
+const { messageAlertEmail } = require("./messageAlert");
 
 const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store" };
 
@@ -60,7 +66,23 @@ async function checkAgainstData(db, collection, doc) {
   return null;
 }
 
-function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage }) {
+/** Emails the admin about a saved message. Logs a failure; never throws. */
+async function alertAdmin(context, row, sendEmail) {
+  let error;
+  try {
+    const result = await sendEmail({
+      to: process.env.RESEND_TO_EMAIL,
+      replyTo: row.email,
+      ...messageAlertEmail(row),
+    });
+    if (!result.ok) error = result.error;
+  } catch (err) {
+    error = err.message;
+  }
+  if (error) context.log.error(`submit/messages: alert email for ${row.$id} failed:`, error);
+}
+
+function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage, sendEmail }) {
   return async function (context, req) {
     const collection = context.bindingData && context.bindingData.collection;
     const { turnstileToken, imageData, ...fields } = req.body || {};
@@ -86,6 +108,7 @@ function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage }) {
       return;
     }
 
+    let saved;
     try {
       const db = getDatabase();
       const conflict = await checkAgainstData(db, collection, doc);
@@ -97,7 +120,7 @@ function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage }) {
       if (imageData) doc.image = await storeVisitorImage(imageData);
 
       const { resource } = await db.container(collection).items.create(newDocument(doc));
-      reply(context, 201, fromCosmos(resource));
+      saved = fromCosmos(resource);
     } catch (err) {
       if (err.status === 400) {
         reply(context, 400, { error: err.message });
@@ -105,9 +128,13 @@ function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage }) {
       }
       context.log.error(`submit/${collection} failed:`, err.message);
       reply(context, 500, { error: "Couldn't save that. Please try again." });
+      return;
     }
+
+    reply(context, 201, saved);
+    if (collection === "messages") await alertAdmin(context, saved, sendEmail);
   };
 }
 
-module.exports = createHandler({ getDatabase, verifyTurnstile, storeVisitorImage });
+module.exports = createHandler({ getDatabase, verifyTurnstile, storeVisitorImage, sendEmail });
 module.exports.createHandler = createHandler;
