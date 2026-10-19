@@ -321,6 +321,13 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(sent[0].html).toContain("has no usable total");
   });
 
+  it("ignores a metadata invoiceNumber that is not a string and reads the reference", async () => {
+    const event = chargeOf({ metadata: { invoiceNumber: ["INV-2026-0042"] } });
+    expect((await run(signed(event))).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(payment()).toMatchObject({ invoiceNumber: "INV-2026-0042" });
+  });
+
   it("alerts and answers 200 for a charge without a reference", async () => {
     expect((await run(signed(chargeOf({ reference: "" })))).status).toBe(200);
     expect(sent[0].html).toContain("payment has no Paystack reference");

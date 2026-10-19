@@ -520,9 +520,11 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp)
+  // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp).
+  // Metadata is whatever the browser sent, so anything but a string is ignored:
+  // an object or array would reach the invoice query as a value.
   const invoiceNumber =
-    metadata.invoiceNumber ||
+    (typeof metadata.invoiceNumber === "string" && metadata.invoiceNumber) ||
     (data.reference && data.reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
 
   if (!invoiceNumber) {
