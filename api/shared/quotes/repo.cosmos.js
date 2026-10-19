@@ -38,6 +38,9 @@ const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
 const SYSTEM_FIELDS = ["_rid", "_self", "_etag", "_attachments", "_ts"];
 // The first replace plus three retries when the etag no longer matches.
 const MAX_REPLACE_ATTEMPTS = 4;
+// Up to this many milliseconds of random wait before a retry, so two writers
+// that collided do not reread and collide again in lockstep.
+const RETRY_JITTER_MS = 50;
 const NUMBER_ATTEMPTS = 5;
 
 const isCode = (err, code) => Boolean(err) && err.code === code;
@@ -143,6 +146,7 @@ async function mergeAndReplace(container, id, patch) {
     } catch (err) {
       if (!isCode(err, 412) || attempt >= MAX_REPLACE_ATTEMPTS) throw err;
     }
+    await new Promise((resolve) => setTimeout(resolve, Math.random() * RETRY_JITTER_MS));
   }
 }
 

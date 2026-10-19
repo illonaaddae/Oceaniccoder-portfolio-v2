@@ -221,6 +221,22 @@ describe("Cosmos quote repo", () => {
       expect(replace).toHaveBeenCalledTimes(4);
     });
 
+    it("waits a random moment of up to 50 ms before each retry", async () => {
+      const { repo, quotes } = setup();
+      quotes.seed({ id: "q1", quoteNumber: "Q-2026-0001" });
+      quotes.hooks.beforeReplace = async () => {
+        throw conflict();
+      };
+      vi.spyOn(Math, "random").mockReturnValue(0.5);
+      const timer = vi.spyOn(globalThis, "setTimeout");
+      try {
+        await expect(repo.update("q1", { status: "sent" })).rejects.toMatchObject({ code: 412 });
+        expect(timer.mock.calls.map(([, ms]) => ms)).toEqual([25, 25, 25]);
+      } finally {
+        vi.restoreAllMocks();
+      }
+    });
+
     it("does not retry other replace errors", async () => {
       const { repo, payments } = setup();
       payments.seed({ id: "p1", amount: 1 });
