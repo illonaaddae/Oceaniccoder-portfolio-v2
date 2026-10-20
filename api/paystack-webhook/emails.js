@@ -7,6 +7,52 @@ const { shell, heading, p, card, notice, small } = require("../shared/email/ui")
 
 const currencySymbol = (currency) => (currency === "GHS" ? "₵" : currency);
 
+// How long Paystack retries a webhook that fails
+// (paystack.com/docs/payments/webhooks): in live mode every 3 minutes for the
+// first 4 tries, then hourly for the next 72 hours; in test mode hourly for
+// 10 hours. The deadlines below count from the charge time, which is a
+// little before the first delivery, so they come out slightly early: the
+// safe side for "record it by hand by then".
+const RETRY_WINDOWS = {
+  live: {
+    ms: 72 * 60 * 60 * 1000,
+    charge:
+      "In live mode Paystack keeps retrying for about 72 hours after the first failed delivery",
+    each: "In live mode Paystack keeps retrying each charge for about 72 hours after its first failed delivery.",
+  },
+  test: {
+    ms: 10 * 60 * 60 * 1000,
+    charge: "In test mode Paystack retries hourly for about 10 hours",
+    each: "In test mode Paystack retries each charge hourly for about 10 hours.",
+  },
+};
+
+const formatUtc = (ms) => `${new Date(ms).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+
+/**
+ * How long Paystack keeps retrying one charge, as a sentence for an email.
+ * `mode` is the charge's data.domain ("live" or "test"); `chargedAt` is
+ * when it was made, in ms. Without a known mode there is no time to give.
+ */
+function retryWindowText({ mode, chargedAt } = {}) {
+  const window = RETRY_WINDOWS[mode];
+  if (!window) {
+    return "The webhook did not say whether the charge was in live or test mode, so check in the Paystack dashboard how long Paystack keeps retrying it (about 72 hours in live mode, about 10 hours in test mode).";
+  }
+  if (!Number.isFinite(chargedAt)) {
+    return `${window.charge}. The webhook did not give a usable charge time, so check when the charge was made in the Paystack dashboard.`;
+  }
+  return `${window.charge}, so until about ${formatUtc(chargedAt + window.ms)}.`;
+}
+
+/** The same for every charge at once, by the mode of the secret key. */
+function retryLengthText(mode) {
+  return (
+    RETRY_WINDOWS[mode]?.each ??
+    "Paystack keeps retrying each charge for about 72 hours in live mode and about 10 hours in test mode."
+  );
+}
+
 const CLIENT_REASON = "OceanicCoder · Web and app development";
 const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
 
@@ -59,11 +105,9 @@ function webhookRetryEmail(reason, detail) {
 
 // webhookRetryEmail for when Cosmos could not record the alert claim, so it
 // was claimed in this process only. Nothing can send the 24-hour follow-up,
-// so this one email has to give the deadline itself.
-function webhookUntrackedEmail(reason, detail, deadline) {
-  const when = Number.isFinite(deadline)
-    ? `${new Date(deadline).toISOString().slice(0, 16).replace("T", " ")} UTC`
-    : null;
+// so this one email has to give the deadline itself. `window` is
+// { mode, chargedAt }, see retryWindowText.
+function webhookUntrackedEmail(reason, detail, window) {
   return shell({
     preview: `Paystack payment may need recording by hand: ${reason}`,
     reason: ADMIN_REASON,
@@ -77,9 +121,7 @@ function webhookUntrackedEmail(reason, detail, deadline) {
       }) +
       notice({
         tone: "danger",
-        text: when
-          ? `Cosmos could not keep track of this alert, so no follow-up email will come. Paystack stops retrying 72 hours after the charge, at ${when}. If the payment is not in the Payments tab by then, record the payment by hand.`
-          : "Cosmos could not keep track of this alert, so no follow-up email will come. Paystack stops retrying 72 hours after the charge; the webhook did not say when the charge was, so check its time in the Paystack dashboard. If the payment is not in the Payments tab by then, record the payment by hand.",
+        text: `Cosmos could not keep track of this alert, so no follow-up email will come. ${retryWindowText(window)} Before then, check the Payments tab or the Paystack dashboard; if the payment is still not recorded, record the payment by hand.`,
       }) +
       notice({ tone: "warn", text: `Reason: ${reason}` }) +
       (detail ? p(`Detail: ${detail}`) : "") +
@@ -90,9 +132,9 @@ function webhookUntrackedEmail(reason, detail, deadline) {
 }
 
 // The one follow-up to webhookRetryEmail, when the same payment still fails a
-// day later. Paystack gives up 72 hours after the charge, so this is the
-// point to look into it and be ready to record the payment by hand.
-function webhookEscalationEmail(reason, detail) {
+// day later. Paystack gives up after a while (retryWindowText), so this is
+// the point to look into it and be ready to record the payment by hand.
+function webhookEscalationEmail(reason, detail, window) {
   return shell({
     preview: `Paystack payment still unrecorded after 24 hours: ${reason}`,
     reason: ADMIN_REASON,
@@ -101,13 +143,12 @@ function webhookEscalationEmail(reason, detail) {
         eyebrow: "Webhook still failing",
         tone: "danger",
         title: "A Paystack payment is still not recorded",
-        intro:
-          "Paystack's retries for this payment are still failing 24 hours after the first alert. Paystack stops retrying 72 hours after the charge; after that the payment is not delivered again.",
+        intro: `Paystack's retries for this payment are still failing 24 hours after the first alert. ${retryWindowText(window)} After that the payment is not delivered again.`,
       }) +
       notice({ tone: "danger", text: `Reason: ${reason}` }) +
       (detail ? p(`Detail: ${detail}`) : "") +
       p(
-        "Check the function logs for the cause and fix it, so a remaining retry can record the payment. If it cannot be fixed before the retries run out (72 hours after the charge), record the payment by hand from the Paystack dashboard.",
+        "Check the function logs for the cause and fix it, so a remaining retry can record the payment. If it cannot be fixed before the retries run out, record the payment by hand from the Paystack dashboard.",
       ) +
       small(
         "If you record it by hand and a retry later succeeds, the client gets a second receipt. This is the last email about this payment; later attempts are only logged.",
@@ -164,9 +205,10 @@ function recordedConflictEmail(reason, detail) {
 }
 
 // For an invalid DATA_BACKEND or WRITE_HOLD, which fails every delivery
-// until the setting is fixed. Paystack retries for 72 hours; after that the
-// charges are not delivered again and must be recorded by hand.
-function invalidSettingEmail(setting, detail) {
+// until the setting is fixed. Charges whose retries run out before then are
+// not delivered again and must be recorded by hand. `mode` is the mode of
+// the secret key, as no single charge decides it.
+function invalidSettingEmail(setting, detail, mode) {
   return shell({
     preview: `Paystack webhooks are failing: ${setting} is not valid`,
     reason: ADMIN_REASON,
@@ -179,7 +221,7 @@ function invalidSettingEmail(setting, detail) {
       }) +
       notice({
         tone: "danger",
-        text: `Fix ${setting} in the Static Web App configuration within Paystack's 72-hour retry window. Charges whose retries run out before then are lost and must be recorded by hand.`,
+        text: `Fix ${setting} in the Static Web App configuration soon. ${retryLengthText(mode)} Charges whose retries run out before the fix are lost and must be recorded by hand.`,
       }) +
       notice({ tone: "warn", text: `Detail: ${detail}` }) +
       p(

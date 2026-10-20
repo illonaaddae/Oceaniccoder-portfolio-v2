@@ -58,10 +58,10 @@ const CORS = {
 // inside that.
 const EMAIL_TIMEOUT_MS = 10 * 1000;
 
-// Paystack retries a failed webhook for this long after the charge.
-const RETRY_WINDOW_MS = 72 * 60 * 60 * 1000;
-
-/** When Paystack says the charge was made, in ms, or NaN if it does not. */
+/**
+ * When Paystack says the charge was made, in ms, or NaN if it does not. The
+ * alert emails count Paystack's retry window from it (emails.js).
+ */
 function chargeTime(data) {
   const raw = [data.paid_at, data.paidAt, data.created_at, data.createdAt].find(
     (value) => typeof value === "string" && value,
@@ -265,7 +265,7 @@ async function alertRetryableFailure({
   recorded,
   reason,
   detail,
-  chargedAt,
+  retryWindow,
   mail,
   log,
 }) {
@@ -301,7 +301,7 @@ async function alertRetryableFailure({
       if (!tracked) {
         return mail(
           `Action needed: a payment for invoice ${invoiceNumber} may need recording by hand`,
-          webhookUntrackedEmail(reason, detail, chargedAt + RETRY_WINDOW_MS),
+          webhookUntrackedEmail(reason, detail, retryWindow),
         );
       }
       return mail(
@@ -339,7 +339,7 @@ async function alertRetryableFailure({
     send: () =>
       mail(
         `Action needed: a payment for invoice ${invoiceNumber} is still unrecorded after 24 hours`,
-        webhookEscalationEmail(reason, detail),
+        webhookEscalationEmail(reason, detail, retryWindow),
       ),
     log,
   });
@@ -409,7 +409,7 @@ module.exports = async function (context, req) {
             fromEmail,
             adminEmail,
             `Action needed: ${setting} has an invalid value; payments are not being recorded`,
-            invalidSettingEmail(setting, err.message),
+            invalidSettingEmail(setting, err.message, keyMode),
             context.log,
           ),
         log: context.log,
@@ -681,7 +681,7 @@ module.exports = async function (context, req) {
           recorded: Boolean(err?.paymentRecorded),
           reason,
           detail,
-          chargedAt: chargeTime(data),
+          retryWindow: { mode: data.domain, chargedAt: chargeTime(data) },
           mail: (subject, html) =>
             sendEmail(resendKey, fromEmail, adminEmail, subject, html, context.log),
           log: context.log,
