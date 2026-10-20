@@ -13,6 +13,8 @@
 //     but only with --pre-cutover, never from the ones /api/submit writes, from
 //     payments and invoices only with --prune-money as well, and never once the
 //     cutover marker exists.
+//   - After the marker only --insert-only runs, unless
+//     --allow-overwrite-after-cutover is given.
 //   - Before the marker, a real run fails if any invoice, quote or payment in
 //     the backup differs from Cosmos in status or updatedAt.
 //
@@ -30,6 +32,8 @@
 // --only a,b                only these containers; an unknown name fails
 // --force-overwrite         also overwrite rows that are newer in Cosmos
 // --prune-money             with --prune, also prune payments and invoices
+// --allow-overwrite-after-cutover
+//                           after the marker, run without --insert-only anyway
 // --backfill-quote-locks    create the missing quoteNumber lock rows
 
 import { existsSync } from "node:fs";
@@ -104,9 +108,7 @@ async function markCutover() {
   const marker = cutoverMarker(new Date().toISOString());
   try {
     await container.items.create(marker);
-    console.log(
-      `Cutover marked at ${marker.at}. --prune and --pre-cutover are refused from now on.`,
-    );
+    console.log(`Cutover marked at ${marker.at}. From now on only --insert-only imports run.`);
   } catch (err) {
     if (!isCode(err, 409)) throw err;
     const { resource } = await container.item(CUTOVER_MARKER_ID, CUTOVER_MARKER_ID).read();
