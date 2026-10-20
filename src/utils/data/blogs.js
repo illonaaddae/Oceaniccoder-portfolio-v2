@@ -1,3 +1,5 @@
+import { IMAGES } from "@/utils/imageUrls";
+
 export const BLOGS_DATA = [
   {
     id: 1,
@@ -23,8 +25,7 @@ export const BLOGS_DATA = [
     tags: ["Women in Tech", "Leadership", "Diversity", "Inclusion"],
     publishedAt: "2024-01-15",
     readTime: "5 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
+    image: IMAGES.blogPlaceholder1,
     featured: true,
   },
   {
@@ -52,8 +53,7 @@ export const BLOGS_DATA = [
     tags: ["CSS", "UI/UX", "Web Design", "Animations"],
     publishedAt: "2024-01-10",
     readTime: "8 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf000057a457f95/blog-placeholder-2.svg",
+    image: IMAGES.blogPlaceholder2,
     featured: false,
   },
   {
@@ -85,8 +85,7 @@ export const BLOGS_DATA = [
     tags: ["AI", "Education", "Machine Learning", "Innovation"],
     publishedAt: "2024-01-05",
     readTime: "6 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf00032bc7780ff/blog-placeholder-3.svg",
+    image: IMAGES.blogPlaceholder3,
     featured: true,
   },
 ];

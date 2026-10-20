@@ -1,3 +1,5 @@
+import { IMAGES } from "@/utils/imageUrls";
+
 export const roles = [
   "Software Engineer",
   "Front-End Developer",
@@ -17,8 +19,7 @@ export const roles = [
 export const PROFILE_IMAGE_DARK_URL = "/images/hero-img-dark.webp";
 
 // Light mode image (white shirt) - hosted on Appwrite
-export const PROFILE_IMAGE_LIGHT_URL =
-  "https://oceaniccodermedia.blob.core.windows.net/media/69444ceb001c1eda1331/profile.webp";
+export const PROFILE_IMAGE_LIGHT_URL = IMAGES.profile;
 
 // Kept for backwards compat
 export const PROFILE_IMAGE_URL = PROFILE_IMAGE_DARK_URL;

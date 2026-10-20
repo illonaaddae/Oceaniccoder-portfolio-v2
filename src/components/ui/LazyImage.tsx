@@ -4,6 +4,7 @@ import {
   isOptimizableImageUrl,
   generateSrcSet,
 } from "../../utils/imageOptimizer";
+import { IMAGES } from "@/utils/imageUrls";
 
 interface LazyImageProps {
   src: string;
@@ -49,7 +50,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   className = "",
   width,
   height,
-  fallbackSrc = "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
+  fallbackSrc = IMAGES.blogPlaceholder1,
   placeholderColor = "from-gray-800 to-gray-900",
   objectFit = "cover",
   onClick,
