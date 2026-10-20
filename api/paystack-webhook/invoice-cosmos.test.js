@@ -508,6 +508,26 @@ describe("paystack-webhook under WRITE_HOLD", () => {
     expect(quote).not.toHaveBeenCalled();
   });
 
+  // The only test in this file with an invalid WRITE_HOLD: the once-per-
+  // process flag lives in index.js for the life of the module.
+  it("answers 500 to invoice and quote charges under an invalid WRITE_HOLD and mails once", async () => {
+    process.env.WRITE_HOLD = "true";
+    process.env.DATA_BACKEND = "cosmos";
+    const quoteEvent = chargeOf({
+      reference: "Q-2026-0001-1-ABCDEFGH",
+      metadata: { kind: "quote" },
+    });
+    expect((await run(signed(chargeOf()))).status).toBe(500);
+    expect((await run(signed(quoteEvent))).status).toBe(500);
+    expect(sent.map((m) => m.subject)).toEqual([
+      "Action needed: WRITE_HOLD has an invalid value; payments are not being recorded",
+    ]);
+    expect(sent[0].html).toContain("WRITE_HOLD is not valid");
+    expect(sent[0].html).toContain("WRITE_HOLD must be");
+    expect(quote).not.toHaveBeenCalled();
+    expect(cosmos.getDatabase).not.toHaveBeenCalled();
+  });
+
   it("still rejects and reports a bad signature", async () => {
     expect((await run(signed(chargeOf(), "sk_test_other"))).status).toBe(200);
     expect(sent.map((m) => m.subject)).toEqual([
