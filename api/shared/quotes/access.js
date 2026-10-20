@@ -31,9 +31,11 @@ const LINK_CODE_TTL_MS = 45 * DAY_MS;
 const MAX_TRIES = 5;
 const SENDS_PER_HOUR = 5;
 const SENDS_PER_DAY = 10;
-// After this many locked-out codes on one revision and epoch, no more codes
-// are sent until the admin uses New link or Revise.
-const MAX_LOCKOUTS = 3;
+// After this many wrong codes on one revision and epoch, across all its
+// challenges, no more codes are sent or checked until the admin uses New link
+// or Revise. Counting guesses, not locked-out challenges, means four wrong
+// tries per challenge can't dodge it.
+const MAX_MISSES = 15;
 // The gap between code emails is rolling, not per clock minute: each send
 // reserves GAP_BUCKETS buckets of GAP_BUCKET_MS starting at its own, so the
 // next one gets through 60 to 90 seconds later.
@@ -289,20 +291,21 @@ async function takeSendSlots(locks, quote, epoch, nowMs) {
   };
 }
 
-const lockoutPrefix = (quote, epoch) => `qa:lockout:${quote.id}:${quote.revision}:${epoch}`;
+const missPrefix = (quote, epoch) => `qa:miss:${quote.id}:${quote.revision}:${epoch}`;
 
 /**
- * Counts a locked-out code against this revision and epoch and returns the
- * count, at most MAX_LOCKOUTS. At MAX_LOCKOUTS no more codes are sent.
+ * Counts one wrong code against this revision and epoch. Returns its number,
+ * 1..MAX_MISSES, or 0 when every slot was already taken (a parallel guess got
+ * the last one). Exactly one request ever gets MAX_MISSES.
  */
-async function recordLockout(locks, quote, epoch) {
-  const key = await takeFirstFree(locks, lockoutPrefix(quote, epoch), MAX_LOCKOUTS);
-  return key ? Number(key.slice(key.lastIndexOf(":") + 1)) : MAX_LOCKOUTS;
+async function recordMiss(locks, quote, epoch) {
+  const key = await takeFirstFree(locks, missPrefix(quote, epoch), MAX_MISSES);
+  return key ? Number(key.slice(key.lastIndexOf(":") + 1)) : 0;
 }
 
 /** Whether codes are blocked until the admin uses New link or Revise. */
 function sendsBlocked(locks, quote, epoch) {
-  return locks.has(`${lockoutPrefix(quote, epoch)}:${MAX_LOCKOUTS}`);
+  return locks.has(`${missPrefix(quote, epoch)}:${MAX_MISSES}`);
 }
 
 // Link codes: the one-time "#k=" part of a link the admin emails, which
@@ -395,7 +398,7 @@ async function hasAccess({ secret, locks, req, quote, nowMs }) {
 module.exports = {
   CODE_TTL_MS,
   MAX_TRIES,
-  MAX_LOCKOUTS,
+  MAX_MISSES,
   gateEnabled,
   accessSecret,
   maskEmail,
@@ -408,7 +411,7 @@ module.exports = {
   takeTry,
   takeUse,
   takeSendSlots,
-  recordLockout,
+  recordMiss,
   sendsBlocked,
   sessionCookieName,
   sessionCookie,

@@ -167,13 +167,17 @@ describe("quote email templates", () => {
     expect(mail.html).toContain("Kofi Mensah");
     expect(mail.html).toContain("Use New link on the quote");
     expect(mail.text).toContain("https://oceaniccoder.dev/admin/dashboard");
-    expect(mail.html).not.toContain("third locked code");
+    expect(mail.text).not.toContain("No more codes will be sent");
   });
 
-  it("says when no more codes will be sent until New link or Revise", () => {
+  it("says when codes are blocked until New link or Revise", () => {
     const mail = T.accessLockedAlert({ ...SAMPLE_VIEWS.accessLockedAlert.view, blocked: true });
-    expect(mail.html).toContain("no more codes will be sent until you use New link or Revise");
-    expect(mail.text).toContain("no more codes will be sent until you use New link or Revise");
+    expect(mail.subject).toBe("Codes blocked after 15 wrong tries on Q-2026-0007");
+    const blocked =
+      "No more codes will be sent or accepted on this link until you use New link or Revise.";
+    expect(mail.html).toContain(blocked);
+    expect(mail.text).toContain(blocked);
+    expect(mail.text).toContain("Fifteen wrong codes have been entered for Q-2026-0007 (");
   });
 
   it("covers every template sample", () => {
