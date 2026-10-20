@@ -179,7 +179,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(html).toContain("the payment will be recorded automatically");
     expect(html).toContain("Do not mark the invoice paid by hand.");
     expect(html).not.toContain("mark the invoice paid by hand if the money did arrive");
-    expect(html).toContain("Cosmos rejected the update");
+    expect(html).toContain("Cosmos rejected the update (status 503)");
 
     sent.length = 0;
     expect((await run()).status).toBe(200);
@@ -304,7 +304,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
     expect(payment().alertedAt).toEqual(expect.any(String));
     expect(handlerLog.error).toHaveBeenCalledWith(
-      expect.stringContaining("Cosmos rejected the update; Paystack will retry"),
+      expect.stringContaining("Cosmos rejected the update (status 503); Paystack will retry"),
     );
     expect(handlerLog.error.mock.calls.filter(([m]) => m.includes("will retry"))).toHaveLength(2);
   });
@@ -431,6 +431,8 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect((await run(event)).status).toBe(500);
     expect((await run(event)).status).toBe(500);
     expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+    expect(sent[0].html).toContain("Reason: the payment could not be recorded");
+    expect(sent[0].html).not.toContain("Cosmos rejected the update");
   });
 
   it("answers 500 without an alert while another delivery holds the emails", async () => {
