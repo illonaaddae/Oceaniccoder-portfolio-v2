@@ -470,12 +470,10 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
               if (!loading) loadFiles();
             }}
             aria-disabled={loading}
-            // Keeps one name while scanning; the status region says "Scanning…".
-            aria-label="Refresh"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-700 transition-colors aria-disabled:opacity-50 aria-disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-700 transition-colors aria-disabled:opacity-50 aria-disabled:hover:bg-oceanic-600 aria-disabled:cursor-not-allowed"
           >
             <FaSync aria-hidden="true" className={loading ? "animate-spin" : ""} />
-            {loading ? "Scanning…" : "Refresh"}
+            Refresh
           </button>
         </div>
 

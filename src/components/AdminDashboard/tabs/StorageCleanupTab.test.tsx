@@ -368,8 +368,8 @@ describe("StorageCleanupTab", () => {
       refresh.focus();
       await userEvent.keyboard("{Enter}");
 
-      expect(refresh).toHaveTextContent("Scanning…");
-      // The status region already says "Scanning…"; the button keeps its name.
+      // Only the icon spins; the status region is what says "Scanning…".
+      expect(refresh).toHaveTextContent("Refresh");
       expect(refresh).toHaveAccessibleName("Refresh");
       expect(refresh).toHaveAttribute("aria-disabled", "true");
       expect(refresh).toHaveFocus();
