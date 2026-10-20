@@ -22,7 +22,7 @@ function isSafeReplyTo(email) {
 /** Returns { subject, html, text }. Inputs are raw visitor text; the email kit escapes them. */
 function messageAlertEmail({ name, email, subject, message }) {
   // A subject header is one line, whatever the visitor typed.
-  const oneLine = String(subject).replace(/\s+/g, " ").trim();
+  const oneLine = String(subject).replace(/\s+/g, " ").trim() || "(no subject)";
   const body = String(message).replace(/\r\n?/g, "\n");
   const replyable = isSafeReplyTo(email);
   const html = shell({
