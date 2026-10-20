@@ -243,6 +243,16 @@ describe("admin alert for a new contact message", () => {
     expect(sendEmail.mock.calls[0][0].html).not.toContain("malformed");
   });
 
+  it("links to the admin dashboard", async () => {
+    const { call, sendEmail } = setup();
+
+    await call("messages", { ...MESSAGE, turnstileToken: "t" });
+
+    expect(sendEmail.mock.calls[0][0].html).toContain(
+      'href="https://oceaniccoder.dev/admin/dashboard"',
+    );
+  });
+
   it("sends nothing when validation fails", async () => {
     const { call, sendEmail } = setup();
 
