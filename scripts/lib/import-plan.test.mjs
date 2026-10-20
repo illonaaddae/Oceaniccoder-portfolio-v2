@@ -19,6 +19,7 @@ import {
 const require = createRequire(import.meta.url);
 const { MIGRATED_SETTINGS_KEYS } = require("../../api/shared/cosmos.js");
 const { lockId } = require("../../api/shared/tokens.js");
+const { paymentIdFor } = require("../../api/shared/quotes/repo.cosmos.js");
 
 const OLD = "2026-10-01T00:00:00.000Z";
 const NEW = "2026-10-02T00:00:00.000Z";
@@ -57,10 +58,20 @@ describe("parseArgs", () => {
     for (const id of ["bookings", "messages", "project_inquiries", "comments", "testimonials"]) {
       expect(() => flags(["--prune", "--pre-cutover", "--only", id])).toThrow("never deletes");
     }
-    for (const id of ["payments", "invoices", "quotes", "locks"]) {
-      expect(() => flags(["--prune", "--pre-cutover", "--only", id])).toThrow("never deletes");
+    for (const id of ["payments", "invoices"]) {
+      expect(() => flags(["--prune", "--pre-cutover", "--only", id])).toThrow("--prune-money");
     }
     expect(flags(["--prune", "--pre-cutover", "--only", "projects"]).only).toEqual(["projects"]);
+    expect(flags(["--prune", "--pre-cutover", "--only", "quotes,locks"]).only).toEqual([
+      "quotes",
+      "locks",
+    ]);
+  });
+
+  it("prunes payments and invoices only with --prune-money", () => {
+    const argv = ["--prune", "--pre-cutover", "--prune-money", "--only", "payments,invoices"];
+    expect(flags(argv)).toMatchObject({ prune: true, pruneMoney: true });
+    expect(() => flags(["--prune-money", "--pre-cutover"])).toThrow("--prune-money needs --prune");
   });
 
   it("refuses contradicting flags", () => {
@@ -76,21 +87,20 @@ describe("parseArgs", () => {
 });
 
 describe("canPrune", () => {
-  it("protects money, quote state and visitor submissions", () => {
-    const never = [
-      "payments",
-      "invoices",
-      "quotes",
-      "locks",
-      "bookings",
-      "messages",
-      "project_inquiries",
-      "comments",
-      "testimonials",
-    ];
-    for (const id of never) expect(canPrune(id)).toBe(false);
+  it("never prunes visitor submissions", () => {
+    const never = ["bookings", "messages", "project_inquiries", "comments", "testimonials"];
+    for (const id of never) expect(canPrune(id, { pruneMoney: true })).toBe(false);
     expect(canPrune("projects")).toBe(true);
     expect(IMPORTED_CONTAINERS).not.toContain("analytics");
+  });
+
+  it("prunes quote state, and money only when asked", () => {
+    expect(canPrune("quotes")).toBe(true);
+    expect(canPrune("locks")).toBe(true);
+    expect(canPrune("payments")).toBe(false);
+    expect(canPrune("invoices")).toBe(false);
+    expect(canPrune("payments", { pruneMoney: true })).toBe(true);
+    expect(canPrune("invoices", { pruneMoney: true })).toBe(true);
   });
 });
 
@@ -172,10 +182,14 @@ describe("planContainer", () => {
   });
 
   it.each(["payments", "invoices", "quotes", "locks"])(
-    "only creates in %s, whatever the flags",
+    "only creates in %s without --pre-cutover",
     (id) => {
-      const argv = ["--force-overwrite", "--prune", "--pre-cutover"];
-      const plan = planContainer(id, [doc("a"), doc("b", NEW)], [row("b"), row("x")], flags(argv));
+      const plan = planContainer(
+        id,
+        [doc("a"), doc("b", NEW)],
+        [row("b"), row("x")],
+        flags(["--force-overwrite"]),
+      );
       expect(plan.mode).toBe("create-only");
       expect(ids(plan.create)).toEqual(["a"]);
       expect(ids(plan.skipExisting)).toEqual(["b"]);
@@ -184,6 +198,50 @@ describe("planContainer", () => {
       expect(ids(plan.kept)).toEqual(["x"]);
     },
   );
+
+  it.each(["payments", "invoices", "quotes", "locks"])(
+    "refreshes %s from the backup with --pre-cutover",
+    (id) => {
+      const plan = planContainer(
+        id,
+        [doc("a"), doc("b", NEW), doc("c", OLD)],
+        [row("b", OLD), row("c", NEW)],
+        flags(["--pre-cutover"]),
+      );
+      expect(plan.mode).toBe("upsert");
+      expect(ids(plan.create)).toEqual(["a"]);
+      expect(ids(plan.overwrite)).toEqual(["b"]);
+      expect(ids(plan.skipNewer)).toEqual(["c"]);
+    },
+  );
+
+  it("prunes stale quotes and released locks with --prune", () => {
+    const pruning = flags(["--prune", "--pre-cutover"]);
+    for (const id of ["quotes", "locks"]) {
+      expect(ids(planContainer(id, [doc("a")], [row("a"), row("x")], pruning).prune)).toEqual([
+        "x",
+      ]);
+    }
+  });
+
+  it("keeps payments and invoices missing from the backup unless --prune-money", () => {
+    const pruning = flags(["--prune", "--pre-cutover"]);
+    const money = flags(["--prune", "--pre-cutover", "--prune-money"]);
+    for (const id of ["payments", "invoices"]) {
+      const kept = planContainer(id, [], [row("x")], pruning);
+      expect(kept.prune).toEqual([]);
+      expect(ids(kept.kept)).toEqual(["x"]);
+      expect(ids(planContainer(id, [], [row("x")], money).prune)).toEqual(["x"]);
+    }
+  });
+
+  it("never prunes a payments row the Cosmos webhook wrote", () => {
+    const money = flags(["--prune", "--pre-cutover", "--prune-money"]);
+    const native = paymentIdFor("REF-1");
+    const plan = planContainer("payments", [], [row("x"), row(native)], money);
+    expect(ids(plan.prune)).toEqual(["x"]);
+    expect(ids(plan.kept)).toEqual([native]);
+  });
 
   it("prunes rows missing from the backup only with --prune", () => {
     const pruning = flags(["--prune", "--pre-cutover"]);
@@ -225,6 +283,50 @@ describe("afterPlan", () => {
 
 describe("dataChecks", () => {
   const empty = { invoices: [], payments: [], quotes: [], locks: [], backupPayments: null };
+
+  it("finds invoices, quotes and payments whose updatedAt or status differs from the backup", () => {
+    const result = dataChecks({
+      ...empty,
+      invoices: [
+        {
+          id: "i1",
+          invoiceNumber: "INV-1",
+          total: 1,
+          currency: "GHS",
+          status: "paid",
+          updatedAt: NEW,
+        },
+        {
+          id: "i2",
+          invoiceNumber: "INV-2",
+          total: 1,
+          currency: "GHS",
+          status: "sent",
+          updatedAt: OLD,
+        },
+      ],
+      quotes: [{ id: "q1", quoteNumber: null, status: "sent", updatedAt: OLD }],
+      backupState: {
+        invoices: [
+          { id: "i1", status: "paid", updatedAt: NEW },
+          { id: "i2", status: "paid", updatedAt: NEW },
+          { id: "i3", status: "sent", updatedAt: OLD },
+        ],
+        quotes: [{ id: "q1", status: "accepted", updatedAt: OLD }],
+        payments: null,
+      },
+    });
+    expect(result.stateDrift).toEqual([
+      {
+        container: "invoices",
+        id: "i2",
+        problem: "status sent, backup paid; updatedAt " + OLD + ", backup " + NEW,
+      },
+      { container: "invoices", id: "i3", problem: "not in Cosmos" },
+      { container: "quotes", id: "q1", problem: "status sent, backup accepted" },
+    ]);
+    expect(dataChecks(empty).stateDrift).toEqual([]);
+  });
 
   it("finds duplicate invoice numbers and unusable totals or currencies", () => {
     const result = dataChecks({

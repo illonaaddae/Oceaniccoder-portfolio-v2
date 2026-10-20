@@ -18,10 +18,19 @@ export const IMPORTED_CONTAINERS = Object.keys(CONTAINERS).filter(
   (id) => CONTAINERS[id].imported !== false,
 );
 
-// Money and quote state: a row already in Cosmos may have been written by the
-// live webhook or quote service, so it is never overwritten and never pruned,
-// whatever the flags say.
+// Money and quote state. Once Cosmos is live, a row already there may have
+// been written by the webhook or the quote service, so without --pre-cutover
+// these are create-only. Before cutover nothing writes them in Cosmos, so
+// --pre-cutover refreshes them like any other container: otherwise an import
+// taken days before the night leaves stale invoice status, quote stages,
+// pending payments and released `stage:`/`settle:` locks (which block real
+// payments in api/shared/quotes/settle.js).
 export const CREATE_ONLY_CONTAINERS = new Set(["payments", "invoices", "quotes", "locks"]);
+
+// --prune deletes from these only with --prune-money as well. A deleted money
+// record is the one loss this script can't undo from Cosmos, so it takes a
+// second, deliberate flag after reading the dry run.
+export const MONEY_CONTAINERS = new Set(["payments", "invoices"]);
 
 // Visitors write these through /api/submit, which already writes to Cosmos,
 // so Cosmos holds rows Appwrite never had.
@@ -31,8 +40,16 @@ export const SUBMITTED_CONTAINERS = new Set(Object.keys(SCHEMAS));
 export const CUTOVER_MARKER_ID = "cutover";
 
 /** Containers --prune may delete from. */
-export function canPrune(id) {
-  return !CREATE_ONLY_CONTAINERS.has(id) && !SUBMITTED_CONTAINERS.has(id) && canDelete(id);
+export function canPrune(id, { pruneMoney = false } = {}) {
+  if (SUBMITTED_CONTAINERS.has(id)) return false;
+  if (MONEY_CONTAINERS.has(id)) return pruneMoney;
+  return canDelete(id);
+}
+
+// A payments row with the webhook's derived id was written by the Cosmos
+// webhook (a test-mode run, say), never by an import, so no prune removes it.
+function isCosmosNative(id, row) {
+  return id === "payments" && typeof row.id === "string" && row.id.startsWith("pi_");
 }
 
 const BOOLEAN_FLAGS = {
@@ -40,6 +57,7 @@ const BOOLEAN_FLAGS = {
   "--insert-only": "insertOnly",
   "--force-overwrite": "forceOverwrite",
   "--prune": "prune",
+  "--prune-money": "pruneMoney",
   "--pre-cutover": "preCutover",
   "--mark-cutover": "markCutover",
   "--backfill-quote-locks": "backfillQuoteLocks",
@@ -55,6 +73,7 @@ export function parseArgs(argv) {
     insertOnly: false,
     forceOverwrite: false,
     prune: false,
+    pruneMoney: false,
     preCutover: false,
     markCutover: false,
     backfillQuoteLocks: false,
@@ -85,6 +104,9 @@ export function parseArgs(argv) {
   if (flags.prune && !flags.preCutover) {
     throw new UsageError("--prune needs --pre-cutover: pruning is only safe before cutover");
   }
+  if (flags.pruneMoney && !flags.prune) {
+    throw new UsageError("--prune-money needs --prune");
+  }
   if (flags.prune && flags.insertOnly) {
     throw new UsageError("--prune and --insert-only can't be combined");
   }
@@ -92,9 +114,13 @@ export function parseArgs(argv) {
     throw new UsageError("--force-overwrite and --insert-only can't be combined");
   }
   if (flags.prune && flags.only) {
-    const refused = flags.only.filter((id) => !canPrune(id));
+    const refused = flags.only.filter((id) => !canPrune(id, { pruneMoney: true }));
     if (refused.length > 0) {
       throw new UsageError(`--prune never deletes from ${refused.join(", ")}`);
+    }
+    const money = flags.only.filter((id) => !canPrune(id, flags));
+    if (money.length > 0) {
+      throw new UsageError(`--prune deletes from ${money.join(", ")} only with --prune-money`);
     }
   }
   return flags;
@@ -155,14 +181,11 @@ export function isNewerInCosmos(cosmosUpdatedAt, appwriteUpdatedAt) {
  * is newer in Cosmos and only overwritten because of --force-overwrite.
  */
 export function planContainer(id, docs, existing, flags) {
-  const createOnly = CREATE_ONLY_CONTAINERS.has(id) || flags.insertOnly;
+  const lockedDown = CREATE_ONLY_CONTAINERS.has(id) && !flags.preCutover;
+  const createOnly = lockedDown || flags.insertOnly;
   const byId = new Map(existing.map((row) => [row.id, row]));
   const plan = {
-    mode: CREATE_ONLY_CONTAINERS.has(id)
-      ? "create-only"
-      : flags.insertOnly
-        ? "insert-only"
-        : "upsert",
+    mode: lockedDown ? "create-only" : flags.insertOnly ? "insert-only" : "upsert",
     create: [],
     overwrite: [],
     forcedNewer: [],
@@ -187,7 +210,7 @@ export function planContainer(id, docs, existing, flags) {
   for (const row of existing) {
     if (wanted.has(row.id)) continue;
     if (id === "settings" && row.id === CUTOVER_MARKER_ID) continue;
-    if (flags.prune && canPrune(id)) plan.prune.push(row);
+    if (flags.prune && canPrune(id, flags) && !isCosmosNative(id, row)) plan.prune.push(row);
     else plan.kept.push(row);
   }
   return plan;
@@ -213,8 +236,10 @@ export function quoteNumberLock(quoteNumber, now) {
  *   invoices, payments, quotes, locks  Cosmos rows
  *   backupPayments                     payments rows from the backup, or null
  *                                      when this run did not load them
+ *   backupState                        { invoices, quotes, payments } backup
+ *                                      rows, each null when not loaded
  */
-export function dataChecks({ invoices, payments, quotes, locks, backupPayments }) {
+export function dataChecks({ invoices, payments, quotes, locks, backupPayments, backupState }) {
   const byNumber = new Map();
   const badInvoices = [];
   for (const invoice of invoices) {
@@ -259,5 +284,32 @@ export function dataChecks({ invoices, payments, quotes, locks, backupPayments }
     }
   }
 
-  return { duplicateInvoiceNumbers, badInvoices, paymentProblems, quotesWithoutLock };
+  const cosmosState = { invoices, quotes, payments };
+  const stateDrift = [];
+  for (const container of DRIFT_CHECKED) {
+    const backupRows = backupState?.[container];
+    if (!backupRows) continue;
+    const cosmosById = new Map(cosmosState[container].map((r) => [r.id, r]));
+    for (const backupRow of backupRows) {
+      const problem = driftOf(cosmosById.get(backupRow.id), backupRow);
+      if (problem) stateDrift.push({ container, id: backupRow.id, problem });
+    }
+  }
+
+  return { duplicateInvoiceNumbers, badInvoices, paymentProblems, quotesWithoutLock, stateDrift };
+}
+
+/** Containers whose status the cutover must carry over exactly. */
+export const DRIFT_CHECKED = ["invoices", "quotes", "payments"];
+
+function driftOf(cosmos, backup) {
+  if (!cosmos) return "not in Cosmos";
+  const parts = [];
+  if ((cosmos.status ?? null) !== (backup.status ?? null)) {
+    parts.push(`status ${cosmos.status}, backup ${backup.status}`);
+  }
+  if ((cosmos.updatedAt ?? null) !== (backup.updatedAt ?? null)) {
+    parts.push(`updatedAt ${cosmos.updatedAt}, backup ${backup.updatedAt}`);
+  }
+  return parts.length > 0 ? parts.join("; ") : null;
 }
