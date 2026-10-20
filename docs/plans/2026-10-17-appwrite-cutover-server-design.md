@@ -100,21 +100,21 @@ Every run needs `COSMOS_ENDPOINT` and `COSMOS_KEY`, the dry run too (it reads
 Cosmos to count; the read-only key is enough). Rules live in
 `scripts/lib/import-plan.mjs`.
 
-| Flag                                | Effect                                                                                                                                                |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--backup <dir>`                    | Backup folder; default the newest `backup/<date>` (a `backup/<date>-final` folder is only used when named). A missing folder or table file fails.     |
-| `--only a,b`                        | Only these containers. An unknown name, or `analytics`, fails.                                                                                        |
-| `--dry-run`                         | Read-only. Per container: create, overwrite, newer-in-Cosmos and prune counts, then the data checks on the result.                                    |
-| `--insert-only`                     | Creates missing rows only; overwrites nothing. The only kind of run allowed after the marker (`--dry-run` aside).                                     |
-| `--created-after <time>`            | Only backup rows whose `$createdAt` is after this time (Z or an offset). Rows with no readable `$createdAt` are left out and listed.                  |
-| `--force-overwrite`                 | Also overwrites rows whose Cosmos `updatedAt` is newer than the backup (skipped by default). Warns per row.                                           |
-| `--pre-cutover`                     | Asserts the cutover has not happened; refused once the marker exists. Also refreshes `payments`, `invoices`, `quotes` and `locks` (see below).        |
-| `--prune`                           | Deletes Cosmos rows not in the backup, after which rows are created. Needs `--pre-cutover`.                                                           |
-| `--prune-money`                     | With `--prune`, also prunes `payments` and `invoices`.                                                                                                |
-| `--allow-overwrite-after-cutover`   | After the marker, allows a run without `--insert-only`. Counters and reactions don't bump `updatedAt`, so this can overwrite live counts.             |
-| `--allow-quote-state-after-cutover` | After the marker, allows `quotes` and `locks` in the run. Without it they are refused: a lock released in Cosmos would come back and block a payment. |
-| `--mark-cutover`                    | Runs alone. Writes the row `cutover` (`at`, `by`) in `locks`, which `/api/manage` can't list or change. After it only `--insert-only` runs.           |
-| `--backfill-quote-locks`            | Creates the missing `quoteNumber:` lock rows the data checks report.                                                                                  |
+| Flag                                | Effect                                                                                                                                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--backup <dir>`                    | Backup folder; default the newest `backup/<date>` (a `backup/<date>-final` folder is only used when named). A missing folder or table file fails.                                   |
+| `--only a,b`                        | Only these containers. An unknown name, or `analytics`, fails.                                                                                                                      |
+| `--dry-run`                         | Read-only. Per container: create, overwrite, newer-in-Cosmos and prune counts, then the data checks on the result.                                                                  |
+| `--insert-only`                     | Creates missing rows only; overwrites nothing. The only kind of run allowed after the marker (`--dry-run` aside).                                                                   |
+| `--created-after <time>`            | Only backup rows whose `$createdAt` is after this time (Z or an offset). Needs `--insert-only`. Rows with no readable `$createdAt` are left out and listed.                         |
+| `--force-overwrite`                 | Also overwrites rows whose Cosmos `updatedAt` is newer than the backup (skipped by default). Warns per row.                                                                         |
+| `--pre-cutover`                     | Asserts the cutover has not happened; refused once the marker exists. Also refreshes `payments`, `invoices`, `quotes` and `locks` (see below).                                      |
+| `--prune`                           | Deletes Cosmos rows not in the backup, after which rows are created. Needs `--pre-cutover`.                                                                                         |
+| `--prune-money`                     | With `--prune`, also prunes `payments` and `invoices`.                                                                                                                              |
+| `--allow-overwrite-after-cutover`   | After the marker, allows a run without `--insert-only`. Counters and reactions don't bump `updatedAt`, so this can overwrite live counts.                                           |
+| `--allow-quote-state-after-cutover` | After the marker, allows `quotes` and `locks` in the run, and `--backfill-quote-locks`. Without it they are refused: a lock released in Cosmos would come back and block a payment. |
+| `--mark-cutover`                    | Runs alone. Writes the row `cutover` (`at`, `by`) in `locks`, which `/api/manage` can't list or change. After it only `--insert-only` runs.                                         |
+| `--backfill-quote-locks`            | Creates the missing `quoteNumber:` lock rows the data checks report.                                                                                                                |
 
 `payments`, `invoices`, `quotes` and `locks`:
 
@@ -175,7 +175,9 @@ and fails on a full page with neither. Paystack's own cursor parameters
 2. Confirm last hour's Paystack charges are recorded or queued for retry.
 3. Final backup:
    `node --env-file=.env.cutover scripts/backup-appwrite.mjs --out backup/<date>-final`.
-   Compare manifest counts with the console. Note the time as T.
+   Compare manifest counts with the console. Take T from the backup's
+   `manifest.json` `takenAt` (set before any table is read), not from the
+   clock when it finishes.
 4. Dry run, read-only key:
    `node --env-file=.env.cutover scripts/import-to-cosmos.mjs --backup backup/<date>-final --dry-run --prune --pre-cutover --backfill-quote-locks`.
    Read every prune line. Add `--prune-money` only if the `payments` or
@@ -211,8 +213,13 @@ and fails on a full page with neither. Paystack's own cursor parameters
 9. With admin edits still frozen, second backup,
    `node --env-file=.env.cutover scripts/backup-appwrite.mjs --out backup/<date>-post`, then
    `node --env-file=.env.cutover.write scripts/import-to-cosmos.mjs --backup backup/<date>-post --insert-only --created-after <T, with Z> --only bookings,messages,comments,project_inquiries,testimonials`.
-   `--created-after` keeps rows deleted in Cosmos since the flip (smoke tests,
-   admin deletes) from coming back. Unfreeze admin edits only after this step.
+   T is the final backup's `takenAt` from step 3, or a few minutes earlier,
+   never a later time: visitors keep writing to Appwrite while that backup
+   reads its tables, so a row created during it may be missing from it, and
+   only a T at or before its start brings that row across. An earlier T costs
+   nothing, because `--insert-only` skips ids already in Cosmos.
+   `--created-after` keeps older rows that were deleted in Cosmos after the
+   flip from coming back. Unfreeze admin edits only after this step.
 10. Leave Appwrite alone until it is disabled. After step 8, roll forward only.
 11. Rotate the Cosmos key the scripts used (Azure portal, Cosmos account,
     Keys). If the site uses that key, point the Static Web App `COSMOS_KEY` at
