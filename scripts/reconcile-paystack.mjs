@@ -63,8 +63,10 @@ function paystackPageFetcher(secret, since) {
 async function main() {
   const { since, mode } = parseReconcileArgs(process.argv.slice(2));
   const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) throw new Error("PAYSTACK_SECRET_KEY must be set");
   const keyMode = paystackKeyMode(secret);
+  if (!process.env.COSMOS_ENDPOINT || !process.env.COSMOS_KEY) {
+    throw new UsageError("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+  }
   if (keyMode !== mode) {
     throw new UsageError(`--mode ${mode} given, but PAYSTACK_SECRET_KEY is a ${keyMode} key`);
   }

@@ -58,8 +58,15 @@ describe("paystackKeyMode", () => {
     expect(paystackKeyMode("sk_test_abc")).toBe("test");
   });
 
+  it("asks for the key as a usage error when it is not set", () => {
+    for (const key of [undefined, ""]) {
+      expect(() => paystackKeyMode(key)).toThrow(UsageError);
+      expect(() => paystackKeyMode(key)).toThrow("PAYSTACK_SECRET_KEY must be set");
+    }
+  });
+
   it("refuses any other key without echoing it", () => {
-    for (const key of ["pk_live_abc", "abc", ""]) {
+    for (const key of ["pk_live_abc", "abc"]) {
       let error;
       try {
         paystackKeyMode(key);

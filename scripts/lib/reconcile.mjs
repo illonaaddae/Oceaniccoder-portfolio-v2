@@ -48,6 +48,7 @@ export function parseReconcileArgs(argv) {
 
 /** "live" or "test" from a Paystack secret key's prefix. Never echoes the key. */
 export function paystackKeyMode(key) {
+  if (!key) throw new UsageError("PAYSTACK_SECRET_KEY must be set");
   if (typeof key === "string" && key.startsWith("sk_live_")) return "live";
   if (typeof key === "string" && key.startsWith("sk_test_")) return "test";
   throw new UsageError("PAYSTACK_SECRET_KEY is not a Paystack secret key (sk_live_ or sk_test_)");
