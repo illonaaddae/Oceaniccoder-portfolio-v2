@@ -331,6 +331,19 @@ describe("planContainer", () => {
     expect(ids(plain.kept)).toEqual(["x"]);
   });
 
+  it("does not call rows left out by --created-after 'not in backup'", () => {
+    const plan = planContainer(
+      "bookings",
+      [doc("new")],
+      [row("old"), row("cosmos-only")],
+      flags(["--insert-only", "--created-after", "2026-10-28T18:00:00Z"]),
+      new Set(["old"]),
+    );
+    expect(ids(plan.create)).toEqual(["new"]);
+    expect(ids(plan.skipOlder)).toEqual(["old"]);
+    expect(ids(plan.kept)).toEqual(["cosmos-only"]);
+  });
+
   it("keeps visitor submissions that are not in the backup, even with --prune", () => {
     const plan = planContainer("bookings", [], [row("x")], flags(["--prune", "--pre-cutover"]));
     expect(plan.prune).toEqual([]);
