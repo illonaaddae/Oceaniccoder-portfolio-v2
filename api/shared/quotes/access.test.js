@@ -364,3 +364,75 @@ describe("session cookie and hasAccess", () => {
     expect(await access(locks, req)).toBe(true);
   });
 });
+
+describe("link codes", () => {
+  const check = (locks, linkCode, quote = QUOTE, nowMs = NOW) =>
+    A.checkLinkCode({ secret: SECRET, locks, quote, linkCode, nowMs });
+
+  it("mints a URL-safe code that checks out for its quote, once", async () => {
+    const locks = createFakeLocks();
+    const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
+    expect(code).toMatch(/^[\w-]{22}\.[0-9a-z]+\.[\w-]{43}$/);
+    expect(code).not.toMatch(/kofi|example|q1/i);
+    const r = await check(locks, code);
+    expect(r).toMatchObject({ ok: true, epoch: 0 });
+    expect(await A.claimLinkCode(locks, r.nonce)).toBe(true);
+    expect(await A.claimLinkCode(locks, r.nonce)).toBe(false);
+  });
+
+  it("gives every mint a new nonce", () => {
+    expect(A.mintLinkCode(SECRET, QUOTE, 0, NOW)).not.toBe(A.mintLinkCode(SECRET, QUOTE, 0, NOW));
+  });
+
+  it("survives a new link token alone (payment request)", async () => {
+    const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
+    const r = await check(createFakeLocks(), code, { ...QUOTE, tokenHash: "d".repeat(64) });
+    expect(r.ok).toBe(true);
+  });
+
+  it("refuses it for another quote, a new revision, a changed email, or after a rotate", async () => {
+    const locks = createFakeLocks();
+    const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
+    for (const quote of [
+      { ...QUOTE, id: "q2" },
+      { ...QUOTE, revision: 3 },
+      { ...QUOTE, clientEmail: "new@example.com" },
+    ]) {
+      expect(await check(locks, code, quote)).toEqual({ ok: false, reason: "invalid" });
+    }
+    await A.bumpEpoch(locks, QUOTE);
+    expect(await check(locks, code)).toEqual({ ok: false, reason: "invalid" });
+    const fresh = A.mintLinkCode(SECRET, QUOTE, 1, NOW);
+    expect((await check(locks, fresh)).ok).toBe(true);
+  });
+
+  it("refuses a tampered code, one from another secret, and junk", async () => {
+    const locks = createFakeLocks();
+    const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
+    const [nonce, minted, sig] = code.split(".");
+    const later = (parseInt(minted, 36) + 86400000).toString(36);
+    for (const bad of [
+      `${nonce}.${later}.${sig}`,
+      `${nonce.replace(/^./, (c) => (c === "A" ? "B" : "A"))}.${minted}.${sig}`,
+      tamper(code, 2),
+      A.mintLinkCode("t".repeat(32), QUOTE, 0, NOW),
+      `${code}x`,
+      "",
+      null,
+      42,
+    ]) {
+      expect(await check(locks, bad)).toEqual({ ok: false, reason: "invalid" });
+    }
+  });
+
+  it("expires 45 days after it was minted, and refuses a mint time in the future", async () => {
+    const locks = createFakeLocks();
+    const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
+    expect((await check(locks, code, QUOTE, NOW + A.LINK_CODE_TTL_MS - 1)).ok).toBe(true);
+    expect(await check(locks, code, QUOTE, NOW + A.LINK_CODE_TTL_MS)).toEqual({
+      ok: false,
+      reason: "expired",
+    });
+    expect(await check(locks, code, QUOTE, NOW - 1)).toEqual({ ok: false, reason: "expired" });
+  });
+});

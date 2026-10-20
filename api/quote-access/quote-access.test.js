@@ -49,12 +49,12 @@ function setup({
     (level) =>
     (...args) =>
       logs.push(`${level}: ${args.join(" ")}`);
-  const call = async (body, { ip = IP, cookie } = {}) => {
+  const call = async (body, { ip = IP, cookie, method = "POST", query } = {}) => {
     const log = Object.assign(record("info"), { error: record("error"), warn: record("warn") });
     const context = { log };
     const headers = { "x-forwarded-for": `${ip}:51234` };
     if (cookie) headers.cookie = cookie;
-    await handler(context, { method: "POST", body, headers });
+    await handler(context, { method, body, query, headers });
     return {
       status: context.res.status,
       body: JSON.parse(context.res.body),
@@ -297,6 +297,103 @@ describe("quote-access verify", () => {
     for (let i = 0; i < 31; i += 1) statuses.push((await verify(t, "v1.x.y", "123456")).status);
     expect(statuses.slice(0, 30).every((s) => s === 400)).toBe(true);
     expect(statuses[30]).toBe(429);
+  });
+});
+
+describe("quote-access claim", () => {
+  const claim = (t, linkCode, opts) => t.call({ action: "claim", token: TOKEN, linkCode }, opts);
+  const accessFor = async (t, r) =>
+    A.hasAccess({
+      secret: SECRET,
+      locks: t.locks,
+      req: { headers: { cookie: r.cookie.split(";")[0] } },
+      quote: await t.repo.get("q1"),
+      nowMs: t.clock.ms,
+    });
+
+  it("opens the quote once with the link code from the email, no typed code", async () => {
+    const t = setup();
+    const linkCode = A.mintLinkCode(SECRET, base, 0, t.clock.ms);
+    const r = await claim(t, linkCode);
+    expect(r).toMatchObject({ status: 200, body: { ok: true } });
+    expect(r.cookie).toMatch(/^__Secure-oc_qa_[0-9a-f]{16}=v1\./);
+    expect(await accessFor(t, r)).toBe(true);
+    expect(t.mails).toHaveLength(0);
+
+    const again = await claim(t, linkCode, { ip: "192.0.2.60" });
+    expect(again).toMatchObject({ status: 409, body: { codeNeeded: true } });
+    expect(again.cookie).toBeUndefined();
+  });
+
+  it.each([
+    ["another quote", { id: "q2" }],
+    ["another revision", { revision: 2 }],
+    ["an old client email", { clientEmail: "old@example.com" }],
+  ])("refuses a link code minted for %s", async (_label, change) => {
+    const t = setup();
+    const linkCode = A.mintLinkCode(SECRET, { ...base, ...change }, 0, t.clock.ms);
+    const r = await claim(t, linkCode);
+    expect(r).toMatchObject({ status: 400, body: { codeNeeded: true } });
+    expect(r.cookie).toBeUndefined();
+  });
+
+  it("refuses a link code after a New link, a tampered one and an expired one", async () => {
+    const t = setup();
+    const before = A.mintLinkCode(SECRET, base, 0, t.clock.ms);
+    await A.bumpEpoch(t.locks, base);
+    expect((await claim(t, before)).status).toBe(400);
+    const current = A.mintLinkCode(SECRET, base, 1, t.clock.ms);
+    expect(
+      (await claim(t, `${current.slice(0, -1)}${current.endsWith("A") ? "B" : "A"}`)).status,
+    ).toBe(400);
+    t.clock.ms += A.LINK_CODE_TTL_MS;
+    expect((await claim(t, current)).status).toBe(400);
+  });
+
+  it("never claims on a GET, even with the link code in the query", async () => {
+    const t = setup();
+    const linkCode = A.mintLinkCode(SECRET, base, 0, t.clock.ms);
+    const query = { action: "claim", token: TOKEN, linkCode };
+    const r = await t.call(undefined, { method: "GET", query });
+    expect(r.status).toBe(405);
+    expect(r.cookie).toBeUndefined();
+    expect(t.locks.held.size).toBe(0);
+    expect((await claim(t, linkCode)).status).toBe(200);
+  });
+
+  it("still opens with a link code when typed codes are blocked", async () => {
+    const t = setup();
+    for (let i = 0; i < 3; i += 1) await A.recordLockout(t.locks, base, 0);
+    const r = await claim(t, A.mintLinkCode(SECRET, base, 0, t.clock.ms));
+    expect(r.status).toBe(200);
+  });
+
+  it("is off with the gate and needs the secret", async () => {
+    const linkCode = A.mintLinkCode(SECRET, base, 0, START);
+    const off = setup({ env: { QUOTE_ACCESS_GATE: "off" } });
+    expect(await claim(off, linkCode)).toMatchObject({ status: 409, body: { gateOff: true } });
+    expect((await claim(setup({ env: {} }), linkCode)).status).toBe(503);
+  });
+
+  it("logs neither the link code nor the client", async () => {
+    const t = setup();
+    const linkCode = A.mintLinkCode(SECRET, base, 0, t.clock.ms);
+    const ok = await claim(t, linkCode);
+    await claim(t, linkCode);
+    await claim(t, "junk");
+    const all = t.logs.join("\n");
+    expect(all).toContain("quote-access claim ok quote=Q-2026-0004");
+    expect(all).toContain("reason=used");
+    for (const secret of [
+      linkCode,
+      linkCode.split(".")[0],
+      ok.cookie.split(";")[0],
+      TOKEN,
+      "kofi",
+      IP,
+    ]) {
+      expect(all).not.toContain(secret);
+    }
   });
 });
 
