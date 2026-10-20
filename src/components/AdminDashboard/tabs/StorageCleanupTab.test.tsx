@@ -312,6 +312,27 @@ describe("StorageCleanupTab", () => {
 
       expect(await screen.findByRole("status")).toHaveTextContent("Scanning…");
       await act(async () => finishList(FILES));
+      expect(screen.getByRole("status")).toHaveTextContent("Scan finished: 1 orphaned file");
+    });
+
+    it("keeps the finished count as scanned after a delete", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      deleteImage.mockResolvedValue(undefined);
+      await renderTab();
+
+      await userEvent.click(deleteButton());
+      await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+      await screen.findByText(/deleted successfully/);
+
+      // A changing count would be announced again as if a new scan finished.
+      expect(screen.getByRole("status")).toHaveTextContent("Scan finished: 1 orphaned file");
+    });
+
+    it("leaves a partial scan to the warning, not the status region", async () => {
+      serveCosmos({ projects: new Error("Forbidden") });
+      await renderTab();
+
+      expect(scanAlert()).toBeInTheDocument();
       expect(screen.getByRole("status")).toHaveTextContent("");
     });
 
@@ -326,6 +347,8 @@ describe("StorageCleanupTab", () => {
       await userEvent.keyboard("{Enter}");
 
       expect(refresh).toHaveTextContent("Scanning…");
+      // The status region already says "Scanning…"; the button keeps its name.
+      expect(refresh).toHaveAccessibleName("Refresh");
       expect(refresh).toHaveAttribute("aria-disabled", "true");
       expect(refresh).toHaveFocus();
       await userEvent.keyboard("{Enter}");
