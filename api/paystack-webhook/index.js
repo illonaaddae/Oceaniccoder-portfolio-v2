@@ -537,7 +537,11 @@ module.exports = async function (context, req) {
   // The reference keys the quote settle locks and the Cosmos rows and holds
   // the invoice number, so it is read as a string; anything else counts as
   // no reference.
-  if (data.reference != null && typeof data.reference !== "string") {
+  if (
+    data.reference !== undefined &&
+    data.reference !== null &&
+    typeof data.reference !== "string"
+  ) {
     context.log.warn(
       `paystack-webhook: charge has a reference that is not a string (${typeof data.reference}) — treating it as none`,
     );
