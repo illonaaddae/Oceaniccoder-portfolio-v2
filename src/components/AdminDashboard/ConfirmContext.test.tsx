@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { useState } from "react";
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { ConfirmProvider, useConfirm } from "./ConfirmContext";
+import { Modal } from "./modals/Modal";
 
 describe("useConfirm", () => {
   it("throws outside a ConfirmProvider instead of silently cancelling", () => {
@@ -94,6 +95,47 @@ describe("ConfirmProvider dialog", () => {
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(results).toEqual([false]);
+  });
+
+  it("keeps Escape from also closing a Modal underneath it", async () => {
+    const onModalClose = vi.fn();
+    const DeleteInsideModal = () => {
+      const confirm = useConfirm();
+      return (
+        <Modal isOpen onClose={onModalClose} title="Edit project" theme="dark">
+          <button type="button" onClick={() => void confirm("Delete project?")}>
+            Delete project
+          </button>
+        </Modal>
+      );
+    };
+    render(
+      <ConfirmProvider>
+        <DeleteInsideModal />
+      </ConfirmProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await act(async () => {});
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(onModalClose).not.toHaveBeenCalled();
+  });
+
+  it("leaves an element that was already inert before it opened inert after it closes", () => {
+    const alreadyInert = document.createElement("div");
+    alreadyInert.setAttribute("inert", "");
+    document.body.appendChild(alreadyInert);
+    try {
+      const { open } = setup();
+      open();
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(alreadyInert).toHaveAttribute("inert");
+    } finally {
+      alreadyInert.remove();
+    }
   });
 
   it("returns focus to the element that opened it", async () => {
