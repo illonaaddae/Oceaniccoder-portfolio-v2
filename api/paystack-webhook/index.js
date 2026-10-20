@@ -649,17 +649,26 @@ module.exports = async function (context, req) {
     return;
   }
 
+  // The reference keys the Cosmos rows and holds the invoice number, so it
+  // is read as a string; anything else counts as no reference.
+  if (data.reference != null && typeof data.reference !== "string") {
+    context.log.warn(
+      `paystack-webhook: charge has a reference that is not a string (${typeof data.reference}) — treating it as none`,
+    );
+  }
+  const reference = typeof data.reference === "string" ? data.reference : "";
+
   // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp).
   // Metadata is whatever the browser sent, so anything but a string is ignored:
   // an object or array would reach the invoice query as a value.
   const invoiceNumber =
     (typeof metadata.invoiceNumber === "string" && metadata.invoiceNumber) ||
-    (data.reference && data.reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
+    (reference && reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
 
   if (!invoiceNumber) {
     await bail(
       "could not determine which invoice this payment belongs to",
-      `reference: ${data.reference || "none"}`,
+      `reference: ${reference || "none"}`,
     );
     return;
   }
@@ -670,11 +679,10 @@ module.exports = async function (context, req) {
 
   if (backend === "cosmos") {
     // The Cosmos rows are keyed by reference; Paystack always sends one.
-    if (!data.reference) {
+    if (!reference) {
       await bail("payment has no Paystack reference", `invoice ${invoiceNumber}`);
       return;
     }
-    const reference = data.reference;
     let store;
     try {
       store = createCosmosInvoiceStore(cosmos.getDatabase());
@@ -810,7 +818,6 @@ module.exports = async function (context, req) {
       // deliver the same event more than once regardless. Without this, a
       // retry wrote a second payments row and mailed the client a second
       // "payment received" confirmation.
-      const reference = data.reference || "";
       if (reference) {
         const seen = await db.listDocuments(DATABASE_ID, PAYMENTS_COLLECTION_ID, [
           sdk.Query.equal("paystackReference", [reference]),
@@ -918,7 +925,7 @@ module.exports = async function (context, req) {
                 invoiceNumber,
                 error: pErr.message,
                 amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
-                reference: data.reference || "n/a",
+                reference: reference || "n/a",
               }),
               context.log,
             );
@@ -932,7 +939,7 @@ module.exports = async function (context, req) {
       } else {
         await bail(
           "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${data.reference || "none"}`,
+          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference || "none"}`,
         );
         return;
       }
