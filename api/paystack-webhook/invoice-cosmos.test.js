@@ -168,6 +168,8 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     };
   };
   const RETRY_SUBJECT = "Action needed: Paystack will retry a payment for invoice INV-2026-0042";
+  const UNTRACKED_SUBJECT =
+    "Action needed: a payment for invoice INV-2026-0042 may need recording by hand";
   const FAILED_SUBJECT = "Action needed: a Paystack webhook was not processed";
 
   it("says a retryable failure will be recorded and must not be marked paid by hand", async () => {
@@ -418,19 +420,41 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     sent.answers.push(500);
     for (let i = 0; i < 3; i++) expect((await run(event)).status).toBe(500);
     expect(sent.map((m) => [m.subject, m.status])).toEqual([
-      [RETRY_SUBJECT, 500],
-      [RETRY_SUBJECT, 200],
+      [UNTRACKED_SUBJECT, 500],
+      [UNTRACKED_SUBJECT, 200],
     ]);
+  });
+
+  it("says when the deadline is unknown on an untracked alert without a charge time", async () => {
+    cosmos.getDatabase.mockImplementation(() => {
+      throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+    });
+    const event = signed(chargeOf({ reference: "PAY-INV-2026-0042-no-time" }));
+    expect((await run(event)).status).toBe(500);
+    expect(sent[0].html).toContain("72 hours after the charge");
+    expect(sent[0].html).toContain("Paystack dashboard");
   });
 
   it("mails once per process when Cosmos cannot record the alert", async () => {
     cosmos.getDatabase.mockImplementation(() => {
       throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
     });
-    const event = signed(chargeOf({ reference: "PAY-INV-2026-0042-unconfigured" }));
+    const event = signed(
+      chargeOf({
+        reference: "PAY-INV-2026-0042-unconfigured",
+        paid_at: "2026-10-20T09:15:00.000Z",
+      }),
+    );
     expect((await run(event)).status).toBe(500);
     expect((await run(event)).status).toBe(500);
-    expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+    expect(subjects()).toEqual([["admin@example.com", UNTRACKED_SUBJECT]]);
+    const { html } = sent[0];
+    expect(html).toContain("Cosmos could not keep track of this alert");
+    expect(html).toContain("no follow-up email will come");
+    expect(html).toContain("2026-10-23 09:15 UTC");
+    expect(html).toContain("record the payment by hand");
+    expect(html).not.toContain("Do not mark the invoice paid by hand");
+    expect(html).not.toContain("one more email follows");
     expect(sent[0].html).toContain("Reason: the payment could not be recorded");
     expect(sent[0].html).not.toContain("Cosmos rejected the update");
   });
