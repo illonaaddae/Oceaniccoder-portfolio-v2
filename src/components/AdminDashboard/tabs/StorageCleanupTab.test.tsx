@@ -7,6 +7,7 @@ const mode = vi.hoisted(() => ({ usesCosmos: false }));
 const manageList = vi.fn();
 const listAllDocuments = vi.fn();
 const readPlatformLogoOverrides = vi.fn();
+const readHeroImages = vi.fn();
 const listMediaFiles = vi.fn();
 const deleteImage = vi.fn();
 
@@ -26,6 +27,7 @@ vi.mock("@/services/api/storage", () => ({
 }));
 vi.mock("@/services/api/settings", () => ({
   readPlatformLogoOverrides: () => readPlatformLogoOverrides(),
+  readHeroImages: () => readHeroImages(),
   setPlatformLogoUrl: vi.fn(),
 }));
 vi.mock("@/components/AdminDashboard/ImageUpload", () => ({ ImageUpload: () => null }));
@@ -86,6 +88,8 @@ beforeEach(() => {
   listAllDocuments.mockReset();
   readPlatformLogoOverrides.mockReset();
   readPlatformLogoOverrides.mockResolvedValue({});
+  readHeroImages.mockReset();
+  readHeroImages.mockResolvedValue({});
   deleteImage.mockReset();
   listMediaFiles.mockReset();
   listMediaFiles.mockResolvedValue(FILES);
@@ -211,5 +215,64 @@ describe("StorageCleanupTab", () => {
 
     expect(screen.queryByText("live-file.png")).not.toBeInTheDocument();
     expect(enabledDeleteButtons()).toHaveLength(0);
+  });
+
+  describe("media referenced outside the plain URL fields", () => {
+    const fileOnlyUsedBy = async (serve: () => void) => {
+      serve();
+      await renderTab();
+      // live-file is used only by the source under test, never by a project.
+      expect(screen.getByText("In use")).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+      expect(deleteButton()).toBeEnabled();
+    };
+    const LIVE_URL = PROJECT.image;
+
+    it("counts a hero image as in use", async () => {
+      await fileOnlyUsedBy(() => {
+        serveCosmos({});
+        readHeroImages.mockResolvedValue({ light: "", dark: LIVE_URL });
+      });
+    });
+
+    it("blocks delete when the hero images can't be read", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      readHeroImages.mockRejectedValue(new Error("hero_images setting is not an object of URLs"));
+      await renderTab();
+
+      expect(
+        within(scanAlert() as HTMLElement).getByText(/hero images: hero_images setting/),
+      ).toBeInTheDocument();
+      expect(enabledDeleteButtons()).toHaveLength(0);
+    });
+
+    it.each([
+      ["markdown inserted by the editor", `Intro\n![Image](${LIVE_URL})\nMore`],
+      ["an HTML img tag", `<p><img src="${LIVE_URL}" alt="x"></p>`],
+      ["a bare URL", `See ${LIVE_URL}.`],
+    ])("counts an image in a blog post body as in use: %s", async (_name, content) => {
+      await fileOnlyUsedBy(() => serveCosmos({ blog_posts: [{ $id: "b1", content }] }));
+    });
+
+    it("counts a project's demo video as in use", async () => {
+      await fileOnlyUsedBy(() =>
+        serveCosmos({ project_videos: [{ $id: "v1", projectId: "p1", demoVideoUrl: LIVE_URL }] }),
+      );
+    });
+
+    it.each(["blog_posts", "project_videos"])(
+      "blocks delete when %s can't be read",
+      async (collection) => {
+        serveCosmos({ projects: [PROJECT], [collection]: new Error("Forbidden") });
+        await renderTab();
+
+        expect(
+          within(scanAlert() as HTMLElement).getByText(`${collection}: Forbidden`, {
+            exact: false,
+          }),
+        ).toBeInTheDocument();
+        expect(enabledDeleteButtons()).toHaveLength(0);
+      },
+    );
   });
 });

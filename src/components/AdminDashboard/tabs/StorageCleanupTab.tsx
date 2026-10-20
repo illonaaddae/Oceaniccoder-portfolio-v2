@@ -5,7 +5,11 @@ import { manageList, usesCosmos } from "@/services/api/dataApi";
 import { LIST_ALL_CAP, listAllDocuments } from "@/services/api/listAll";
 import { deleteImage, listMediaFiles } from "@/services/api/storage";
 import { MEDIA_BASE_URL, getOptimizedImageUrl } from "@/utils/imageOptimizer";
-import { readPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
+import {
+  readHeroImages,
+  readPlatformLogoOverrides,
+  setPlatformLogoUrl,
+} from "@/services/api/settings";
 import { applyPlatformLogoOverrides } from "@/utils/platformLogos";
 import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
 
@@ -25,17 +29,25 @@ interface PlatformEntry {
   currentUrl: string | null;
 }
 
-const DB_COLLECTIONS = [
+// Every field that can hold an uploaded file's URL. `fields` hold URLs (or
+// arrays of them); `textFields` hold prose with URLs inside it.
+const DB_COLLECTIONS: { id: string; fields: string[]; textFields?: string[] }[] = [
   { id: "projects", fields: ["image", "screenshots"] },
+  { id: "project_videos", fields: ["demoVideoUrl"] },
   { id: "certifications", fields: ["image", "platformIconUrl"] },
   { id: "education", fields: ["universityLogo", "logo"] },
   { id: "about", fields: ["profileImage", "resumeUrl"] },
   { id: "gallery", fields: ["src"] },
-  { id: "blog_posts", fields: ["image"] },
+  // The editor inserts uploaded images into the body as ![Image](url).
+  { id: "blog_posts", fields: ["image"], textFields: ["content"] },
   { id: "journey", fields: ["logo"] },
   { id: "testimonials", fields: ["image"] },
   { id: "skills", fields: ["icon"] },
 ];
+
+// Any absolute URL, ending where markdown, HTML or prose would end it. Files
+// are matched by id, so catching extra or slightly short URLs is harmless.
+const URL_IN_TEXT = /https?:\/\/[^\s"'<>()[\]]+/g;
 
 const ALL_PLATFORMS = [
   "Coursera",
@@ -129,8 +141,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  // The logo overrides are read as part of each scan, not beforehand, so a
-  // logo's file is never judged before its override is known. A failed read
+  // The settings rows are read as part of each scan, not beforehand, so a
+  // file is never judged before every reference to it is known. A failed read
   // is a scan error like any collection's, which blocks delete. Nothing here
   // touches state: loadFiles commits the whole scan at once.
   const collectAllUrls = useCallback(async (): Promise<{
@@ -152,10 +164,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       }
     };
 
-    const [overrides] = await Promise.all([
+    const [overrides, heroImages] = await Promise.all([
       readSetting("platform logos", readPlatformLogoOverrides),
+      readSetting("hero images", readHeroImages),
       Promise.allSettled(
-        DB_COLLECTIONS.map(async ({ id, fields }) => {
+        DB_COLLECTIONS.map(async ({ id, fields, textFields = [] }) => {
           try {
             const rows = await listCollectionRows(id);
             for (const doc of rows) {
@@ -167,6 +180,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                 } else {
                   urls.add(String(val));
                 }
+              }
+              for (const field of textFields) {
+                const text = doc[field];
+                if (typeof text !== "string") continue;
+                for (const [url] of text.matchAll(URL_IN_TEXT)) urls.add(url);
               }
             }
           } catch (err) {
@@ -181,6 +199,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       .map((p) => p.currentUrl)
       .filter((u): u is string => !!u);
     logoUrls.forEach((u) => urls.add(u));
+    Object.values(heroImages ?? {}).forEach((u) => u && urls.add(u));
     return { urls, logoUrls, errors, overrides };
   }, []);
 
