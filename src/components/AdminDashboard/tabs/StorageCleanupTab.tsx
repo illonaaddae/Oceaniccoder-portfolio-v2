@@ -93,11 +93,13 @@ interface StorageCleanupTabProps {
 
 export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [collectionErrors, setCollectionErrors] = useState<string[]>([]);
+  // True only while `files` comes from a scan whose reads all returned.
+  const [scanFinished, setScanFinished] = useState(false);
   const [platforms, setPlatforms] = useState<PlatformEntry[]>(() => platformsWith({}));
   const [replacingLogo, setReplacingLogo] = useState<string | null>(null);
   const [savingLogo, setSavingLogo] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   // A collection that couldn't be read may still use any file listed as an
   // orphan, so nothing can be deleted until a scan reads them all.
-  const deleteBlocked = collectionErrors.length > 0;
+  const deleteBlocked = !scanFinished || collectionErrors.length > 0;
 
   const card = "glass-card";
   const text = theme === "dark" ? "text-white" : "text-slate-900";
@@ -129,26 +131,29 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
 
   // The logo overrides are read as part of each scan, not beforehand, so a
   // logo's file is never judged before its override is known. A failed read
-  // is a scan error like any collection's, which blocks delete.
+  // is a scan error like any collection's, which blocks delete. Nothing here
+  // touches state: loadFiles commits the whole scan at once.
   const collectAllUrls = useCallback(async (): Promise<{
     urls: Set<string>;
     logoUrls: string[];
+    errors: string[];
+    overrides: Record<string, string> | null;
   }> => {
     const urls = new Set<string>();
     const errors: string[] = [];
 
-    const readLogoOverrides = async (): Promise<Record<string, string> | null> => {
+    const readSetting = async <T,>(label: string, read: () => Promise<T>): Promise<T | null> => {
       try {
-        return await readPlatformLogoOverrides();
+        return await read();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        errors.push(`platform logos: ${msg}`);
+        errors.push(`${label}: ${msg}`);
         return null;
       }
     };
 
     const [overrides] = await Promise.all([
-      readLogoOverrides(),
+      readSetting("platform logos", readPlatformLogoOverrides),
       Promise.allSettled(
         DB_COLLECTIONS.map(async ({ id, fields }) => {
           try {
@@ -172,23 +177,23 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       ),
     ]);
 
-    setCollectionErrors(errors);
-    const logoPlatforms = platformsWith(overrides ?? {});
-    // On a failed read, keep showing the logos already on screen.
-    if (overrides) setPlatforms(logoPlatforms);
-    const logoUrls = logoPlatforms.map((p) => p.currentUrl).filter((u): u is string => !!u);
+    const logoUrls = platformsWith(overrides ?? {})
+      .map((p) => p.currentUrl)
+      .filter((u): u is string => !!u);
     logoUrls.forEach((u) => urls.add(u));
-    return { urls, logoUrls };
+    return { urls, logoUrls, errors, overrides };
   }, []);
 
+  // Files, errors and the delete gate change together, and only once every
+  // read has returned. A failed scan leaves no files listed, so a list from
+  // an earlier scan can never sit next to a clean error state.
   const loadFiles = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setScanFinished(false);
     try {
-      const [mediaFiles, { urls: referencedUrls, logoUrls: platformLogoUrls }] = await Promise.all([
-        listMediaFiles(),
-        collectAllUrls(),
-      ]);
+      const [mediaFiles, scan] = await Promise.all([listMediaFiles(), collectAllUrls()]);
+      const { urls: referencedUrls, logoUrls: platformLogoUrls } = scan;
 
       // Precompute collection ids once — O(N+M) vs O(N*M) per-file scan.
       const collectionIds = DB_COLLECTIONS.map((c) => c.id);
@@ -229,9 +234,15 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
 
       mapped.sort((a, b) => (a.isOrphan === b.isOrphan ? 0 : a.isOrphan ? -1 : 1));
       setFiles(mapped);
+      setCollectionErrors(scan.errors);
+      // On a failed read, keep showing the logos already on screen.
+      if (scan.overrides) setPlatforms(platformsWith(scan.overrides));
+      setScanFinished(true);
       setOrphanPage(0);
       setInUsePage(0);
     } catch (err) {
+      setFiles([]);
+      setCollectionErrors([]);
       setError(err instanceof Error ? err.message : "Failed to load storage files");
     } finally {
       setLoading(false);
@@ -517,6 +528,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           </h3>
           {loading ? (
             <p className={subText}>Scanning…</p>
+          ) : !scanFinished ? (
+            <p className={subText}>The scan did not finish. Refresh to try again.</p>
           ) : orphans.length === 0 ? (
             <div className="flex items-center gap-2 text-green-400 text-sm">
               <FaCheckCircle /> No orphaned files. Storage is clean.
