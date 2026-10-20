@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { MediaFile } from "@/services/api/storage";
 
@@ -214,9 +214,11 @@ describe("StorageCleanupTab", () => {
     it("keeps a replaced logo in use when an older scan finishes last", async () => {
       serveCosmos({ projects: [PROJECT] });
       listMediaFiles.mockResolvedValue([...FILES, LOGO]);
-      // The scan on mount reads the overrides from before the replacement, slowly.
+      // The scan on mount reads the overrides from before the replacement and
+      // is held until the scan the replacement starts has finished.
+      let finishFirstRead: (overrides: Record<string, string>) => void = () => {};
       readPlatformLogoOverrides
-        .mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve({}), 100)))
+        .mockImplementationOnce(() => new Promise((resolve) => (finishFirstRead = resolve)))
         .mockResolvedValue({ AWS: LOGO.url });
       render(<StorageCleanupTab theme="dark" />);
 
@@ -224,7 +226,13 @@ describe("StorageCleanupTab", () => {
       await userEvent.click(within(awsTile).getByRole("button", { name: /replace logo/i }));
       await userEvent.click(screen.getByRole("button", { name: "Upload AWS logo" }));
       await screen.findByText(/AWS logo updated/);
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await waitFor(() => expect(screen.getAllByText("In use")).toHaveLength(2));
+
+      await act(async () => {
+        finishFirstRead({});
+        // One macrotask lets the older scan's whole promise chain settle.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
 
       expect(screen.getAllByText("In use")).toHaveLength(2);
       expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
