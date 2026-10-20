@@ -2,11 +2,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { createHandler } = await import("./index.js");
-const { verifyInvoice } = await import("../shared/tokens.js");
+const { verifyInvoice, paymentIdFor } = await import("../shared/tokens.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
 const access = await import("../shared/quotes/access.js");
-const { createCosmosQuoteRepo, paymentIdFor } = await import("../shared/quotes/repo.cosmos.js");
+const { createCosmosQuoteRepo } = await import("../shared/quotes/repo.cosmos.js");
 const { createCosmosLocks } = await import("../shared/locks.js");
 const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
 

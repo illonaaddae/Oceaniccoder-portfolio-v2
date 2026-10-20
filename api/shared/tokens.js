@@ -54,6 +54,11 @@ function lockId(key) {
   return `s_${crypto.createHash("sha256").update(key).digest("hex").slice(0, 34)}`;
 }
 
+/** Payments row id for a Paystack reference: one row per reference. */
+function paymentIdFor(reference) {
+  return `pi_${crypto.createHash("sha256").update(reference).digest("hex")}`;
+}
+
 module.exports = {
   newToken,
   hashToken,
@@ -64,4 +69,5 @@ module.exports = {
   signInvoice,
   verifyInvoice,
   lockId,
+  paymentIdFor,
 };

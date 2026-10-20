@@ -29,8 +29,7 @@
 // resumes at the first step not done.
 
 const { evaluateSettlement } = require("./settlement");
-const { paymentIdFor } = require("../shared/quotes/repo.cosmos");
-const { lockId } = require("../shared/tokens");
+const { lockId, paymentIdFor } = require("../shared/tokens");
 
 // A delivery that claims the emails and then dies leaves its claim behind;
 // once it is this old another delivery takes over. Longer than a function

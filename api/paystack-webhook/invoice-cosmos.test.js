@@ -14,8 +14,7 @@ const sdk = require("node-appwrite");
 const cosmos = require("../shared/cosmos.js");
 const quoteService = require("../shared/quotes/service.js");
 const { createFakeCosmos } = require("../shared/fakeCosmos.js");
-const { paymentIdFor } = require("../shared/quotes/repo.cosmos.js");
-const { lockId } = require("../shared/tokens.js");
+const { lockId, paymentIdFor } = require("../shared/tokens.js");
 const handler = require("./index.js");
 
 // Once PR #200 lands, unverified requests email at most once an hour per
