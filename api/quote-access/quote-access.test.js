@@ -22,18 +22,27 @@ const base = {
 };
 const ENV = { QUOTE_ACCESS_SECRET: SECRET, RESEND_TO_EMAIL: "owner@oceaniccoder.dev" };
 
-function setup({ quotes = [base], env = ENV, locks = createFakeLocks(), mailOk = true } = {}) {
+function setup({
+  quotes = [base],
+  env = ENV,
+  locks = createFakeLocks(),
+  mailOk = true,
+  sendImpl,
+  alertWaitMs,
+} = {}) {
   const repo = createFakeRepo({ quotes });
   const clock = { ms: START };
   const mails = [];
   const logs = [];
   const sendMail = async (mail) => {
     mails.push(mail);
+    if (sendImpl) return sendImpl(mail);
     return mailOk ? { ok: true } : { ok: false, error: `Resend refused ${mail.to}` };
   };
   const handler = createHandler({
     env,
     send: sendMail,
+    alertWaitMs,
     services: () => ({ repo, locks, now: () => new Date(clock.ms) }),
   });
   const record =
@@ -70,7 +79,7 @@ describe("quote-access send", () => {
     expect(r.body).toMatchObject({
       maskedEmail: "k•••••@hotmail.com",
       expiresInSeconds: 600,
-      retryAfterSeconds: 60,
+      retryAfterSeconds: 90,
     });
     expect(r.body.challenge).toMatch(/^v1\./);
     expect(t.mails).toHaveLength(1);
@@ -86,10 +95,10 @@ describe("quote-access send", () => {
     expect((await a.sendCode()).status).toBe(200);
     const again = await b.sendCode(TOKEN, { ip: "198.51.100.9" });
     expect(again.status).toBe(429);
-    expect(again.body.retryAfterSeconds).toBe(60);
+    expect(again.body.retryAfterSeconds).toBe(90);
     expect(b.mails).toHaveLength(0);
-    a.clock.ms += 60 * 1000;
-    b.clock.ms += 60 * 1000;
+    a.clock.ms += 90 * 1000;
+    b.clock.ms += 90 * 1000;
     expect((await b.sendCode(TOKEN, { ip: "198.51.100.9" })).status).toBe(200);
   });
 
@@ -98,13 +107,13 @@ describe("quote-access send", () => {
     const statuses = [];
     for (let i = 0; i < 6; i += 1) {
       statuses.push((await t.sendCode(TOKEN, { ip: `198.51.100.${i + 1}` })).status);
-      t.clock.ms += 60 * 1000;
+      t.clock.ms += 90 * 1000;
     }
     expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
     t.clock.ms = START + 3600 * 1000;
     for (let i = 0; i < 5; i += 1) {
       expect((await t.sendCode(TOKEN, { ip: `198.51.101.${i + 1}` })).status).toBe(200);
-      t.clock.ms += 60 * 1000;
+      t.clock.ms += 90 * 1000;
     }
     t.clock.ms = START + 2 * 3600 * 1000;
     const day = await t.sendCode(TOKEN, { ip: "198.51.102.1" });
@@ -169,7 +178,9 @@ describe("quote-access verify", () => {
     const r = await verify(t, body.challenge, ` ${code.slice(0, 3)}-${code.slice(3)} `);
     expect(r.status).toBe(200);
     expect(r.body).toEqual({ ok: true });
-    expect(r.cookie).toMatch(/^oc_qa_[0-9a-f]{16}=v1\..+; HttpOnly; Secure; SameSite=Strict$/);
+    expect(r.cookie).toMatch(
+      /^__Secure-oc_qa_[0-9a-f]{16}=v1\..+; HttpOnly; Secure; SameSite=Strict$/,
+    );
     const status = await t.call(
       { action: "status", token: TOKEN },
       { cookie: r.cookie.split(";")[0] },
@@ -304,7 +315,7 @@ describe("quote-access status", () => {
       action: "status",
       token: TOKEN,
     });
-    expect(r.body).toEqual({ locked: true, canUnlock: false, maskedEmail: null });
+    expect(r.body).toEqual({ locked: true, canUnlock: false, blocked: false, maskedEmail: null });
   });
 });
 
@@ -331,9 +342,123 @@ describe("quote-access switches", () => {
     },
   );
 
-  it("refuses a QUOTE_ACCESS_GATE value it doesn't know", async () => {
+  it("answers 503 for a QUOTE_ACCESS_GATE value it doesn't know, naming the variable in the log", async () => {
     const t = setup({ env: { ...ENV, QUOTE_ACCESS_GATE: "false" } });
-    expect((await t.call({ action: "status", token: TOKEN })).status).toBe(500);
+    for (const action of ["status", "send", "verify"]) {
+      expect((await t.call({ action, token: TOKEN })).status).toBe(503);
+    }
+    expect(t.mails).toHaveLength(0);
+    expect(t.logs.join("\n")).toContain("QUOTE_ACCESS_GATE");
+  });
+});
+
+describe("quote-access lifetime cap and quota reset", () => {
+  const GAP = 90 * 1000;
+
+  async function lockOut(t) {
+    const { body, code } = await t.sendCode(TOKEN, { ip: `198.51.100.${t.mails.length + 1}` });
+    let last;
+    for (let i = 0; i < 5; i += 1)
+      last = await t.call(
+        { action: "verify", token: TOKEN, challenge: body.challenge, code: wrongCode(code) },
+        { ip: `198.51.100.${t.mails.length + 1}` },
+      );
+    t.clock.ms += GAP;
+    return last;
+  }
+
+  it("stops sending codes after three locked-out codes until the admin issues a new link", async () => {
+    const t = setup();
+    expect((await lockOut(t)).status).toBe(429);
+    expect((await lockOut(t)).status).toBe(429);
+    const third = await lockOut(t);
+    expect(third).toMatchObject({ status: 403, body: { blocked: true } });
+    expect(third.body.error).toContain("hello@oceaniccoder.dev");
+
+    const alerts = t.mails.filter((m) => m.to === "owner@oceaniccoder.dev");
+    expect(alerts).toHaveLength(3);
+    expect(alerts[2].text).toContain("no more codes will be sent");
+    expect(alerts[1].text).not.toContain("no more codes will be sent");
+
+    const sent = t.mails.length;
+    const refused = await t.call({ action: "send", token: TOKEN }, { ip: "192.0.2.50" });
+    expect(refused).toMatchObject({ status: 403, body: { blocked: true } });
+    expect(t.mails).toHaveLength(sent);
+    const status = await t.call({ action: "status", token: TOKEN });
+    expect(status.body).toMatchObject({ locked: true, canUnlock: false, blocked: true });
+
+    await A.bumpEpoch(t.locks, base);
+    expect((await t.sendCode(TOKEN, { ip: "192.0.2.51" })).status).toBe(200);
+  });
+
+  it("gives the client back a used-up hourly quota after a new link", async () => {
+    const t = setup();
+    for (let i = 0; i < 5; i += 1) {
+      expect((await t.sendCode(TOKEN, { ip: `192.0.2.${i + 1}` })).status).toBe(200);
+      t.clock.ms += GAP;
+    }
+    expect((await t.sendCode(TOKEN, { ip: "192.0.2.9" })).status).toBe(429);
+    await A.bumpEpoch(t.locks, base);
+    expect((await t.sendCode(TOKEN, { ip: "192.0.2.10" })).status).toBe(200);
+  });
+});
+
+describe("quote-access failure paths", () => {
+  it("hands the gap back when building or sending the email throws", async () => {
+    let fail = true;
+    const t = setup({
+      sendImpl: async () => {
+        if (fail) throw new Error("socket hang up");
+        return { ok: true };
+      },
+    });
+    const r = await t.call({ action: "send", token: TOKEN });
+    expect(r.status).toBe(500);
+    fail = false;
+    expect((await t.sendCode()).status).toBe(200);
+  });
+
+  it("still answers 502 and logs it when handing the gap back fails", async () => {
+    const t = setup({ mailOk: false });
+    t.locks.release = async () => {
+      throw new Error("locks down");
+    };
+    const r = await t.call({ action: "send", token: TOKEN });
+    expect(r.status).toBe(502);
+    expect(t.logs.join("\n")).toContain("quote-access gap release failed quote=Q-2026-0004");
+    expect(t.logs.join("\n")).not.toContain("kofi");
+  });
+
+  it("answers the lockout without waiting on a slow owner alert", async () => {
+    let finish;
+    const t = setup({
+      alertWaitMs: 20,
+      sendImpl: (mail) =>
+        mail.to === "owner@oceaniccoder.dev"
+          ? new Promise((resolve) => {
+              finish = () => resolve({ ok: true });
+            })
+          : { ok: true },
+    });
+    const { body, code } = await t.sendCode();
+    for (let i = 0; i < 4; i += 1)
+      await t.call({
+        action: "verify",
+        token: TOKEN,
+        challenge: body.challenge,
+        code: wrongCode(code),
+      });
+    const started = Date.now();
+    const fifth = await t.call({
+      action: "verify",
+      token: TOKEN,
+      challenge: body.challenge,
+      code: wrongCode(code),
+    });
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(fifth.status).toBe(429);
+    expect(t.logs.join("\n")).toContain("lock alert failed quote=Q-2026-0004: timed out");
+    finish();
   });
 });
 
@@ -354,7 +479,7 @@ describe("quote-access logs", () => {
         challenge: body.challenge,
         code: wrongCode(code),
       });
-    t.clock.ms += 60 * 1000;
+    t.clock.ms += 90 * 1000;
     const second = await t.sendCode();
     const ok = await t.call({
       action: "verify",

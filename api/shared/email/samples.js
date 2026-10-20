@@ -128,6 +128,7 @@ const SAMPLE_VIEWS = {
   accessLockedAlert: {
     template: "accessLockedAlert",
     view: {
+      blocked: false,
       clientName: "Kofi Mensah",
       quoteNumber: "Q-2026-0007",
       title: "Online store with Paystack checkout",
