@@ -56,7 +56,13 @@ against `fakes.js` are the parity check.
 | 7a/b | Browser Appwrite removal                                                                                        | after cutover |
 
 Before cutover: end-to-end in Paystack test mode against local `func start`
-with `DATA_BACKEND=cosmos` through a tunnel.
+with `DATA_BACKEND=cosmos` through a tunnel. That run must not touch
+production Cosmos: point `COSMOS_ENDPOINT` and `COSMOS_KEY` in
+`api/local.settings.json` at the Cosmos emulator or a separate Cosmos account
+(the database name is fixed to `portfolio` in `api/shared/cosmos.js`, so a
+second database in the production account is not an option). If a test run
+ever hit production, delete its test-mode `pi_` payments rows, quotes and
+locks by hand before the final import.
 
 ## Runbook
 
@@ -71,6 +77,8 @@ with `DATA_BACKEND=cosmos` through a tunnel.
     Only for the real import, `--backfill-quote-locks` and `--mark-cutover`.
 - The scripts never print keys. Reconcile prints the Paystack mode and the
   Cosmos host it reads.
+- `--env-file` needs Node 20.6 or later. Check `node --version` first:
+  `.nvmrc` says 18, which has no `--env-file`.
 
 ### Before cutover night
 
@@ -92,19 +100,21 @@ Every run needs `COSMOS_ENDPOINT` and `COSMOS_KEY`, the dry run too (it reads
 Cosmos to count; the read-only key is enough). Rules live in
 `scripts/lib/import-plan.mjs`.
 
-| Flag                              | Effect                                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--backup <dir>`                  | Backup folder; default the newest `backup/<date>` (a `backup/<date>-final` folder is only used when named). A missing folder or table file fails. |
-| `--only a,b`                      | Only these containers. An unknown name, or `analytics`, fails.                                                                                    |
-| `--dry-run`                       | Read-only. Per container: create, overwrite, newer-in-Cosmos and prune counts, then the data checks on the result.                                |
-| `--insert-only`                   | Creates missing rows only; overwrites nothing. The only kind of run allowed after the marker.                                                     |
-| `--force-overwrite`               | Also overwrites rows whose Cosmos `updatedAt` is newer than the backup (skipped by default). Warns per row.                                       |
-| `--pre-cutover`                   | Asserts the cutover has not happened; refused once the marker exists. Also refreshes `payments`, `invoices`, `quotes` and `locks` (see below).    |
-| `--prune`                         | Deletes Cosmos rows not in the backup, after which rows are created. Needs `--pre-cutover`.                                                       |
-| `--prune-money`                   | With `--prune`, also prunes `payments` and `invoices`.                                                                                            |
-| `--allow-overwrite-after-cutover` | After the marker, allows a run without `--insert-only`. Counters and reactions don't bump `updatedAt`, so this can overwrite live counts.         |
-| `--mark-cutover`                  | Runs alone. Writes the row `cutover` (`at`, `by`) in `locks`, which `/api/manage` can't list or change. After it only `--insert-only` runs.       |
-| `--backfill-quote-locks`          | Creates the missing `quoteNumber:` lock rows the data checks report.                                                                              |
+| Flag                                | Effect                                                                                                                                                |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--backup <dir>`                    | Backup folder; default the newest `backup/<date>` (a `backup/<date>-final` folder is only used when named). A missing folder or table file fails.     |
+| `--only a,b`                        | Only these containers. An unknown name, or `analytics`, fails.                                                                                        |
+| `--dry-run`                         | Read-only. Per container: create, overwrite, newer-in-Cosmos and prune counts, then the data checks on the result.                                    |
+| `--insert-only`                     | Creates missing rows only; overwrites nothing. The only kind of run allowed after the marker (`--dry-run` aside).                                     |
+| `--created-after <time>`            | Only backup rows whose `$createdAt` is after this time (Z or an offset). Rows with no readable `$createdAt` are left out and listed.                  |
+| `--force-overwrite`                 | Also overwrites rows whose Cosmos `updatedAt` is newer than the backup (skipped by default). Warns per row.                                           |
+| `--pre-cutover`                     | Asserts the cutover has not happened; refused once the marker exists. Also refreshes `payments`, `invoices`, `quotes` and `locks` (see below).        |
+| `--prune`                           | Deletes Cosmos rows not in the backup, after which rows are created. Needs `--pre-cutover`.                                                           |
+| `--prune-money`                     | With `--prune`, also prunes `payments` and `invoices`.                                                                                                |
+| `--allow-overwrite-after-cutover`   | After the marker, allows a run without `--insert-only`. Counters and reactions don't bump `updatedAt`, so this can overwrite live counts.             |
+| `--allow-quote-state-after-cutover` | After the marker, allows `quotes` and `locks` in the run. Without it they are refused: a lock released in Cosmos would come back and block a payment. |
+| `--mark-cutover`                    | Runs alone. Writes the row `cutover` (`at`, `by`) in `locks`, which `/api/manage` can't list or change. After it only `--insert-only` runs.           |
+| `--backfill-quote-locks`            | Creates the missing `quoteNumber:` lock rows the data checks report.                                                                                  |
 
 `payments`, `invoices`, `quotes` and `locks`:
 
@@ -133,9 +143,10 @@ reported with the Cosmos row that holds the key.
 
 Exit codes: 2 on bad flags; 1 on a Cosmos error, a backup row missing after
 the import, a refusal (marker present), or, before the marker, any invoice,
-quote or payment whose `status` or `updatedAt` differs from the backup. The
-marker is read once at the start of a run, so never run `--mark-cutover` while
-another import is running.
+quote or payment whose `status` or `updatedAt` differs from the backup. After
+the marker `--dry-run` always runs (but not with `--prune` or
+`--pre-cutover`). The marker is read once at the start of a run, so never run
+`--mark-cutover` while another import is running.
 
 `scripts/reconcile-paystack.mjs --since <time with Z or offset> --mode live|test`
 (needs `PAYSTACK_SECRET_KEY`, `COSMOS_ENDPOINT`, `COSMOS_KEY`; the read-only
@@ -145,8 +156,10 @@ settled Cosmos `payments` row, and how to replay them. Only a `success` or
 charge); rows that exist but are not settled are listed apart, and rows
 settled as `failed`, `duplicate` or `refunded` are listed for a look by hand.
 `--mode` must match the key's `sk_live_`/`sk_test_` prefix. Read-only;
-`--apply` is refused. Exit 0 all settled, 3 some unrecorded or unsettled,
-2 bad arguments or mode mismatch.
+`--apply` is refused. Exit 0 all settled; 3 some unrecorded or unsettled;
+4 none of those, but some settled as `failed`, `duplicate` or `refunded` on a
+successful charge (a person must resolve or refund them); 2 bad arguments or
+mode mismatch.
 
 Paging is by page number. Paystack documents an offset meta (`pageCount`)
 and, in one example, a cursor meta (`next`, `previous`, `perPage`); with the
@@ -192,11 +205,14 @@ and fails on a full page with neither. Paystack's own cursor parameters
    `node --env-file=.env.cutover scripts/reconcile-paystack.mjs --since <H minus 24 h, with Z> --mode live`
    until it exits 0. Start the window well before the hold, not at T: a charge
    taken before the hold can still be waiting on a retry. Check its first lines
-   read `Paystack mode: LIVE` and the production Cosmos host. Then delete the
-   step 6 smoke-test rows.
-9. Second backup,
+   read `Paystack mode: LIVE` and the production Cosmos host. Exit 4 is not
+   done: resolve or refund every check-by-hand line in the Paystack dashboard
+   first. Then delete the step 6 smoke-test rows.
+9. With admin edits still frozen, second backup,
    `node --env-file=.env.cutover scripts/backup-appwrite.mjs --out backup/<date>-post`, then
-   `node --env-file=.env.cutover.write scripts/import-to-cosmos.mjs --backup backup/<date>-post --insert-only --only bookings,messages,comments,project_inquiries,testimonials`.
+   `node --env-file=.env.cutover.write scripts/import-to-cosmos.mjs --backup backup/<date>-post --insert-only --created-after <T, with Z> --only bookings,messages,comments,project_inquiries,testimonials`.
+   `--created-after` keeps rows deleted in Cosmos since the flip (smoke tests,
+   admin deletes) from coming back. Unfreeze admin edits only after this step.
 10. Leave Appwrite alone until it is disabled. After step 8, roll forward only.
 11. Rotate the Cosmos key the scripts used (Azure portal, Cosmos account,
     Keys). If the site uses that key, point the Static Web App `COSMOS_KEY` at
