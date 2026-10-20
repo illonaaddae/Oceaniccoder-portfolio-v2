@@ -75,6 +75,10 @@ async function renderTab() {
 }
 
 const deleteButton = () => screen.getByRole("button", { name: /delete file/i });
+const enabledDeleteButtons = () =>
+  screen
+    .queryAllByRole("button", { name: /delete file/i })
+    .filter((b) => !(b as HTMLButtonElement).disabled);
 const scanAlert = () => screen.queryByRole("alert");
 
 beforeEach(() => {
@@ -191,5 +195,21 @@ describe("StorageCleanupTab", () => {
       expect(buttons).toHaveLength(2);
       for (const button of buttons) expect(button).toBeDisabled();
     });
+  });
+
+  it("shows no deletable files when a refresh can't list the media after a failed scan", async () => {
+    // Scan 1: projects fails, so live-file is listed as an orphan with delete off.
+    serveCosmos({ projects: new Error("Forbidden") });
+    await renderTab();
+    expect(enabledDeleteButtons()).toHaveLength(0);
+
+    // Scan 2: every collection reads, but the media list fails.
+    serveCosmos({ projects: [PROJECT] });
+    listMediaFiles.mockRejectedValue(new Error("Media list failed"));
+    await userEvent.click(screen.getByRole("button", { name: /refresh/i }));
+    await screen.findByText(/Media list failed/);
+
+    expect(screen.queryByText("live-file.png")).not.toBeInTheDocument();
+    expect(enabledDeleteButtons()).toHaveLength(0);
   });
 });
