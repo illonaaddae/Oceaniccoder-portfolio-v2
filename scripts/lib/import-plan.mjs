@@ -82,6 +82,7 @@ const BOOLEAN_FLAGS = {
   "--mark-cutover": "markCutover",
   "--backfill-quote-locks": "backfillQuoteLocks",
   "--allow-overwrite-after-cutover": "overwriteAfterCutover",
+  "--allow-quote-state-after-cutover": "quoteStateAfterCutover",
 };
 const VALUE_FLAGS = { "--backup": "backup", "--only": "only" };
 
@@ -99,6 +100,7 @@ export function parseArgs(argv) {
     markCutover: false,
     backfillQuoteLocks: false,
     overwriteAfterCutover: false,
+    quoteStateAfterCutover: false,
   };
   const given = [];
   for (let i = 0; i < argv.length; i++) {
@@ -171,8 +173,13 @@ function parseOnly(value) {
 /** Why this run must stop because the cutover marker exists, or null. */
 // After cutover only --insert-only is safe by default: counters and
 // reactions change in Cosmos without bumping updatedAt, so the newer-updatedAt
-// rule would let an old backup overwrite them.
-export function refusalAfterCutover(flags, marker) {
+// rule would let an old backup overwrite them. Quotes and locks are refused
+// even then: a backup quote or lock that Cosmos dropped since (a released
+// stage lock, say) would come back and block a real payment. A dry run writes
+// nothing, so only --prune and --pre-cutover stop it.
+export const QUOTE_STATE_CONTAINERS = ["quotes", "locks"];
+
+export function refusalAfterCutover(flags, marker, containers) {
   if (!marker) return null;
   const marked = `Cutover was marked at ${marker.at} by ${marker.by}. `;
   if (flags.prune || flags.preCutover) {
@@ -180,12 +187,23 @@ export function refusalAfterCutover(flags, marker) {
       marked + "--prune and --pre-cutover are refused after cutover: Cosmos is the live database."
     );
   }
-  if (flags.insertOnly || flags.overwriteAfterCutover) return null;
-  return (
-    marked +
-    "Only --insert-only runs after cutover. To overwrite live rows anyway, add " +
-    "--allow-overwrite-after-cutover."
-  );
+  if (flags.dryRun) return null;
+  if (!flags.insertOnly && !flags.overwriteAfterCutover) {
+    return (
+      marked +
+      "Only --insert-only runs after cutover. To overwrite live rows anyway, add " +
+      "--allow-overwrite-after-cutover."
+    );
+  }
+  const quoteState = QUOTE_STATE_CONTAINERS.filter((id) => containers.includes(id));
+  if (quoteState.length > 0 && !flags.quoteStateAfterCutover) {
+    return (
+      marked +
+      `${quoteState.join(" and ")} are live quote state after cutover. Leave them out with ` +
+      "--only, or add --allow-quote-state-after-cutover."
+    );
+  }
+  return null;
 }
 
 /** The row --mark-cutover writes. */

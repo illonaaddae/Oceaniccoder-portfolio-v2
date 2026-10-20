@@ -14,7 +14,9 @@
 //     payments and invoices only with --prune-money as well, and never once the
 //     cutover marker exists.
 //   - After the marker only --insert-only runs, unless
-//     --allow-overwrite-after-cutover is given.
+//     --allow-overwrite-after-cutover is given, and never into quotes or
+//     locks unless --allow-quote-state-after-cutover is given. --dry-run is
+//     always allowed (but not with --prune or --pre-cutover).
 //   - Before the marker, a real run fails if any invoice, quote or payment in
 //     the backup differs from Cosmos in status or updatedAt.
 //
@@ -38,6 +40,8 @@
 // --prune-money             with --prune, also prune payments and invoices
 // --allow-overwrite-after-cutover
 //                           after the marker, run without --insert-only anyway
+// --allow-quote-state-after-cutover
+//                           after the marker, import into quotes and locks
 // --backfill-quote-locks    create the missing quoteNumber lock rows
 
 import { existsSync } from "node:fs";
@@ -267,7 +271,7 @@ async function main() {
 
   const client = createClient();
   const marker = await readMarker(client.database(DATABASE_ID));
-  const refusal = refusalAfterCutover(flags, marker);
+  const refusal = refusalAfterCutover(flags, marker, Object.keys(docsByContainer));
   if (refusal) {
     console.error(refusal);
     return 1;
