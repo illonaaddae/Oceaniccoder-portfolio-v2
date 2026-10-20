@@ -188,6 +188,22 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(subjects()).toHaveLength(2);
   });
 
+  it("does not move a resumed payment to another invoice that took the old number", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 1);
+    expect((await run()).status).toBe(500);
+    expect(payment()).toMatchObject({ invoiceId: "inv1", invoiceApplied: false });
+
+    db.container("invoices").docs.get("inv1").invoiceNumber = "INV-2026-0099";
+    db.container("invoices").seed(invoiceDoc({ id: "inv2" }));
+    sent.length = 0;
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv2").status).toBe("sent");
+    expect(db.container("invoices").docs.get("inv1").status).toBe("sent");
+    expect(payment().invoiceApplied).toBe(false);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
+    expect(sent[0].html).toContain("its invoice was renumbered or deleted");
+  });
+
   it("does not say a payment is waiting when only saving notifiedAt failed", async () => {
     db.container("payments").hooks.beforeReplace = async (id, body) => {
       if (body.notifiedAt) throw unavailable();

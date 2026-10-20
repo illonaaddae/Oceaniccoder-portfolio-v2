@@ -10,14 +10,16 @@
 //      this flow did not write (no invoiceApplied field). A row at our id
 //      for another charge is a conflict and is left alone.
 //   2. Find the invoice (exactly one; several with the number stop here).
+//      A row from an earlier attempt names its invoiceId; that invoice is
+//      used, and the charge stops if it is gone or renumbered.
 //      settle() decides paid or left open: evaluateSettlement as on
 //      Appwrite, except that an invoice without a currency is in GHS and
 //      one without a usable total stays open.
-//   3. Create the row at paymentIdFor(reference) with invoiceApplied false
-//      and the settlement (settles, expected, invoiceCurrency). A 409 means
-//      another delivery created it first; carry on from it. From here on the
-//      stored settlement decides, so an edit to the invoice total between a
-//      crash and the retry does not change what the retry does.
+//   3. Create the row at paymentIdFor(reference) with invoiceApplied false,
+//      the invoiceId and the settlement (settles, expected, invoiceCurrency).
+//      A 409 means another delivery created it first; carry on from it. From
+//      here on the stored settlement decides, so an edit to the invoice total
+//      between a crash and the retry does not change what the retry does.
 //   4. Not applied yet: change the invoice, then set invoiceApplied.
 //   5. Not notified yet: claim the emails, send them, set notifiedAt. A
 //      crash between sending and notifiedAt resends them (at least once).
@@ -147,7 +149,8 @@ function markRecorded(err) {
  * has paymentRecorded: true, as only the emails are left to finish.
  * @returns {Promise<{ outcome: "recorded" | "duplicate" | "conflict" | "no-invoice"
  *   | "ambiguous-invoice" | "busy" }>}
- *   "conflict": the row at our id belongs to another charge.
+ *   "conflict": the row at our id belongs to another charge, or the invoice
+ *   it was created for is gone or no longer has this number.
  *   "busy": another delivery is sending the emails right now; answer so that
  *   Paystack retries, and the retry will find the work done.
  */
@@ -189,10 +192,31 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
     if (stop) return stop;
   }
 
-  const matches = await store.findInvoicesByNumber(invoiceNumber);
-  if (matches.length === 0) return { outcome: "no-invoice" };
-  if (matches.length > 1) return { outcome: "ambiguous-invoice" };
-  const [invoice] = matches;
+  // A resumed row names the invoice it was created for. Looking the number up
+  // again could find another invoice if the admin renumbered this one and
+  // gave its number to another meanwhile, so the row's invoice is used, and
+  // the payment stops if that invoice is gone or numbered differently now.
+  const boundInvoice = async (row) => {
+    const bound = await store.readInvoice(row.invoiceId);
+    if (bound && bound.invoiceNumber === invoiceNumber) return bound;
+    log.error(
+      `paystack-webhook: invoice ${row.invoiceId} of payments row ${paymentId} is gone or no longer numbered ${invoiceNumber} — left alone`,
+    );
+    return null;
+  };
+  const hasInvoiceId = (row) => typeof row.invoiceId === "string" && row.invoiceId !== "";
+
+  let invoice;
+  if (payment && hasInvoiceId(payment)) {
+    invoice = await boundInvoice(payment);
+    if (!invoice) return { outcome: "conflict" };
+  } else {
+    // Rows written before invoiceId was stored keep the lookup by number.
+    const matches = await store.findInvoicesByNumber(invoiceNumber);
+    if (matches.length === 0) return { outcome: "no-invoice" };
+    if (matches.length > 1) return { outcome: "ambiguous-invoice" };
+    [invoice] = matches;
+  }
 
   const clientName = invoice.clientName || "Client";
   const clientEmail = invoice.clientEmail;
@@ -211,12 +235,18 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
       paidAt: now().toISOString(),
       status: "success",
       invoiceApplied: false,
+      invoiceId: invoice.id,
       settles: current.settles,
       expected: current.expected,
       invoiceCurrency: current.invoiceCurrency,
     });
     const stop = stopFor(payment);
     if (stop) return stop;
+    // A concurrent delivery created the row first, for another invoice.
+    if (hasInvoiceId(payment) && payment.invoiceId !== invoice.id) {
+      invoice = await boundInvoice(payment);
+      if (!invoice) return { outcome: "conflict" };
+    }
     log.info(`paystack-webhook: payment record created for ${invoiceNumber}`);
   }
 
