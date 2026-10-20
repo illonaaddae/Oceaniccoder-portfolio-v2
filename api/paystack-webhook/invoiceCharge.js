@@ -8,10 +8,11 @@
 //   1. A row for the reference under an older (Appwrite) id: already
 //      recorded before the cutover, so stop. So is a row at our id that
 //      this flow did not write (no invoiceApplied field). A row at our id
-//      for another charge is a conflict and is left alone.
-//   2. Find the invoice (exactly one; several with the number stop here).
-//      A row from an earlier attempt names its invoiceId; that invoice is
-//      used, and the charge stops if it is gone or renumbered.
+//      for another charge, or one of ours without its invoiceId or
+//      settlement (edited by hand), is a conflict and is left alone.
+//   2. Find the invoice: by number for a new charge (exactly one; several
+//      with the number stop here), by the row's invoiceId for a resumed one,
+//      which stops if that invoice is gone or renumbered.
 //      settle() decides paid or left open: evaluateSettlement as on
 //      Appwrite, except that an invoice without a currency is in GHS and
 //      one without a usable total stays open.
@@ -62,9 +63,17 @@ function rowState(row, { reference, invoiceNumber }) {
   // Only this flow writes invoiceApplied. A row without it was imported or
   // written some other way, after the work it stands for was done.
   if (!Object.prototype.hasOwnProperty.call(row, "invoiceApplied")) return "duplicate";
+  // This flow writes invoiceId and the settlement in the same create, so a
+  // row without them was edited by hand and is not resumed.
+  if (typeof row.invoiceId !== "string" || !row.invoiceId || typeof row.settles !== "boolean") {
+    return "edited";
+  }
   if (row.invoiceApplied && row.notifiedAt) return "duplicate";
   return "resume";
 }
+
+/** Whether a row is this charge's own, so notes may be written on it. */
+const isOwnRow = (row, charge) => ["resume", "duplicate"].includes(rowState(row, charge));
 
 async function createOrRead(store, row) {
   try {
@@ -104,13 +113,12 @@ function settle({ amountPaid, currency, invoice }) {
 }
 
 /**
- * The settlement a payments row was created with, or null for a row written
- * before it was stored. A resumed run must finish with the decision the first
- * run applied to the invoice: settling against the invoice as it is now would
- * tell the client and admin something else after an edit to its total.
+ * The settlement a payments row was created with. A resumed run must finish
+ * with the decision the first run applied to the invoice: settling against
+ * the invoice as it is now would tell the client and admin something else
+ * after an edit to its total.
  */
 function recordedSettlement(row) {
-  if (!Object.prototype.hasOwnProperty.call(row, "settles")) return null;
   return settle({
     amountPaid: row.amount,
     currency: row.currency,
@@ -185,6 +193,12 @@ async function recordSteps({ store, charge, sendEmails, log, now = () => new Dat
       );
       return { outcome: "conflict" };
     }
+    if (state === "edited") {
+      log.error(
+        `paystack-webhook: payments row ${paymentId} has no invoiceId or settlement, so it was edited by hand — left alone`,
+      );
+      return { outcome: "conflict" };
+    }
     return state === "duplicate" ? duplicate() : null;
   };
 
@@ -215,14 +229,12 @@ async function recordSteps({ store, charge, sendEmails, log, now = () => new Dat
     );
     return null;
   };
-  const hasInvoiceId = (row) => typeof row.invoiceId === "string" && row.invoiceId !== "";
 
   let invoice;
-  if (payment && hasInvoiceId(payment)) {
+  if (payment) {
     invoice = await boundInvoice(payment);
     if (!invoice) return { outcome: "conflict" };
   } else {
-    // Rows written before invoiceId was stored keep the lookup by number.
     const matches = await store.findInvoicesByNumber(invoiceNumber);
     if (matches.length === 0) return { outcome: "no-invoice" };
     if (matches.length > 1) return { outcome: "ambiguous-invoice" };
@@ -255,14 +267,14 @@ async function recordSteps({ store, charge, sendEmails, log, now = () => new Dat
     if (stop) return stop;
     if (payment.invoiceApplied) progress.applied = true;
     // A concurrent delivery created the row first, for another invoice.
-    if (hasInvoiceId(payment) && payment.invoiceId !== invoice.id) {
+    if (payment.invoiceId !== invoice.id) {
       invoice = await boundInvoice(payment);
       if (!invoice) return { outcome: "conflict" };
     }
     log.info(`paystack-webhook: payment record created for ${invoiceNumber}`);
   }
 
-  const settlement = recordedSettlement(payment) || current;
+  const settlement = recordedSettlement(payment);
   if (settlement.unverifiedTotal) {
     log.error(
       `paystack-webhook: invoice ${invoiceNumber} has no usable total (${invoice.total}) — recording the payment and leaving the invoice open`,
@@ -350,7 +362,7 @@ async function claimRetryAlert({
   try {
     const paymentId = paymentIdFor(reference);
     const row = await store.readPayment(paymentId);
-    if (row && rowState(row, { reference, invoiceNumber }) !== "conflict") {
+    if (row && isOwnRow(row, { reference, invoiceNumber })) {
       await store.updatePayment(paymentId, (current) =>
         current.alertedAt ? null : { alertedAt: now().toISOString() },
       );
@@ -372,7 +384,7 @@ async function releaseRetryAlert({ store, locks, reference, invoiceNumber, log }
   const paymentId = paymentIdFor(reference);
   try {
     const row = await store.readPayment(paymentId);
-    if (row && rowState(row, { reference, invoiceNumber }) !== "conflict") {
+    if (row && isOwnRow(row, { reference, invoiceNumber })) {
       await store.updatePayment(paymentId, (current) =>
         current.alertedAt ? { alertedAt: null } : null,
       );

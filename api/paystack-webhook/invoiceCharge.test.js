@@ -163,30 +163,23 @@ describe("recordInvoiceCharge on Cosmos", () => {
       amount: 500,
       currency: "GHS",
       invoiceApplied: true,
+      invoiceId: "inv1",
+      settles: true,
+      expected: 500,
+      invoiceCurrency: "GHS",
       ...over,
     });
 
     it("is marked paymentRecorded when reading its invoice fails", async () => {
       const { invoices, payments, run } = setup();
-      payments.seed(appliedRow({ invoiceId: "inv1" }));
+      payments.seed(appliedRow());
       failNext(invoices, "beforeRead");
       await expect(run()).rejects.toMatchObject({ paymentRecorded: true });
     });
 
-    it("is marked paymentRecorded when the lookup by number fails", async () => {
-      const { store, payments, sendEmails, log } = setup();
-      payments.seed(appliedRow());
-      store.findInvoicesByNumber = async () => {
-        throw transient();
-      };
-      await expect(
-        recordInvoiceCharge({ store, charge: charge(), sendEmails, log }),
-      ).rejects.toMatchObject({ paymentRecorded: true });
-    });
-
     it("is not marked when the row is not applied yet", async () => {
       const { invoices, payments, run } = setup();
-      payments.seed(appliedRow({ invoiceId: "inv1", invoiceApplied: false }));
+      payments.seed(appliedRow({ invoiceApplied: false }));
       failNext(invoices, "beforeRead");
       await expect(run()).rejects.toSatisfy(
         (err) => err.message === "Service Unavailable" && !err.paymentRecorded,
@@ -206,22 +199,29 @@ describe("recordInvoiceCharge on Cosmos", () => {
     expect(sendEmails).not.toHaveBeenCalled();
   });
 
-  it("settles a resumed row without a stored settlement against the current invoice", async () => {
-    const { payments, sendEmails, run } = setup({ invoice: invoiceDoc({ total: 1000 }) });
-    payments.seed({
+  it.each([
+    ["no invoiceId", { invoiceId: undefined }],
+    ["no settlement", { settles: undefined }],
+  ])("leaves alone a row of this flow edited by hand to have %s", async (_, over) => {
+    const { invoices, payments, sendEmails, log, run } = setup();
+    const seeded = payments.seed({
       id: PAYMENT_ID,
       invoiceNumber: "INV-2026-0042",
       paystackReference: REFERENCE,
       amount: 500,
       currency: "GHS",
-      invoiceApplied: true,
+      invoiceApplied: false,
+      invoiceId: "inv1",
+      settles: true,
+      expected: 500,
+      invoiceCurrency: "GHS",
+      ...over,
     });
-    expect(await run()).toEqual({ outcome: "recorded" });
-    expect(sendEmails.mock.calls[0][0].settlement).toMatchObject({
-      settles: false,
-      underpaid: true,
-      expected: 1000,
-    });
+    expect(await run()).toEqual({ outcome: "conflict" });
+    expect(payments.docs.get(PAYMENT_ID)._etag).toBe(seeded._etag);
+    expect(stored(invoices, "inv1").status).toBe("sent");
+    expect(sendEmails).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledWith(expect.stringContaining("edited by hand"));
   });
 
   it("resends the emails, once the claim is stale, when notifiedAt could not be saved", async () => {
@@ -393,6 +393,10 @@ describe("recordInvoiceCharge on Cosmos", () => {
       invoiceNumber: "INV-2026-0042",
       paystackReference: REFERENCE,
       invoiceApplied: false,
+      invoiceId: "inv1",
+      settles: true,
+      expected: 500,
+      invoiceCurrency: "GHS",
       ...over,
     });
 

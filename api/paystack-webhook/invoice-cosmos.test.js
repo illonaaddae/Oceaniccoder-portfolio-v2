@@ -196,6 +196,9 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
       currency: "GHS",
       invoiceApplied: true,
       invoiceId: "inv1",
+      settles: true,
+      expected: 500,
+      invoiceCurrency: "GHS",
     });
     db.container("invoices").hooks.beforeRead = async () => {
       throw unavailable();
@@ -408,7 +411,13 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
       id: paymentIdFor(REFERENCE),
       invoiceNumber: "INV-2026-0042",
       paystackReference: REFERENCE,
+      amount: 500,
+      currency: "GHS",
       invoiceApplied: true,
+      invoiceId: "inv1",
+      settles: true,
+      expected: 500,
+      invoiceCurrency: "GHS",
       notifyClaimedAt: new Date().toISOString(),
     });
     expect((await run()).status).toBe(500);
