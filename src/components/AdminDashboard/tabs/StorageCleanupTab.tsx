@@ -112,6 +112,9 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [collectionErrors, setCollectionErrors] = useState<string[]>([]);
   // True only while `files` comes from a scan whose reads all returned.
   const [scanFinished, setScanFinished] = useState(false);
+  // Announced once when a full scan ends. Fixed at that moment, so a delete
+  // afterwards doesn't change it and get announced as a new result.
+  const [scanSummary, setScanSummary] = useState<string | null>(null);
   // Replacing a logo starts a scan while another may still run. Only the
   // latest may commit, or an older one could list the new logo as an orphan.
   const latestScan = useRef(0);
@@ -226,6 +229,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     setLoading(true);
     setError(null);
     setScanFinished(false);
+    setScanSummary(null);
     try {
       const [mediaFiles, scan] = await Promise.all([listMediaFiles(), collectAllUrls()]);
       if (scanId !== latestScan.current) return;
@@ -274,6 +278,13 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       // On a failed read, keep showing the logos already on screen.
       if (scan.overrides) setPlatforms(platformsWith(scan.overrides));
       setScanFinished(true);
+      // A partial scan is reported by the warning alert instead.
+      if (scan.errors.length === 0) {
+        const orphanCount = mapped.filter((f) => f.isOrphan).length;
+        setScanSummary(
+          `Scan finished: ${orphanCount} orphaned ${orphanCount === 1 ? "file" : "files"}`,
+        );
+      }
       setOrphanPage(0);
       setInUsePage(0);
     } catch (err) {
@@ -457,6 +468,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
               if (!loading) loadFiles();
             }}
             aria-disabled={loading}
+            // Keeps one name while scanning; the status region says "Scanning…".
+            aria-label="Refresh"
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-700 transition-colors aria-disabled:opacity-50 aria-disabled:cursor-not-allowed"
           >
             <FaSync aria-hidden="true" className={loading ? "animate-spin" : ""} />
@@ -568,8 +581,14 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
               </span>
             )}
           </h3>
-          {/* Always mounted, so screen readers announce "Scanning…" when it appears. */}
-          <div role="status">{loading && <p className={subText}>Scanning…</p>}</div>
+          {/* Always mounted, so screen readers announce its text when it changes. */}
+          <div role="status">
+            {loading ? (
+              <p className={subText}>Scanning…</p>
+            ) : (
+              scanSummary && <p className="sr-only">{scanSummary}</p>
+            )}
+          </div>
           {loading ? null : !scanFinished ? (
             <p className={subText}>The scan did not finish. Refresh to try again.</p>
           ) : orphans.length === 0 ? (
