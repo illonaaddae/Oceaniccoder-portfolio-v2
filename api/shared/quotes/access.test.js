@@ -391,10 +391,13 @@ describe("link codes", () => {
     expect(A.mintLinkCode(SECRET, QUOTE, 0, NOW)).not.toBe(A.mintLinkCode(SECRET, QUOTE, 0, NOW));
   });
 
-  it("survives a new link token alone (payment request)", async () => {
+  it("works only with the link it was minted for", async () => {
     const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
-    const r = await check(createFakeLocks(), code, { ...QUOTE, tokenHash: "d".repeat(64) });
-    expect(r.ok).toBe(true);
+    const newLink = { ...QUOTE, tokenHash: "d".repeat(64) };
+    expect(await check(createFakeLocks(), code, newLink)).toEqual({ ok: false, reason: "invalid" });
+    expect(
+      (await check(createFakeLocks(), A.mintLinkCode(SECRET, newLink, 0, NOW), newLink)).ok,
+    ).toBe(true);
   });
 
   it("refuses it for another quote, a new revision, a changed email, or after a rotate", async () => {
@@ -432,7 +435,7 @@ describe("link codes", () => {
     }
   });
 
-  it("expires 45 days after it was minted, and refuses a mint time in the future", async () => {
+  it("expires 45 days after it was minted, and allows 5 minutes of clock skew", async () => {
     const locks = createFakeLocks();
     const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
     expect((await check(locks, code, QUOTE, NOW + A.LINK_CODE_TTL_MS - 1)).ok).toBe(true);
@@ -440,6 +443,11 @@ describe("link codes", () => {
       ok: false,
       reason: "expired",
     });
-    expect(await check(locks, code, QUOTE, NOW - 1)).toEqual({ ok: false, reason: "expired" });
+    expect((await check(locks, code, QUOTE, NOW - 4 * 60 * 1000)).ok).toBe(true);
+    expect((await check(locks, code, QUOTE, NOW - 5 * 60 * 1000)).ok).toBe(true);
+    expect(await check(locks, code, QUOTE, NOW - 5 * 60 * 1000 - 1)).toEqual({
+      ok: false,
+      reason: "expired",
+    });
   });
 });

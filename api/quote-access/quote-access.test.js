@@ -350,6 +350,16 @@ describe("quote-access claim", () => {
     expect((await claim(t, current)).status).toBe(400);
   });
 
+  it("refuses a link code from an older email once the link has been replaced", async () => {
+    const t = setup();
+    const linkCode = A.mintLinkCode(SECRET, base, 0, t.clock.ms);
+    const current = newToken();
+    await t.repo.update("q1", { tokenHash: hashToken(current) });
+    const r = await t.call({ action: "claim", token: current, linkCode });
+    expect(r).toMatchObject({ status: 400, body: { codeNeeded: true } });
+    expect(r.cookie).toBeUndefined();
+  });
+
   it("never claims on a GET, even with the link code in the query", async () => {
     const t = setup();
     const linkCode = A.mintLinkCode(SECRET, base, 0, t.clock.ms);
