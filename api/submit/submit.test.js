@@ -36,6 +36,7 @@ function setup({
   turnstile = { ok: true },
   database = fakeDatabase(),
   sendEmail = vi.fn(async () => ({ ok: true, id: "e1" })),
+  clock = { ms: Date.parse("2026-10-20T09:00:00Z") },
 } = {}) {
   const verifyTurnstile = vi.fn(async () => turnstile);
   const run = createHandler({
@@ -43,14 +44,15 @@ function setup({
     verifyTurnstile,
     storeVisitorImage: vi.fn(),
     sendEmail,
+    now: () => clock.ms,
   });
-  const call = async (collection, body) => {
+  const call = async (collection, body, headers = {}) => {
     const context = {
       bindingData: { collection },
       res: null,
       log: Object.assign(vi.fn(), { error: vi.fn(), warn: vi.fn() }),
     };
-    await run(context, { headers: {}, body });
+    await run(context, { headers, body });
     return { status: context.res.status, body: JSON.parse(context.res.body), context };
   };
   return { call, verifyTurnstile, database, sendEmail };
@@ -232,6 +234,60 @@ describe("admin alert for a new contact message", () => {
     expect(context.log.error).toHaveBeenCalledWith(
       `submit/messages: alert email for ${body.$id} failed:`,
       "no recipient",
+    );
+  });
+});
+
+describe("admin alert caps", () => {
+  const from = (ip) => ({ "x-forwarded-for": ip });
+  const HOUR_MS = 60 * 60 * 1000;
+
+  beforeEach(() => {
+    process.env.RESEND_TO_EMAIL = "admin@example.com";
+  });
+  afterEach(() => {
+    delete process.env.RESEND_TO_EMAIL;
+  });
+
+  it("stops emailing after 3 messages an hour from one IP but still saves them", async () => {
+    const clock = { ms: Date.parse("2026-10-20T09:00:00Z") };
+    const { call, sendEmail, database } = setup({ clock });
+    const send = () => call("messages", { ...MESSAGE, turnstileToken: "t" }, from("203.0.113.7"));
+
+    for (let i = 0; i < 3; i += 1) await send();
+    const fourth = await send();
+    const fifth = await send();
+
+    expect(fourth.status).toBe(201);
+    expect(fifth.status).toBe(201);
+    expect(database.created).toHaveLength(5);
+    expect(sendEmail).toHaveBeenCalledTimes(3);
+    expect(fourth.context.log.warn).toHaveBeenCalledWith(
+      "submit/messages: alert email cap of 3 an hour from one IP reached; saving without emailing",
+    );
+    expect(fifth.context.log.warn).not.toHaveBeenCalled();
+
+    // Another IP still gets through, and the first one does again an hour later.
+    await call("messages", { ...MESSAGE, turnstileToken: "t" }, from("198.51.100.4"));
+    expect(sendEmail).toHaveBeenCalledTimes(4);
+    clock.ms += HOUR_MS;
+    await send();
+    expect(sendEmail).toHaveBeenCalledTimes(5);
+  });
+
+  it("stops emailing after 50 messages a day in total", async () => {
+    const { call, sendEmail, database } = setup();
+    const sendFrom = (i) =>
+      call("messages", { ...MESSAGE, turnstileToken: "t" }, from(`203.0.113.${i}`));
+
+    for (let i = 1; i <= 50; i += 1) await sendFrom(i);
+    const over = await sendFrom(51);
+
+    expect(over.status).toBe(201);
+    expect(database.created).toHaveLength(51);
+    expect(sendEmail).toHaveBeenCalledTimes(50);
+    expect(over.context.log.warn).toHaveBeenCalledWith(
+      "submit/messages: alert email cap of 50 a day reached; saving without emailing",
     );
   });
 });
