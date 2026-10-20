@@ -8,6 +8,7 @@ import {
   describeTransaction,
   listSuccessfulTransactions,
   parseReconcileArgs,
+  reconcileExitCode,
   reconcileTransactions,
 } from "./reconcile.mjs";
 
@@ -122,6 +123,14 @@ describe("listSuccessfulTransactions", () => {
     expect(await run({ 1: { data: txs("a"), meta: {} } })).toEqual({ refs: ["a"], asked: [1] });
   });
 
+  it("keeps one copy of a transaction that shifts onto the next page", async () => {
+    const result = await run({
+      1: { data: txs("a", "b"), meta: { page: 1, pageCount: 2 } },
+      2: { data: txs("b", "c"), meta: { page: 2, pageCount: 2 } },
+    });
+    expect(result).toEqual({ refs: ["a", "b", "c"], asked: [1, 2] });
+  });
+
   it("fails when a page repeats the one before (page number ignored)", async () => {
     const same = { data: txs("a", "b"), meta: { next: "cur", perPage: 2 } };
     await expect(run({ 1: same, 2: same })).rejects.toThrow("same transactions");
@@ -182,6 +191,23 @@ describe("reconcileTransactions", () => {
       ],
     );
     expect(result).toEqual({ unrecorded: [], unsettled: [], problems: [] });
+  });
+});
+
+describe("reconcileExitCode", () => {
+  const tx = { transaction: { reference: "R" }, status: "x" };
+
+  it("is 0 when everything is settled", () => {
+    expect(reconcileExitCode({ unrecorded: [], unsettled: [], problems: [] })).toBe(0);
+  });
+
+  it("is 4 when only rows to check by hand remain", () => {
+    expect(reconcileExitCode({ unrecorded: [], unsettled: [], problems: [tx] })).toBe(4);
+  });
+
+  it("is 3 when a charge is unrecorded or unsettled, whatever else is listed", () => {
+    expect(reconcileExitCode({ unrecorded: [{}], unsettled: [], problems: [tx] })).toBe(3);
+    expect(reconcileExitCode({ unrecorded: [], unsettled: [tx], problems: [] })).toBe(3);
   });
 });
 

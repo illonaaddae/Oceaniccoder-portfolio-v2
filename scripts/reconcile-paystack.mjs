@@ -18,7 +18,9 @@
 //          mode and the Cosmos host are printed first; keys never are.
 //
 // Exit codes: 0 every transaction is settled, 3 some are unrecorded or
-// unsettled, 2 bad arguments, 1 any other failure (Paystack or Cosmos error).
+// unsettled, 4 none are but some need a look by hand (failed, duplicate or
+// refunded on a successful charge), 2 bad arguments, 1 any other failure
+// (Paystack or Cosmos error).
 
 import { createRequire } from "node:module";
 import {
@@ -28,6 +30,7 @@ import {
   listSuccessfulTransactions,
   parseReconcileArgs,
   paystackKeyMode,
+  reconcileExitCode,
   reconcileTransactions,
 } from "./lib/reconcile.mjs";
 
@@ -86,9 +89,14 @@ async function main() {
       console.log(`  ${describeTransaction(transaction)}  [${status}]`);
     }
   }
-  if (unrecorded.length === 0 && unsettled.length === 0) {
+  const code = reconcileExitCode({ unrecorded, unsettled, problems });
+  if (code === 0) {
     console.log("\nEvery transaction has a settled payments row.");
     return 0;
+  }
+  if (code === 4) {
+    console.log("\nEvery transaction has a row; resolve or refund the ones above by hand.");
+    return 4;
   }
 
   if (unrecorded.length > 0) {
@@ -108,7 +116,7 @@ To replay one, with DATA_BACKEND=cosmos live and WRITE_HOLD unset:
      its own (every 3 min x4, then hourly for 72 h in live mode).
   3. Check the function log for /api/paystack-webhook, then run this again
      until nothing is listed.`);
-  return 3;
+  return code;
 }
 
 main().then(
