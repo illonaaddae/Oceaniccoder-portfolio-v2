@@ -485,9 +485,11 @@ function accessCodeView(q, code, minutes) {
   };
 }
 
-// The owner's alert when a code locks out after five wrong tries.
-function accessLockedView(q, at, base = siteBase()) {
+// The owner's alert when a code locks out after five wrong tries. blocked:
+// it was the last lockout allowed, so no more codes go out on this link.
+function accessLockedView(q, at, blocked = false, base = siteBase()) {
   return {
+    blocked,
     clientName: q.clientName,
     quoteNumber: q.quoteNumber,
     title: q.title,

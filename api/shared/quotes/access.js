@@ -26,21 +26,38 @@ const SESSION_TTL_MS = 30 * DAY_MS;
 const MAX_TRIES = 5;
 const SENDS_PER_HOUR = 5;
 const SENDS_PER_DAY = 10;
+// After this many locked-out codes on one revision and epoch, no more codes
+// are sent until the admin uses New link or Revise.
+const MAX_LOCKOUTS = 3;
+// The gap between code emails is rolling, not per clock minute: each send
+// reserves GAP_BUCKETS buckets of GAP_BUCKET_MS starting at its own, so the
+// next one gets through 60 to 90 seconds later.
+const GAP_BUCKET_MS = 30 * 1000;
+const GAP_BUCKETS = 3;
 const MIN_SECRET_LENGTH = 32;
 // Far above any real number of "New link" presses on one revision; stops a
 // runaway loop if the locks table misbehaves.
 const MAX_EPOCH = 1000;
 const MAX_TOKEN_LENGTH = 1024;
-const SECRET_MISSING = "Quote links are unavailable right now. Please try again later.";
+const UNAVAILABLE = "Quote links are unavailable right now. Please try again later.";
 
+let gateErrorLogged = false;
 let secretErrorLogged = false;
 
-/** Whether the gate is on. Unset or "on" means on; "off" is the kill switch. */
-function gateEnabled(env = process.env) {
+/**
+ * Whether the gate is on. Unset or "on" means on; "off" is the kill switch.
+ * Any other value is a configuration mistake: 503 rather than guessing which
+ * way it was meant, logged once.
+ */
+function gateEnabled(env = process.env, logError = console.error) {
   const value = env.QUOTE_ACCESS_GATE;
   if (value === undefined || value === "" || value === "on") return true;
   if (value === "off") return false;
-  throw new Error(`QUOTE_ACCESS_GATE must be "on" or "off", not "${value}"`);
+  if (!gateErrorLogged) {
+    gateErrorLogged = true;
+    logError('quote-access: QUOTE_ACCESS_GATE must be "on" or "off"');
+  }
+  throw new HttpError(503, UNAVAILABLE);
 }
 
 /** QUOTE_ACCESS_SECRET, or a 503 when it is missing or too short (fails closed). */
@@ -53,7 +70,7 @@ function accessSecret(env = process.env, logError = console.error) {
       `quote-access: QUOTE_ACCESS_SECRET is missing or shorter than ${MIN_SECRET_LENGTH} characters`,
     );
   }
-  throw new HttpError(503, SECRET_MISSING);
+  throw new HttpError(503, UNAVAILABLE);
 }
 
 const hmac = (secret, label, data) =>
@@ -92,9 +109,12 @@ function normalEmail(email) {
 
 // Ties a challenge or a session to the client email without putting the
 // address in the token. Keyed, so whoever holds a token can't confirm a
-// guessed address offline.
-const mailTag = (secret, email) =>
-  hmac(secret, "qa-mail:", normalEmail(email)).toString("base64url").slice(0, 22);
+// guessed address offline, and over the quote id too, so two quotes for the
+// same client don't share a tag.
+const mailTag = (secret, quote) =>
+  hmac(secret, "qa-mail:", `${quote.id}:${normalEmail(quote.clientEmail)}`)
+    .toString("base64url")
+    .slice(0, 22);
 
 /** "p•••••@hotmail.com": first character, five dots, the domain. Null if it isn't an address. */
 function maskEmail(email) {
@@ -142,7 +162,7 @@ function issueChallenge(secret, quote, epoch, nowMs) {
     q: quote.id,
     r: quote.revision,
     e: epoch,
-    m: mailTag(secret, quote.clientEmail),
+    m: mailTag(secret, quote),
     x: nowMs + CODE_TTL_MS,
   };
   return {
@@ -163,7 +183,7 @@ async function checkChallenge({ secret, locks, quote, challenge, nowMs }) {
   if (!p || typeof p.c !== "string" || !isCount(p.e) || typeof p.x !== "number")
     return { ok: false, reason: "invalid" };
   if (p.x <= nowMs) return { ok: false, reason: "expired" };
-  if (p.q !== quote.id || p.r !== quote.revision || p.m !== mailTag(secret, quote.clientEmail))
+  if (p.q !== quote.id || p.r !== quote.revision || p.m !== mailTag(secret, quote))
     return { ok: false, reason: "stale" };
   if (!(await isEpochCurrent(locks, quote, p.e))) return { ok: false, reason: "stale" };
   return { ok: true, challengeId: p.c, epoch: p.e };
@@ -197,42 +217,97 @@ async function takeFirstFree(locks, prefix, limit) {
 
 const secondsUntil = (nowMs, windowMs) => Math.ceil((windowMs - (nowMs % windowMs)) / 1000);
 
+// Send quotas belong to one revision and epoch, so Revise or New link gives a
+// client back a quota that a leaked-link holder used up.
+const sendScope = (quote, epoch) => `qa:send:${quote.id}:${quote.revision}:${epoch}`;
+
+const releaseAll = (locks, keys) => Promise.all(keys.map((key) => locks.release(key)));
+
+// Takes the gap buckets in ascending order, so of two overlapping sends the
+// later one is refused. Returns the keys, or null after handing back any it took.
+async function takeGap(locks, scope, nowMs) {
+  const first = Math.floor(nowMs / GAP_BUCKET_MS);
+  const taken = [];
+  for (let b = first; b < first + GAP_BUCKETS; b += 1) {
+    const key = `${scope}:g:${b}`;
+    if (!(await locks.take(key))) {
+      await releaseAll(locks, taken);
+      return null;
+    }
+    taken.push(key);
+  }
+  return taken;
+}
+
+// Seconds until the first gap bucket nobody holds.
+async function gapRetryAfter(locks, scope, nowMs) {
+  let b = Math.floor(nowMs / GAP_BUCKET_MS);
+  const last = b + GAP_BUCKETS;
+  while (b < last && (await locks.has(`${scope}:g:${b}`))) b += 1;
+  return Math.max(1, Math.ceil((b * GAP_BUCKET_MS - nowMs) / 1000));
+}
+
 /**
- * Reserves one code email for this quote: one a minute, five an hour, ten a
- * UTC day, across every instance. Returns { ok: true, releaseMinute } or
- * { ok: false, retryAfterSeconds }. releaseMinute() hands the minute back
- * when the email then fails; the hour and day slots stay spent on purpose.
+ * Reserves one code email for this quote's revision and epoch: at least 60
+ * seconds apart, five an hour, ten a UTC day, across every instance. Returns
+ * { ok: true, retryAfterSeconds, releaseGap } or { ok: false,
+ * retryAfterSeconds }. releaseGap() hands the gap back when the email then
+ * fails; the hour and day slots stay spent on purpose.
  */
-async function takeSendSlots(locks, quoteId, nowMs) {
-  const minuteKey = `qa:send:${quoteId}:m:${Math.floor(nowMs / MINUTE_MS)}`;
-  if (!(await locks.take(minuteKey)))
-    return { ok: false, retryAfterSeconds: secondsUntil(nowMs, MINUTE_MS) };
+async function takeSendSlots(locks, quote, epoch, nowMs) {
+  const scope = sendScope(quote, epoch);
+  const gapKeys = await takeGap(locks, scope, nowMs);
+  if (!gapKeys) return { ok: false, retryAfterSeconds: await gapRetryAfter(locks, scope, nowMs) };
   const hourKey = await takeFirstFree(
     locks,
-    `qa:send:${quoteId}:h:${Math.floor(nowMs / HOUR_MS)}`,
+    `${scope}:h:${Math.floor(nowMs / HOUR_MS)}`,
     SENDS_PER_HOUR,
   );
   if (!hourKey) {
-    await locks.release(minuteKey);
+    await releaseAll(locks, gapKeys);
     return { ok: false, retryAfterSeconds: secondsUntil(nowMs, HOUR_MS) };
   }
   const dayKey = await takeFirstFree(
     locks,
-    `qa:send:${quoteId}:d:${Math.floor(nowMs / DAY_MS)}`,
+    `${scope}:d:${Math.floor(nowMs / DAY_MS)}`,
     SENDS_PER_DAY,
   );
   if (!dayKey) {
-    await Promise.all([locks.release(minuteKey), locks.release(hourKey)]);
+    await releaseAll(locks, [...gapKeys, hourKey]);
     return { ok: false, retryAfterSeconds: secondsUntil(nowMs, DAY_MS) };
   }
-  return { ok: true, releaseMinute: () => locks.release(minuteKey) };
+  const reservedUntil = (Math.floor(nowMs / GAP_BUCKET_MS) + GAP_BUCKETS) * GAP_BUCKET_MS;
+  return {
+    ok: true,
+    retryAfterSeconds: Math.ceil((reservedUntil - nowMs) / 1000),
+    releaseGap: () => releaseAll(locks, gapKeys),
+  };
+}
+
+const lockoutPrefix = (quote, epoch) => `qa:lockout:${quote.id}:${quote.revision}:${epoch}`;
+
+/**
+ * Counts a locked-out code against this revision and epoch and returns the
+ * count, at most MAX_LOCKOUTS. At MAX_LOCKOUTS no more codes are sent.
+ */
+async function recordLockout(locks, quote, epoch) {
+  const key = await takeFirstFree(locks, lockoutPrefix(quote, epoch), MAX_LOCKOUTS);
+  return key ? Number(key.slice(key.lastIndexOf(":") + 1)) : MAX_LOCKOUTS;
+}
+
+/** Whether codes are blocked until the admin uses New link or Revise. */
+function sendsBlocked(locks, quote, epoch) {
+  return locks.has(`${lockoutPrefix(quote, epoch)}:${MAX_LOCKOUTS}`);
 }
 
 /** Per quote, not per link, so a payment request's fresh link keeps the unlock. */
-const sessionCookieName = (quoteId) => `oc_qa_${sha256Hex(`qa-name:${quoteId}`).slice(0, 16)}`;
+const sessionCookieName = (quoteId) =>
+  `__Secure-oc_qa_${sha256Hex(`qa-name:${quoteId}`).slice(0, 16)}`;
 
 /**
- * The Set-Cookie header for a fresh unlock. Path=/api, because a cookie path
+ * The Set-Cookie header for a fresh unlock. The __Secure- prefix makes
+ * browsers refuse it without Secure, so a plain-http page can't plant one.
+ * Path=/api, because a cookie path
  * only matches at a "/" boundary: "/api/quote-" would never reach
  * /api/quote-view. Not sliding: it is never re-issued on later visits.
  */
@@ -241,7 +316,7 @@ function sessionCookie(secret, quote, epoch, nowMs) {
     q: quote.id,
     r: quote.revision,
     e: epoch,
-    m: mailTag(secret, quote.clientEmail),
+    m: mailTag(secret, quote),
     x: nowMs + SESSION_TTL_MS,
   });
   const maxAge = SESSION_TTL_MS / 1000;
@@ -262,13 +337,14 @@ async function hasAccess({ secret, locks, req, quote, nowMs }) {
   const p = unsign(secret, "qa-sess:", readCookie(req, sessionCookieName(quote.id)));
   if (!p || !isCount(p.e) || typeof p.x !== "number" || p.x <= nowMs) return false;
   if (p.q !== quote.id || p.r !== quote.revision) return false;
-  if (p.m !== mailTag(secret, quote.clientEmail)) return false;
+  if (p.m !== mailTag(secret, quote)) return false;
   return isEpochCurrent(locks, quote, p.e);
 }
 
 module.exports = {
   CODE_TTL_MS,
   MAX_TRIES,
+  MAX_LOCKOUTS,
   gateEnabled,
   accessSecret,
   maskEmail,
@@ -281,6 +357,8 @@ module.exports = {
   takeTry,
   takeUse,
   takeSendSlots,
+  recordLockout,
+  sendsBlocked,
   sessionCookieName,
   sessionCookie,
   hasAccess,

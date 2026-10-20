@@ -253,8 +253,14 @@ describe("email views", () => {
     });
   });
   it("builds the lockout alert view with the date and dashboard link", () => {
-    const v = V.accessLockedView(quote, "2026-10-20T09:00:00.000Z", "https://oceaniccoder.dev");
+    const v = V.accessLockedView(
+      quote,
+      "2026-10-20T09:00:00.000Z",
+      true,
+      "https://oceaniccoder.dev",
+    );
     expect(v).toMatchObject({
+      blocked: true,
       clientName: "Kofi Mensah",
       quoteNumber: "Q-2026-0001",
       lockedOn: "20 Oct 2026",

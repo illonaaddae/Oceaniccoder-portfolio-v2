@@ -391,6 +391,9 @@ function accessLockedAlert(v) {
   const subject = `Code locked after 5 wrong tries on ${v.quoteNumber}`;
   const advice =
     "If the client didn't ask for a code, the link may have been shared. Use New link on the quote to lock out every browser, then send the client the new link.";
+  const blocked = v.blocked
+    ? "This is the third locked code on this link, so no more codes will be sent until you use New link or Revise."
+    : "";
   const html = shell({
     preview: `Five wrong codes were entered for ${v.quoteNumber}.`,
     meta: { label: "Quote", number: v.quoteNumber },
@@ -410,12 +413,14 @@ function accessLockedAlert(v) {
           ["Date", v.lockedOn],
         ],
       }) +
+      (blocked ? notice({ tone: "danger", text: blocked }) : "") +
       notice({ tone: "warn", text: advice }) +
       buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
   });
   const text = lines(
     `Five wrong codes were entered for ${v.quoteNumber} (${v.title}, ${v.clientName}) on ${v.lockedOn}.`,
     "That code no longer works, and a new one goes only to the client's email.",
+    blocked,
     advice,
     v.adminLink,
   );
