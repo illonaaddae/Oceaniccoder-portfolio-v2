@@ -13,8 +13,11 @@
 //      settle() decides paid or left open: evaluateSettlement as on
 //      Appwrite, except that an invoice without a currency is in GHS and
 //      one without a usable total stays open.
-//   3. Create the row at paymentIdFor(reference) with invoiceApplied false.
-//      A 409 means another delivery created it first; carry on from it.
+//   3. Create the row at paymentIdFor(reference) with invoiceApplied false
+//      and the settlement (settles, expected, invoiceCurrency). A 409 means
+//      another delivery created it first; carry on from it. From here on the
+//      stored settlement decides, so an edit to the invoice total between a
+//      crash and the retry does not change what the retry does.
 //   4. Not applied yet: change the invoice, then set invoiceApplied.
 //   5. Not notified yet: claim the emails, send them, set notifiedAt. A
 //      crash between sending and notifiedAt resends them (at least once).
@@ -93,6 +96,21 @@ function settle({ amountPaid, currency, invoice }) {
   return { ...settlement, settles: false, unverifiedTotal: true };
 }
 
+/**
+ * The settlement a payments row was created with, or null for a row written
+ * before it was stored. A resumed run must finish with the decision the first
+ * run applied to the invoice: settling against the invoice as it is now would
+ * tell the client and admin something else after an edit to its total.
+ */
+function recordedSettlement(row) {
+  if (!Object.prototype.hasOwnProperty.call(row, "settles")) return null;
+  return settle({
+    amountPaid: row.amount,
+    currency: row.currency,
+    invoice: { total: row.expected, currency: row.invoiceCurrency },
+  });
+}
+
 function notPaidReason({ settlement, amountPaid, currency, invoice }) {
   const sym = currencySymbol(currency);
   if (settlement.currencyMismatch) {
@@ -163,12 +181,7 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
 
   const clientName = invoice.clientName || "Client";
   const clientEmail = invoice.clientEmail;
-  const settlement = settle({ amountPaid, currency, invoice });
-  if (settlement.unverifiedTotal) {
-    log.error(
-      `paystack-webhook: invoice ${invoiceNumber} has no usable total (${invoice.total}) — recording the payment and leaving the invoice open`,
-    );
-  }
+  const current = settle({ amountPaid, currency, invoice });
 
   if (!payment) {
     payment = await createOrRead(store, {
@@ -183,10 +196,20 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
       paidAt: now().toISOString(),
       status: "success",
       invoiceApplied: false,
+      settles: current.settles,
+      expected: current.expected,
+      invoiceCurrency: current.invoiceCurrency,
     });
     const stop = stopFor(payment);
     if (stop) return stop;
     log.info(`paystack-webhook: payment record created for ${invoiceNumber}`);
+  }
+
+  const settlement = recordedSettlement(payment) || current;
+  if (settlement.unverifiedTotal) {
+    log.error(
+      `paystack-webhook: invoice ${invoiceNumber} has no usable total (${invoice.total}) — recording the payment and leaving the invoice open`,
+    );
   }
 
   if (!payment.invoiceApplied) {

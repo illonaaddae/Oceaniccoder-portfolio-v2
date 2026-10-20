@@ -183,6 +183,25 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(subjects()).toHaveLength(2);
   });
 
+  it("finishes a paid run with the settlement it recorded, not the edited invoice", async () => {
+    // Replaces on the payments row: 1 invoiceApplied, 2 the email claim.
+    let replaces = 0;
+    db.container("payments").hooks.beforeReplace = async () => {
+      if (++replaces === 2) throw unavailable();
+    };
+    expect((await run()).status).toBe(500);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(payment()).toMatchObject({ settles: true, expected: 500, invoiceCurrency: "GHS" });
+
+    db.container("invoices").docs.get("inv1").total = 1000;
+    sent.length = 0;
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([
+      ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+    ]);
+  });
+
   it("mails a retryable failure once per reference once the payment row exists", async () => {
     failNext(db.container("invoices"), "beforeReplace", 2);
     const first = await run();
