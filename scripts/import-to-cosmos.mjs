@@ -84,6 +84,10 @@ const {
 
 const APPWRITE_FILE_URL = /appwrite\.io\/v1\/storage\//i;
 
+// Set just before the first Cosmos write, so a failure before it doesn't
+// claim Cosmos may be part-written.
+let writesStarted = false;
+
 async function resolveBackupDir(explicit) {
   if (explicit) {
     const dir = path.resolve(explicit);
@@ -173,6 +177,7 @@ function describePlan(id, plan, dryRun) {
     plan.forcedNewer.length && `${plan.forcedNewer.length} newer in Cosmos FORCED`,
     plan.prune.length && `${dryRun ? "would prune" : "pruned"} ${plan.prune.length}`,
     plan.kept.length && `${plan.kept.length} not in backup, kept`,
+    plan.skipOlder.length && `${plan.skipOlder.length} older than --created-after, skipped`,
   ].filter(Boolean);
   return `  ${id.padEnd(22)} [${plan.mode}] ${parts.join(", ")}`;
 }
@@ -235,6 +240,7 @@ async function backfillQuoteLocks(db, lockRows) {
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
   if (flags.markCutover) {
+    writesStarted = true;
     await markCutover();
     return 0;
   }
@@ -244,11 +250,14 @@ async function main() {
 
   // Read and check everything before touching Cosmos.
   const { docsByContainer, stale } = await loadBackup(backupDir, flags.only ?? IMPORTED_CONTAINERS);
+  const olderIds = {};
   if (flags.createdAfter) {
     console.log(`Only rows created after ${flags.createdAfter}:`);
     for (const [id, docs] of Object.entries(docsByContainer)) {
       const { kept, unreadable } = rowsCreatedAfter(docs, flags.createdAfter);
       docsByContainer[id] = kept;
+      const keptIds = new Set(kept.map((doc) => doc.id));
+      olderIds[id] = new Set(docs.filter((doc) => !keptIds.has(doc.id)).map((doc) => doc.id));
       console.log(`  ${id}: ${kept.length} of ${docs.length}`);
       for (const doc of unreadable) console.log(`    ${doc.id}: no readable createdAt, left out`);
     }
@@ -263,16 +272,22 @@ async function main() {
 
   const client = createClient();
   const marker = await readMarker(client.database(DATABASE_ID));
-  const refusal = refusalAfterCutover(flags, marker, Object.keys(docsByContainer));
+  const containersInRun = Object.keys(docsByContainer);
+  const refusal = refusalAfterCutover(flags, marker, containersInRun);
   if (refusal) {
     console.error(refusal);
     return 1;
   }
   // A dry run must not create anything, so it skips ensureSchema and reads a
   // missing container as empty.
+  if (!flags.dryRun) writesStarted = true;
   const db = flags.dryRun ? client.database(DATABASE_ID) : await ensureSchema(client);
   const readOpts = { missingIsEmpty: flags.dryRun };
   if (marker) console.log(`Cutover marked at ${marker.at}: Cosmos is live.\n`);
+  // A dry run is always allowed; say up front if the same run for real is not.
+  const realRefusal =
+    flags.dryRun && refusalAfterCutover({ ...flags, dryRun: false }, marker, containersInRun);
+  if (realRefusal) console.log(`Without --dry-run this run would be refused:\n${realRefusal}\n`);
   if (flags.forceOverwrite) {
     console.warn("WARNING: --force-overwrite replaces rows edited in Cosmos after the backup.\n");
   }
@@ -287,7 +302,7 @@ async function main() {
       `SELECT c.id, c.${pk} AS pk, c.updatedAt FROM c`,
       readOpts,
     );
-    const plan = planContainer(id, docs, existing, flags);
+    const plan = planContainer(id, docs, existing, flags, olderIds[id]);
     plans[id] = plan;
     console.log(describePlan(id, plan, flags.dryRun));
     for (const doc of plan.forcedNewer) console.warn(`    forced over newer Cosmos row ${doc.id}`);
@@ -369,9 +384,11 @@ main().then(
       process.exit(2);
     }
     console.error(`Import failed: ${err && err.stack ? err.stack : err}`);
-    console.error(
-      "Cosmos may be part-written. Fix the cause and run it again; re-running is safe.",
-    );
+    if (writesStarted) {
+      console.error(
+        "Cosmos may be part-written. Fix the cause and run it again; re-running is safe.",
+      );
+    }
     process.exit(1);
   },
 );

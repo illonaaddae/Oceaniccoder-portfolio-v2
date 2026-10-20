@@ -272,10 +272,12 @@ export function isNewerInCosmos(cosmosUpdatedAt, appwriteUpdatedAt) {
  *   docs      backup rows, already in Cosmos shape (toCosmos)
  *   existing  Cosmos rows as { id, pk, updatedAt }
  * Returns lists of docs (create, overwrite, skipExisting, skipNewer) and of
- * existing rows (prune, kept). `forcedNewer` is the part of `overwrite` that
- * is newer in Cosmos and only overwritten because of --force-overwrite.
+ * existing rows (prune, kept, skipOlder). `forcedNewer` is the part of
+ * `overwrite` that is newer in Cosmos and only overwritten because of
+ * --force-overwrite. `olderIds` are backup rows --created-after left out:
+ * they are in the backup, so they go to skipOlder, not kept.
  */
-export function planContainer(id, docs, existing, flags) {
+export function planContainer(id, docs, existing, flags, olderIds = new Set()) {
   const lockedDown = CREATE_ONLY_CONTAINERS.has(id) && !flags.preCutover;
   const createOnly = lockedDown || flags.insertOnly;
   const byId = new Map(existing.map((row) => [row.id, row]));
@@ -288,6 +290,7 @@ export function planContainer(id, docs, existing, flags) {
     skipNewer: [],
     prune: [],
     kept: [],
+    skipOlder: [],
   };
 
   for (const doc of docs) {
@@ -305,6 +308,10 @@ export function planContainer(id, docs, existing, flags) {
   for (const row of existing) {
     if (wanted.has(row.id)) continue;
     if (id === CUTOVER_MARKER_CONTAINER && row.id === CUTOVER_MARKER_ID) continue;
+    if (olderIds.has(row.id)) {
+      plan.skipOlder.push(row);
+      continue;
+    }
     if (flags.prune && canPrune(id, flags) && !isCosmosNative(id, row)) plan.prune.push(row);
     else plan.kept.push(row);
   }
