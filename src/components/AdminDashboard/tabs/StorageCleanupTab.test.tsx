@@ -86,10 +86,12 @@ async function renderTab() {
   await screen.findByText("orphan-file.png");
 }
 
-const deleteButton = () => screen.getByRole("button", { name: /delete file/i });
+// "Delete <file name>"; the dialog's own button is just "Delete".
+const DELETE_FILE = /^delete \S/i;
+const deleteButton = () => screen.getByRole("button", { name: DELETE_FILE });
 const enabledDeleteButtons = () =>
   screen
-    .queryAllByRole("button", { name: /delete file/i })
+    .queryAllByRole("button", { name: DELETE_FILE })
     .filter((b) => !(b as HTMLButtonElement).disabled);
 const scanAlert = () => screen.queryByRole("alert");
 
@@ -145,7 +147,7 @@ describe("StorageCleanupTab", () => {
     expect(within(alert as HTMLElement).getByText(/deleting is turned off/i)).toBeInTheDocument();
     expect(within(alert as HTMLElement).getByText(/projects: Forbidden/)).toBeInTheDocument();
 
-    const buttons = screen.getAllByRole("button", { name: /delete file/i });
+    const buttons = screen.getAllByRole("button", { name: DELETE_FILE });
     expect(buttons).toHaveLength(2);
     for (const button of buttons) {
       expect(button).toBeDisabled();
@@ -174,7 +176,7 @@ describe("StorageCleanupTab", () => {
     expect(
       within(scanAlert() as HTMLElement).getByText(/projects: more than 1999 rows/),
     ).toBeInTheDocument();
-    for (const button of screen.getAllByRole("button", { name: /delete file/i })) {
+    for (const button of screen.getAllByRole("button", { name: DELETE_FILE })) {
       expect(button).toBeDisabled();
     }
   });
@@ -192,7 +194,7 @@ describe("StorageCleanupTab", () => {
       await renderTab();
 
       expect(screen.getAllByText("In use")).toHaveLength(2);
-      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+      expect(screen.getAllByRole("button", { name: DELETE_FILE })).toHaveLength(1);
       expect(screen.getByRole("img", { name: "AWS" })).toHaveAttribute("src", LOGO.url);
     });
 
@@ -207,7 +209,7 @@ describe("StorageCleanupTab", () => {
       await renderTab();
 
       expect(screen.getAllByText("In use")).toHaveLength(2);
-      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+      expect(screen.getAllByRole("button", { name: DELETE_FILE })).toHaveLength(1);
       expect(screen.getByRole("img", { name: "AWS" })).toHaveAttribute("src", bundledAws.url);
     });
 
@@ -235,7 +237,7 @@ describe("StorageCleanupTab", () => {
       });
 
       expect(screen.getAllByText("In use")).toHaveLength(2);
-      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+      expect(screen.getAllByRole("button", { name: DELETE_FILE })).toHaveLength(1);
     });
 
     it("blocks delete when the overrides can't be read", async () => {
@@ -247,7 +249,7 @@ describe("StorageCleanupTab", () => {
       expect(
         within(scanAlert() as HTMLElement).getByText(/platform logos: Unauthorized/),
       ).toBeInTheDocument();
-      const buttons = screen.getAllByRole("button", { name: /delete file/i });
+      const buttons = screen.getAllByRole("button", { name: DELETE_FILE });
       expect(buttons).toHaveLength(2);
       for (const button of buttons) expect(button).toBeDisabled();
     });
@@ -280,7 +282,67 @@ describe("StorageCleanupTab", () => {
     await renderTab();
 
     expect(screen.getAllByText("In use")).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: DELETE_FILE })).toHaveLength(1);
+  });
+
+  describe("accessibility", () => {
+    it("names each delete button after its file", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      await renderTab();
+
+      expect(screen.getByRole("button", { name: "Delete orphan-file.png" })).toBeEnabled();
+    });
+
+    it("gives a blocked delete button its reason", async () => {
+      serveCosmos({ projects: new Error("Forbidden") });
+      await renderTab();
+
+      for (const button of screen.getAllByRole("button", { name: DELETE_FILE })) {
+        expect(button).toHaveAccessibleDescription(/deleting is off/i);
+      }
+      const orphans = screen.getByRole("heading", { name: /orphaned files/i }).parentElement;
+      expect(within(orphans as HTMLElement).getByText(/deleting is off/i)).toBeInTheDocument();
+    });
+
+    it("announces the scan in a status region", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      let finishList: (files: MediaFile[]) => void = () => {};
+      listMediaFiles.mockImplementationOnce(() => new Promise((resolve) => (finishList = resolve)));
+      render(<StorageCleanupTab theme="dark" />);
+
+      expect(await screen.findByRole("status")).toHaveTextContent("Scanning…");
+      await act(async () => finishList(FILES));
+      expect(screen.getByRole("status")).toHaveTextContent("");
+    });
+
+    it("keeps keyboard focus on Refresh while it scans and ignores repeat presses", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      await renderTab();
+      let finishList: (files: MediaFile[]) => void = () => {};
+      listMediaFiles.mockImplementation(() => new Promise((resolve) => (finishList = resolve)));
+
+      const refresh = screen.getByRole("button", { name: /refresh/i });
+      refresh.focus();
+      await userEvent.keyboard("{Enter}");
+
+      expect(refresh).toHaveTextContent("Scanning…");
+      expect(refresh).toHaveAttribute("aria-disabled", "true");
+      expect(refresh).toHaveFocus();
+      await userEvent.keyboard("{Enter}");
+      expect(listMediaFiles).toHaveBeenCalledTimes(2);
+
+      await act(async () => finishList(FILES));
+      expect(refresh).toHaveAttribute("aria-disabled", "false");
+      expect(refresh).toHaveFocus();
+    });
+
+    it("shows a scanning state in the header instead of zero counts", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      listMediaFiles.mockImplementationOnce(() => new Promise(() => {}));
+      render(<StorageCleanupTab theme="dark" />);
+
+      expect(screen.queryByText(/0 files/)).not.toBeInTheDocument();
+    });
   });
 
   describe("media referenced outside the plain URL fields", () => {
@@ -289,7 +351,7 @@ describe("StorageCleanupTab", () => {
       await renderTab();
       // live-file is used only by the source under test, never by a project.
       expect(screen.getByText("In use")).toBeInTheDocument();
-      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+      expect(screen.getAllByRole("button", { name: DELETE_FILE })).toHaveLength(1);
       expect(deleteButton()).toBeEnabled();
     };
     const LIVE_URL = PROJECT.image;
