@@ -235,7 +235,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       if (scanId !== latestScan.current) return;
       const { urls: referencedUrls, logoUrls: platformLogoUrls } = scan;
 
-      // Precompute collection ids once — O(N+M) vs O(N*M) per-file scan.
+      // Collection ids, for the "used in" label below.
       const collectionIds = DB_COLLECTIONS.map((c) => c.id);
 
       // Matching is by file id, which migrated files kept, so rows that still
