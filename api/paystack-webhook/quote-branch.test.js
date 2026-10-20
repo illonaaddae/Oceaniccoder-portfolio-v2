@@ -80,3 +80,55 @@ describe("paystack-webhook quote branch", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 });
+
+// Its own describe: the invalid DATA_BACKEND alert is sent once per process,
+// so it is the only test in this file that mails about it.
+describe("paystack-webhook quote branch with an invalid DATA_BACKEND", () => {
+  const https = require("https");
+  let sent;
+  beforeEach(() => {
+    Object.assign(process.env, {
+      PAYSTACK_SECRET_KEY: SECRET,
+      RESEND_API_KEY: "re_test",
+      RESEND_TO_EMAIL: "admin@example.com",
+      DATA_BACKEND: "bogus",
+    });
+    sent = [];
+    vi.spyOn(https, "request").mockImplementation((options, onResponse) => {
+      let raw = "";
+      return {
+        on: () => {},
+        setTimeout: () => {},
+        write: (chunk) => {
+          raw += chunk;
+        },
+        end: () => {
+          sent.push(JSON.parse(raw));
+          onResponse({ statusCode: 200, on: (ev, fn) => ev === "end" && fn() });
+        },
+      };
+    });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const key of ["PAYSTACK_SECRET_KEY", "RESEND_API_KEY", "RESEND_TO_EMAIL", "DATA_BACKEND"])
+      delete process.env[key];
+  });
+
+  it("answers 500 and mails the invalid setting once", async () => {
+    const quote = vi.spyOn(quoteService, "handleQuoteCharge");
+    for (let i = 0; i < 2; i++) {
+      const context = {
+        res: null,
+        log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+      };
+      await handler(context, signed(quoteEvent));
+      expect(context.res.status).toBe(500);
+    }
+    expect(sent.map((m) => m.subject)).toEqual([
+      "Action needed: Paystack webhooks are failing and will be retried",
+    ]);
+    expect(sent[0].html).toContain("DATA_BACKEND is not valid");
+    expect(quote).not.toHaveBeenCalled();
+  });
+});

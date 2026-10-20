@@ -496,6 +496,33 @@ module.exports = async function (context, req) {
     return;
   }
 
+  // Checked before the quote branch too: the quote service reads the same
+  // setting and would only throw, so a quote charge would fail without an alert.
+  let backend;
+  try {
+    backend = dataBackend();
+  } catch (err) {
+    context.log.error(`paystack-webhook: DATA_BACKEND is not valid — ${err.message}`);
+    if (resendKey && adminEmail) {
+      await alertOnce({
+        claim: async () => claimInProcess("DATA_BACKEND"),
+        release: async () => processAlerts.delete("DATA_BACKEND"),
+        send: () =>
+          sendEmail(
+            resendKey,
+            fromEmail,
+            adminEmail,
+            "Action needed: Paystack webhooks are failing and will be retried",
+            invalidBackendEmail(err.message),
+            context.log,
+          ),
+        log: context.log,
+      });
+    }
+    retry();
+    return;
+  }
+
   // Quote stage payments carry metadata.kind = "quote". They are settled by
   // the quote service, which re-fetches the transaction from Paystack rather
   // than trusting this payload, and uses lock documents so the webhook, the
@@ -538,31 +565,6 @@ module.exports = async function (context, req) {
   const amountPaid = (data.amount || 0) / 100; // convert from pesewas back to base unit
   const currency = data.currency || "GHS";
   const sym = currencySymbol(currency);
-
-  let backend;
-  try {
-    backend = dataBackend();
-  } catch (err) {
-    context.log.error(`paystack-webhook: DATA_BACKEND is not valid — ${err.message}`);
-    if (resendKey && adminEmail) {
-      await alertOnce({
-        claim: async () => claimInProcess("DATA_BACKEND"),
-        release: async () => processAlerts.delete("DATA_BACKEND"),
-        send: () =>
-          sendEmail(
-            resendKey,
-            fromEmail,
-            adminEmail,
-            "Action needed: Paystack webhooks are failing and will be retried",
-            invalidBackendEmail(err.message),
-            context.log,
-          ),
-        log: context.log,
-      });
-    }
-    retry();
-    return;
-  }
 
   if (backend === "cosmos") {
     // The Cosmos rows are keyed by reference; Paystack always sends one.
