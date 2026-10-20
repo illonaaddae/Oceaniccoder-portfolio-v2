@@ -255,21 +255,28 @@ describe("takeSendSlots", () => {
   });
 });
 
-describe("lockouts", () => {
-  it("blocks sends after three locked-out codes on one revision and epoch", async () => {
+describe("wrong-code cap", () => {
+  it("blocks after fifteen wrong codes on one revision and epoch, counting each once", async () => {
     const locks = createFakeLocks();
+    const got = [];
+    for (let i = 0; i < 14; i += 1) got.push(await A.recordMiss(locks, QUOTE, 0));
+    expect(got).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
     expect(await A.sendsBlocked(locks, QUOTE, 0)).toBe(false);
-    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(1);
-    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(2);
-    expect(await A.sendsBlocked(locks, QUOTE, 0)).toBe(false);
-    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(3);
+    expect(await A.recordMiss(locks, QUOTE, 0)).toBe(A.MAX_MISSES);
     expect(await A.sendsBlocked(locks, QUOTE, 0)).toBe(true);
-    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(3);
+    expect(await A.recordMiss(locks, QUOTE, 0)).toBe(0);
+  });
+
+  it("gives the last slot to exactly one of many parallel wrong codes", async () => {
+    const locks = createFakeLocks();
+    const got = await Promise.all(Array.from({ length: 20 }, () => A.recordMiss(locks, QUOTE, 0)));
+    expect(got.filter((n) => n === A.MAX_MISSES)).toHaveLength(1);
+    expect(got.filter((n) => n === 0)).toHaveLength(5);
   });
 
   it("starts again after a rotate or a revise", async () => {
     const locks = createFakeLocks();
-    for (let i = 0; i < 3; i += 1) await A.recordLockout(locks, QUOTE, 0);
+    for (let i = 0; i < A.MAX_MISSES; i += 1) await A.recordMiss(locks, QUOTE, 0);
     expect(await A.sendsBlocked(locks, QUOTE, 1)).toBe(false);
     expect(await A.sendsBlocked(locks, { ...QUOTE, revision: 3 }, 0)).toBe(false);
   });

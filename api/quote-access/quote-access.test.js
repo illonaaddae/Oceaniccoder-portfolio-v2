@@ -363,7 +363,7 @@ describe("quote-access claim", () => {
 
   it("still opens with a link code when typed codes are blocked", async () => {
     const t = setup();
-    for (let i = 0; i < 3; i += 1) await A.recordLockout(t.locks, base, 0);
+    for (let i = 0; i < A.MAX_MISSES; i += 1) await A.recordMiss(t.locks, base, 0);
     const r = await claim(t, A.mintLinkCode(SECRET, base, 0, t.clock.ms));
     expect(r.status).toBe(200);
   });
@@ -452,10 +452,10 @@ describe("quote-access switches", () => {
 describe("quote-access lifetime cap and quota reset", () => {
   const GAP = 90 * 1000;
 
-  async function lockOut(t) {
+  async function lockOut(t, wrongs = 5) {
     const { body, code } = await t.sendCode(TOKEN, { ip: `198.51.100.${t.mails.length + 1}` });
     let last;
-    for (let i = 0; i < 5; i += 1)
+    for (let i = 0; i < wrongs; i += 1)
       last = await t.call(
         { action: "verify", token: TOKEN, challenge: body.challenge, code: wrongCode(code) },
         { ip: `198.51.100.${t.mails.length + 1}` },
@@ -464,7 +464,7 @@ describe("quote-access lifetime cap and quota reset", () => {
     return last;
   }
 
-  it("stops sending codes after three locked-out codes until the admin issues a new link", async () => {
+  it("blocks after fifteen wrong codes (three locked codes) until the admin issues a new link", async () => {
     const t = setup();
     expect((await lockOut(t)).status).toBe(429);
     expect((await lockOut(t)).status).toBe(429);
@@ -474,8 +474,11 @@ describe("quote-access lifetime cap and quota reset", () => {
 
     const alerts = t.mails.filter((m) => m.to === "owner@oceaniccoder.dev");
     expect(alerts).toHaveLength(3);
-    expect(alerts[2].text).toContain("no more codes will be sent");
-    expect(alerts[1].text).not.toContain("no more codes will be sent");
+    expect(alerts.map((m) => m.subject)).toEqual([
+      "Code locked after 5 wrong tries on Q-2026-0004",
+      "Code locked after 5 wrong tries on Q-2026-0004",
+      "Codes blocked after 15 wrong tries on Q-2026-0004",
+    ]);
 
     const sent = t.mails.length;
     const refused = await t.call({ action: "send", token: TOKEN }, { ip: "192.0.2.50" });
@@ -486,6 +489,30 @@ describe("quote-access lifetime cap and quota reset", () => {
 
     await A.bumpEpoch(t.locks, base);
     expect((await t.sendCode(TOKEN, { ip: "192.0.2.51" })).status).toBe(200);
+  });
+
+  it("blocks four-wrong-per-challenge guessing at fifteen, with one alert", async () => {
+    const t = setup();
+    const statuses = [];
+    for (let c = 0; c < 4; c += 1) {
+      const { body, code } = await t.sendCode(TOKEN, { ip: `192.0.2.${c + 1}` });
+      for (let i = 0; i < 4; i += 1) {
+        const r = await t.call(
+          { action: "verify", token: TOKEN, challenge: body.challenge, code: wrongCode(code) },
+          { ip: `192.0.2.${c + 1}` },
+        );
+        statuses.push(r.status);
+      }
+      t.clock.ms += GAP;
+    }
+    expect(statuses.slice(0, 14).every((s) => s === 400)).toBe(true);
+    expect(statuses.slice(14)).toEqual([403, 403]);
+    const alerts = t.mails.filter((m) => m.to === "owner@oceaniccoder.dev");
+    expect(alerts.map((m) => m.subject)).toEqual([
+      "Codes blocked after 15 wrong tries on Q-2026-0004",
+    ]);
+    const refused = await t.call({ action: "send", token: TOKEN }, { ip: "192.0.2.90" });
+    expect(refused).toMatchObject({ status: 403, body: { blocked: true } });
   });
 
   it("refuses a challenge fetched before the block, even with the right code", async () => {
