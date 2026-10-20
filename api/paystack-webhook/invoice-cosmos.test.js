@@ -245,6 +245,60 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(db.container("payments").docs.size).toBe(0);
   });
 
+  const ESCALATION_SUBJECT =
+    "Action needed: a payment for invoice INV-2026-0042 is still unrecorded after 24 hours";
+  const alertLock = () => db.container("locks").docs.get(lockId(`alert:${REFERENCE}`));
+  const backdateAlert = (hours) => {
+    alertLock().firstFailedAt = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  };
+
+  it("escalates once when the same payment still fails 24 hours after the first alert", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 4);
+    expect((await run()).status).toBe(500);
+    expect(alertLock().firstFailedAt).toEqual(expect.any(String));
+    backdateAlert(23);
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+
+    backdateAlert(24);
+    expect((await run()).status).toBe(500);
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([
+      ["admin@example.com", RETRY_SUBJECT],
+      ["admin@example.com", ESCALATION_SUBJECT],
+    ]);
+    const { html } = sent[1];
+    expect(html).toContain("still failing 24 hours after");
+    expect(html).toContain("72 hours after the charge");
+    expect(html).toContain("record the payment by hand");
+    expect(alertLock().escalatedAt).toEqual(expect.any(String));
+  });
+
+  it("escalates on the next retry when the escalation could not be sent", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 3);
+    expect((await run()).status).toBe(500);
+    backdateAlert(25);
+    sent.answers.push(500);
+    expect((await run()).status).toBe(500);
+    expect(alertLock().escalatedAt).toBeNull();
+    expect((await run()).status).toBe(500);
+    expect(sent.map((m) => [m.subject, m.status])).toEqual([
+      [RETRY_SUBJECT, 200],
+      [ESCALATION_SUBJECT, 500],
+      [ESCALATION_SUBJECT, 200],
+    ]);
+  });
+
+  it("does not escalate a recorded payment whose emails keep failing", async () => {
+    db.container("payments").hooks.beforeReplace = async (id, body) => {
+      if (body.notifiedAt || body.notifyClaimedAt) throw unavailable();
+    };
+    expect((await run()).status).toBe(500);
+    backdateAlert(25);
+    expect((await run()).status).toBe(500);
+    expect(sent.map((m) => m.subject)).not.toContain(ESCALATION_SUBJECT);
+  });
+
   it("mails on the next retry when the claimed alert could not be sent", async () => {
     failNext(db.container("invoices"), "beforeReplace", 3);
     sent.answers.push(500);
