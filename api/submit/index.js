@@ -12,13 +12,25 @@
 // A saved contact message also emails the admin (RESEND_TO_EMAIL). The email
 // goes only after the row is saved, and a failed send is logged, never
 // returned: the visitor's message is already stored.
+//
+// Turnstile can be solved by paid captcha farms, and the alert shares its
+// Resend key and quota with the payment emails, so alerts are capped per
+// instance: ALERTS_PER_IP an hour per client IP, then ALERTS_PER_DAY in total.
+// Over a cap the row is still saved (201) and only the email is skipped,
+// logged once an hour per cap so a flood can't fill the logs either.
 
 const { getDatabase, newDocument, fromCosmos } = require("../shared/cosmos");
 const { Invalid, validateSubmission } = require("../shared/submissions");
 const { verifyTurnstile, clientIp } = require("../shared/turnstile");
 const { storeVisitorImage } = require("../shared/media");
 const { sendEmail } = require("../shared/email/send");
+const { createRateLimiter } = require("../shared/rateLimit");
 const { messageAlertEmail } = require("./messageAlert");
+
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+const ALERTS_PER_IP = 3;
+const ALERTS_PER_DAY = 50;
 
 const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store" };
 
@@ -82,7 +94,38 @@ async function alertAdmin(context, row, sendEmail) {
   if (error) context.log.error(`submit/messages: alert email for ${row.$id} failed:`, error);
 }
 
-function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage, sendEmail }) {
+/** Decides whether a saved message may email the admin, and logs the first skip per cap. */
+function createAlertBudget(now) {
+  const allowIp = createRateLimiter({ limit: ALERTS_PER_IP, windowMs: HOUR_MS });
+  const allowDay = createRateLimiter({ limit: ALERTS_PER_DAY, windowMs: DAY_MS, maxKeys: 1 });
+  const allowSkipLog = createRateLimiter({ limit: 1, windowMs: HOUR_MS, maxKeys: 2 });
+
+  return function mayAlert(context, ip) {
+    const nowMs = now();
+    // Per-IP first, so one source can't use up the daily budget on its own.
+    // Requests without a forwarded IP share one bucket rather than going unlimited.
+    let cap = null;
+    if (!allowIp(ip || "unknown", 1, nowMs)) cap = `${ALERTS_PER_IP} an hour from one IP`;
+    else if (!allowDay("all", 1, nowMs)) cap = `${ALERTS_PER_DAY} a day`;
+    if (!cap) return true;
+    if (allowSkipLog(cap, 1, nowMs)) {
+      context.log.warn(
+        `submit/messages: alert email cap of ${cap} reached; saving without emailing`,
+      );
+    }
+    return false;
+  };
+}
+
+function createHandler({
+  getDatabase,
+  verifyTurnstile,
+  storeVisitorImage,
+  sendEmail,
+  now = Date.now,
+}) {
+  const mayAlert = createAlertBudget(now);
+
   return async function (context, req) {
     const collection = context.bindingData && context.bindingData.collection;
     const { turnstileToken, imageData, ...fields } = req.body || {};
@@ -102,7 +145,8 @@ function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage, sendEm
       return;
     }
 
-    const spam = await verifyTurnstile(turnstileToken, clientIp(req));
+    const ip = clientIp(req);
+    const spam = await verifyTurnstile(turnstileToken, ip);
     if (!spam.ok) {
       reply(context, spam.status, { error: spam.error });
       return;
@@ -132,7 +176,9 @@ function createHandler({ getDatabase, verifyTurnstile, storeVisitorImage, sendEm
     }
 
     reply(context, 201, saved);
-    if (collection === "messages") await alertAdmin(context, saved, sendEmail);
+    if (collection === "messages" && mayAlert(context, ip)) {
+      await alertAdmin(context, saved, sendEmail);
+    }
   };
 }
 
