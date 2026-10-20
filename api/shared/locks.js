@@ -31,6 +31,17 @@ function createLocks(db) {
         if (!(err && err.code === 404)) throw err;
       }
     },
+    // Read-only: whether the lock is held. take() can't answer this without
+    // creating the row, which would change the answer for every other caller.
+    async has(key) {
+      try {
+        await db.getDocument(DATABASE_ID, LOCKS, lockId(key));
+        return true;
+      } catch (err) {
+        if (err && err.code === 404) return false;
+        throw err;
+      }
+    },
   };
 }
 
