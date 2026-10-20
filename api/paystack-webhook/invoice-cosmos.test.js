@@ -340,7 +340,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     ]);
     const { html } = sent[1];
     expect(html).toContain("still failing 24 hours after");
-    expect(html).toContain("72 hours after the charge");
+    expect(html).toContain("In test mode Paystack retries hourly for about 10 hours");
     expect(html).toContain("record the payment by hand");
     expect(alertLock().escalatedAt).toEqual(expect.any(String));
   });
@@ -464,7 +464,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     });
     const event = signed(chargeOf({ reference: "PAY-INV-2026-0042-no-time" }));
     expect((await run(event)).status).toBe(500);
-    expect(sent[0].html).toContain("72 hours after the charge");
+    expect(sent[0].html).toContain("did not give a usable charge time");
     expect(sent[0].html).toContain("Paystack dashboard");
   });
 
@@ -484,7 +484,8 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     const { html } = sent[0];
     expect(html).toContain("Cosmos could not keep track of this alert");
     expect(html).toContain("no follow-up email will come");
-    expect(html).toContain("2026-10-23 09:15 UTC");
+    // chargeOf() is a test-mode charge: about 10 hours of retries.
+    expect(html).toContain("so until about 2026-10-20 19:15 UTC");
     expect(html).toContain("record the payment by hand");
     expect(html).not.toContain("Do not mark the invoice paid by hand");
     expect(html).not.toContain("one more email follows");
@@ -596,7 +597,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     ]);
     const { html } = sent[1];
     expect(html).toContain("DATA_BACKEND is not valid");
-    expect(html).toContain("within Paystack&#39;s 72-hour retry window");
+    expect(html).toContain("In test mode Paystack retries each charge hourly for about 10 hours");
     expect(html).toContain("are lost and must be recorded by hand");
     expect(html).toContain("Paystack dashboard");
     expect(html).toContain("function logs");

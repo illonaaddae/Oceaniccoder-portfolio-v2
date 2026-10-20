@@ -74,4 +74,58 @@ describe("paystack-webhook invoice emails", () => {
     expect(html).toContain("scripts/backfill-payments.mjs");
     expect(html).toContain("₵5.00 GHS");
   });
+
+  describe("Paystack retry window", () => {
+    const CHARGED = Date.parse("2026-10-20T09:15:00.000Z");
+    const untracked = (window) => emails.webhookUntrackedEmail("r", "d", window);
+
+    it("gives about 72 hours from the charge in live mode", () => {
+      const html = untracked({ mode: "live", chargedAt: CHARGED });
+      expect(html).toContain(
+        "In live mode Paystack keeps retrying for about 72 hours after the first failed delivery, so until about 2026-10-23 09:15 UTC.",
+      );
+    });
+
+    it("gives about 10 hours from the charge in test mode", () => {
+      const html = untracked({ mode: "test", chargedAt: CHARGED });
+      expect(html).toContain(
+        "In test mode Paystack retries hourly for about 10 hours, so until about 2026-10-20 19:15 UTC.",
+      );
+    });
+
+    it("gives no time and points to the dashboard when the mode is unknown", () => {
+      const html = untracked({ mode: undefined, chargedAt: CHARGED });
+      expect(html).not.toContain("until about");
+      expect(html).toContain("did not say whether the charge was in live or test mode");
+      expect(html).toContain("Paystack dashboard");
+    });
+
+    it("says the charge time was not usable when it cannot be read", () => {
+      const html = untracked({ mode: "live", chargedAt: NaN });
+      expect(html).not.toContain("until about");
+      expect(html).toContain("did not give a usable charge time");
+    });
+
+    it("tells the admin to check the Payments tab or the Paystack dashboard", () => {
+      expect(untracked({ mode: "live", chargedAt: CHARGED })).toContain(
+        "check the Payments tab or the Paystack dashboard",
+      );
+    });
+
+    it("uses the same window in the escalation", () => {
+      const html = emails.webhookEscalationEmail("r", "d", { mode: "live", chargedAt: CHARGED });
+      expect(html).toContain("so until about 2026-10-23 09:15 UTC");
+      expect(html).not.toContain("72 hours after the charge");
+    });
+
+    it.each([
+      ["live", "In live mode Paystack keeps retrying each charge for about 72 hours"],
+      ["test", "In test mode Paystack retries each charge hourly for about 10 hours"],
+      [undefined, "about 72 hours in live mode and about 10 hours in test mode"],
+    ])("states the %s-mode window in the invalid setting email", (mode, text) => {
+      const html = emails.invalidSettingEmail("WRITE_HOLD", "detail", mode);
+      expect(html).toContain(text);
+      expect(html).not.toContain("72-hour retry window");
+    });
+  });
 });
