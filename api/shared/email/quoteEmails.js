@@ -389,23 +389,31 @@ function accessCode(v) {
   return { subject, html, text };
 }
 
+// Two cases: one code locked after five wrong tries, or (blocked) the quote's
+// fifteenth wrong code, after which no code is sent or checked until New link
+// or Revise.
 function accessLockedAlert(v) {
-  const subject = `Code locked after 5 wrong tries on ${v.quoteNumber}`;
+  const subject = v.blocked
+    ? `Codes blocked after 15 wrong tries on ${v.quoteNumber}`
+    : `Code locked after 5 wrong tries on ${v.quoteNumber}`;
+  const what = v.blocked
+    ? `Fifteen wrong codes have been entered for ${v.quoteNumber}.`
+    : `Five wrong codes were entered for ${v.quoteNumber}.`;
+  const effect = v.blocked
+    ? "No more codes will be sent or accepted on this link until you use New link or Revise."
+    : "That code no longer works, and a new one goes only to the client's email.";
   const advice =
     "If the client didn't ask for a code, the link may have been shared. Use New link on the quote to lock out every browser, then send the client the new link.";
-  const blocked = v.blocked
-    ? "This is the third locked code on this link, so no more codes will be sent until you use New link or Revise."
-    : "";
   const html = shell({
-    preview: `Five wrong codes were entered for ${v.quoteNumber}.`,
+    preview: what,
     meta: { label: "Quote", number: v.quoteNumber },
     reason: ADMIN_REASON,
     body:
       heading({
         eyebrow: "Quote access",
-        tone: "warn",
-        title: "A quote code was locked",
-        intro: `Five wrong codes were entered for ${v.quoteNumber}. That code no longer works, and a new one goes only to the client's email.`,
+        tone: v.blocked ? "danger" : "warn",
+        title: v.blocked ? "Codes are blocked on a quote" : "A quote code was locked",
+        intro: `${what} ${effect}`,
       }) +
       card({
         title: "Quote",
@@ -415,14 +423,12 @@ function accessLockedAlert(v) {
           ["Date", v.lockedOn],
         ],
       }) +
-      (blocked ? notice({ tone: "danger", text: blocked }) : "") +
       notice({ tone: "warn", text: advice }) +
       buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
   });
   const text = lines(
-    `Five wrong codes were entered for ${v.quoteNumber} (${v.title}, ${v.clientName}) on ${v.lockedOn}.`,
-    "That code no longer works, and a new one goes only to the client's email.",
-    blocked,
+    `${what.slice(0, -1)} (${v.title}, ${v.clientName}) on ${v.lockedOn}.`,
+    effect,
     advice,
     v.adminLink,
   );

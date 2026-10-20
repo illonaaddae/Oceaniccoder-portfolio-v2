@@ -189,17 +189,27 @@ function createHandler(deps) {
     if (!attempt) throw new HttpError(429, TOO_MANY, { triesLeft: 0, newCodeNeeded: true });
     const triesLeft = A.MAX_TRIES - attempt;
     if (!A.codeMatches(secret, checked.challengeId, code)) {
-      context.log(`quote-access verify quote=${quote.quoteNumber} triesLeft=${triesLeft}`);
-      if (triesLeft > 0)
+      const misses = await A.recordMiss(svc.locks, quote, checked.epoch);
+      const blocked = misses === 0 || misses === A.MAX_MISSES;
+      const lockedOut = triesLeft === 0;
+      context.log(
+        `quote-access verify quote=${quote.quoteNumber} triesLeft=${triesLeft} misses=${misses}`,
+      );
+      // One alert per locked-out challenge (owner decision), and one when the
+      // quote blocks; never both for one guess. At most MAX_MISSES / MAX_TRIES
+      // + 1 alerts per revision and epoch. Only one request can get the last
+      // try slot of a challenge, or miss slot MAX_MISSES.
+      if (misses === A.MAX_MISSES || (lockedOut && !blocked)) {
+        context.log.warn(
+          `quote-access ${misses === A.MAX_MISSES ? "blocked" : "lock"} quote=${quote.quoteNumber}`,
+        );
+        await alertLockout(context, quote, nowMs, misses === A.MAX_MISSES);
+      }
+      if (blocked) throw new HttpError(403, BLOCKED, { triesLeft: 0, blocked: true });
+      if (!lockedOut)
         throw new HttpError(400, "That code isn't right. Check the email and try again.", {
           triesLeft,
         });
-      // Only one request can hold the last try slot, so this runs once per challenge.
-      const lockouts = await A.recordLockout(svc.locks, quote, checked.epoch);
-      const blocked = lockouts >= A.MAX_LOCKOUTS;
-      context.log.warn(`quote-access lock quote=${quote.quoteNumber} lockouts=${lockouts}`);
-      await alertLockout(context, quote, nowMs, blocked);
-      if (blocked) throw new HttpError(403, BLOCKED, { triesLeft: 0, blocked: true });
       throw new HttpError(429, TOO_MANY, { triesLeft: 0, newCodeNeeded: true });
     }
     if (!(await A.takeUse(svc.locks, checked.challengeId)))
