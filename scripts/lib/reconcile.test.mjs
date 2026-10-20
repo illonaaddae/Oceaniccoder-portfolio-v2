@@ -4,9 +4,9 @@ import { createRequire } from "node:module";
 import {
   UsageError,
   describeTransaction,
-  findUnrecorded,
   listSuccessfulTransactions,
   parseReconcileArgs,
+  reconcileTransactions,
 } from "./reconcile.mjs";
 
 const require = createRequire(import.meta.url);
@@ -58,18 +58,50 @@ describe("listSuccessfulTransactions", () => {
   });
 });
 
-describe("findUnrecorded", () => {
+describe("reconcileTransactions", () => {
   it("matches by paystackReference and by the derived payment id", () => {
     const transactions = [{ reference: "IMPORTED" }, { reference: "NEW" }, { reference: "LOST" }];
     const payments = [
-      { id: "6943aa00", paystackReference: "IMPORTED" },
-      { id: paymentIdFor("NEW") },
+      { id: "6943aa00", paystackReference: "IMPORTED", status: "success" },
+      { id: paymentIdFor("NEW"), status: "paid" },
     ];
-    expect(findUnrecorded(transactions, payments)).toEqual([{ reference: "LOST" }]);
+    expect(reconcileTransactions(transactions, payments)).toEqual({
+      unrecorded: [{ reference: "LOST" }],
+      unsettled: [],
+      problems: [],
+    });
   });
 
-  it("reports a transaction with no reference", () => {
-    expect(findUnrecorded([{ amount: 100 }], [])).toEqual([{ amount: 100 }]);
+  it("reports a transaction with no reference as unrecorded", () => {
+    expect(reconcileTransactions([{ amount: 100 }], []).unrecorded).toEqual([{ amount: 100 }]);
+  });
+
+  it("does not count a pending row as recorded", () => {
+    const tx = { reference: "R1" };
+    for (const status of ["pending", "abandoned", undefined]) {
+      const result = reconcileTransactions([tx], [{ id: paymentIdFor("R1"), status }]);
+      expect(result.unrecorded).toEqual([]);
+      expect(result.unsettled).toEqual([{ transaction: tx, status: status ?? null }]);
+    }
+  });
+
+  it("lists rows settled as failed, duplicate or refunded for a look by hand", () => {
+    const tx = { reference: "R1" };
+    const result = reconcileTransactions([tx], [{ id: paymentIdFor("R1"), status: "duplicate" }]);
+    expect(result.unsettled).toEqual([]);
+    expect(result.problems).toEqual([{ transaction: tx, status: "duplicate" }]);
+  });
+
+  it("counts a reference as settled when any of its rows is", () => {
+    const tx = { reference: "R1" };
+    const result = reconcileTransactions(
+      [tx],
+      [
+        { id: "old", paystackReference: "R1", status: "pending" },
+        { id: paymentIdFor("R1"), status: "success" },
+      ],
+    );
+    expect(result).toEqual({ unrecorded: [], unsettled: [], problems: [] });
   });
 });
 

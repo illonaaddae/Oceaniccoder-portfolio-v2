@@ -52,22 +52,48 @@ export async function listSuccessfulTransactions(fetchPage) {
   throw new Error(`stopped after ${MAX_PAGES} pages of Paystack transactions`);
 }
 
+// Payment row statuses (api/shared/quotes/model.js, the invoice webhook).
+// quote-pay writes `pending` before the charge, so a row alone proves nothing.
+const SETTLED = new Set(["success", "paid"]);
+// Settled after looking at the charge, but with money to sort out by hand
+// (a mismatch, a second charge, a refund). Replaying the webhook won't change them.
+const SETTLED_WITH_PROBLEM = new Set(["failed", "duplicate", "refunded"]);
+
 /**
- * Transactions with no payments row. A row counts when its paystackReference
- * is the reference (rows imported from Appwrite keep their old ids) or its id
- * is the one the Cosmos webhook derives from the reference.
+ * Sorts transactions by what Cosmos holds for them. A row matches when its
+ * paystackReference is the reference (rows imported from Appwrite keep their
+ * old ids) or its id is the one the Cosmos webhook derives from it.
+ *   unrecorded  no row at all
+ *   unsettled   rows exist, none settled (pending, abandoned, no status)
+ *   problems    settled as failed, duplicate or refunded
+ * unsettled and problems hold { transaction, status }.
  */
-export function findUnrecorded(transactions, payments) {
-  const references = new Set();
-  const ids = new Set();
+export function reconcileTransactions(transactions, payments) {
+  const byReference = new Map();
+  const byId = new Map(payments.map((p) => [p.id, p]));
   for (const payment of payments) {
-    if (typeof payment.paystackReference === "string") references.add(payment.paystackReference);
-    ids.add(payment.id);
+    if (typeof payment.paystackReference !== "string") continue;
+    const list = byReference.get(payment.paystackReference) ?? [];
+    list.push(payment);
+    byReference.set(payment.paystackReference, list);
   }
-  return transactions.filter((tx) => {
-    if (typeof tx.reference !== "string" || !tx.reference) return true;
-    return !references.has(tx.reference) && !ids.has(paymentIdFor(tx.reference));
-  });
+
+  const result = { unrecorded: [], unsettled: [], problems: [] };
+  for (const tx of transactions) {
+    const hasReference = typeof tx.reference === "string" && tx.reference;
+    const rows = hasReference ? [...(byReference.get(tx.reference) ?? [])] : [];
+    const derived = hasReference && byId.get(paymentIdFor(tx.reference));
+    if (derived && !rows.includes(derived)) rows.push(derived);
+
+    if (rows.length === 0) result.unrecorded.push(tx);
+    else if (rows.some((r) => SETTLED.has(r.status))) continue;
+    else {
+      const problem = rows.find((r) => SETTLED_WITH_PROBLEM.has(r.status));
+      const target = problem ? result.problems : result.unsettled;
+      target.push({ transaction: tx, status: (problem ?? rows[0]).status ?? null });
+    }
+  }
+  return result;
 }
 
 /** One report line for a transaction; amounts arrive in minor units. */
