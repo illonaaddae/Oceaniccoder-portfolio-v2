@@ -108,21 +108,49 @@ describe("canPrune", () => {
 });
 
 describe("cutover marker", () => {
+  const some = ["bookings"];
+
   it("refuses --prune and --pre-cutover once the marker exists", () => {
     const marker = cutoverMarker(NEW);
-    expect(refusalAfterCutover(flags(["--prune", "--pre-cutover"]), marker)).toMatch(/refused/);
-    expect(refusalAfterCutover(flags(["--pre-cutover"]), marker)).toMatch(/refused/);
-    expect(refusalAfterCutover(flags(["--insert-only"]), marker)).toBeNull();
-    expect(refusalAfterCutover(flags(["--prune", "--pre-cutover"]), null)).toBeNull();
+    expect(refusalAfterCutover(flags(["--prune", "--pre-cutover"]), marker, some)).toMatch(
+      /refused/,
+    );
+    expect(refusalAfterCutover(flags(["--pre-cutover"]), marker, some)).toMatch(/refused/);
+    expect(refusalAfterCutover(flags(["--pre-cutover", "--dry-run"]), marker, some)).toMatch(
+      /refused/,
+    );
+    expect(refusalAfterCutover(flags(["--insert-only"]), marker, some)).toBeNull();
+    expect(refusalAfterCutover(flags(["--prune", "--pre-cutover"]), null, some)).toBeNull();
   });
 
   it("refuses any run that is not --insert-only once the marker exists", () => {
     const marker = cutoverMarker(NEW);
-    expect(refusalAfterCutover(flags(), marker)).toMatch(/--insert-only/);
-    expect(refusalAfterCutover(flags(["--dry-run"]), marker)).toMatch(/--insert-only/);
-    expect(refusalAfterCutover(flags(["--force-overwrite"]), marker)).toMatch(/--insert-only/);
-    expect(refusalAfterCutover(flags(["--allow-overwrite-after-cutover"]), marker)).toBeNull();
-    expect(refusalAfterCutover(flags(), null)).toBeNull();
+    expect(refusalAfterCutover(flags(), marker, some)).toMatch(/--insert-only/);
+    expect(refusalAfterCutover(flags(["--force-overwrite"]), marker, some)).toMatch(
+      /--insert-only/,
+    );
+    expect(
+      refusalAfterCutover(flags(["--allow-overwrite-after-cutover"]), marker, some),
+    ).toBeNull();
+    expect(refusalAfterCutover(flags(), null, some)).toBeNull();
+  });
+
+  it("allows a dry run after the marker, since it writes nothing", () => {
+    const marker = cutoverMarker(NEW);
+    expect(refusalAfterCutover(flags(["--dry-run"]), marker, some)).toBeNull();
+    expect(refusalAfterCutover(flags(["--dry-run"]), marker, ["quotes", "locks"])).toBeNull();
+  });
+
+  it("refuses quotes and locks after the marker unless allowed", () => {
+    const marker = cutoverMarker(NEW);
+    for (const id of ["quotes", "locks"]) {
+      expect(refusalAfterCutover(flags(["--insert-only"]), marker, ["bookings", id])).toMatch(
+        new RegExp(`${id}.*--allow-quote-state-after-cutover`),
+      );
+      const allowed = flags(["--insert-only", "--allow-quote-state-after-cutover"]);
+      expect(refusalAfterCutover(allowed, marker, [id])).toBeNull();
+    }
+    expect(refusalAfterCutover(flags(["--insert-only"]), null, ["quotes", "locks"])).toBeNull();
   });
 
   it("takes the override only where it means something", () => {
