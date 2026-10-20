@@ -41,6 +41,7 @@ export const IMAGES = {
   frontendMasters: media("69444cf90028bcba5187/frontendmasters.png"),
   coursera: media("69444cf7002630d6e37f/coursera.png"),
   aws: media("69444cf8000fb4abc729/aws-logo.svg"),
+  awsPlatform: media("6a08dac800096013ea70/pinclipart-com-welders-clipart-1637044.webp"),
 } as const;
 
 export default IMAGES;

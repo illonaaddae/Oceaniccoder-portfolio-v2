@@ -1,3 +1,5 @@
+import { IMAGES } from "@/utils/imageUrls";
+
 // Education data
 const education = [
   {
@@ -7,8 +9,7 @@ const education = [
     achievement: "N/A",
     description:
       " Specializing in Software Engineering, Cloud Computing, Artificial Intelligence and Machine Learning ",
-    universityLogo:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cdb00195a0cc8ab/atu-logo.png",
+    universityLogo: IMAGES.atuLogo,
     gpa: null,
     location: "Accra, Ghana",
   },
@@ -19,8 +20,7 @@ const education = [
     achievement: "First Class Honours",
     description:
       "Specialized in Software Engineering, Data Structures & Algorithms, and Network Systems.",
-    universityLogo:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cdb00195a0cc8ab/atu-logo.png",
+    universityLogo: IMAGES.atuLogo,
     gpa: "N.A/5.0",
     location: "Accra, Ghana",
   },

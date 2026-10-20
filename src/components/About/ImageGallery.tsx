@@ -4,6 +4,7 @@ import { LazyImage } from "../ui/LazyImage";
 import GalleryThumbnails from "./GalleryThumbnails";
 
 import type { GalleryImage } from "../../types";
+import { IMAGES } from "@/utils/imageUrls";
 
 interface ImageGalleryProps {
   galleryImages: GalleryImage[];
@@ -33,7 +34,7 @@ const ImageGallery = React.memo(({ galleryImages }: ImageGalleryProps) => {
               alt={galleryImages[currentImageIndex]?.alt || "Gallery image"}
               className="w-full h-full rounded-b-2xl"
               placeholderColor="from-oceanic-900/30 to-slate-900"
-              fallbackSrc="https://oceaniccodermedia.blob.core.windows.net/media/69444ceb001c1eda1331/profile.webp"
+              fallbackSrc={IMAGES.profile}
               displaySize="hero"
               objectFit="contain"
             />

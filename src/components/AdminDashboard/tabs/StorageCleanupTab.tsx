@@ -4,7 +4,8 @@ import { Pagination } from "@/components/common/Pagination";
 import { manageList, usesCosmos } from "@/services/api/dataApi";
 import { LIST_ALL_CAP, listAllDocuments } from "@/services/api/listAll";
 import { deleteImage, listMediaFiles } from "@/services/api/storage";
-import { MEDIA_BASE_URL, getOptimizedImageUrl } from "@/utils/imageOptimizer";
+import { getOptimizedImageUrl } from "@/utils/imageOptimizer";
+import { IMAGES } from "@/utils/imageUrls";
 import {
   readHeroImages,
   readPlatformLogoOverrides,
@@ -65,11 +66,11 @@ const ALL_PLATFORMS = [
 
 // Same files as the defaults in utils/platformLogos.js.
 const HARDCODED_URLS: Record<string, string> = {
-  Codecademy: `${MEDIA_BASE_URL}/69444cf9000034490b06/code-cademy.svg`,
-  Scrimba: `${MEDIA_BASE_URL}/69444cfa002656e07bf5/scrimba.png`,
-  AWS: `${MEDIA_BASE_URL}/6a08dac800096013ea70/pinclipart-com-welders-clipart-1637044.webp`,
-  "Frontend Masters": `${MEDIA_BASE_URL}/69444cf90028bcba5187/frontendmasters.png`,
-  Coursera: `${MEDIA_BASE_URL}/69444cf7002630d6e37f/coursera.png`,
+  Codecademy: IMAGES.codecademy,
+  Scrimba: IMAGES.scrimba,
+  AWS: IMAGES.awsPlatform,
+  "Frontend Masters": IMAGES.frontendMasters,
+  Coursera: IMAGES.coursera,
 };
 
 const PAGE_SIZE = 10;
