@@ -21,14 +21,18 @@
 // Refuses to import a row that still links to Appwrite Storage: that backup
 // was taken before scripts/rewrite-media-urls.mjs ran, so take a new one.
 //
-// Usage (all need COSMOS_ENDPOINT and COSMOS_KEY):
-//   node scripts/import-to-cosmos.mjs --dry-run        read-only: what would change
-//   node scripts/import-to-cosmos.mjs                  import every container
-//   node scripts/import-to-cosmos.mjs --prune --pre-cutover
-//   node scripts/import-to-cosmos.mjs --insert-only --only bookings,messages
-//   node scripts/import-to-cosmos.mjs --mark-cutover   record the cutover (alone)
+// Usage. Every run needs COSMOS_ENDPOINT and COSMOS_KEY; keep them in env
+// files (chmod 600, git-ignored) rather than on the command line: the
+// read-only key in .env.cutover for --dry-run, the primary key in
+// .env.cutover.write for runs that write.
+//   node --env-file=.env.cutover scripts/import-to-cosmos.mjs --dry-run --pre-cutover
+//   node --env-file=.env.cutover.write scripts/import-to-cosmos.mjs --pre-cutover
+//   node --env-file=.env.cutover.write scripts/import-to-cosmos.mjs --prune --pre-cutover
+//   node --env-file=.env.cutover.write scripts/import-to-cosmos.mjs --insert-only --only bookings
+//   node --env-file=.env.cutover.write scripts/import-to-cosmos.mjs --mark-cutover   (alone)
 //
-// --backup <dir>            backup folder (default: the newest backup/<date>)
+// --backup <dir>            backup folder (default: the newest backup/<date>;
+//                           a backup/<date>-final folder must be named)
 // --only a,b                only these containers; an unknown name fails
 // --force-overwrite         also overwrite rows that are newer in Cosmos
 // --prune-money             with --prune, also prune payments and invoices
