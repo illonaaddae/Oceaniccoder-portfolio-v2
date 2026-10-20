@@ -120,7 +120,14 @@ async function readMarker(db) {
 }
 
 async function markCutover() {
-  const container = createClient().database(DATABASE_ID).container(CUTOVER_MARKER_CONTAINER);
+  // Only the marker's container is made if missing (locks has no unique keys
+  // or TTL, so this matches ensureSchema). A missing database still fails:
+  // marking a cutover that never imported anything is a mistake.
+  const db = createClient().database(DATABASE_ID);
+  const { container } = await db.containers.createIfNotExists({
+    id: CUTOVER_MARKER_CONTAINER,
+    partitionKey: { paths: [CONTAINERS[CUTOVER_MARKER_CONTAINER].partitionKey] },
+  });
   const marker = cutoverMarker(new Date().toISOString());
   try {
     await container.items.create(marker);

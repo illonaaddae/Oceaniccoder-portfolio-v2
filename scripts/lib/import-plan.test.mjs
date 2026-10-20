@@ -25,6 +25,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const { isCollection } = require("../../api/shared/adminData.js");
+const { CONTAINERS } = require("../../api/shared/cosmos.js");
 const { lockId } = require("../../api/shared/tokens.js");
 const { paymentIdFor } = require("../../api/shared/quotes/repo.cosmos.js");
 
@@ -188,6 +189,15 @@ describe("cutover marker", () => {
     });
     // Lock rows use hashed ids, so no lock key can take the marker's id.
     expect(lockId("cutover")).not.toBe(CUTOVER_MARKER_ID);
+  });
+
+  it("lives in a container --mark-cutover can create with a partition key alone", () => {
+    // markCutover creates locks with only its partition key; any other option
+    // here (unique keys, TTL, indexing) must be added there too.
+    expect(Object.keys(CONTAINERS[CUTOVER_MARKER_CONTAINER]).sort()).toEqual([
+      "manage",
+      "partitionKey",
+    ]);
   });
 
   it("is never a prune candidate", () => {
