@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import {
   IMPORTED_CONTAINERS,
   afterPlan,
+  CUTOVER_MARKER_CONTAINER,
   CUTOVER_MARKER_ID,
   UsageError,
   canPrune,
@@ -18,7 +19,7 @@ import {
 } from "./import-plan.mjs";
 
 const require = createRequire(import.meta.url);
-const { MIGRATED_SETTINGS_KEYS } = require("../../api/shared/cosmos.js");
+const { isCollection } = require("../../api/shared/adminData.js");
 const { lockId } = require("../../api/shared/tokens.js");
 const { paymentIdFor } = require("../../api/shared/quotes/repo.cosmos.js");
 
@@ -132,18 +133,21 @@ describe("cutover marker", () => {
     );
   });
 
-  it("is a private settings row", () => {
+  it("lives in locks, which /api/manage can neither list nor write", () => {
+    expect(CUTOVER_MARKER_CONTAINER).toBe("locks");
+    expect(isCollection(CUTOVER_MARKER_CONTAINER)).toBe(false);
     expect(cutoverMarker(NEW)).toMatchObject({
       id: "cutover",
       key: "cutover",
       by: "import-to-cosmos",
     });
-    expect(MIGRATED_SETTINGS_KEYS.has(CUTOVER_MARKER_ID)).toBe(false);
+    // Lock rows use hashed ids, so no lock key can take the marker's id.
+    expect(lockId("cutover")).not.toBe(CUTOVER_MARKER_ID);
   });
 
   it("is never a prune candidate", () => {
     const plan = planContainer(
-      "settings",
+      "locks",
       [],
       [row(CUTOVER_MARKER_ID)],
       flags(["--prune", "--pre-cutover"]),

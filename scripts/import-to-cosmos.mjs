@@ -41,6 +41,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 import {
+  CUTOVER_MARKER_CONTAINER,
   CUTOVER_MARKER_ID,
   DRIFT_CHECKED,
   afterPlan,
@@ -93,7 +94,7 @@ async function queryAll(container, query, { missingIsEmpty }) {
 }
 
 async function readMarker(db) {
-  const item = db.container("settings").item(CUTOVER_MARKER_ID, CUTOVER_MARKER_ID);
+  const item = db.container(CUTOVER_MARKER_CONTAINER).item(CUTOVER_MARKER_ID, CUTOVER_MARKER_ID);
   try {
     const { resource } = await item.read();
     return resource ?? null;
@@ -104,7 +105,7 @@ async function readMarker(db) {
 }
 
 async function markCutover() {
-  const container = createClient().database(DATABASE_ID).container("settings");
+  const container = createClient().database(DATABASE_ID).container(CUTOVER_MARKER_CONTAINER);
   const marker = cutoverMarker(new Date().toISOString());
   try {
     await container.items.create(marker);
