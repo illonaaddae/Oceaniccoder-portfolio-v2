@@ -77,9 +77,14 @@ function webhookFailedEmail(reason, detail) {
 }
 
 // For a failure Paystack's retry will finish. Unlike webhookFailedEmail it
-// must not suggest marking the invoice paid by hand: the retry records the
-// payment anyway, and a hand-marked invoice would get a second receipt.
-function webhookRetryEmail(reason, detail) {
+// must not suggest marking the invoice paid by hand while Paystack retries:
+// the retry records the payment anyway, and a hand-marked invoice would get
+// a second receipt. Only live mode retries long enough for the 24-hour
+// follow-up (webhookEscalationEmail), so only live mode promises it; test
+// and unknown modes give the deadline here instead. `window` is
+// { mode, chargedAt }, see retryWindowText.
+function webhookRetryEmail(reason, detail, window) {
+  const live = window?.mode === "live";
   return shell({
     preview: `Paystack webhook will be retried: ${reason}`,
     reason: ADMIN_REASON,
@@ -93,12 +98,22 @@ function webhookRetryEmail(reason, detail) {
       }) +
       notice({
         tone: "danger",
-        text: "Do not mark the invoice paid by hand. The retry records the payment and emails the client; marking it by hand as well sends a second receipt.",
+        text: live
+          ? "Do not mark the invoice paid by hand. The retry records the payment and emails the client; marking it by hand as well sends a second receipt."
+          : "Do not mark the invoice paid by hand while Paystack is still retrying. A retry that succeeds records the payment and emails the client; marking it by hand as well sends a second receipt.",
+      }) +
+      notice({
+        tone: "warn",
+        text: live
+          ? retryWindowText(window)
+          : `${retryWindowText(window)} No follow-up email will come, so before then check the Payments tab or the Paystack dashboard; if the payment is still not recorded, record the payment by hand.`,
       }) +
       notice({ tone: "warn", text: `Reason: ${reason}` }) +
       (detail ? p(`Detail: ${detail}`) : "") +
       small(
-        "This email is sent once per payment. Later attempts are only logged, and one more email follows if the payment is still failing 24 hours from now.",
+        live
+          ? "This email is sent once per payment. Later attempts are only logged, and one more email follows if the payment is still failing 24 hours from now."
+          : "This email is sent once per payment. Later attempts are only logged.",
       ),
   });
 }
@@ -132,8 +147,9 @@ function webhookUntrackedEmail(reason, detail, window) {
 }
 
 // The one follow-up to webhookRetryEmail, when the same payment still fails a
-// day later. Paystack gives up after a while (retryWindowText), so this is
-// the point to look into it and be ready to record the payment by hand.
+// day later. Sent in live mode only (test-mode retries stop after about 10
+// hours), so the deadline it gives is still ahead. This is the point to look
+// into it and be ready to record the payment by hand.
 function webhookEscalationEmail(reason, detail, window) {
   return shell({
     preview: `Paystack payment still unrecorded after 24 hours: ${reason}`,
