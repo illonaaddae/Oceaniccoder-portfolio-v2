@@ -355,10 +355,14 @@ function maintenanceOffer(v) {
   return { subject, html, text };
 }
 
-// The code that opens a quote link. No link in it, so a forwarded or
-// intercepted copy can't open the quote by itself.
+// The code sent when the quote is opened in a browser that isn't signed in
+// and the link's one-time link code is spent or missing. No link in it, so a
+// forwarded or intercepted copy can't open the quote by itself.
 function accessCode(v) {
   const subject = `${v.code} is your code for quote ${v.quoteNumber}`;
+  const opened = "Someone opened your quote in a new browser. Here's your code:";
+  const ignore =
+    "If it wasn't you, ignore this email: nobody can open the quote without this code.";
   const html = shell({
     preview: `Your code is ${v.code}. It works for ${v.minutes} minutes.`,
     meta: { label: "Quote", number: v.quoteNumber },
@@ -367,22 +371,20 @@ function accessCode(v) {
       heading({
         eyebrow: "Your code",
         title: "Open your quote",
-        intro: `Hi ${v.clientFirstName}, use this code to open your quote from OceanicCoder.`,
+        intro: `Hi ${v.clientFirstName}, ${opened.charAt(0).toLowerCase()}${opened.slice(1)}`,
       }) +
       card({
         highlightLabel: "Code",
         highlight: v.code,
         rows: [["Works for", `${v.minutes} minutes`]],
       }) +
-      small(
-        "If you didn't try to open it, ignore this email. Nobody can open the quote without the code.",
-      ),
+      small(ignore),
   });
   const text = lines(
     `Hi ${v.clientFirstName},`,
-    `Use this code to open your quote from OceanicCoder: ${v.code}`,
+    `${opened} ${v.code}`,
     `It works for ${v.minutes} minutes.`,
-    "If you didn't try to open it, ignore this email. Nobody can open the quote without the code.",
+    ignore,
   );
   return { subject, html, text };
 }

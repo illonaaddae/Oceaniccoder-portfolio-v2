@@ -144,9 +144,14 @@ describe("quote email templates", () => {
       expect(mail.subject).toBe("482915 is your code for quote Q-2026-0007");
       expect(mail.html).toContain("Your code is 482915. It works for 10 minutes.");
       expect(mail.html).toContain(">482915</div>");
-      expect(mail.text).toContain("Use this code to open your quote from OceanicCoder: 482915");
+      expect(mail.text).toContain(
+        "Someone opened your quote in a new browser. Here's your code: 482915",
+      );
       expect(mail.text).toContain("It works for 10 minutes.");
-      expect(mail.html).toContain("Hi Kofi,");
+      expect(mail.text).toContain(
+        "If it wasn't you, ignore this email: nobody can open the quote without this code.",
+      );
+      expect(mail.html).toContain("Hi Kofi, someone opened your quote in a new browser.");
     });
 
     it("carries no link to the quote", () => {
