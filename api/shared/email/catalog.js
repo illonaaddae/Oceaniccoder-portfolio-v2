@@ -126,7 +126,7 @@ const CATALOG = [
     id: "accessCode",
     group: "clients",
     name: "Quote code",
-    when: "The client asks for a code to open a quote link",
+    when: "A quote link is opened in a browser that is not signed in",
     render: quote("accessCode"),
   },
   {
