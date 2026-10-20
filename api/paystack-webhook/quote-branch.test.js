@@ -66,6 +66,16 @@ describe("paystack-webhook quote branch", () => {
     expect((await run(signed(quoteEvent))).status).toBe(200);
   });
 
+  it.each([[12345], [{ id: 1 }], [""], [undefined]])(
+    "refuses a quote charge whose reference is not a non-empty string: %j",
+    async (reference) => {
+      spy.mockResolvedValue({ state: "success" });
+      const event = { ...quoteEvent, data: { ...quoteEvent.data, reference } };
+      expect((await run(signed(event))).status).toBe(200);
+      expect(spy).not.toHaveBeenCalled();
+    },
+  );
+
   it("leaves invoice charges on the existing path", async () => {
     const invoiceEvent = {
       event: "charge.success",
