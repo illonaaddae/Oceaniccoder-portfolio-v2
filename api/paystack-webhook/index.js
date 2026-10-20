@@ -522,7 +522,7 @@ module.exports = async function (context, req) {
       }
       if (outcome === "conflict") {
         await bail(
-          "the payments row for this reference belongs to another charge, or its invoice was renumbered or deleted, so nothing was changed",
+          "the payments row for this reference belongs to another charge or was edited by hand, or its invoice was renumbered or deleted, so nothing was changed",
           `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
         );
         return;
