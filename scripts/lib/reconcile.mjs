@@ -36,18 +36,48 @@ export function parseReconcileArgs(argv) {
 
 /**
  * Every successful transaction since `since`. `fetchPage(page)` answers with
- * Paystack's list body ({ data, meta: { page, pageCount } }).
+ * Paystack's list body for that page number, `perPage` rows a page.
+ *
+ * Paystack documents two meta shapes for GET /transaction: offset
+ * ({ total, skipped, perPage, page, pageCount }) and, in one example, a cursor
+ * shape ({ next, previous, perPage }). Paging here is by page number only.
+ * With the cursor shape it carries on while `next` is set or the page was
+ * full; Paystack's cursor parameters (use_cursor, next) are not used because
+ * their behaviour is not verified. A page that repeats the one before means
+ * the page number was ignored, and fails rather than loop.
  */
-export async function listSuccessfulTransactions(fetchPage) {
+const txKey = (tx) => tx.id ?? tx.reference;
+
+export async function listSuccessfulTransactions(fetchPage, perPage) {
   const all = [];
+  const seen = new Set();
   for (let page = 1; page <= MAX_PAGES; page++) {
     const body = await fetchPage(page);
     if (!body || !Array.isArray(body.data)) {
       throw new Error(`Paystack page ${page} has no data list`);
     }
+    if (body.data.length === 0) return all;
+    const fresh = body.data.filter((tx) => !seen.has(txKey(tx)));
+    if (fresh.length === 0) {
+      throw new Error(`Paystack page ${page} returned the same transactions as an earlier page`);
+    }
+    for (const tx of body.data) seen.add(txKey(tx));
     all.push(...body.data);
-    const pageCount = Number(body.meta?.pageCount);
-    if (body.data.length === 0 || !(pageCount > page)) return all;
+
+    const meta = body.meta ?? {};
+    const full = body.data.length >= perPage;
+    const pageCount = Number(meta.pageCount);
+    if (Number.isFinite(pageCount)) {
+      if (!(pageCount > page)) return all;
+    } else if (Object.hasOwn(meta, "next")) {
+      if (!meta.next && !full) return all;
+    } else if (full) {
+      throw new Error(
+        `Paystack page ${page} is full but has neither pageCount nor a cursor; can't tell if more follow`,
+      );
+    } else {
+      return all;
+    }
   }
   throw new Error(`stopped after ${MAX_PAGES} pages of Paystack transactions`);
 }
