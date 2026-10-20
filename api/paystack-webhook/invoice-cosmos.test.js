@@ -596,8 +596,8 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     for (let i = 0; i < 3; i++) expect((await run()).status).toBe(500);
     // The first send fails, so the flag is not set and the next run mails.
     expect(sent.map((m) => [m.subject, m.status])).toEqual([
-      ["Action needed: Paystack webhooks are failing and will be retried", 500],
-      ["Action needed: Paystack webhooks are failing and will be retried", 200],
+      ["Action needed: DATA_BACKEND has an invalid value; payments are not being recorded", 500],
+      ["Action needed: DATA_BACKEND has an invalid value; payments are not being recorded", 200],
     ]);
     const { html } = sent[1];
     expect(html).toContain("DATA_BACKEND is not valid");

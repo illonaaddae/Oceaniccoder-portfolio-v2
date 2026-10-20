@@ -5,8 +5,9 @@
 // (or Cosmos when DATA_BACKEND=cosmos, see invoiceCharge.js), and sends
 // confirmation emails via Resend.
 // Answers 200 for anything a retry would not fix. Answers 500 for a failure a
-// retry can finish (quote payments, the Cosmos invoice branch) and 503 while
-// WRITE_HOLD is on, because Paystack retries any non-2xx.
+// retry can finish (quote payments, the Cosmos invoice branch) or one that
+// fixing a setting will (an invalid DATA_BACKEND or WRITE_HOLD), and 503
+// while WRITE_HOLD is on, because Paystack retries any non-2xx.
 
 const crypto = require("crypto");
 const https = require("https");
@@ -396,7 +397,7 @@ module.exports = async function (context, req) {
    * until it is fixed. Answer 500 so Paystack retries, and mail the admin
    * once per process: one email per refused webhook would flood the inbox.
    */
-  const refuseInvalidSetting = async (setting, err, subject) => {
+  const refuseInvalidSetting = async (setting, err) => {
     context.log.error(`paystack-webhook: ${setting} is not valid — ${err.message}`);
     if (resendKey && adminEmail) {
       await alertOnce({
@@ -407,7 +408,7 @@ module.exports = async function (context, req) {
             resendKey,
             fromEmail,
             adminEmail,
-            subject,
+            `Action needed: ${setting} has an invalid value; payments are not being recorded`,
             invalidSettingEmail(setting, err.message),
             context.log,
           ),
@@ -490,11 +491,7 @@ module.exports = async function (context, req) {
   try {
     held = writeHold();
   } catch (err) {
-    await refuseInvalidSetting(
-      "WRITE_HOLD",
-      err,
-      "Action needed: WRITE_HOLD has an invalid value; payments are not being recorded",
-    );
+    await refuseInvalidSetting("WRITE_HOLD", err);
     return;
   }
   if (held) {
@@ -532,11 +529,7 @@ module.exports = async function (context, req) {
   try {
     backend = dataBackend();
   } catch (err) {
-    await refuseInvalidSetting(
-      "DATA_BACKEND",
-      err,
-      "Action needed: Paystack webhooks are failing and will be retried",
-    );
+    await refuseInvalidSetting("DATA_BACKEND", err);
     return;
   }
 
