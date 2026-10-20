@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
 import { Pagination } from "@/components/common/Pagination";
 import { manageList, usesCosmos } from "@/services/api/dataApi";
@@ -114,6 +114,9 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   const [collectionErrors, setCollectionErrors] = useState<string[]>([]);
   // True only while `files` comes from a scan whose reads all returned.
   const [scanFinished, setScanFinished] = useState(false);
+  // Replacing a logo starts a scan while another may still run. Only the
+  // latest may commit, or an older one could list the new logo as an orphan.
+  const latestScan = useRef(0);
   const [platforms, setPlatforms] = useState<PlatformEntry[]>(() => platformsWith({}));
   const [replacingLogo, setReplacingLogo] = useState<string | null>(null);
   const [savingLogo, setSavingLogo] = useState<string | null>(null);
@@ -210,11 +213,13 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   // read has returned. A failed scan leaves no files listed, so a list from
   // an earlier scan can never sit next to a clean error state.
   const loadFiles = useCallback(async () => {
+    const scanId = ++latestScan.current;
     setLoading(true);
     setError(null);
     setScanFinished(false);
     try {
       const [mediaFiles, scan] = await Promise.all([listMediaFiles(), collectAllUrls()]);
+      if (scanId !== latestScan.current) return;
       const { urls: referencedUrls, logoUrls: platformLogoUrls } = scan;
 
       // Precompute collection ids once — O(N+M) vs O(N*M) per-file scan.
@@ -263,11 +268,12 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       setOrphanPage(0);
       setInUsePage(0);
     } catch (err) {
+      if (scanId !== latestScan.current) return;
       setFiles([]);
       setCollectionErrors([]);
       setError(err instanceof Error ? err.message : "Failed to load storage files");
     } finally {
-      setLoading(false);
+      if (scanId === latestScan.current) setLoading(false);
     }
   }, [collectAllUrls]);
 
