@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { IMAGES } from "./imageUrls";
 import { getFileIdFromUrl } from "./imageOptimizer";
 
-// Storage Cleanup counts IMAGES as in use. A media file named anywhere else
-// in the code would look orphaned there and could be deleted from under the
-// live site, so every media URL in src/ has to come from IMAGES.
+// Every media file id in src/ code must be in IMAGES. Storage Cleanup counts
+// IMAGES as in use, so a file named only elsewhere in the code would look
+// orphaned there and could be deleted from under the live site.
 const sources = import.meta.glob<string>(
   ["/src/**/*.{ts,tsx,js,jsx}", "!/src/**/*.test.*", "!/src/**/__tests__/**"],
   { query: "?raw", import: "default", eager: true },
