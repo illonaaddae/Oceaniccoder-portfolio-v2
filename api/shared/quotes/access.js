@@ -8,10 +8,12 @@
 // are rows in the existing `locks` table, so this works on Appwrite and on
 // Cosmos without a schema change.
 //
-// Session binding: a cookie holds the quote id, revision and access epoch.
-// Revise bumps the revision. Rotate ("New link") takes the next epoch slot
-// (bumpEpoch). A payment request or "Email again" also issues a fresh link but
-// leaves both alone, so the client stays unlocked.
+// Session binding: a cookie holds the quote id, revision, access epoch and a
+// keyed tag of the client email. Revise bumps the revision. Rotate ("New
+// link") takes the next epoch slot (bumpEpoch). Changing the client email
+// changes the tag, so an unlock earned through the old address ends. A payment
+// request, or "Email again" to the same address, issues a fresh link but
+// changes none of these, so the client stays unlocked.
 
 const crypto = require("crypto");
 const { HttpError } = require("../http");
@@ -88,9 +90,11 @@ function normalEmail(email) {
   return typeof email === "string" ? email.trim().toLowerCase() : "";
 }
 
-// Ties a challenge to the address its code went to, without putting the
-// address in the token.
-const mailTag = (email) => sha256Hex(`qa-mail:${normalEmail(email)}`).slice(0, 16);
+// Ties a challenge or a session to the client email without putting the
+// address in the token. Keyed, so whoever holds a token can't confirm a
+// guessed address offline.
+const mailTag = (secret, email) =>
+  hmac(secret, "qa-mail:", normalEmail(email)).toString("base64url").slice(0, 22);
 
 /** "p•••••@hotmail.com": first character, five dots, the domain. Null if it isn't an address. */
 function maskEmail(email) {
@@ -138,7 +142,7 @@ function issueChallenge(secret, quote, epoch, nowMs) {
     q: quote.id,
     r: quote.revision,
     e: epoch,
-    m: mailTag(quote.clientEmail),
+    m: mailTag(secret, quote.clientEmail),
     x: nowMs + CODE_TTL_MS,
   };
   return {
@@ -159,7 +163,7 @@ async function checkChallenge({ secret, locks, quote, challenge, nowMs }) {
   if (!p || typeof p.c !== "string" || !isCount(p.e) || typeof p.x !== "number")
     return { ok: false, reason: "invalid" };
   if (p.x <= nowMs) return { ok: false, reason: "expired" };
-  if (p.q !== quote.id || p.r !== quote.revision || p.m !== mailTag(quote.clientEmail))
+  if (p.q !== quote.id || p.r !== quote.revision || p.m !== mailTag(secret, quote.clientEmail))
     return { ok: false, reason: "stale" };
   if (!(await isEpochCurrent(locks, quote, p.e))) return { ok: false, reason: "stale" };
   return { ok: true, challengeId: p.c };
@@ -237,6 +241,7 @@ function sessionCookie(secret, quote, epoch, nowMs) {
     q: quote.id,
     r: quote.revision,
     e: epoch,
+    m: mailTag(secret, quote.clientEmail),
     x: nowMs + SESSION_TTL_MS,
   });
   const maxAge = SESSION_TTL_MS / 1000;
@@ -252,11 +257,12 @@ function readCookie(req, name) {
   return null;
 }
 
-/** Whether the request carries a live unlock for this quote's current revision and epoch. */
+/** Whether the request carries a live unlock for this quote's revision, epoch and client email. */
 async function hasAccess({ secret, locks, req, quote, nowMs }) {
   const p = unsign(secret, "qa-sess:", readCookie(req, sessionCookieName(quote.id)));
   if (!p || !isCount(p.e) || typeof p.x !== "number" || p.x <= nowMs) return false;
   if (p.q !== quote.id || p.r !== quote.revision) return false;
+  if (p.m !== mailTag(secret, quote.clientEmail)) return false;
   return isEpochCurrent(locks, quote, p.e);
 }
 
