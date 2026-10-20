@@ -25,7 +25,7 @@ const { verifyTurnstile, clientIp } = require("../shared/turnstile");
 const { storeVisitorImage } = require("../shared/media");
 const { sendEmail } = require("../shared/email/send");
 const { createRateLimiter } = require("../shared/rateLimit");
-const { messageAlertEmail } = require("./messageAlert");
+const { messageAlertEmail, isSafeReplyTo } = require("./messageAlert");
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -84,7 +84,8 @@ async function alertAdmin(context, row, sendEmail) {
   try {
     const result = await sendEmail({
       to: process.env.RESEND_TO_EMAIL,
-      replyTo: row.email,
+      // Left out when unsafe, so sendEmail falls back to its own address.
+      ...(isSafeReplyTo(row.email) ? { replyTo: row.email } : {}),
       ...messageAlertEmail(row),
     });
     if (!result.ok) error = result.error;

@@ -169,6 +169,30 @@ describe("admin alert for a new contact message", () => {
     expect(sendEmail.mock.calls[0][0].subject).toBe("New Contact: Two lines");
   });
 
+  it.each(["ama,boss@example.com", "ama;x@example.com", "<ama>@example.com", 'a"b@example.com'])(
+    "leaves out reply-to and says so when the address is %s",
+    async (email) => {
+      const { call, sendEmail } = setup();
+
+      const { status } = await call("messages", { ...MESSAGE, email, turnstileToken: "t" });
+
+      expect(status).toBe(201);
+      const mail = sendEmail.mock.calls[0][0];
+      expect(mail).not.toHaveProperty("replyTo");
+      expect(mail.html).toContain("looked malformed");
+      expect(mail.html).not.toContain("Reply to this email");
+      expect(mail.text).toContain("looked malformed");
+    },
+  );
+
+  it("does not mention a malformed address when it is fine", async () => {
+    const { call, sendEmail } = setup();
+
+    await call("messages", { ...MESSAGE, turnstileToken: "t" });
+
+    expect(sendEmail.mock.calls[0][0].html).not.toContain("malformed");
+  });
+
   it("sends nothing when validation fails", async () => {
     const { call, sendEmail } = setup();
 
