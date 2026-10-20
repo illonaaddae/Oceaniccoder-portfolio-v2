@@ -28,6 +28,9 @@ const SESSION_TTL_MS = 30 * DAY_MS;
 // quote's usual validity plus the wait for a payment request, short enough
 // that an old email found later is no longer a key. Each new email mints one.
 const LINK_CODE_TTL_MS = 45 * DAY_MS;
+// Instances' clocks can differ a little; a code minted "in the future" by up
+// to this much still works.
+const CLOCK_SKEW_MS = 5 * MINUTE_MS;
 const MAX_TRIES = 5;
 const SENDS_PER_HOUR = 5;
 const SENDS_PER_DAY = 10;
@@ -310,8 +313,9 @@ function sendsBlocked(locks, quote, epoch) {
 
 // Link codes: the one-time "#k=" part of a link the admin emails, which
 // signs the browser in without a typed code. "<nonce>.<minted, base36 ms>.<hmac>",
-// where the HMAC covers the quote id, revision, access epoch and email tag,
-// so Revise, New link or a changed client email void every code minted
+// where the HMAC covers the link (tokenHash), quote id, revision, access
+// epoch and email tag. A code works only with the link it was emailed with,
+// and Revise, New link or a changed client email void every code minted
 // before. Nothing is stored until it is claimed (qa:lk:<nonce>).
 const LINK_CODE_RE = /^([\w-]{22})\.([0-9a-z]{1,12})\.([\w-]{43})$/;
 
@@ -319,11 +323,15 @@ function linkSig(secret, quote, epoch, nonce, minted) {
   return hmac(
     secret,
     "qa-link:",
-    `${quote.id}:${quote.revision}:${epoch}:${mailTag(secret, quote)}:${nonce}:${minted}`,
+    `${quote.tokenHash}:${quote.id}:${quote.revision}:${epoch}:${mailTag(secret, quote)}:${nonce}:${minted}`,
   ).toString("base64url");
 }
 
-/** A fresh single-use link code for this quote's current revision and epoch. */
+/**
+ * A fresh single-use link code for this quote's current link, revision and
+ * epoch. Mint after the link is written (quote.tokenHash is the new one) and,
+ * after a rotate, with the epoch bumpEpoch returned.
+ */
 function mintLinkCode(secret, quote, epoch, nowMs) {
   const nonce = crypto.randomBytes(16).toString("base64url");
   const minted = nowMs.toString(36);
@@ -344,7 +352,7 @@ async function checkLinkCode({ secret, locks, quote, linkCode, nowMs }) {
   const expected = Buffer.from(linkSig(secret, quote, epoch, nonce, minted));
   if (!equalBytes(Buffer.from(sig), expected)) return { ok: false, reason: "invalid" };
   const mintedMs = parseInt(minted, 36);
-  if (!(mintedMs <= nowMs && nowMs < mintedMs + LINK_CODE_TTL_MS))
+  if (!(mintedMs - CLOCK_SKEW_MS <= nowMs && nowMs < mintedMs + LINK_CODE_TTL_MS))
     return { ok: false, reason: "expired" };
   return { ok: true, nonce, epoch };
 }
