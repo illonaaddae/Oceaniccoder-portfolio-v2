@@ -255,6 +255,20 @@ describe("StorageCleanupTab", () => {
     });
   });
 
+  it("lists no files from the earlier scan after a refresh fails", async () => {
+    serveCosmos({ projects: [PROJECT] });
+    await renderTab();
+    expect(screen.getByText("live-file.png")).toBeInTheDocument();
+
+    listMediaFiles.mockRejectedValue(new Error("Media list failed"));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await screen.findByText(/Media list failed/);
+
+    expect(screen.queryByText("live-file.png")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "In-Use Files (0)" })).toBeInTheDocument();
+    expect(screen.getByText("No scan results.")).toBeInTheDocument();
+  });
+
   it("shows no deletable files when a refresh can't list the media after a failed scan", async () => {
     // Scan 1: projects fails, so live-file is listed as an orphan with delete off.
     serveCosmos({ projects: new Error("Forbidden") });
@@ -298,7 +312,9 @@ describe("StorageCleanupTab", () => {
       await renderTab();
 
       for (const button of screen.getAllByRole("button", { name: DELETE_FILE })) {
-        expect(button).toHaveAccessibleDescription(/deleting is off/i);
+        expect(button).toHaveAccessibleDescription(
+          "Deleting is off because some collections could not be scanned.",
+        );
       }
       const orphans = screen.getByRole("heading", { name: /orphaned files/i }).parentElement;
       expect(within(orphans as HTMLElement).getByText(/deleting is off/i)).toBeInTheDocument();
@@ -328,12 +344,18 @@ describe("StorageCleanupTab", () => {
       expect(screen.getByRole("status")).toHaveTextContent("Scan finished: 1 orphaned file");
     });
 
-    it("leaves a partial scan to the warning, not the status region", async () => {
+    it("announces each partial scan in the status region", async () => {
       serveCosmos({ projects: new Error("Forbidden") });
       await renderTab();
 
-      expect(scanAlert()).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent("");
+      const status = screen.getByRole("status");
+      expect(status).toHaveTextContent("Scan finished. 1 collection could not be read.");
+
+      serveCosmos({ projects: new Error("Forbidden"), gallery: new Error("Forbidden") });
+      await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+      await waitFor(() =>
+        expect(status).toHaveTextContent("Scan finished. 2 collections could not be read."),
+      );
     });
 
     it("keeps keyboard focus on Refresh while it scans and ignores repeat presses", async () => {
@@ -364,6 +386,7 @@ describe("StorageCleanupTab", () => {
       listMediaFiles.mockImplementationOnce(() => new Promise(() => {}));
       render(<StorageCleanupTab theme="dark" />);
 
+      expect(screen.getByText("Scanning storage…")).toBeInTheDocument();
       expect(screen.queryByText(/0 files/)).not.toBeInTheDocument();
     });
   });

@@ -278,13 +278,15 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       // On a failed read, keep showing the logos already on screen.
       if (scan.overrides) setPlatforms(platformsWith(scan.overrides));
       setScanFinished(true);
-      // A partial scan is reported by the warning alert instead.
-      if (scan.errors.length === 0) {
-        const orphanCount = mapped.filter((f) => f.isOrphan).length;
-        setScanSummary(
-          `Scan finished: ${orphanCount} orphaned ${orphanCount === 1 ? "file" : "files"}`,
-        );
-      }
+      // The warning alert only speaks when it first appears, so a repeat
+      // partial scan is announced here too.
+      const unread = scan.errors.length;
+      const orphanCount = mapped.filter((f) => f.isOrphan).length;
+      setScanSummary(
+        unread > 0
+          ? `Scan finished. ${unread} ${unread === 1 ? "collection" : "collections"} could not be read.`
+          : `Scan finished: ${orphanCount} orphaned ${orphanCount === 1 ? "file" : "files"}`,
+      );
       setOrphanPage(0);
       setInUsePage(0);
     } catch (err) {
@@ -395,7 +397,6 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           aria-label={`Delete ${f.name}`}
           aria-describedby={deleteBlocked ? deleteOffReasonId : undefined}
           className={`flex-shrink-0 p-2 rounded-lg ${errorText} hover:bg-error-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-          title={deleteBlocked ? "Deleting is off until every collection is scanned" : undefined}
         >
           {deleting === f.$id ? (
             <FaSync aria-hidden="true" className="animate-spin w-4 h-4" />
