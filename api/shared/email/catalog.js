@@ -393,7 +393,7 @@ const CATALOG = [
     render: () =>
       htmlOnly(
         `Action needed: Paystack will retry a payment for invoice ${invoiceSample.invoiceNumber}`,
-        webhook.webhookRetryEmail(WEBHOOK_REASON, WEBHOOK_DETAIL),
+        webhook.webhookRetryEmail(WEBHOOK_REASON, WEBHOOK_DETAIL, WEBHOOK_WINDOW),
       ),
   },
   {

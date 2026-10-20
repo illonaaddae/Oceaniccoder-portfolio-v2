@@ -252,10 +252,10 @@ async function sendPaymentEmails(
 /**
  * Tells the admin about a retryable failure on the Cosmos invoice branch:
  * one email per reference, claimed through the alert lock, and one
- * escalation if the same payment still fails a day after that. When Cosmos
- * cannot record the claim, the alert is claimed in this process instead, so
- * it still goes (once per process), but nothing can send the follow-up: that
- * email says so and gives Paystack's deadline. Resolves which email went:
+ * escalation (live mode only) if the same payment still fails a day after
+ * that. When Cosmos cannot record the claim, the alert is claimed in this
+ * process instead, so it still goes (once per process), but nothing can
+ * send the follow-up: that email says so and gives Paystack's deadline. Resolves which email went:
  * "retry", "untracked", "recorded", "escalation" or null.
  */
 async function alertRetryableFailure({
@@ -306,14 +306,16 @@ async function alertRetryableFailure({
       }
       return mail(
         `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
-        webhookRetryEmail(reason, detail),
+        webhookRetryEmail(reason, detail, retryWindow),
       );
     },
     log,
   });
   if (sent) return recorded ? "recorded" : tracked ? "retry" : "untracked";
 
-  if (!alertedBefore) return null;
+  // Only live mode retries long enough to escalate; the retry email in the
+  // other modes gave the deadline and promised no follow-up.
+  if (!alertedBefore || retryWindow?.mode !== "live") return null;
   // A recorded payment is not lost when the retries run out, so it is not
   // escalated, now or by a later delivery that cannot see the payments row.
   if (recorded) {

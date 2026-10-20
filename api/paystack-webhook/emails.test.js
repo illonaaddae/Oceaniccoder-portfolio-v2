@@ -112,6 +112,33 @@ describe("paystack-webhook invoice emails", () => {
       );
     });
 
+    describe("in the retry email", () => {
+      const retryEmail = (window) => emails.webhookRetryEmail("r", "d", window);
+
+      it("promises the 24-hour follow-up and gives the window in live mode", () => {
+        const html = retryEmail({ mode: "live", chargedAt: CHARGED });
+        expect(html).toContain("one more email follows if the payment is still failing 24 hours");
+        expect(html).toContain("so until about 2026-10-23 09:15 UTC");
+        expect(html).toContain("Do not mark the invoice paid by hand");
+      });
+
+      it("promises no follow-up and gives the 10-hour deadline in test mode", () => {
+        const html = retryEmail({ mode: "test", chargedAt: CHARGED });
+        expect(html).not.toContain("one more email follows");
+        expect(html).toContain("so until about 2026-10-20 19:15 UTC");
+        expect(html).toContain("No follow-up email will come");
+        expect(html).toContain("record the payment by hand");
+      });
+
+      it("promises no follow-up and points to the dashboard when the mode is unknown", () => {
+        const html = retryEmail({ mode: undefined, chargedAt: CHARGED });
+        expect(html).not.toContain("one more email follows");
+        expect(html).not.toContain("until about");
+        expect(html).toContain("No follow-up email will come");
+        expect(html).toContain("Paystack dashboard");
+      });
+    });
+
     it("uses the same window in the escalation", () => {
       const html = emails.webhookEscalationEmail("r", "d", { mode: "live", chargedAt: CHARGED });
       expect(html).toContain("so until about 2026-10-23 09:15 UTC");

@@ -18,6 +18,7 @@ const { lockId, paymentIdFor } = require("../shared/tokens.js");
 const handler = require("./index.js");
 
 const SECRET = "sk_test_webhook";
+const LIVE_SECRET = "sk_live_webhook";
 const REFERENCE = "PAY-INV-2026-0042-1760000000";
 
 function signed(event, secret = SECRET) {
@@ -114,6 +115,12 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
   };
   const subjects = () => sent.map((m) => [m.to[0], m.subject]);
   const payment = () => db.container("payments").docs.get(paymentIdFor(REFERENCE));
+  // The escalation only exists in live mode: test-mode retries stop after
+  // about 10 hours, before it would be due.
+  const liveCharge = () => {
+    process.env.PAYSTACK_SECRET_KEY = LIVE_SECRET;
+    return signed(chargeOf({ domain: "live" }), LIVE_SECRET);
+  };
 
   it("marks the invoice paid, records the payment and mails client and admin", async () => {
     expect((await run()).status).toBe(200);
@@ -174,7 +181,9 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     const { html } = sent[0];
     expect(html).toContain("Paystack will retry it");
     expect(html).toContain("the payment will be recorded automatically");
-    expect(html).toContain("Do not mark the invoice paid by hand.");
+    expect(html).toContain(
+      "Do not mark the invoice paid by hand while Paystack is still retrying.",
+    );
     expect(html).not.toContain("mark the invoice paid by hand if the money did arrive");
     expect(html).toContain("Cosmos rejected the update (status 503)");
 
@@ -200,9 +209,9 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     db.container("invoices").hooks.beforeRead = async () => {
       throw unavailable();
     };
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     backdateAlert(25);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(subjects()).toEqual([
       [
         "admin@example.com",
@@ -325,34 +334,46 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
 
   it("escalates once when the same payment still fails 24 hours after the first alert", async () => {
     failNext(db.container("invoices"), "beforeReplace", 4);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(alertLock().firstFailedAt).toEqual(expect.any(String));
     backdateAlert(23);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
 
     backdateAlert(24);
-    expect((await run()).status).toBe(500);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(subjects()).toEqual([
       ["admin@example.com", RETRY_SUBJECT],
       ["admin@example.com", ESCALATION_SUBJECT],
     ]);
     const { html } = sent[1];
     expect(html).toContain("still failing 24 hours after");
-    expect(html).toContain("In test mode Paystack retries hourly for about 10 hours");
+    expect(html).toContain("In live mode Paystack keeps retrying for about 72 hours");
     expect(html).toContain("record the payment by hand");
     expect(alertLock().escalatedAt).toEqual(expect.any(String));
+    expect(sent[0].html).toContain("one more email follows");
+  });
+
+  it("does not escalate a test-mode charge or promise a follow-up for it", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 2);
+    expect((await run()).status).toBe(500);
+    backdateAlert(25);
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([["admin@example.com", RETRY_SUBJECT]]);
+    expect(alertLock().escalatedAt).toBeUndefined();
+    expect(sent[0].html).not.toContain("one more email follows");
+    expect(sent[0].html).toContain("In test mode Paystack retries hourly for about 10 hours");
   });
 
   it("escalates on the next retry when the escalation could not be sent", async () => {
     failNext(db.container("invoices"), "beforeReplace", 3);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     backdateAlert(25);
     sent.answers.push(500);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(alertLock().escalatedAt).toBeNull();
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(sent.map((m) => [m.subject, m.status])).toEqual([
       [RETRY_SUBJECT, 200],
       [ESCALATION_SUBJECT, 500],
@@ -364,9 +385,9 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     db.container("payments").hooks.beforeReplace = async (id, body) => {
       if (body.notifiedAt || body.notifyClaimedAt) throw unavailable();
     };
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     backdateAlert(25);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(sent.map((m) => m.subject)).not.toContain(ESCALATION_SUBJECT);
   });
 
@@ -399,26 +420,26 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     db.container("payments").hooks.beforeReplace = async (id, body) => {
       if (body.notifiedAt) throw unavailable();
     };
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(alertLock().recorded).toBe(true);
     failPaymentReads();
     backdateAlert(25);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(sent.map((m) => m.subject)).not.toContain(ESCALATION);
     expect(sent.map((m) => m.subject)).toContain(RECORDED_SUBJECT);
   });
 
   it("notes on the alert lock when a later failure finds the payment recorded", async () => {
     failNext(db.container("invoices"), "beforeReplace", 1);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     db.container("payments").hooks.beforeReplace = async (id, body) => {
       if (body.notifiedAt) throw unavailable();
     };
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(alertLock().recorded).toBe(true);
     failPaymentReads();
     backdateAlert(25);
-    expect((await run()).status).toBe(500);
+    expect((await run(liveCharge())).status).toBe(500);
     expect(sent.map((m) => m.subject)).not.toContain(ESCALATION);
   });
 
