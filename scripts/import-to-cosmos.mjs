@@ -44,7 +44,8 @@
 // --allow-overwrite-after-cutover
 //                           after the marker, run without --insert-only anyway
 // --allow-quote-state-after-cutover
-//                           after the marker, import into quotes and locks
+//                           after the marker, import into quotes and locks,
+//                           or run --backfill-quote-locks
 // --backfill-quote-locks    create the missing quoteNumber lock rows
 
 import { existsSync } from "node:fs";

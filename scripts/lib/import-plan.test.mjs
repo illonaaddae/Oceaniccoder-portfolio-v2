@@ -157,6 +157,18 @@ describe("cutover marker", () => {
     expect(refusalAfterCutover(flags(["--insert-only"]), null, ["quotes", "locks"])).toBeNull();
   });
 
+  it("treats --backfill-quote-locks as a write to locks after the marker", () => {
+    const marker = cutoverMarker(NEW);
+    const backfill = ["--insert-only", "--backfill-quote-locks"];
+    expect(refusalAfterCutover(flags(backfill), marker, some)).toMatch(
+      /locks.*--allow-quote-state-after-cutover/,
+    );
+    const allowed = flags([...backfill, "--allow-quote-state-after-cutover"]);
+    expect(refusalAfterCutover(allowed, marker, some)).toBeNull();
+    expect(refusalAfterCutover(flags([...backfill, "--dry-run"]), marker, some)).toBeNull();
+    expect(refusalAfterCutover(flags(backfill), null, some)).toBeNull();
+  });
+
   it("takes the override only where it means something", () => {
     expect(() => flags(["--allow-overwrite-after-cutover", "--pre-cutover"])).toThrow(
       "can't be combined",
