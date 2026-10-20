@@ -45,7 +45,9 @@ describe("paystack-webhook signature checks", () => {
       });
       expect(res.status).toBe(200);
       expect(log.error).toHaveBeenCalledWith(
-        expect.stringContaining("signature verification failed"),
+        expect.stringContaining(
+          "signature verification failed — the x-paystack-signature header is not a SHA-512 hex digest",
+        ),
       );
     },
   );
