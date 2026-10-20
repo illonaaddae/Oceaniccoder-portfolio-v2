@@ -255,7 +255,10 @@ describe("StorageCleanupTab", () => {
     serveCosmos({ projects: [PROJECT] });
     listMediaFiles.mockRejectedValue(new Error("Media list failed"));
     await userEvent.click(screen.getByRole("button", { name: /refresh/i }));
+    // Announced once, by the error banner; the scan warning has been cleared.
     await screen.findByText(/Media list failed/);
+    expect(screen.getByRole("alert")).toHaveTextContent("Media list failed");
+    expect(screen.getByText(/scan did not finish/i)).not.toHaveAttribute("aria-live");
 
     expect(screen.queryByText("live-file.png")).not.toBeInTheDocument();
     expect(enabledDeleteButtons()).toHaveLength(0);
