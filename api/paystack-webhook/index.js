@@ -205,7 +205,7 @@ function webhookEscalationEmail(reason, detail) {
 }
 
 // For a failure after the payment row and the invoice change were written,
-// while sending the confirmation emails or saving that they went. Nothing is
+// while finishing the confirmation emails. Nothing is
 // waiting to be recorded, so it must not say so.
 function recordedRetryEmail(reason, detail) {
   return shell({
@@ -217,7 +217,7 @@ function recordedRetryEmail(reason, detail) {
         tone: "warn",
         title: "A payment is recorded but its emails are unfinished",
         intro:
-          "The payment is recorded and the invoice updated. What failed came after: sending the confirmation emails, or saving that they were sent.",
+          "The payment is recorded and the invoice updated. What failed came after, while finishing the confirmation emails: reading the invoice back, sending them, or saving that they were sent.",
       }) +
       notice({
         tone: "warn",

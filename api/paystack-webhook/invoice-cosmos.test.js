@@ -188,6 +188,30 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(subjects()).toHaveLength(2);
   });
 
+  it("sends no escalation for a recorded payment whose invoice can no longer be read", async () => {
+    db.container("payments").seed({
+      id: paymentIdFor(REFERENCE),
+      invoiceNumber: "INV-2026-0042",
+      paystackReference: REFERENCE,
+      amount: 500,
+      currency: "GHS",
+      invoiceApplied: true,
+      invoiceId: "inv1",
+    });
+    db.container("invoices").hooks.beforeRead = async () => {
+      throw unavailable();
+    };
+    expect((await run()).status).toBe(500);
+    backdateAlert(25);
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([
+      [
+        "admin@example.com",
+        "Paystack will retry the confirmation emails for a recorded payment on invoice INV-2026-0042",
+      ],
+    ]);
+  });
+
   it("does not move a resumed payment to another invoice that took the old number", async () => {
     failNext(db.container("invoices"), "beforeReplace", 1);
     expect((await run()).status).toBe(500);
