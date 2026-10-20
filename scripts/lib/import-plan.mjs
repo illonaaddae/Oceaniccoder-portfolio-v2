@@ -229,6 +229,16 @@ export function refusalAfterCutover(flags, marker, containers) {
   return null;
 }
 
+/** Throws if a backup `locks` row would take the marker's id. */
+export function refuseMarkerInBackup(id, docs) {
+  if (id !== CUTOVER_MARKER_CONTAINER) return;
+  if (docs.some((doc) => doc.id === CUTOVER_MARKER_ID)) {
+    throw new Error(
+      `the backup's ${id} table has a row with id "${CUTOVER_MARKER_ID}", the cutover marker's id. Remove it from Appwrite and back up again.`,
+    );
+  }
+}
+
 /** The row --mark-cutover writes. */
 export function cutoverMarker(now) {
   return {
@@ -298,11 +308,14 @@ export function planContainer(id, docs, existing, flags) {
  * The query for the other rows that hold `doc`'s unique key (unique keys
  * apply per partition, so the partition field is part of it), or null when
  * the container has none. A 409 on such a container names the clash with it.
+ * A doc missing one of those fields gets { missingFields } instead.
  */
 export function uniqueKeyQuery(id, doc) {
   const { partitionKey, uniqueKeys } = CONTAINERS[id];
   if (!uniqueKeys) return null;
   const fields = [...new Set([partitionKey, ...uniqueKeys.flat()].map((p) => p.slice(1)))];
+  const missingFields = fields.filter((field) => doc[field] === undefined || doc[field] === null);
+  if (missingFields.length > 0) return { missingFields };
   const clauses = ["c.id != @id"];
   const parameters = [{ name: "@id", value: doc.id }];
   fields.forEach((field, i) => {
@@ -318,6 +331,22 @@ export function afterPlan(rows, plan) {
   const byId = new Map(rows.filter((row) => !pruned.has(row.id)).map((row) => [row.id, row]));
   for (const doc of [...plan.create, ...plan.overwrite]) byId.set(doc.id, doc);
   return [...byId.values()];
+}
+
+/** The lock rows --backfill-quote-locks writes for the quotes the checks list. */
+export function backfillLockRows(quotesWithoutLock, now) {
+  return quotesWithoutLock
+    .filter((q) => q.quoteNumber)
+    .map(({ quoteNumber }) => quoteNumberLock(quoteNumber, now));
+}
+
+/** What to do about invoices, quotes or payments that differ from the backup. */
+export function driftAdvice(flags) {
+  if (!flags.preCutover) return "Re-run with --pre-cutover.";
+  return (
+    "--pre-cutover already ran, so these rows are newer in Cosmos or were not written. " +
+    "Check them; --force-overwrite replaces newer rows, or remove the stray rows by hand."
+  );
 }
 
 /** The lock row that reserves a quote number, as createCosmosLocks writes it. */

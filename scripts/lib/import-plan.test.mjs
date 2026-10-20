@@ -16,6 +16,9 @@ import {
   planContainer,
   quoteNumberLock,
   refusalAfterCutover,
+  backfillLockRows,
+  driftAdvice,
+  refuseMarkerInBackup,
   rowsCreatedAfter,
   uniqueKeyQuery,
 } from "./import-plan.mjs";
@@ -337,6 +340,54 @@ describe("parseBackupRows", () => {
   });
 });
 
+describe("refuseMarkerInBackup", () => {
+  it("refuses a backup locks row that would take the marker's id", () => {
+    expect(() => refuseMarkerInBackup("locks", [{ id: "s_1" }, { id: CUTOVER_MARKER_ID }])).toThrow(
+      "cutover",
+    );
+    expect(() => refuseMarkerInBackup("locks", [{ id: "s_1" }])).not.toThrow();
+    expect(() => refuseMarkerInBackup("projects", [{ id: CUTOVER_MARKER_ID }])).not.toThrow();
+  });
+});
+
+describe("driftAdvice", () => {
+  it("suggests --pre-cutover when it was not given", () => {
+    expect(driftAdvice(flags())).toMatch("Re-run with --pre-cutover");
+  });
+
+  it("suggests --force-overwrite or a cleanup when --pre-cutover was given", () => {
+    const advice = driftAdvice(flags(["--pre-cutover"]));
+    expect(advice).not.toMatch("Re-run with --pre-cutover");
+    expect(advice).toMatch("--force-overwrite");
+  });
+});
+
+describe("backfillLockRows", () => {
+  it("makes a lock for every numbered quote, so the check after it shows none left", () => {
+    const quotes = [
+      { id: "q1", quoteNumber: "Q-2026-0001" },
+      { id: "q2", quoteNumber: null },
+    ];
+    const before = dataChecks({
+      invoices: [],
+      payments: [],
+      quotes,
+      locks: [],
+      backupPayments: null,
+    });
+    const added = backfillLockRows(before.quotesWithoutLock, NEW);
+    expect(added).toEqual([quoteNumberLock("Q-2026-0001", NEW)]);
+    const after = dataChecks({
+      invoices: [],
+      payments: [],
+      quotes,
+      locks: added,
+      backupPayments: null,
+    });
+    expect(after.quotesWithoutLock).toEqual([{ id: "q2", quoteNumber: null }]);
+  });
+});
+
 describe("--created-after", () => {
   it("needs a time with Z or an offset", () => {
     expect(flags(["--created-after", "2026-10-28T18:00:00Z"]).createdAfter).toBe(
@@ -380,6 +431,15 @@ describe("uniqueKeyQuery", () => {
     expect(uniqueKeyQuery("project_videos", { id: "v1", projectId: "p1" }).query).toBe(
       'SELECT c.id FROM c WHERE c.id != @id AND c["projectId"] = @k0',
     );
+  });
+
+  it("names the missing fields instead of querying with undefined", () => {
+    expect(uniqueKeyQuery("blog_views", { id: "v1", postId: "p1" })).toEqual({
+      missingFields: ["visitorId"],
+    });
+    expect(uniqueKeyQuery("project_videos", { id: "v1", projectId: null })).toEqual({
+      missingFields: ["projectId"],
+    });
   });
 
   it("is null for containers without unique keys", () => {
