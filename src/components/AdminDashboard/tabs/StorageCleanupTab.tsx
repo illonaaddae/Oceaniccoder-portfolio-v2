@@ -153,7 +153,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     errors: string[];
     overrides: Record<string, string> | null;
   }> => {
-    const urls = new Set<string>();
+    // Images the site's own code shows (defaults, fallbacks, bundled data).
+    const urls = new Set<string>(Object.values(IMAGES));
     const errors: string[] = [];
 
     const readSetting = async <T,>(label: string, read: () => Promise<T>): Promise<T | null> => {
