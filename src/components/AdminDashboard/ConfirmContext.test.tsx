@@ -204,4 +204,24 @@ describe("ConfirmProvider dialog", () => {
     // Focus goes back to what opened the first dialog, not to the first dialog's Cancel.
     expect(trigger).toHaveFocus();
   });
+
+  it("returns focus to the first trigger when a caller chains a second confirm after the first settles", async () => {
+    const { open, confirm, trigger } = setup();
+    open();
+    const firstDelete = screen.getByRole("button", { name: "Delete" });
+    firstDelete.focus();
+
+    // A caller that awaits the first answer and asks again runs before React
+    // unmounts the first dialog, so focus is still on the first dialog's button.
+    let second: Promise<boolean | string> | undefined;
+    act(() => {
+      fireEvent.click(firstDelete);
+      second = confirm("Archive invoice?");
+    });
+    expect(screen.getByRole("alertdialog", { name: "Archive invoice?" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await expect(second).resolves.toBe(false);
+    expect(trigger).toHaveFocus();
+  });
 });

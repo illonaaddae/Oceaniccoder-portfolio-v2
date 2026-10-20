@@ -78,8 +78,13 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       // nobody has seen yet. Focus still returns to the first trigger.
       resolveRef.current(false);
     } else {
+      // A caller that chains a second confirm after the first settles runs
+      // before the first dialog unmounts, so focus can still be inside it.
+      // Keep the original trigger then; the dialog's own button is about to go.
       const active = document.activeElement;
-      returnFocusRef.current = active instanceof HTMLElement ? active : null;
+      if (!overlayRef.current?.contains(active)) {
+        returnFocusRef.current = active instanceof HTMLElement ? active : null;
+      }
     }
     return new Promise<boolean | string>((resolve) => {
       resolveRef.current = resolve;
