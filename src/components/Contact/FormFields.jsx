@@ -1,10 +1,15 @@
 import React from "react";
+import { usesCosmos } from "../../services/api/dataApi";
 
 const FormFields = React.memo(({ formData, handleInputChange }) => (
   <>
-    {/* Hidden fields for Web3Forms */}
-    <input type="hidden" name="access_key" value="e0faddf8-32ef-4a92-b097-8aec3e900163" />
-    <input type="hidden" name="subject" value="New message from Oceaniccoder website" />
+    {/* Hidden fields for Web3Forms; /api/submit takes only the visible fields. */}
+    {!usesCosmos && (
+      <>
+        <input type="hidden" name="access_key" value="e0faddf8-32ef-4a92-b097-8aec3e900163" />
+        <input type="hidden" name="subject" value="New message from Oceaniccoder website" />
+      </>
+    )}
     <input
       type="text"
       name="website"
