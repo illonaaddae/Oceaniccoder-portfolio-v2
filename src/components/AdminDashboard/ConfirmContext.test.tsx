@@ -39,7 +39,7 @@ function setup() {
       </button>
     );
   };
-  render(
+  const { unmount } = render(
     <ConfirmProvider>
       <Trigger />
     </ConfirmProvider>,
@@ -53,6 +53,7 @@ function setup() {
     results,
     trigger,
     open,
+    unmount,
     confirm: (...args: Parameters<typeof confirm>) => confirm(...args),
   };
 }
@@ -223,5 +224,15 @@ describe("ConfirmProvider dialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await expect(second).resolves.toBe(false);
     expect(trigger).toHaveFocus();
+  });
+
+  it("settles an open dialog as cancelled when the provider unmounts", async () => {
+    const { open, results, unmount } = setup();
+    open();
+
+    unmount();
+    await act(async () => {});
+
+    expect(results).toEqual([false]);
   });
 });

@@ -99,6 +99,16 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     setState(null);
   }, []);
 
+  // Leaving the dashboard (logout, route change) with a dialog open would
+  // otherwise leave its caller awaiting an answer that can never come.
+  useEffect(
+    () => () => {
+      resolveRef.current?.(false);
+      resolveRef.current = null;
+    },
+    [],
+  );
+
   // Cancel, not the destructive button, takes focus, so a stray Enter can't
   // delete anything. Runs per request, so a replacing dialog is focused too.
   useEffect(() => {
