@@ -1,3 +1,4 @@
+/* global require, module */
 // GET /api/get-invoice?number=INV-123456&s=<signature>
 // Fetches an invoice for its pay page. Needs the signature from the emailed or
 // admin pay link; until 2026-11-21 an unsigned link still opens an old unpaid
