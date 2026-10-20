@@ -271,4 +271,15 @@ describe("get-invoice on Cosmos", () => {
     const r = await run("INV-2026-0042");
     expect(r).toEqual({ status: 500, body: { error: "Internal error" } });
   });
+
+  // @azure/cosmos reports a refused connection with an empty message.
+  it("logs the error code when the Cosmos error has no message", async () => {
+    vi.spyOn(invoices.items, "query").mockImplementation(() => {
+      throw Object.assign(new Error(""), { name: "RestError", code: "ECONNREFUSED" });
+    });
+    const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
+    await handler(context, { method: "GET", query: { number: "INV-2026-0042" } });
+    expect(context.res.status).toBe(500);
+    expect(context.log.error).toHaveBeenCalledWith("get-invoice error:", "ECONNREFUSED");
+  });
 });
