@@ -36,6 +36,8 @@
 // --backup <dir>            backup folder (default: the newest backup/<date>;
 //                           a backup/<date>-final folder must be named)
 // --only a,b                only these containers; an unknown name fails
+// --created-after <time>    only backup rows created after this time (Z or an
+//                           offset), e.g. the final-backup time T
 // --force-overwrite         also overwrite rows that are newer in Cosmos
 // --prune-money             with --prune, also prune payments and invoices
 // --allow-overwrite-after-cutover
@@ -62,6 +64,7 @@ import {
   planContainer,
   quoteNumberLock,
   refusalAfterCutover,
+  rowsCreatedAfter,
   uniqueKeyQuery,
 } from "./lib/import-plan.mjs";
 
@@ -262,6 +265,16 @@ async function main() {
 
   // Read and check everything before touching Cosmos.
   const { docsByContainer, stale } = await loadBackup(backupDir, flags.only ?? IMPORTED_CONTAINERS);
+  if (flags.createdAfter) {
+    console.log(`Only rows created after ${flags.createdAfter}:`);
+    for (const [id, docs] of Object.entries(docsByContainer)) {
+      const { kept, unreadable } = rowsCreatedAfter(docs, flags.createdAfter);
+      docsByContainer[id] = kept;
+      console.log(`  ${id}: ${kept.length} of ${docs.length}`);
+      for (const doc of unreadable) console.log(`    ${doc.id}: no readable createdAt, left out`);
+    }
+    console.log("");
+  }
   if (stale.length > 0) {
     console.error(`${stale.length} row(s) still link to Appwrite Storage:`);
     for (const ref of stale) console.error(`  ${ref}`);

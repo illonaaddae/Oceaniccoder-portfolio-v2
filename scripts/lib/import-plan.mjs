@@ -4,6 +4,7 @@
 // overwritten or skipped and which Cosmos rows are pruned.
 
 import { createRequire } from "node:module";
+import { parseZonedTime } from "./zoned-time.mjs";
 
 const require = createRequire(import.meta.url);
 const { CONTAINERS } = require("../../api/shared/cosmos.js");
@@ -59,6 +60,22 @@ export function parseBackupRows(file, text) {
   return rows;
 }
 
+/**
+ * Backup rows created strictly after `since` (--created-after). A row with no
+ * readable createdAt can't be shown to be new, so it is left out and listed.
+ */
+export function rowsCreatedAfter(docs, since) {
+  const cutoff = Date.parse(since);
+  const kept = [];
+  const unreadable = [];
+  for (const doc of docs) {
+    const created = Date.parse(doc.createdAt);
+    if (Number.isNaN(created)) unreadable.push(doc);
+    else if (created > cutoff) kept.push(doc);
+  }
+  return { kept, unreadable };
+}
+
 /** Containers --prune may delete from. */
 export function canPrune(id, { pruneMoney = false } = {}) {
   if (SUBMITTED_CONTAINERS.has(id)) return false;
@@ -84,13 +101,14 @@ const BOOLEAN_FLAGS = {
   "--allow-overwrite-after-cutover": "overwriteAfterCutover",
   "--allow-quote-state-after-cutover": "quoteStateAfterCutover",
 };
-const VALUE_FLAGS = { "--backup": "backup", "--only": "only" };
+const VALUE_FLAGS = { "--backup": "backup", "--only": "only", "--created-after": "createdAfter" };
 
 /** Command-line arguments → flags. Throws UsageError on anything it can't honour. */
 export function parseArgs(argv) {
   const flags = {
     backup: undefined,
     only: null,
+    createdAfter: null,
     dryRun: false,
     insertOnly: false,
     forceOverwrite: false,
@@ -121,6 +139,11 @@ export function parseArgs(argv) {
   }
 
   if (flags.only !== null) flags.only = parseOnly(flags.only);
+  if (flags.createdAfter !== null) {
+    const createdAfter = parseZonedTime(flags.createdAfter);
+    if (!createdAfter) throw new UsageError("--created-after needs a time with Z or an offset");
+    flags.createdAfter = createdAfter;
+  }
 
   if (flags.markCutover && given.some((arg) => arg !== "--mark-cutover")) {
     throw new UsageError("--mark-cutover runs on its own");
