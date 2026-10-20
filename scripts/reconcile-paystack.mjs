@@ -1,25 +1,27 @@
 // Lists successful Paystack transactions since a time and reports the ones
-// with no `payments` row in Cosmos, so a charge taken around the cutover is
-// never left unrecorded. Read-only: it writes nothing anywhere.
+// with no settled `payments` row in Cosmos, so a charge taken around the
+// cutover is never left unrecorded. Read-only: it writes nothing anywhere.
 //
-// A row counts when its paystackReference is the transaction reference (rows
+// A row matches when its paystackReference is the transaction reference (rows
 // imported from Appwrite keep their old ids) or its id is `pi_` + sha256 of
-// the reference (rows the Cosmos webhook writes).
+// the reference (rows the Cosmos webhook writes). Only a success or paid row
+// settles it: quote-pay writes a pending row before the charge. Rows settled
+// as failed, duplicate or refunded are listed for a look by hand.
 //
 // Usage:
 //   PAYSTACK_SECRET_KEY=... COSMOS_ENDPOINT=... COSMOS_KEY=... \
 //     node scripts/reconcile-paystack.mjs --since 2026-10-28T18:00:00Z
 //
-// Exit codes: 0 every transaction is recorded, 3 some are not, 2 bad
-// arguments, 1 any other failure (Paystack or Cosmos error).
+// Exit codes: 0 every transaction is settled, 3 some are unrecorded or
+// unsettled, 2 bad arguments, 1 any other failure (Paystack or Cosmos error).
 
 import { createRequire } from "node:module";
 import {
   UsageError,
   describeTransaction,
-  findUnrecorded,
   listSuccessfulTransactions,
   parseReconcileArgs,
+  reconcileTransactions,
 } from "./lib/reconcile.mjs";
 
 const require = createRequire(import.meta.url);
@@ -56,19 +58,33 @@ async function main() {
 
   const transactions = await listSuccessfulTransactions(paystackPageFetcher(secret, since));
   const { resources: rows } = await payments.items
-    .query("SELECT c.id, c.paystackReference FROM c")
+    .query("SELECT c.id, c.paystackReference, c.status FROM c")
     .fetchAll();
-  const unrecorded = findUnrecorded(transactions, rows);
+  const { unrecorded, unsettled, problems } = reconcileTransactions(transactions, rows);
 
   console.log(`Successful Paystack transactions since ${since}: ${transactions.length}`);
   console.log(`Payments rows in Cosmos: ${rows.length}`);
-  if (unrecorded.length === 0) {
-    console.log("\nEvery transaction has a payments row.");
+  if (problems.length > 0) {
+    console.log(`\n${problems.length} recorded as failed, duplicate or refunded (check by hand):`);
+    for (const { transaction, status } of problems) {
+      console.log(`  ${describeTransaction(transaction)}  [${status}]`);
+    }
+  }
+  if (unrecorded.length === 0 && unsettled.length === 0) {
+    console.log("\nEvery transaction has a settled payments row.");
     return 0;
   }
 
-  console.log(`\n${unrecorded.length} transaction(s) with no payments row:`);
-  for (const tx of unrecorded) console.log(`  ${describeTransaction(tx)}`);
+  if (unrecorded.length > 0) {
+    console.log(`\n${unrecorded.length} transaction(s) with no payments row:`);
+    for (const tx of unrecorded) console.log(`  ${describeTransaction(tx)}`);
+  }
+  if (unsettled.length > 0) {
+    console.log(`\n${unsettled.length} transaction(s) whose row exists but is not settled:`);
+    for (const { transaction, status } of unsettled) {
+      console.log(`  ${describeTransaction(transaction)}  [${status ?? "no status"}]`);
+    }
+  }
   console.log(`
 To replay one, with DATA_BACKEND=cosmos live and WRITE_HOLD unset:
   1. Paystack dashboard > Transactions, search the reference and open it.
