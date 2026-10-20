@@ -44,12 +44,22 @@ export function listRows<T = Record<string, unknown>>(
   return getJson(`/api/data/${collection}${query ? `?${query}` : ""}`);
 }
 
+export interface RequestOptions {
+  /** Aborts the request, e.g. AbortSignal.timeout(ms). */
+  signal?: AbortSignal;
+}
+
 /** POSTs JSON; rejects with the server's error message on failure. */
-export async function postJson<T>(path: string, body: unknown): Promise<T> {
+export async function postJson<T>(
+  path: string,
+  body: unknown,
+  { signal }: RequestOptions = {},
+): Promise<T> {
   const res = await fetch(apiUrl(path), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new Error(data.error || `POST ${path} failed (${res.status})`);
@@ -66,11 +76,12 @@ export function submitRow<T>(
   fields: object,
   turnstileToken: string | null | undefined,
   extra: Record<string, unknown> = {},
+  options: RequestOptions = {},
 ): Promise<T> {
   if (!turnstileToken) {
     return Promise.reject(new Error("Please wait for the spam check to finish, then try again."));
   }
-  return postJson(`/api/submit/${collection}`, { ...fields, ...extra, turnstileToken });
+  return postJson(`/api/submit/${collection}`, { ...fields, ...extra, turnstileToken }, options);
 }
 
 /** One row by id. Rejects if it doesn't exist or isn't public. */
