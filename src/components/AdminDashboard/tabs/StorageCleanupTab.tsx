@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useId, useRef } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
 import { Pagination } from "@/components/common/Pagination";
 import { manageList, usesCosmos } from "@/services/api/dataApi";
@@ -124,6 +124,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   // A collection that couldn't be read may still use any file listed as an
   // orphan, so nothing can be deleted until a scan reads them all.
   const deleteBlocked = !scanFinished || collectionErrors.length > 0;
+  const deleteOffReasonId = useId();
 
   const card = "glass-card";
   const text = theme === "dark" ? "text-white" : "text-slate-900";
@@ -380,15 +381,15 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           type="button"
           onClick={() => confirmAndDelete(f.$id, f.name)}
           disabled={deleting === f.$id || deleteBlocked}
+          aria-label={`Delete ${f.name}`}
+          aria-describedby={deleteBlocked ? deleteOffReasonId : undefined}
           className={`flex-shrink-0 p-2 rounded-lg ${errorText} hover:bg-error-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-          title={
-            deleteBlocked ? "Delete file (off until every collection is scanned)" : "Delete file"
-          }
+          title={deleteBlocked ? "Deleting is off until every collection is scanned" : undefined}
         >
           {deleting === f.$id ? (
-            <FaSync className="animate-spin w-4 h-4" />
+            <FaSync aria-hidden="true" className="animate-spin w-4 h-4" />
           ) : (
-            <FaTrash className="w-4 h-4" />
+            <FaTrash aria-hidden="true" className="w-4 h-4" />
           )}
         </button>
       )}
@@ -441,17 +442,24 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           <div>
             <h2 className={`text-2xl font-bold ${text}`}>Storage Cleanup</h2>
             <p className={subText}>
-              {files.length} files · {orphans.length} orphaned · {formatBytes(orphanSize)}{" "}
-              reclaimable
+              {loading
+                ? "Scanning storage…"
+                : !scanFinished
+                  ? "No scan results."
+                  : `${files.length} files · ${orphans.length} orphaned · ${formatBytes(orphanSize)} reclaimable`}
             </p>
           </div>
+          {/* aria-disabled, not disabled: disabling the focused button would
+              drop keyboard focus to <body> while the scan runs. */}
           <button
             type="button"
-            onClick={loadFiles}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-700 transition-colors disabled:opacity-50"
+            onClick={() => {
+              if (!loading) loadFiles();
+            }}
+            aria-disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-700 transition-colors aria-disabled:opacity-50 aria-disabled:cursor-not-allowed"
           >
-            <FaSync className={loading ? "animate-spin" : ""} />
+            <FaSync aria-hidden="true" className={loading ? "animate-spin" : ""} />
             {loading ? "Scanning…" : "Refresh"}
           </button>
         </div>
@@ -467,7 +475,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         )}
         {successMsg && (
           <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${successBox}`}>
-            <FaCheckCircle /> {successMsg}
+            <FaCheckCircle aria-hidden="true" /> {successMsg}
           </div>
         )}
         {collectionErrors.length > 0 && (
@@ -560,16 +568,21 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
               </span>
             )}
           </h3>
-          {loading ? (
-            <p className={subText}>Scanning…</p>
-          ) : !scanFinished ? (
+          {/* Always mounted, so screen readers announce "Scanning…" when it appears. */}
+          <div role="status">{loading && <p className={subText}>Scanning…</p>}</div>
+          {loading ? null : !scanFinished ? (
             <p className={subText}>The scan did not finish. Refresh to try again.</p>
           ) : orphans.length === 0 ? (
             <div className={`flex items-center gap-2 text-sm ${successText}`}>
-              <FaCheckCircle /> No orphaned files. Storage is clean.
+              <FaCheckCircle aria-hidden="true" /> No orphaned files. Storage is clean.
             </div>
           ) : (
             <>
+              {deleteBlocked && (
+                <p id={deleteOffReasonId} className={`${subText} mb-3`}>
+                  Deleting is off because some collections could not be scanned.
+                </p>
+              )}
               <div className="space-y-2">{orphanPage$.map((f) => renderFileRow(f, true))}</div>
               <Pagination
                 page={orphanPage + 1}
