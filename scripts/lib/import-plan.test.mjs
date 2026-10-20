@@ -12,6 +12,7 @@ import {
   dataChecks,
   isNewerInCosmos,
   parseArgs,
+  parseBackupRows,
   planContainer,
   quoteNumberLock,
   refusalAfterCutover,
@@ -280,6 +281,30 @@ describe("planContainer", () => {
     const plan = planContainer("bookings", [], [row("x")], flags(["--prune", "--pre-cutover"]));
     expect(plan.prune).toEqual([]);
     expect(ids(plan.kept)).toEqual(["x"]);
+  });
+});
+
+describe("parseBackupRows", () => {
+  it("reads a list of rows", () => {
+    expect(parseBackupRows("db/projects.json", '[{"$id":"a"}]')).toEqual([{ $id: "a" }]);
+  });
+
+  it("names the file and leaves the contents out of a parse error", () => {
+    let error;
+    try {
+      parseBackupRows("db/payments.json", '[{"clientEmail":"someone@example.com",');
+    } catch (err) {
+      error = err;
+    }
+    expect(error.message).toBe(
+      "db/payments.json is not valid JSON (re-run scripts/backup-appwrite.mjs)",
+    );
+    expect(error.cause).toBeUndefined();
+    expect(String(error.stack)).not.toContain("someone@example.com");
+  });
+
+  it("refuses anything but a list", () => {
+    expect(() => parseBackupRows("db/x.json", "{}")).toThrow("does not hold a list of rows");
   });
 });
 
