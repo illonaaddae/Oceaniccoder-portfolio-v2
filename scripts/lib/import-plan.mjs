@@ -43,6 +43,22 @@ export const SUBMITTED_CONTAINERS = new Set(Object.keys(SCHEMAS));
 export const CUTOVER_MARKER_CONTAINER = "locks";
 export const CUTOVER_MARKER_ID = "cutover";
 
+/**
+ * The rows in one backup file. A parse error is rethrown with only the file
+ * name: Node's message quotes the JSON around the error, which here is
+ * personal data (emails, phone numbers) that would end up in a terminal log.
+ */
+export function parseBackupRows(file, text) {
+  let rows;
+  try {
+    rows = JSON.parse(text);
+  } catch {
+    throw new Error(`${file} is not valid JSON (re-run scripts/backup-appwrite.mjs)`);
+  }
+  if (!Array.isArray(rows)) throw new Error(`${file} does not hold a list of rows`);
+  return rows;
+}
+
 /** Containers --prune may delete from. */
 export function canPrune(id, { pruneMoney = false } = {}) {
   if (SUBMITTED_CONTAINERS.has(id)) return false;

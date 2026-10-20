@@ -50,6 +50,7 @@ import {
   cutoverMarker,
   dataChecks,
   parseArgs,
+  parseBackupRows,
   planContainer,
   quoteNumberLock,
   refusalAfterCutover,
@@ -131,8 +132,7 @@ async function loadBackup(backupDir, containers) {
       }
       throw new Error(`backup file missing: ${file}`);
     }
-    const rows = JSON.parse(await readFile(file, "utf8"));
-    if (!Array.isArray(rows)) throw new Error(`${file} does not hold a list of rows`);
+    const rows = parseBackupRows(file, await readFile(file, "utf8"));
     const kept = id === "settings" ? rows.filter((r) => MIGRATED_SETTINGS_KEYS.has(r.key)) : rows;
     for (const row of kept) {
       if (APPWRITE_FILE_URL.test(JSON.stringify(row))) stale.push(`${id}/${row.$id}`);
