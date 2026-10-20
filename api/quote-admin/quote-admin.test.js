@@ -345,6 +345,20 @@ describe("quote-admin", () => {
       expect((await t.call({ action: "rotate", id })).status).toBe(500);
       expect(t.repo.quotes.get(id).tokenHash).toBe(before);
     });
+
+    it("are locked out even when the new link can't be written, and the old link still works", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t);
+      const before = t.repo.quotes.get(id).tokenHash;
+      const realUpdate = t.repo.update;
+      t.repo.update = async () => {
+        throw new Error("database down");
+      };
+      expect((await t.call({ action: "rotate", id })).status).toBe(500);
+      t.repo.update = realUpdate;
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+      expect(await stillOpen()).toBe(false);
+    });
   });
 
   describe("emailAgain", () => {
