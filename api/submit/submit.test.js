@@ -6,6 +6,7 @@ import { createRequire } from "module";
 // dependencies as arguments.
 const require = createRequire(import.meta.url);
 const { createHandler } = require("./index.js");
+const { messageAlertEmail } = require("./messageAlert.js");
 
 const MESSAGE = {
   name: "Ama Owusu",
@@ -241,6 +242,15 @@ describe("admin alert for a new contact message", () => {
     await call("messages", { ...MESSAGE, turnstileToken: "t" });
 
     expect(sendEmail.mock.calls[0][0].html).not.toContain("malformed");
+  });
+
+  it("says (no subject) when the subject is only whitespace", () => {
+    // The form check rejects a blank subject, so this is the template's own fallback.
+    const mail = messageAlertEmail({ ...MESSAGE, subject: " \r\n " });
+
+    expect(mail.subject).toBe("New Contact: (no subject)");
+    expect(mail.text).toContain("Subject: (no subject)");
+    expect(mail.html).toContain("(no subject)");
   });
 
   it("links to the admin dashboard", async () => {
