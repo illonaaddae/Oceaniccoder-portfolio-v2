@@ -5,7 +5,7 @@
 
 const { shell, heading, card, p, button, buttons } = require("../shared/email/ui");
 
-const DASHBOARD_URL = "https://oceaniccoder.dev/dashboard";
+const DASHBOARD_URL = "https://oceaniccoder.dev/admin/dashboard";
 
 // Stricter than the form's email check: any of these could make one Reply-To
 // header name several addresses or carry a display name.
