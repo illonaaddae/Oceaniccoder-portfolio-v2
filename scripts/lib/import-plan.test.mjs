@@ -114,6 +114,24 @@ describe("cutover marker", () => {
     expect(refusalAfterCutover(flags(["--prune", "--pre-cutover"]), null)).toBeNull();
   });
 
+  it("refuses any run that is not --insert-only once the marker exists", () => {
+    const marker = cutoverMarker(NEW);
+    expect(refusalAfterCutover(flags(), marker)).toMatch(/--insert-only/);
+    expect(refusalAfterCutover(flags(["--dry-run"]), marker)).toMatch(/--insert-only/);
+    expect(refusalAfterCutover(flags(["--force-overwrite"]), marker)).toMatch(/--insert-only/);
+    expect(refusalAfterCutover(flags(["--allow-overwrite-after-cutover"]), marker)).toBeNull();
+    expect(refusalAfterCutover(flags(), null)).toBeNull();
+  });
+
+  it("takes the override only where it means something", () => {
+    expect(() => flags(["--allow-overwrite-after-cutover", "--pre-cutover"])).toThrow(
+      "can't be combined",
+    );
+    expect(() => flags(["--allow-overwrite-after-cutover", "--insert-only"])).toThrow(
+      "can't be combined",
+    );
+  });
+
   it("is a private settings row", () => {
     expect(cutoverMarker(NEW)).toMatchObject({
       id: "cutover",

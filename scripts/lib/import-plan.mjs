@@ -61,6 +61,7 @@ const BOOLEAN_FLAGS = {
   "--pre-cutover": "preCutover",
   "--mark-cutover": "markCutover",
   "--backfill-quote-locks": "backfillQuoteLocks",
+  "--allow-overwrite-after-cutover": "overwriteAfterCutover",
 };
 const VALUE_FLAGS = { "--backup": "backup", "--only": "only" };
 
@@ -77,6 +78,7 @@ export function parseArgs(argv) {
     preCutover: false,
     markCutover: false,
     backfillQuoteLocks: false,
+    overwriteAfterCutover: false,
   };
   const given = [];
   for (let i = 0; i < argv.length; i++) {
@@ -110,6 +112,11 @@ export function parseArgs(argv) {
   if (flags.prune && flags.insertOnly) {
     throw new UsageError("--prune and --insert-only can't be combined");
   }
+  if (flags.overwriteAfterCutover && (flags.preCutover || flags.insertOnly)) {
+    throw new UsageError(
+      "--allow-overwrite-after-cutover can't be combined with --pre-cutover or --insert-only",
+    );
+  }
   if (flags.forceOverwrite && flags.insertOnly) {
     throw new UsageError("--force-overwrite and --insert-only can't be combined");
   }
@@ -142,12 +149,22 @@ function parseOnly(value) {
 }
 
 /** Why this run must stop because the cutover marker exists, or null. */
+// After cutover only --insert-only is safe by default: counters and
+// reactions change in Cosmos without bumping updatedAt, so the newer-updatedAt
+// rule would let an old backup overwrite them.
 export function refusalAfterCutover(flags, marker) {
   if (!marker) return null;
-  if (!flags.prune && !flags.preCutover) return null;
+  const marked = `Cutover was marked at ${marker.at} by ${marker.by}. `;
+  if (flags.prune || flags.preCutover) {
+    return (
+      marked + "--prune and --pre-cutover are refused after cutover: Cosmos is the live database."
+    );
+  }
+  if (flags.insertOnly || flags.overwriteAfterCutover) return null;
   return (
-    `Cutover was marked at ${marker.at} by ${marker.by}. ` +
-    "--prune and --pre-cutover are refused after cutover: Cosmos is the live database."
+    marked +
+    "Only --insert-only runs after cutover. To overwrite live rows anyway, add " +
+    "--allow-overwrite-after-cutover."
   );
 }
 
