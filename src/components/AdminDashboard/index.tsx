@@ -63,7 +63,8 @@ const DashboardLayout: React.FC<AdminDashboardProps> = ({ onLogout, isReadOnly =
           onToggleCollapse={toggleCollapse}
         />
         <main
-          className={`flex-1 flex flex-col h-screen overflow-hidden ml-0 transition-all duration-300 relative z-0 ${
+          tabIndex={-1}
+          className={`flex-1 flex flex-col h-screen overflow-hidden ml-0 transition-all duration-300 relative z-0 outline-none ${
             isCollapsed ? "lg:ml-20" : "lg:ml-64"
           }`}
         >

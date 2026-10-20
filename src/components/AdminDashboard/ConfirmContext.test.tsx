@@ -156,7 +156,7 @@ describe("ConfirmProvider dialog", () => {
       const confirm = useConfirm();
       const [open, setOpen] = useState(true);
       return (
-        <main>
+        <main tabIndex={-1}>
           {open && (
             <button
               type="button"

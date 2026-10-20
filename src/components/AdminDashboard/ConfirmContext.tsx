@@ -250,11 +250,10 @@ function restoreFocus(target: HTMLElement | null) {
     target.focus();
     if (document.activeElement === target) return;
   }
-  // The trigger is gone (its row menu closed, or its row was removed) or can no
-  // longer take focus. Land on the main region rather than leaving keyboard and
-  // screen reader users at the top of <body>.
-  const main = document.querySelector<HTMLElement>("main");
-  if (!main) return;
-  if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
-  main.focus();
+  // The trigger is gone (its row menu closed as the dialog opened) or can no
+  // longer take focus. Land on the main region, which carries tabIndex={-1} for
+  // this, rather than leaving keyboard and screen reader users at the top of
+  // <body>. This runs as the dialog closes, before the caller acts on the
+  // answer, so it does not cover a row that a confirmed delete removes later.
+  document.querySelector<HTMLElement>("main")?.focus();
 }
