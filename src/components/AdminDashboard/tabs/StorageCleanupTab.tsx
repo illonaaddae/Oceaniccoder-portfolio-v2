@@ -31,7 +31,9 @@ interface PlatformEntry {
 }
 
 // Every field that can hold an uploaded file's URL. `fields` hold URLs (or
-// arrays of them); `textFields` hold prose with URLs inside it.
+// arrays of them); `textFields` hold prose with URLs inside it. Files are
+// matched by id anywhere in a reference, so prose is kept whole: a URL in
+// any form (relative, scheme-less, upper case) still counts.
 const DB_COLLECTIONS: { id: string; fields: string[]; textFields?: string[] }[] = [
   { id: "projects", fields: ["image", "screenshots"] },
   { id: "project_videos", fields: ["demoVideoUrl"] },
@@ -45,10 +47,6 @@ const DB_COLLECTIONS: { id: string; fields: string[]; textFields?: string[] }[] 
   { id: "testimonials", fields: ["image"] },
   { id: "skills", fields: ["icon"] },
 ];
-
-// Any absolute URL, ending where markdown, HTML or prose would end it. Files
-// are matched by id, so catching extra or slightly short URLs is harmless.
-const URL_IN_TEXT = /https?:\/\/[^\s"'<>()[\]]+/g;
 
 const ALL_PLATFORMS = [
   "Coursera",
@@ -189,8 +187,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
               }
               for (const field of textFields) {
                 const text = doc[field];
-                if (typeof text !== "string") continue;
-                for (const [url] of text.matchAll(URL_IN_TEXT)) urls.add(url);
+                if (typeof text === "string" && text) urls.add(text);
               }
             }
           } catch (err) {
