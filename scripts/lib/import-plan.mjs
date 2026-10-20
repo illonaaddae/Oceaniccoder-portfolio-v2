@@ -221,12 +221,16 @@ export function refusalAfterCutover(flags, marker, containers) {
       "--allow-overwrite-after-cutover."
     );
   }
-  const quoteState = QUOTE_STATE_CONTAINERS.filter((id) => containers.includes(id));
+  // --backfill-quote-locks writes locks too; after cutover the quote service
+  // reserves every new number itself, so a backfill is an exception.
+  const touched = new Set(containers);
+  if (flags.backfillQuoteLocks) touched.add("locks");
+  const quoteState = QUOTE_STATE_CONTAINERS.filter((id) => touched.has(id));
   if (quoteState.length > 0 && !flags.quoteStateAfterCutover) {
     return (
       marked +
       `${quoteState.join(" and ")} are live quote state after cutover. Leave them out with ` +
-      "--only, or add --allow-quote-state-after-cutover."
+      "--only (and drop --backfill-quote-locks), or add --allow-quote-state-after-cutover."
     );
   }
   return null;
