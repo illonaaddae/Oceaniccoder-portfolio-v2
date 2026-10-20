@@ -80,7 +80,9 @@ describe("submitContactForm on Cosmos", () => {
     const result = await submitContactForm(new FormData(), formData, "tok");
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(createMessage).toHaveBeenCalledWith(savedRow, "tok");
+    expect(createMessage).toHaveBeenCalledWith(savedRow, "tok", {
+      signal: expect.any(AbortSignal),
+    });
     expect(result.success).toBe(true);
   });
 
@@ -106,6 +108,19 @@ describe("submitContactForm on Cosmos", () => {
     await expect(submitContactForm(new FormData(), formData, "tok")).rejects.toThrow(
       "The spam check failed. Please try again.",
     );
+  });
+
+  it("gives up after 30 seconds with the timeout message", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    createMessage.mockImplementation(() =>
+      Promise.reject(Object.assign(new Error("signal timed out"), { name: "TimeoutError" })),
+    );
+
+    await expect(submitContactForm(new FormData(), formData, "tok")).rejects.toThrow(
+      "Request timed out. Please check your internet connection and try again.",
+    );
+    expect(timeout).toHaveBeenCalledWith(30000);
+    timeout.mockRestore();
   });
 
   it("points visitors to the public contact address when offline", async () => {

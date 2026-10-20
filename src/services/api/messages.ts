@@ -1,5 +1,5 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
-import { submitRow, usesCosmos } from "./dataApi";
+import { submitRow, usesCosmos, type RequestOptions } from "./dataApi";
 import { listAllDocuments } from "./listAll";
 import type { Message } from "../../types";
 
@@ -11,8 +11,11 @@ export async function getMessages(): Promise<Message[]> {
 export async function createMessage(
   message: Omit<Message, "$id" | "$createdAt">,
   turnstileToken?: string | null,
+  options: RequestOptions = {},
 ): Promise<Message> {
-  if (usesCosmos) return submitRow<Message>(COLLECTIONS.MESSAGES, message, turnstileToken);
+  if (usesCosmos) {
+    return submitRow<Message>(COLLECTIONS.MESSAGES, message, turnstileToken, {}, options);
+  }
   return databases.createDocument(
     DATABASE_ID,
     COLLECTIONS.MESSAGES,

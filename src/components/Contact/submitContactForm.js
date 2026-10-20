@@ -15,6 +15,8 @@ function prepareFormData(fd) {
   fd.set("_timestamp", Date.now().toString());
 }
 
+const REQUEST_TIMEOUT_MS = 30000;
+const TIMEOUT_ERROR = "Request timed out. Please check your internet connection and try again.";
 const NETWORK_ERROR =
   "Network error: Unable to connect to the server. Please check your internet connection or try again later. You can also reach me directly at hello@oceaniccoder.dev";
 const SUCCESS = {
@@ -38,8 +40,11 @@ function messageRow(formData) {
  */
 async function submitThroughServer(formData, turnstileToken) {
   try {
-    await createMessage(messageRow(formData), turnstileToken);
+    await createMessage(messageRow(formData), turnstileToken, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
   } catch (err) {
+    if (err.name === "TimeoutError" || err.name === "AbortError") throw new Error(TIMEOUT_ERROR);
     if (err instanceof TypeError) throw new Error(NETWORK_ERROR);
     throw err;
   }
@@ -55,7 +60,7 @@ export async function submitContactForm(formDataToSend, formData, turnstileToken
   if (usesCosmos) return submitThroughServer(formData, turnstileToken);
   prepareFormData(formDataToSend);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let res;
   try {
     res = await fetch(API_URL, {
@@ -70,7 +75,7 @@ export async function submitContactForm(formDataToSend, formData, turnstileToken
   } catch (fetchError) {
     clearTimeout(timeoutId);
     if (fetchError.name === "AbortError") {
-      throw new Error("Request timed out. Please check your internet connection and try again.");
+      throw new Error(TIMEOUT_ERROR);
     }
     if (fetchError instanceof TypeError && fetchError.message.includes("Failed to fetch")) {
       throw new Error(NETWORK_ERROR);

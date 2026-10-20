@@ -68,6 +68,7 @@ describe("ContactForm on Cosmos", () => {
         status: "new",
       },
       "tok",
+      { signal: expect.any(AbortSignal) },
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
