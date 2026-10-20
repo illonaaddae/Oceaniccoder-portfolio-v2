@@ -62,8 +62,10 @@ import {
   parseArgs,
   parseBackupRows,
   planContainer,
-  quoteNumberLock,
   refusalAfterCutover,
+  backfillLockRows,
+  driftAdvice,
+  refuseMarkerInBackup,
   rowsCreatedAfter,
   uniqueKeyQuery,
 } from "./lib/import-plan.mjs";
@@ -149,6 +151,7 @@ async function loadBackup(backupDir, containers) {
       if (APPWRITE_FILE_URL.test(JSON.stringify(row))) stale.push(`${id}/${row.$id}`);
     }
     docsByContainer[id] = kept.map(toCosmos);
+    refuseMarkerInBackup(id, docsByContainer[id]);
   }
   return { docsByContainer, stale };
 }
@@ -178,6 +181,11 @@ async function applyPlan(id, container, plan) {
     } catch (err) {
       if (!isCode(err, 409)) throw err;
       const query = uniqueKeyQuery(id, doc);
+      if (query?.missingFields) {
+        // Can't look the holder up without the key's value.
+        outcome.clashes.push({ id: doc.id, missingFields: query.missingFields });
+        continue;
+      }
       const holders = query ? (await container.items.query(query).fetchAll()).resources : [];
       if (holders.length > 0) {
         // A different row holds the key, so the backup row is left out.
@@ -233,24 +241,18 @@ function printChecks(checks, label) {
   if (problems === 0) console.log("  no problems found");
 }
 
-async function backfillQuoteLocks(db, quotesWithoutLock, dryRun) {
-  const numbered = quotesWithoutLock.filter((q) => q.quoteNumber);
-  if (dryRun) {
-    console.log(`\n${numbered.length} quoteNumber lock(s) would be created (dry run).`);
-    return;
-  }
+async function backfillQuoteLocks(db, lockRows) {
   const locks = db.container("locks");
-  const now = new Date().toISOString();
   let created = 0;
-  for (const { quoteNumber } of numbered) {
+  for (const lock of lockRows) {
     try {
-      await locks.items.create(quoteNumberLock(quoteNumber, now));
+      await locks.items.create(lock);
       created += 1;
     } catch (err) {
       if (!isCode(err, 409)) throw err;
     }
   }
-  console.log(`\n${created} quoteNumber lock(s) created.`);
+  return created;
 }
 
 async function main() {
@@ -316,9 +318,11 @@ async function main() {
 
     const { raced, clashes } = await applyPlan(id, container, plan);
     if (raced) console.log(`    ${raced} created by a live function meanwhile, kept`);
-    for (const { id: docId, holders } of clashes) {
+    for (const clash of clashes) {
       console.log(
-        `    unique-key clash: backup row ${docId} not created, Cosmos row ${holders.join(", ")} holds its key`,
+        clash.holders
+          ? `    unique-key clash: backup row ${clash.id} not created, Cosmos row ${clash.holders.join(", ")} holds its key`
+          : `    unique-key clash: backup row ${clash.id} not created; it has no ${clash.missingFields.join(", ")}`,
       );
     }
 
@@ -336,18 +340,28 @@ async function main() {
     const rows = await queryAll(db.container(id), "SELECT * FROM c", readOpts);
     return flags.dryRun && plans[id] ? afterPlan(rows, plans[id]) : rows;
   };
-  const checks = dataChecks({
+  const checkInput = {
     invoices: await all("invoices"),
     payments: await all("payments"),
     quotes: await all("quotes"),
     locks: await all("locks"),
     backupPayments: docsByContainer.payments ?? null,
     backupState: Object.fromEntries(DRIFT_CHECKED.map((id) => [id, docsByContainer[id] ?? null])),
-  });
-  printChecks(checks, flags.dryRun ? "Cosmos after this import, dry run" : "Cosmos");
+  };
+  let checks = dataChecks(checkInput);
+  // Backfill before printing, so the lock check shows what is left after it.
+  // A 409 means the lock exists already, so every row counts as present.
   if (flags.backfillQuoteLocks) {
-    await backfillQuoteLocks(db, checks.quotesWithoutLock, flags.dryRun);
+    const lockRows = backfillLockRows(checks.quotesWithoutLock, new Date().toISOString());
+    if (flags.dryRun) {
+      console.log(`\n${lockRows.length} quoteNumber lock(s) would be created (dry run).`);
+    } else {
+      const created = await backfillQuoteLocks(db, lockRows);
+      console.log(`\n${created} quoteNumber lock(s) created.`);
+    }
+    checks = dataChecks({ ...checkInput, locks: [...checkInput.locks, ...lockRows] });
   }
+  printChecks(checks, flags.dryRun ? "Cosmos after this import, dry run" : "Cosmos");
 
   if (flags.dryRun) {
     console.log("\nDry run: nothing written.");
@@ -358,7 +372,7 @@ async function main() {
   if (failed) console.log("\nSome backup rows are missing from Cosmos.");
   if (drifted) {
     console.log(
-      "\nSome invoices, quotes or payments differ from the backup. Re-run with --pre-cutover.",
+      `\nSome invoices, quotes or payments differ from the backup. ${driftAdvice(flags)}`,
     );
   }
   if (!failed && !drifted) console.log("\nImport complete; every backup row is in Cosmos.");
