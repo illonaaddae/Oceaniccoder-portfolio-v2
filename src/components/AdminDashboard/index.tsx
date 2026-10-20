@@ -13,7 +13,16 @@ import { ConfirmProvider } from "./ConfirmContext";
 
 const SIDEBAR_COLLAPSED_KEY = "oc-admin-sidebar-collapsed";
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isReadOnly = false }) => {
+// The provider has to sit above DashboardLayout, not inside it:
+// useDashboardState calls useConfirm() (through useAdminData), and a hook only
+// sees providers rendered by its component's ancestors.
+export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => (
+  <ConfirmProvider>
+    <DashboardLayout {...props} />
+  </ConfirmProvider>
+);
+
+const DashboardLayout: React.FC<AdminDashboardProps> = ({ onLogout, isReadOnly = false }) => {
   const s = useDashboardState(isReadOnly);
 
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {
@@ -30,7 +39,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
   }, []);
 
   return (
-    <ConfirmProvider>
+    <>
       {/* --admin-sidebar-w lets the fixed-position modals below centre
           themselves in the area beside the sidebar. Centred on the viewport
           they sit with their left edge on the sidebar and all their slack on
@@ -54,7 +63,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
           onToggleCollapse={toggleCollapse}
         />
         <main
-          className={`flex-1 flex flex-col h-screen overflow-hidden ml-0 transition-all duration-300 relative z-0 ${
+          tabIndex={-1}
+          className={`flex-1 flex flex-col h-screen overflow-hidden ml-0 transition-all duration-300 relative z-0 outline-none ${
             isCollapsed ? "lg:ml-20" : "lg:ml-64"
           }`}
         >
@@ -78,7 +88,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, isRead
         />
         <ToastContainer toasts={s.toasts} onRemove={s.removeToast} theme={s.theme} />
       </div>
-    </ConfirmProvider>
+    </>
   );
 };
 
