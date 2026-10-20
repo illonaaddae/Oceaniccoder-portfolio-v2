@@ -6,6 +6,7 @@ const M = require("../shared/quotes/model");
 const V = require("../shared/quotes/views");
 const { newToken, hashToken } = require("../shared/tokens");
 const { sendMaintenanceOffer } = require("../shared/quotes/maintenance");
+const { bumpEpoch } = require("../shared/quotes/access");
 
 const MANUAL_METHODS = ["bank", "momo", "cash"];
 
@@ -167,6 +168,10 @@ const actions = {
     const quote = await load(svc, input.id);
     if (!["sent", "accepted"].includes(quote.status))
       throw new HttpError(409, "Only sent or accepted quotes have a link.");
+    // New link is the leak response, so it also locks out every browser that
+    // entered a code. Done first: if it fails, the old link and sessions stay
+    // as they were instead of a new link with old sessions still open.
+    await bumpEpoch(svc.locks, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, { tokenHash: hashToken(token) });
     return detail(svc, updated, { link: V.quoteLink(token), emailed: false });
