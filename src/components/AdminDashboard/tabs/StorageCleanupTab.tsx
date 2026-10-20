@@ -134,10 +134,21 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       ? "bg-gray-700/30 border border-white/5"
       : "bg-slate-50 border border-slate-200";
   const iconBox = theme === "dark" ? "bg-gray-600" : "bg-slate-200 text-slate-500";
-  const badge = (orphan: boolean) =>
-    orphan
-      ? "bg-red-500/20 text-red-400 border border-red-500/30"
-      : "bg-green-500/20 text-green-400 border border-green-500/30";
+  // Status colours follow the badge pattern in tailwind.config.cjs: 400 on a
+  // 400/10 tint in dark, 700 on the 100 tint in light (4.5:1 or better).
+  const isDark = theme === "dark";
+  const errorText = isDark ? "text-error-400" : "text-error-700";
+  const successText = isDark ? "text-success-400" : "text-success-700";
+  const errorBox = isDark
+    ? "bg-error-400/10 text-error-400 border border-error-400/30"
+    : "bg-error-100 text-error-700 border border-error-700/30";
+  const successBox = isDark
+    ? "bg-success-400/10 text-success-400 border border-success-400/30"
+    : "bg-success-100 text-success-700 border border-success-700/30";
+  const warningBox = isDark
+    ? "bg-warning-400/10 text-warning-400 border border-warning-400/30"
+    : "bg-warning-100 text-warning-700 border border-warning-700/40";
+  const badge = (orphan: boolean) => (orphan ? errorBox : successBox);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -369,7 +380,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           type="button"
           onClick={() => confirmAndDelete(f.$id, f.name)}
           disabled={deleting === f.$id || deleteBlocked}
-          className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`flex-shrink-0 p-2 rounded-lg ${errorText} hover:bg-error-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
           title={
             deleteBlocked ? "Delete file (off until every collection is scanned)" : "Delete file"
           }
@@ -438,7 +449,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
             type="button"
             onClick={loadFiles}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-link text-white text-sm font-medium hover:bg-brand-accent-strong transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-700 transition-colors disabled:opacity-50"
           >
             <FaSync className={loading ? "animate-spin" : ""} />
             {loading ? "Scanning…" : "Refresh"}
@@ -449,22 +460,19 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         {error && (
           <div
             role="alert"
-            className="flex items-center gap-2 p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-sm"
+            className={`flex items-center gap-2 p-3 rounded-xl text-sm ${errorBox}`}
           >
             <FaExclamationTriangle aria-hidden="true" /> {error}
           </div>
         )}
         {successMsg && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/20 text-green-400 border border-green-500/30 text-sm">
+          <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${successBox}`}>
             <FaCheckCircle /> {successMsg}
           </div>
         )}
         {collectionErrors.length > 0 && (
-          <div
-            role="alert"
-            className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs space-y-1"
-          >
-            <p className="font-semibold">
+          <div role="alert" className={`p-3 rounded-xl text-xs space-y-1 ${warningBox}`}>
+            <p className="text-sm font-semibold">
               Some collections could not be scanned, so files listed as orphans may still be in use.
               Deleting is turned off until a scan reads every collection. Refresh to try again.
             </p>
@@ -501,9 +509,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                   )}
                   <div>
                     <span className={`font-medium text-sm ${text}`}>{p.name}</span>
-                    {!p.currentUrl && (
-                      <p className="text-xs text-gray-500">No local file: using CDN</p>
-                    )}
+                    {!p.currentUrl && <p className={`text-xs ${sub}`}>No local file: using CDN</p>}
                   </div>
                 </div>
                 {replacingLogo === p.name ? (
@@ -549,7 +555,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           <h3 className={sectionHeader}>
             Orphaned Files{" "}
             {orphans.length > 0 && (
-              <span className="text-sm font-normal text-red-400 ml-2">
+              <span className={`text-sm font-normal ml-2 ${errorText}`}>
                 ({orphans.length} · {formatBytes(orphanSize)})
               </span>
             )}
@@ -559,7 +565,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           ) : !scanFinished ? (
             <p className={subText}>The scan did not finish. Refresh to try again.</p>
           ) : orphans.length === 0 ? (
-            <div className="flex items-center gap-2 text-green-400 text-sm">
+            <div className={`flex items-center gap-2 text-sm ${successText}`}>
               <FaCheckCircle /> No orphaned files. Storage is clean.
             </div>
           ) : (
