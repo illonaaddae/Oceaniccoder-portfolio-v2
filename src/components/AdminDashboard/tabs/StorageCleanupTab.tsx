@@ -447,8 +447,11 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
 
         {/* Toast messages */}
         {error && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-sm">
-            <FaExclamationTriangle /> {error}
+          <div
+            role="alert"
+            className="flex items-center gap-2 p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-sm"
+          >
+            <FaExclamationTriangle aria-hidden="true" /> {error}
           </div>
         )}
         {successMsg && (
