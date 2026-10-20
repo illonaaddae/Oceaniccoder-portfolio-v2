@@ -17,10 +17,6 @@ const { createFakeCosmos } = require("../shared/fakeCosmos.js");
 const { lockId, paymentIdFor } = require("../shared/tokens.js");
 const handler = require("./index.js");
 
-// Once PR #200 lands, unverified requests email at most once an hour per
-// process; reset that so each test sees its own alert. A no-op before then.
-const resetUnverifiedAlert = () => handler.resetUnverifiedAlert?.();
-
 const SECRET = "sk_test_webhook";
 const REFERENCE = "PAY-INV-2026-0042-1760000000";
 
@@ -90,7 +86,6 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
   let sent;
   beforeEach(() => {
     Object.assign(process.env, ENV);
-    resetUnverifiedAlert();
     delete process.env.WRITE_HOLD;
     delete process.env.APPWRITE_API_KEY;
     db = createFakeCosmos();
@@ -622,7 +617,6 @@ describe("paystack-webhook under WRITE_HOLD", () => {
   let quote;
   beforeEach(() => {
     Object.assign(process.env, ENV, { WRITE_HOLD: "1", APPWRITE_API_KEY: "test-key" });
-    resetUnverifiedAlert();
     sent = captureEmails();
     vi.spyOn(cosmos, "getDatabase").mockImplementation(() => {
       throw new Error("Cosmos called");
