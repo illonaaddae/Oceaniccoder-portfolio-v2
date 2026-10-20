@@ -381,6 +381,20 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     };
   };
 
+  it("does not promise once per payment when a recorded alert is only tracked in-process", async () => {
+    db.container("payments").hooks.beforeReplace = async (id, body) => {
+      if (body.notifiedAt) throw unavailable();
+    };
+    db.container("locks").hooks.beforeCreate = async () => {
+      throw unavailable();
+    };
+    const event = signed(chargeOf({ reference: "PAY-INV-2026-0042-recorded-untracked" }));
+    expect((await run(event)).status).toBe(500);
+    const alert = sent.find((m) => m.subject.startsWith("Paystack will retry the confirmation"));
+    expect(alert.html).toContain("once per payment per running function instance");
+    expect(alert.html).not.toContain("This email is sent once per payment.");
+  });
+
   it("does not escalate a recorded payment when its row can no longer be read", async () => {
     db.container("payments").hooks.beforeReplace = async (id, body) => {
       if (body.notifiedAt) throw unavailable();

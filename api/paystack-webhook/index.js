@@ -295,7 +295,7 @@ async function alertRetryableFailure({
       if (recorded) {
         return mail(
           `Paystack will retry the confirmation emails for a recorded payment on invoice ${invoiceNumber}`,
-          recordedRetryEmail(reason, detail),
+          recordedRetryEmail(reason, detail, { tracked }),
         );
       }
       if (!tracked) {

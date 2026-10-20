@@ -157,9 +157,10 @@ function webhookEscalationEmail(reason, detail, window) {
 }
 
 // For a failure after the payment row and the invoice change were written,
-// while finishing the confirmation emails. Nothing is
-// waiting to be recorded, so it must not say so.
-function recordedRetryEmail(reason, detail) {
+// while finishing the confirmation emails. Nothing is waiting to be
+// recorded, so it must not say so. `tracked` is false when the alert could
+// only be claimed in this process, so another instance may send it again.
+function recordedRetryEmail(reason, detail, { tracked = true } = {}) {
   return shell({
     preview: `Paystack will retry the confirmation emails: ${reason}`,
     reason: ADMIN_REASON,
@@ -177,7 +178,11 @@ function recordedRetryEmail(reason, detail) {
       }) +
       notice({ tone: "warn", text: `Reason: ${reason}` }) +
       (detail ? p(`Detail: ${detail}`) : "") +
-      small("This email is sent once per payment. Later attempts are only logged."),
+      small(
+        tracked
+          ? "This email is sent once per payment. Later attempts are only logged."
+          : "This email is sent once per payment per running function instance. Later attempts are only logged.",
+      ),
   });
 }
 
