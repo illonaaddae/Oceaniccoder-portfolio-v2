@@ -38,6 +38,9 @@ const CORS = {
 // inside that.
 const EMAIL_TIMEOUT_MS = 10 * 1000;
 
+// Paystack signs with HMAC-SHA512 and sends the digest as hex.
+const SIGNATURE_FORMAT = /^[0-9a-f]{128}$/i;
+
 // Alerts this process has mailed, or is mailing, where Cosmos cannot keep
 // track: an invalid DATA_BACKEND (it fails every delivery the same way until
 // someone fixes the setting) and a reference whose claim could not be
@@ -443,6 +446,23 @@ module.exports = async function (context, req) {
 
   if (!signature) {
     await bail("request had no x-paystack-signature header");
+    return;
+  }
+
+  // Anyone can POST here, so check the shape of what is about to be hashed:
+  // an absent body made the HMAC throw, and the request crashed the function.
+  if (typeof signature !== "string" || !SIGNATURE_FORMAT.test(signature)) {
+    await bail(
+      "signature verification failed",
+      "the x-paystack-signature header is not a SHA-512 hex digest. Treat it as an unverified request and ignore it.",
+    );
+    return;
+  }
+  if (typeof rawBody !== "string" || !rawBody) {
+    await bail(
+      "request had no body to verify the signature against",
+      "Treat it as an unverified request and ignore it.",
+    );
     return;
   }
 
