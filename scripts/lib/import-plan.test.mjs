@@ -16,6 +16,7 @@ import {
   planContainer,
   quoteNumberLock,
   refusalAfterCutover,
+  rowsCreatedAfter,
   uniqueKeyQuery,
 } from "./import-plan.mjs";
 
@@ -333,6 +334,33 @@ describe("parseBackupRows", () => {
 
   it("refuses anything but a list", () => {
     expect(() => parseBackupRows("db/x.json", "{}")).toThrow("does not hold a list of rows");
+  });
+});
+
+describe("--created-after", () => {
+  it("needs a time with Z or an offset", () => {
+    expect(flags(["--created-after", "2026-10-28T18:00:00Z"]).createdAfter).toBe(
+      "2026-10-28T18:00:00.000Z",
+    );
+    expect(flags(["--created-after", "2026-10-28T19:00:00+01:00"]).createdAfter).toBe(
+      "2026-10-28T18:00:00.000Z",
+    );
+    for (const value of ["2026-10-28", "2026-10-28T18:00:00", "soon"]) {
+      expect(() => flags(["--created-after", value])).toThrow("Z or an offset");
+    }
+    expect(flags().createdAfter).toBeNull();
+  });
+
+  it("keeps only rows created after the time, and counts unreadable ones", () => {
+    const docs = [
+      { id: "old", createdAt: "2026-10-28T17:59:59.000Z" },
+      { id: "same", createdAt: "2026-10-28T18:00:00.000Z" },
+      { id: "new", createdAt: "2026-10-28T18:00:01.000Z" },
+      { id: "none" },
+    ];
+    const { kept, unreadable } = rowsCreatedAfter(docs, "2026-10-28T18:00:00.000Z");
+    expect(ids(kept)).toEqual(["new"]);
+    expect(ids(unreadable)).toEqual(["none"]);
   });
 });
 
