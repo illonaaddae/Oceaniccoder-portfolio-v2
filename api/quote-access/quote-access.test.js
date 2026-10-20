@@ -391,6 +391,21 @@ describe("quote-access lifetime cap and quota reset", () => {
     expect((await t.sendCode(TOKEN, { ip: "192.0.2.51" })).status).toBe(200);
   });
 
+  it("refuses a challenge fetched before the block, even with the right code", async () => {
+    const t = setup();
+    const early = await t.sendCode(TOKEN, { ip: "192.0.2.80" });
+    t.clock.ms += GAP;
+    for (let i = 0; i < 3; i += 1) await lockOut(t);
+    const tries = t.locks.held.size;
+    const r = await t.call(
+      { action: "verify", token: TOKEN, challenge: early.body.challenge, code: early.code },
+      { ip: "192.0.2.81" },
+    );
+    expect(r).toMatchObject({ status: 403, body: { blocked: true } });
+    expect(r.cookie).toBeUndefined();
+    expect(t.locks.held.size).toBe(tries);
+  });
+
   it("gives the client back a used-up hourly quota after a new link", async () => {
     const t = setup();
     for (let i = 0; i < 5; i += 1) {

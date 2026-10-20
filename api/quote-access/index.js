@@ -176,6 +176,9 @@ function createHandler(deps) {
       nowMs,
     });
     if (!checked.ok) throw new HttpError(400, NEW_CODE[checked.reason], { newCodeNeeded: true });
+    // Challenges fetched before the block must not keep a guesser going after it.
+    if (await A.sendsBlocked(svc.locks, quote, checked.epoch))
+      throw new HttpError(403, BLOCKED, { blocked: true });
 
     const attempt = await A.takeTry(svc.locks, checked.challengeId);
     if (!attempt) throw new HttpError(429, TOO_MANY, { triesLeft: 0, newCodeNeeded: true });
