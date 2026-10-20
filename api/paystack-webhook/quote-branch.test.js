@@ -136,7 +136,7 @@ describe("paystack-webhook quote branch with an invalid DATA_BACKEND", () => {
       expect(context.res.status).toBe(500);
     }
     expect(sent.map((m) => m.subject)).toEqual([
-      "Action needed: Paystack webhooks are failing and will be retried",
+      "Action needed: DATA_BACKEND has an invalid value; payments are not being recorded",
     ]);
     expect(sent[0].html).toContain("DATA_BACKEND is not valid");
     expect(quote).not.toHaveBeenCalled();
