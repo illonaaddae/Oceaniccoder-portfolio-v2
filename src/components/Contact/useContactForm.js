@@ -68,7 +68,9 @@ export function useContactForm() {
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
       console.error("Form submit error:", err);
-      turnstile.reset(); // the server may have spent the token; get a fresh one for the retry
+      // The server may have spent the token; get a fresh one for the retry. With no token
+      // yet the widget is still working, and a reset would only restart it.
+      if (turnstile.token) turnstile.reset();
       setStatus("error");
 
       let errorMessage = "Something went wrong. Please try again later.";

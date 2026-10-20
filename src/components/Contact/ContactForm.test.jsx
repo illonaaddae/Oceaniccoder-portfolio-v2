@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const mode = vi.hoisted(() => ({ usesCosmos: true }));
 const createMessage = vi.hoisted(() => vi.fn());
 const reset = vi.hoisted(() => vi.fn());
+const widget = vi.hoisted(() => ({ token: "tok" }));
 
 vi.mock("../../services/api", () => ({ createMessage }));
 vi.mock("../../services/api/dataApi", () => ({
@@ -13,7 +14,7 @@ vi.mock("../../services/api/dataApi", () => ({
   },
 }));
 vi.mock("@/hooks/useTurnstile", () => ({
-  useTurnstile: () => ({ active: false, ref: vi.fn(), token: "tok", error: null, reset }),
+  useTurnstile: () => ({ active: false, ref: vi.fn(), token: widget.token, error: null, reset }),
 }));
 // The real checks need the form open for 3 seconds; they have their own rules.
 vi.mock("./validateForm", () => ({ validateForm: () => ({ valid: true }) }));
@@ -35,6 +36,7 @@ describe("ContactForm on Cosmos", () => {
     mode.usesCosmos = true;
     createMessage.mockReset();
     reset.mockReset();
+    widget.token = "tok";
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -86,6 +88,19 @@ describe("ContactForm on Cosmos", () => {
     );
     expect(screen.queryByRole("status")).toBeNull();
     expect(reset).toHaveBeenCalled();
+  });
+
+  it("leaves the spam check alone when it had no token yet", async () => {
+    widget.token = null;
+    createMessage.mockImplementation(() =>
+      Promise.reject(new Error("Please wait for the spam check to finish, then try again.")),
+    );
+    render(<ContactForm />);
+
+    fillAndSend();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/wait for the spam check/i);
+    expect(reset).not.toHaveBeenCalled();
   });
 });
 
