@@ -375,6 +375,44 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(sent.map((m) => m.subject)).not.toContain(ESCALATION_SUBJECT);
   });
 
+  const ESCALATION =
+    "Action needed: a payment for invoice INV-2026-0042 is still unrecorded after 24 hours";
+  const RECORDED_SUBJECT =
+    "Paystack will retry the confirmation emails for a recorded payment on invoice INV-2026-0042";
+  const failPaymentReads = () => {
+    db.container("payments").hooks.beforeReplace = null;
+    db.container("payments").hooks.beforeRead = async () => {
+      throw Object.assign(new Error("throttled"), { code: 429 });
+    };
+  };
+
+  it("does not escalate a recorded payment when its row can no longer be read", async () => {
+    db.container("payments").hooks.beforeReplace = async (id, body) => {
+      if (body.notifiedAt) throw unavailable();
+    };
+    expect((await run()).status).toBe(500);
+    expect(alertLock().recorded).toBe(true);
+    failPaymentReads();
+    backdateAlert(25);
+    expect((await run()).status).toBe(500);
+    expect(sent.map((m) => m.subject)).not.toContain(ESCALATION);
+    expect(sent.map((m) => m.subject)).toContain(RECORDED_SUBJECT);
+  });
+
+  it("notes on the alert lock when a later failure finds the payment recorded", async () => {
+    failNext(db.container("invoices"), "beforeReplace", 1);
+    expect((await run()).status).toBe(500);
+    db.container("payments").hooks.beforeReplace = async (id, body) => {
+      if (body.notifiedAt) throw unavailable();
+    };
+    expect((await run()).status).toBe(500);
+    expect(alertLock().recorded).toBe(true);
+    failPaymentReads();
+    backdateAlert(25);
+    expect((await run()).status).toBe(500);
+    expect(sent.map((m) => m.subject)).not.toContain(ESCALATION);
+  });
+
   it("mails on the next retry when the claimed alert could not be sent", async () => {
     failNext(db.container("invoices"), "beforeReplace", 3);
     sent.answers.push(500);

@@ -348,18 +348,23 @@ async function claimRetryAlert({
   locks,
   reference,
   invoiceNumber,
+  recorded = false,
   log,
   now = () => new Date(),
 }) {
   if (!(await locks.take(ALERT_KEY(reference)))) return false;
-  // The claim is the lock. firstFailedAt and alertedAt are only records, so
-  // failing to write them must not undo the claim: the lock would stay taken
-  // with no email. Without firstFailedAt, claimEscalation uses the lock's
-  // createdAt, which is the same moment.
+  // The claim is the lock. firstFailedAt, recorded and alertedAt are only
+  // records, so failing to write them must not undo the claim: the lock
+  // would stay taken with no email. Without firstFailedAt, claimEscalation
+  // uses the lock's createdAt, which is the same moment.
   try {
-    await store.updateLock(lockId(ALERT_KEY(reference)), (lock) =>
-      lock.firstFailedAt ? null : { firstFailedAt: now().toISOString() },
-    );
+    await store.updateLock(lockId(ALERT_KEY(reference)), (lock) => {
+      const changes = {
+        ...(lock.firstFailedAt ? null : { firstFailedAt: now().toISOString() }),
+        ...(recorded && !lock.recorded ? { recorded: true } : null),
+      };
+      return Object.keys(changes).length ? changes : null;
+    });
   } catch (err) {
     log.error(`paystack-webhook: could not note firstFailedAt for ${reference}: ${err.message}`);
   }
@@ -400,17 +405,41 @@ async function releaseRetryAlert({ store, locks, reference, invoiceNumber, log }
 }
 
 /**
+ * Notes on the alert lock that the payment is recorded, so no escalation goes
+ * out for it later, even from a delivery that cannot read the payments row.
+ */
+async function noteAlertRecorded({ store, reference }) {
+  try {
+    await store.updateLock(lockId(ALERT_KEY(reference)), (lock) =>
+      lock.recorded ? null : { recorded: true },
+    );
+  } catch (err) {
+    if (!(err && err.code === 404)) throw err;
+  }
+}
+
+/**
  * Whether this delivery should send the one escalation for a reference whose
  * alert went out at least ESCALATE_AFTER_MS ago and which still fails. The
  * `escalatedAt` note on the alert lock is the claim: it is set with an etag
  * check, so of concurrent deliveries one gets true. If the send fails the
  * caller gives it back with releaseEscalation.
+ *
+ * The escalation says to record the payment by hand, so it is refused when
+ * the payment is recorded: the lock notes it (`recorded`), or the payments
+ * row, when it can be read, shows invoiceApplied.
  */
-async function claimEscalation({ store, reference, now = () => new Date() }) {
+async function claimEscalation({ store, reference, invoiceNumber, log, now = () => new Date() }) {
+  try {
+    const row = await store.readPayment(paymentIdFor(reference));
+    if (row && isOwnRow(row, { reference, invoiceNumber }) && row.invoiceApplied) return false;
+  } catch (err) {
+    log?.warn(`paystack-webhook: could not read the payment for ${reference}: ${err.message}`);
+  }
   const at = now();
   try {
     const { changed } = await store.updateLock(lockId(ALERT_KEY(reference)), (lock) => {
-      if (lock.escalatedAt) return null;
+      if (lock.escalatedAt || lock.recorded) return null;
       const since = Date.parse(lock.firstFailedAt || lock.createdAt || "");
       if (!Number.isFinite(since) || at.getTime() - since < ESCALATE_AFTER_MS) return null;
       return { escalatedAt: at.toISOString() };
@@ -440,6 +469,7 @@ module.exports = {
   releaseRetryAlert,
   claimEscalation,
   releaseEscalation,
+  noteAlertRecorded,
   NOTIFY_CLAIM_MS,
   ESCALATE_AFTER_MS,
 };

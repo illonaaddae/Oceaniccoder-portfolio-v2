@@ -613,6 +613,36 @@ describe("claimEscalation", () => {
     expect(await claim(at(ESCALATE_AFTER_MS + 2))).toBe(true);
   });
 
+  it("refuses when the lock says the payment is recorded", async () => {
+    const { db, store } = setup();
+    seedLock(db, { firstFailedAt: FIRST.toISOString(), recorded: true });
+    expect(await claimEscalation({ store, reference: REFERENCE, now: at(ESCALATE_AFTER_MS) })).toBe(
+      false,
+    );
+  });
+
+  it("refuses when the payments row shows the payment applied", async () => {
+    const { db, store, payments } = setup();
+    seedLock(db, { firstFailedAt: FIRST.toISOString() });
+    payments.seed({
+      id: PAYMENT_ID,
+      invoiceNumber: "INV-2026-0042",
+      paystackReference: REFERENCE,
+      invoiceApplied: true,
+      invoiceId: "inv1",
+      settles: true,
+    });
+    expect(
+      await claimEscalation({
+        store,
+        reference: REFERENCE,
+        invoiceNumber: "INV-2026-0042",
+        now: at(ESCALATE_AFTER_MS),
+      }),
+    ).toBe(false);
+    expect(db.container("locks").docs.get(LOCK_ID).escalatedAt).toBeUndefined();
+  });
+
   it("falls back to the lock's createdAt without firstFailedAt", async () => {
     const { db, store } = setup();
     seedLock(db, { createdAt: FIRST.toISOString() });
