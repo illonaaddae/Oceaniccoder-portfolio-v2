@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
 
+const crypto = await import("crypto");
 const A = await import("./access.js");
 const { createFakeLocks } = await import("./fakes.js");
 
@@ -77,6 +78,24 @@ describe("codes", () => {
     expect(A.codeMatches(SECRET, "cid-1", wrong)).toBe(false);
     expect(A.codeMatches(SECRET, "cid-1", "12345")).toBe(false);
   });
+  it("puts only a keyed email tag in challenge and session payloads", () => {
+    const plain = crypto.createHash("sha256").update("qa-mail:kofi@example.com").digest("hex");
+    const { challenge } = A.issueChallenge(SECRET, QUOTE, 0, NOW);
+    const session = A.sessionCookie(SECRET, QUOTE, 0, NOW).split(";")[0].split("=")[1];
+    const tags = [challenge, session].map(
+      (t) => JSON.parse(Buffer.from(t.split(".")[1], "base64url").toString()).m,
+    );
+    expect(tags[0]).toBe(tags[1]);
+    for (const tag of tags) {
+      expect(tag).toMatch(/^[\w-]{22}$/);
+      expect(plain).not.toContain(tag);
+      expect(tag).not.toMatch(/kofi|example/i);
+    }
+    const otherSecret = A.issueChallenge("t".repeat(32), QUOTE, 0, NOW).challenge;
+    const otherTag = JSON.parse(Buffer.from(otherSecret.split(".")[1], "base64url").toString()).m;
+    expect(otherTag).not.toBe(tags[0]);
+  });
+
   it("keeps the code out of the challenge token", () => {
     const { challenge, code } = A.issueChallenge(SECRET, QUOTE, 0, NOW);
     const body = Buffer.from(challenge.split(".")[1], "base64url").toString();
@@ -249,6 +268,12 @@ describe("session cookie and hasAccess", () => {
     expect(await access(locks, fresh)).toBe(true);
     expect(await A.bumpEpoch(locks, QUOTE)).toBe(2);
     expect(await access(locks, fresh)).toBe(false);
+  });
+
+  it("stops working when the client email changes, but not for a case or space change", async () => {
+    const { locks, req } = await unlocked();
+    expect(await access(locks, req, { ...QUOTE, clientEmail: "new@example.com" })).toBe(false);
+    expect(await access(locks, req, { ...QUOTE, clientEmail: " kofi@EXAMPLE.com " })).toBe(true);
   });
 
   it("stops working after a revise (new revision)", async () => {
