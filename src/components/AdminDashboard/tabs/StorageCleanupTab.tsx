@@ -452,7 +452,8 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         <div className="flex items-center justify-between">
           <div>
             <h2 className={`text-2xl font-bold ${text}`}>Storage Cleanup</h2>
-            <p className={subText}>
+            {/* slate-500 is under 4.5:1 on the light page gradient outside the cards. */}
+            <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
               {loading
                 ? "Scanning storage…"
                 : !scanFinished
