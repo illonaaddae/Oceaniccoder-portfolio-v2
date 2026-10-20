@@ -232,6 +232,17 @@ describe("StorageCleanupTab", () => {
     expect(enabledDeleteButtons()).toHaveLength(0);
   });
 
+  it("counts an image the site's code uses as in use", async () => {
+    // IMAGES.profile, the default hero and sidebar photo; no row points at it.
+    const profile = media("69444ceb001c1eda1331");
+    serveCosmos({ projects: [PROJECT] });
+    listMediaFiles.mockResolvedValue([...FILES, profile]);
+    await renderTab();
+
+    expect(screen.getAllByText("In use")).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+  });
+
   describe("media referenced outside the plain URL fields", () => {
     const fileOnlyUsedBy = async (serve: () => void) => {
       serve();
