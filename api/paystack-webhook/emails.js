@@ -57,6 +57,38 @@ function webhookRetryEmail(reason, detail) {
   });
 }
 
+// webhookRetryEmail for when Cosmos could not record the alert claim, so it
+// was claimed in this process only. Nothing can send the 24-hour follow-up,
+// so this one email has to give the deadline itself.
+function webhookUntrackedEmail(reason, detail, deadline) {
+  const when = Number.isFinite(deadline)
+    ? `${new Date(deadline).toISOString().slice(0, 16).replace("T", " ")} UTC`
+    : null;
+  return shell({
+    preview: `Paystack payment may need recording by hand: ${reason}`,
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Webhook will be retried",
+        tone: "danger",
+        title: "A Paystack payment is waiting to be recorded",
+        intro:
+          "A Paystack webhook arrived but could not be processed yet. Paystack will retry it, and a retry that succeeds records the payment automatically.",
+      }) +
+      notice({
+        tone: "danger",
+        text: when
+          ? `Cosmos could not keep track of this alert, so no follow-up email will come. Paystack stops retrying 72 hours after the charge, at ${when}. If the payment is not in the Payments tab by then, record the payment by hand.`
+          : "Cosmos could not keep track of this alert, so no follow-up email will come. Paystack stops retrying 72 hours after the charge; the webhook did not say when the charge was, so check its time in the Paystack dashboard. If the payment is not in the Payments tab by then, record the payment by hand.",
+      }) +
+      notice({ tone: "warn", text: `Reason: ${reason}` }) +
+      (detail ? p(`Detail: ${detail}`) : "") +
+      small(
+        "Recording it by hand before then risks a second receipt if a retry succeeds. This email is sent once per payment (per running function instance).",
+      ),
+  });
+}
+
 // The one follow-up to webhookRetryEmail, when the same payment still fails a
 // day later. Paystack gives up 72 hours after the charge, so this is the
 // point to look into it and be ready to record the payment by hand.
@@ -237,6 +269,7 @@ module.exports = {
   currencySymbol,
   webhookFailedEmail,
   webhookRetryEmail,
+  webhookUntrackedEmail,
   recordedRetryEmail,
   recordedConflictEmail,
   webhookEscalationEmail,

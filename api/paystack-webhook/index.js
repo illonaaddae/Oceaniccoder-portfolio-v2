@@ -28,6 +28,7 @@ const {
   currencySymbol,
   webhookFailedEmail,
   webhookRetryEmail,
+  webhookUntrackedEmail,
   recordedRetryEmail,
   recordedConflictEmail,
   webhookEscalationEmail,
@@ -54,6 +55,17 @@ const CORS = {
 // the emails for NOTIFY_CLAIM_MS (2 minutes), and a run must finish well
 // inside that.
 const EMAIL_TIMEOUT_MS = 10 * 1000;
+
+// Paystack retries a failed webhook for this long after the charge.
+const RETRY_WINDOW_MS = 72 * 60 * 60 * 1000;
+
+/** When Paystack says the charge was made, in ms, or NaN if it does not. */
+function chargeTime(data) {
+  const raw = [data.paid_at, data.paidAt, data.created_at, data.createdAt].find(
+    (value) => typeof value === "string" && value,
+  );
+  return raw ? Date.parse(raw) : NaN;
+}
 
 // Paystack signs with HMAC-SHA512 and sends the digest as hex.
 const SIGNATURE_FORMAT = /^[0-9a-f]{128}$/i;
@@ -240,8 +252,9 @@ async function sendPaymentEmails(
  * one email per reference, claimed through the alert lock, and one
  * escalation if the same payment still fails a day after that. When Cosmos
  * cannot record the claim, the alert is claimed in this process instead, so
- * it still goes (once per process). Resolves which email went: "retry",
- * "recorded", "escalation" or null.
+ * it still goes (once per process), but nothing can send the follow-up: that
+ * email says so and gives Paystack's deadline. Resolves which email went:
+ * "retry", "untracked", "recorded", "escalation" or null.
  */
 async function alertRetryableFailure({
   store,
@@ -250,10 +263,12 @@ async function alertRetryableFailure({
   recorded,
   reason,
   detail,
+  chargedAt,
   mail,
   log,
 }) {
   const alert = { store, reference, invoiceNumber, log };
+  let tracked = true;
   const processKey = `alert:${reference}`;
   let claimedInCosmos = false;
   // The alert lock was already taken by an earlier failure.
@@ -268,24 +283,33 @@ async function alertRetryableFailure({
         return claimedInCosmos;
       } catch (claimErr) {
         log.error(`paystack-webhook: could not record the alert: ${claimErr.message}`);
+        tracked = false;
         return claimInProcess(processKey);
       }
     },
     release: async () =>
       claimedInCosmos ? releaseRetryAlert(alert) : processAlerts.delete(processKey),
-    send: () =>
-      recorded
-        ? mail(
-            `Paystack will retry the confirmation emails for a recorded payment on invoice ${invoiceNumber}`,
-            recordedRetryEmail(reason, detail),
-          )
-        : mail(
-            `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
-            webhookRetryEmail(reason, detail),
-          ),
+    send: () => {
+      if (recorded) {
+        return mail(
+          `Paystack will retry the confirmation emails for a recorded payment on invoice ${invoiceNumber}`,
+          recordedRetryEmail(reason, detail),
+        );
+      }
+      if (!tracked) {
+        return mail(
+          `Action needed: a payment for invoice ${invoiceNumber} may need recording by hand`,
+          webhookUntrackedEmail(reason, detail, chargedAt + RETRY_WINDOW_MS),
+        );
+      }
+      return mail(
+        `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
+        webhookRetryEmail(reason, detail),
+      );
+    },
     log,
   });
-  if (sent) return recorded ? "recorded" : "retry";
+  if (sent) return recorded ? "recorded" : tracked ? "retry" : "untracked";
 
   // A recorded payment is not lost when the retries run out, so it is not
   // escalated.
@@ -646,6 +670,7 @@ module.exports = async function (context, req) {
           recorded: Boolean(err?.paymentRecorded),
           reason,
           detail,
+          chargedAt: chargeTime(data),
           mail: (subject, html) =>
             sendEmail(resendKey, fromEmail, adminEmail, subject, html, context.log),
           log: context.log,
