@@ -162,15 +162,23 @@ function createHandler({
         return;
       }
 
-      if (imageData) doc.image = await storeVisitorImage(imageData);
+      if (imageData) {
+        try {
+          doc.image = await storeVisitorImage(imageData);
+        } catch (err) {
+          // A 400 here is written for the visitor ("The photo is too large").
+          // Anything else, Cosmos errors included, is logged below and never shown.
+          if (err.status === 400) {
+            reply(context, 400, { error: err.message });
+            return;
+          }
+          throw err;
+        }
+      }
 
       const { resource } = await db.container(collection).items.create(newDocument(doc));
       saved = fromCosmos(resource);
     } catch (err) {
-      if (err.status === 400) {
-        reply(context, 400, { error: err.message });
-        return;
-      }
       context.log.error(`submit/${collection} failed:`, err.message);
       reply(context, 500, { error: "Couldn't save that. Please try again." });
       return;
