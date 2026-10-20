@@ -4,6 +4,9 @@ import userEvent from "@testing-library/user-event";
 import type { MediaFile } from "@/services/api/storage";
 
 const mode = vi.hoisted(() => ({ usesCosmos: false }));
+const UPLOADED_LOGO = vi.hoisted(
+  () => "https://oceaniccodermedia.blob.core.windows.net/media/logo-file/logo-file.png",
+);
 const manageList = vi.fn();
 const listAllDocuments = vi.fn();
 const readPlatformLogoOverrides = vi.fn();
@@ -30,7 +33,14 @@ vi.mock("@/services/api/settings", () => ({
   readHeroImages: () => readHeroImages(),
   setPlatformLogoUrl: vi.fn(),
 }));
-vi.mock("@/components/AdminDashboard/ImageUpload", () => ({ ImageUpload: () => null }));
+// Stands in for a finished upload: one click hands back the uploaded URL.
+vi.mock("@/components/AdminDashboard/ImageUpload", () => ({
+  ImageUpload: ({ onChange, label }: { onChange: (url: string) => void; label: string }) => (
+    <button type="button" onClick={() => onChange(UPLOADED_LOGO)}>
+      Upload {label}
+    </button>
+  ),
+}));
 
 import { StorageCleanupTab } from "./StorageCleanupTab";
 
@@ -199,6 +209,25 @@ describe("StorageCleanupTab", () => {
       expect(screen.getAllByText("In use")).toHaveLength(2);
       expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
       expect(screen.getByRole("img", { name: "AWS" })).toHaveAttribute("src", bundledAws.url);
+    });
+
+    it("keeps a replaced logo in use when an older scan finishes last", async () => {
+      serveCosmos({ projects: [PROJECT] });
+      listMediaFiles.mockResolvedValue([...FILES, LOGO]);
+      // The scan on mount reads the overrides from before the replacement, slowly.
+      readPlatformLogoOverrides
+        .mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve({}), 100)))
+        .mockResolvedValue({ AWS: LOGO.url });
+      render(<StorageCleanupTab theme="dark" />);
+
+      const awsTile = screen.getByText("AWS").closest(".rounded-xl") as HTMLElement;
+      await userEvent.click(within(awsTile).getByRole("button", { name: /replace logo/i }));
+      await userEvent.click(screen.getByRole("button", { name: "Upload AWS logo" }));
+      await screen.findByText(/AWS logo updated/);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(screen.getAllByText("In use")).toHaveLength(2);
+      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
     });
 
     it("blocks delete when the overrides can't be read", async () => {
