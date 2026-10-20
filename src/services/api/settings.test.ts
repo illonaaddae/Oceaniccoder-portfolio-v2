@@ -2,8 +2,11 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { Permission, Role } from "appwrite";
 import { databases } from "./client";
 import {
+  getHeroImages,
   getPlatformLogoOverrides,
+  readHeroImages,
   readPlatformLogoOverrides,
+  setHeroImage,
   setPlatformLogoUrl,
   setSetting,
 } from "./settings";
@@ -140,6 +143,72 @@ describe("setPlatformLogoUrl", () => {
 
     await expect(setPlatformLogoUrl("Udemy", "https://e.com/udemy.png")).rejects.toThrow(
       /Couldn't read the saved platform logos, so nothing was saved/,
+    );
+    expect(update).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe("hero images", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const storedValue = (value: string) =>
+    vi.spyOn(databases, "listDocuments").mockResolvedValue({
+      documents: [{ $id: "doc1", key: "hero_images", value }],
+      total: 1,
+    } as never);
+
+  it("reads the saved images, including a cleared one", async () => {
+    storedValue('{"light":"https://e.com/light.png","dark":""}');
+    await expect(readHeroImages()).resolves.toEqual({ light: "https://e.com/light.png", dark: "" });
+  });
+
+  it("reads no row as no images", async () => {
+    mockEmptyList();
+    await expect(readHeroImages()).resolves.toEqual({});
+  });
+
+  it.each([
+    [
+      "a failed read",
+      () => vi.spyOn(databases, "listDocuments").mockRejectedValue(new Error("401")),
+    ],
+    ["malformed JSON", () => storedValue("{not json")],
+    ["a non-object value", () => storedValue('["https://e.com/light.png"]')],
+    ["a non-string URL", () => storedValue('{"light":42}')],
+  ])("the strict read rejects on %s, the lenient read returns {}", async (_name, arrange) => {
+    arrange();
+    await expect(readHeroImages()).rejects.toThrow();
+    await expect(getHeroImages()).resolves.toEqual({});
+  });
+
+  it("keeps the other theme's image when saving one", async () => {
+    storedValue('{"dark":"https://e.com/dark.png"}');
+    const update = vi.spyOn(databases, "updateDocument").mockResolvedValue({} as never);
+
+    await setHeroImage("light", "https://e.com/light.png");
+
+    expect(update).toHaveBeenCalledWith(expect.any(String), expect.any(String), "doc1", {
+      value: '{"dark":"https://e.com/dark.png","light":"https://e.com/light.png"}',
+    });
+  });
+
+  // Saving {} plus one image would wipe the other theme's image.
+  it.each([
+    [
+      "a failed read",
+      () => vi.spyOn(databases, "listDocuments").mockRejectedValue(new Error("401")),
+    ],
+    ["a malformed row", () => storedValue("{not json")],
+  ])("setHeroImage refuses to save after %s", async (_name, arrange) => {
+    arrange();
+    const update = vi.spyOn(databases, "updateDocument").mockResolvedValue({} as never);
+    const create = vi.spyOn(databases, "createDocument").mockResolvedValue({} as never);
+
+    await expect(setHeroImage("light", "https://e.com/light.png")).rejects.toThrow(
+      /Couldn't read the saved hero images, so nothing was saved/,
     );
     expect(update).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
