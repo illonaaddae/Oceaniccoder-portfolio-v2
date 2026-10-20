@@ -243,6 +243,25 @@ describe("email views", () => {
     const v = V.requestView(quote, stages[0], "TOKEN", stages, "https://oceaniccoder.dev");
     expect(v.balanceAfter).toBe("GHS 0.00");
   });
+  it("builds the access-code view without the client's email", () => {
+    const v = V.accessCodeView(quote, "004217", 10);
+    expect(v).toEqual({
+      clientFirstName: "Kofi",
+      quoteNumber: "Q-2026-0001",
+      code: "004217",
+      minutes: 10,
+    });
+  });
+  it("builds the lockout alert view with the date and dashboard link", () => {
+    const v = V.accessLockedView(quote, "2026-10-20T09:00:00.000Z", "https://oceaniccoder.dev");
+    expect(v).toMatchObject({
+      clientName: "Kofi Mensah",
+      quoteNumber: "Q-2026-0001",
+      lockedOn: "20 Oct 2026",
+      adminLink: "https://oceaniccoder.dev/admin/dashboard",
+    });
+    expect(JSON.stringify(v)).not.toContain("kofi@example.com");
+  });
 });
 
 describe("payment method label", () => {
