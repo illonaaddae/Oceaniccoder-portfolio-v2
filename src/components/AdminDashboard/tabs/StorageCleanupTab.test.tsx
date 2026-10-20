@@ -305,6 +305,9 @@ describe("StorageCleanupTab", () => {
       ["markdown inserted by the editor", `Intro\n![Image](${LIVE_URL})\nMore`],
       ["an HTML img tag", `<p><img src="${LIVE_URL}" alt="x"></p>`],
       ["a bare URL", `See ${LIVE_URL}.`],
+      ["a relative path", "![Image](/media/live-file/live-file.png)"],
+      ["an upper-case scheme", `![Image](${LIVE_URL.replace("https://", "HTTPS://")})`],
+      ["a scheme-less URL", `![Image](${LIVE_URL.replace("https:", "")})`],
     ])("counts an image in a blog post body as in use: %s", async (_name, content) => {
       await fileOnlyUsedBy(() => serveCosmos({ blog_posts: [{ $id: "b1", content }] }));
     });
