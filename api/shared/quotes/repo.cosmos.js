@@ -254,4 +254,7 @@ function createCosmosQuoteRepo(db, { locks } = {}) {
   };
 }
 
-module.exports = { createCosmosQuoteRepo };
+// paymentIdFor lives in shared/tokens.js. It is re-exported here because
+// the cutover tooling (scripts/lib/reconcile.mjs and its tests, on another
+// branch) imports it from this file.
+module.exports = { createCosmosQuoteRepo, paymentIdFor };
