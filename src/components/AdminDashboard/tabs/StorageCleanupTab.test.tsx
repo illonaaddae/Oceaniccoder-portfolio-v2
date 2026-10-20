@@ -186,6 +186,21 @@ describe("StorageCleanupTab", () => {
       expect(screen.getByRole("img", { name: "AWS" })).toHaveAttribute("src", LOGO.url);
     });
 
+    it("keeps the bundled logo in use when an override is empty", async () => {
+      const bundledAws = {
+        ...media("6a08dac800096013ea70"),
+        url: `${BASE}/6a08dac800096013ea70/pinclipart-com-welders-clipart-1637044.webp`,
+      };
+      serveCosmos({ projects: [PROJECT] });
+      listMediaFiles.mockResolvedValue([...FILES, bundledAws]);
+      readPlatformLogoOverrides.mockResolvedValue({ AWS: "" });
+      await renderTab();
+
+      expect(screen.getAllByText("In use")).toHaveLength(2);
+      expect(screen.getAllByRole("button", { name: /delete file/i })).toHaveLength(1);
+      expect(screen.getByRole("img", { name: "AWS" })).toHaveAttribute("src", bundledAws.url);
+    });
+
     it("blocks delete when the overrides can't be read", async () => {
       serveCosmos({ projects: [PROJECT] });
       listMediaFiles.mockResolvedValue([...FILES, LOGO]);

@@ -89,7 +89,8 @@ async function listCollectionRows(collection: string): Promise<Record<string, un
 function platformsWith(overrides: Record<string, string>): PlatformEntry[] {
   return ALL_PLATFORMS.map((name) => ({
     name,
-    currentUrl: overrides[name] ?? HARDCODED_URLS[name] ?? null,
+    // An empty override (a cleared upload) falls back to the bundled file.
+    currentUrl: overrides[name] || HARDCODED_URLS[name] || null,
   }));
 }
 
