@@ -1,3 +1,4 @@
+/* global require, module */
 // GET /api/get-invoice?number=INV-123456
 // Fetches invoice by invoice number for public access (no auth required).
 // DATA_BACKEND picks the store (see ../shared/backend.js). The Appwrite path
