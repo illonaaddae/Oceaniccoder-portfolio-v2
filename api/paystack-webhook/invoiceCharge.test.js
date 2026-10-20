@@ -147,6 +147,24 @@ describe("recordInvoiceCharge on Cosmos", () => {
     expect(sendEmails).toHaveBeenCalledTimes(1);
   });
 
+  it("settles a resumed row without a stored settlement against the current invoice", async () => {
+    const { payments, sendEmails, run } = setup({ invoice: invoiceDoc({ total: 1000 }) });
+    payments.seed({
+      id: PAYMENT_ID,
+      invoiceNumber: "INV-2026-0042",
+      paystackReference: REFERENCE,
+      amount: 500,
+      currency: "GHS",
+      invoiceApplied: true,
+    });
+    expect(await run()).toEqual({ outcome: "recorded" });
+    expect(sendEmails.mock.calls[0][0].settlement).toMatchObject({
+      settles: false,
+      underpaid: true,
+      expected: 1000,
+    });
+  });
+
   it("resends the emails, once the claim is stale, when notifiedAt could not be saved", async () => {
     let clock = new Date("2026-10-17T10:00:00.000Z");
     const { payments, sendEmails, run } = setup({ now: () => clock });
