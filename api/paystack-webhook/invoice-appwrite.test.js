@@ -204,6 +204,113 @@ describe("paystack-webhook invoice branch on Appwrite", () => {
     expect(sent[0].html).toContain("Currency mismatch. Paid in USD, invoiced in GHS.");
   });
 
+  const subjects = () => sent.map((m) => [m.to[0], m.subject]);
+  const FAILED_SUBJECT = "Action needed: a Paystack webhook was not processed";
+
+  it("marks an overpaid invoice paid and tells the admin by how much", async () => {
+    withRows([], [invoice({ total: 400 })]);
+    expect((await run()).status).toBe(200);
+    expect(update).toHaveBeenCalledWith(expect.any(String), "invoices", "inv1", {
+      status: "paid",
+    });
+    expect(subjects()).toEqual([
+      ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+    ]);
+    expect(sent[1].html).toContain("Overpaid by ₵100.00. The invoice has been marked paid.");
+  });
+
+  it("sends no client receipt for a settled invoice without a client email", async () => {
+    withRows([], [invoice({ clientEmail: undefined })]);
+    expect((await run()).status).toBe(200);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(
+      expect.any(String),
+      "payments",
+      expect.any(String),
+      expect.objectContaining({ clientEmail: "" }),
+    );
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+    ]);
+  });
+
+  it("alerts the admin when the payments row cannot be written and still sends receipts", async () => {
+    withRows([], [invoice()]);
+    create.mockRejectedValue(new Error("payments write refused"));
+    expect((await run()).status).toBe(200);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Action needed: payment record failed for invoice INV-2026-0042"],
+      ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+    ]);
+    expect(sent[0].html).toContain("Error: payments write refused");
+    expect(sent[0].html).toContain("scripts/backfill-payments.mjs");
+  });
+
+  it("alerts and answers 200 when Appwrite rejects a read", async () => {
+    vi.spyOn(sdk.Databases.prototype, "listDocuments").mockRejectedValue(
+      new Error("Appwrite unavailable"),
+    );
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
+    expect(sent[0].html).toContain("Appwrite rejected the update");
+    expect(update).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("alerts and answers 200 when APPWRITE_API_KEY is not set", async () => {
+    delete process.env.APPWRITE_API_KEY;
+    const list = vi.spyOn(sdk.Databases.prototype, "listDocuments");
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
+    expect(sent[0].html).toContain("APPWRITE_API_KEY is not set");
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it("alerts and answers 200 when no invoice matches", async () => {
+    withRows([], []);
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([["admin@example.com", FAILED_SUBJECT]]);
+    expect(sent[0].html).toContain("no invoice matches this payment");
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("records a charge with an empty reference without the duplicate check", async () => {
+    const list = vi
+      .spyOn(sdk.Databases.prototype, "listDocuments")
+      .mockResolvedValueOnce({ documents: [invoice()] });
+    expect((await run(chargeOf({ reference: "" }))).status).toBe(200);
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledWith(expect.any(String), "invoices", expect.any(Array));
+    expect(create).toHaveBeenCalledWith(
+      expect.any(String),
+      "payments",
+      expect.any(String),
+      expect.objectContaining({ paystackReference: "" }),
+    );
+    expect(sent.map((m) => m.subject)).toContain("Payment received for invoice INV-2026-0042");
+  });
+
+  it("takes the same path with DATA_BACKEND=appwrite set explicitly", async () => {
+    process.env.DATA_BACKEND = "appwrite";
+    try {
+      withRows([], [invoice()]);
+      expect((await run()).status).toBe(200);
+      expect(update).toHaveBeenCalledWith(expect.any(String), "invoices", "inv1", {
+        status: "paid",
+      });
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(subjects()).toEqual([
+        ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+        ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+      ]);
+    } finally {
+      delete process.env.DATA_BACKEND;
+    }
+  });
+
   it("ignores a reference that is already recorded", async () => {
     withRows([{ $id: "p0" }], []);
     expect((await run()).status).toBe(200);
