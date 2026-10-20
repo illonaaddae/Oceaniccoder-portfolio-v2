@@ -457,6 +457,21 @@ describe("create-booking slot check on Cosmos", () => {
       expect(sent.html).not.toContain("Google credentials");
     });
 
+    // @azure/cosmos reports a refused connection with an empty message.
+    it("names the error code when the Cosmos error has no message", async () => {
+      vi.mocked(bookings.items.query).mockImplementation(() => {
+        throw Object.assign(new Error(""), { name: "RestError", code: "ECONNREFUSED" });
+      });
+      stubHttps(200, { id: "email-alert" });
+
+      const ctx = await run();
+
+      expect(ctx.res.status).toBe(503);
+      expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "ECONNREFUSED");
+      const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+      expect(sent.html).toContain("was free (ECONNREFUSED)");
+    });
+
     it("still answers 503 when the alert itself can't be sent", async () => {
       mockRequest.mockImplementationOnce(() => {
         throw new Error("socket hang up");

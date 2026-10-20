@@ -9,6 +9,7 @@
 const sdk = require("node-appwrite");
 const cosmos = require("../shared/cosmos");
 const { dataBackend } = require("../shared/backend");
+const { errorReason } = require("../shared/errors");
 
 const { canOpenInvoice, hasSignature, unsignedGraceCovers } = require("../shared/invoiceLinks");
 const { createRateLimiter } = require("../shared/rateLimit");
@@ -139,7 +140,7 @@ module.exports = async function (context, req) {
       body: JSON.stringify(safe),
     };
   } catch (err) {
-    context.log.error("get-invoice error:", err.message);
+    context.log.error("get-invoice error:", errorReason(err));
     context.res = {
       status: 500,
       headers: CORS,
