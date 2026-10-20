@@ -156,6 +156,45 @@ describe("recordInvoiceCharge on Cosmos", () => {
     expect(sendEmails).toHaveBeenCalledTimes(1);
   });
 
+  describe("a failure after the row shows invoiceApplied", () => {
+    const appliedRow = (over = {}) => ({
+      id: PAYMENT_ID,
+      invoiceNumber: "INV-2026-0042",
+      paystackReference: REFERENCE,
+      amount: 500,
+      currency: "GHS",
+      invoiceApplied: true,
+      ...over,
+    });
+
+    it("is marked paymentRecorded when reading its invoice fails", async () => {
+      const { invoices, payments, run } = setup();
+      payments.seed(appliedRow({ invoiceId: "inv1" }));
+      failNext(invoices, "beforeRead");
+      await expect(run()).rejects.toMatchObject({ paymentRecorded: true });
+    });
+
+    it("is marked paymentRecorded when the lookup by number fails", async () => {
+      const { store, payments, sendEmails, log } = setup();
+      payments.seed(appliedRow());
+      store.findInvoicesByNumber = async () => {
+        throw transient();
+      };
+      await expect(
+        recordInvoiceCharge({ store, charge: charge(), sendEmails, log }),
+      ).rejects.toMatchObject({ paymentRecorded: true });
+    });
+
+    it("is not marked when the row is not applied yet", async () => {
+      const { invoices, payments, run } = setup();
+      payments.seed(appliedRow({ invoiceId: "inv1", invoiceApplied: false }));
+      failNext(invoices, "beforeRead");
+      await expect(run()).rejects.toSatisfy(
+        (err) => err.message === "Service Unavailable" && !err.paymentRecorded,
+      );
+    });
+  });
+
   it("stops as a conflict when the invoice a resumed row names is gone", async () => {
     const { invoices, payments, sendEmails, run } = setup();
     failNext(invoices, "beforeReplace");

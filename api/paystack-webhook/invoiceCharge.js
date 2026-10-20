@@ -154,7 +154,18 @@ function markRecorded(err) {
  *   "busy": another delivery is sending the emails right now; answer so that
  *   Paystack retries, and the retry will find the work done.
  */
-async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () => new Date() }) {
+async function recordInvoiceCharge(args) {
+  // Set once the payments row is seen with invoiceApplied: from then on the
+  // payment is recorded whatever fails, and the caller must not say otherwise.
+  const progress = { applied: false };
+  try {
+    return await recordSteps(args, progress);
+  } catch (err) {
+    throw progress.applied ? markRecorded(err) : err;
+  }
+}
+
+async function recordSteps({ store, charge, sendEmails, log, now = () => new Date() }, progress) {
   const { reference, invoiceNumber, amountPaid, currency, method } = charge;
   if (typeof reference !== "string" || !reference) {
     throw new Error("a payment without a Paystack reference cannot be recorded exactly once");
@@ -190,6 +201,7 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
   if (payment) {
     const stop = stopFor(payment);
     if (stop) return stop;
+    if (payment.invoiceApplied) progress.applied = true;
   }
 
   // A resumed row names the invoice it was created for. Looking the number up
@@ -242,6 +254,7 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
     });
     const stop = stopFor(payment);
     if (stop) return stop;
+    if (payment.invoiceApplied) progress.applied = true;
     // A concurrent delivery created the row first, for another invoice.
     if (hasInvoiceId(payment) && payment.invoiceId !== invoice.id) {
       invoice = await boundInvoice(payment);
@@ -271,40 +284,33 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
       current.invoiceApplied ? null : { invoiceApplied: true },
     ));
   }
+  progress.applied = true;
 
   if (payment.notifiedAt) return { outcome: "recorded" };
 
-  // The payment and the invoice change are written; only the emails are
-  // left. A failure from here is marked so the caller does not tell the admin
-  // the payment is still waiting to be recorded.
-  try {
-    const claimedAt = now();
-    const claim = await store.updatePayment(paymentId, (current) => {
-      if (current.notifiedAt) return null;
-      const previous = Date.parse(current.notifyClaimedAt || "");
-      if (Number.isFinite(previous) && claimedAt.getTime() - previous < NOTIFY_CLAIM_MS)
-        return null;
-      return { notifyClaimedAt: claimedAt.toISOString() };
-    });
-    if (!claim.changed) {
-      if (claim.doc.notifiedAt) return { outcome: "recorded" };
-      log.info(`paystack-webhook: another delivery is sending the emails for ${reference}`);
-      return { outcome: "busy" };
-    }
-
-    await sendEmails({
-      invoiceNumber,
-      clientName,
-      clientEmail,
-      amountPaid,
-      currency,
-      reference,
-      settlement,
-    });
-    await store.updatePayment(paymentId, () => ({ notifiedAt: now().toISOString() }));
-  } catch (err) {
-    throw markRecorded(err);
+  const claimedAt = now();
+  const claim = await store.updatePayment(paymentId, (current) => {
+    if (current.notifiedAt) return null;
+    const previous = Date.parse(current.notifyClaimedAt || "");
+    if (Number.isFinite(previous) && claimedAt.getTime() - previous < NOTIFY_CLAIM_MS) return null;
+    return { notifyClaimedAt: claimedAt.toISOString() };
+  });
+  if (!claim.changed) {
+    if (claim.doc.notifiedAt) return { outcome: "recorded" };
+    log.info(`paystack-webhook: another delivery is sending the emails for ${reference}`);
+    return { outcome: "busy" };
   }
+
+  await sendEmails({
+    invoiceNumber,
+    clientName,
+    clientEmail,
+    amountPaid,
+    currency,
+    reference,
+    settlement,
+  });
+  await store.updatePayment(paymentId, () => ({ notifiedAt: now().toISOString() }));
   return { outcome: "recorded" };
 }
 
