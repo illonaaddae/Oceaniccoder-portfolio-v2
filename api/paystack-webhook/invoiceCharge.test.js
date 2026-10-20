@@ -121,7 +121,9 @@ describe("recordInvoiceCharge on Cosmos", () => {
   it("finishes on retry after a crash between the payment row and the invoice", async () => {
     const { invoices, payments, sendEmails, run } = setup();
     failNext(invoices, "beforeReplace");
-    await expect(run()).rejects.toThrow("Service Unavailable");
+    await expect(run()).rejects.toSatisfy(
+      (err) => err.message === "Service Unavailable" && !err.paymentRecorded,
+    );
     expect(stored(payments, PAYMENT_ID).invoiceApplied).toBe(false);
     expect(stored(invoices, "inv1").status).toBe("sent");
     expect(sendEmails).not.toHaveBeenCalled();
@@ -173,7 +175,10 @@ describe("recordInvoiceCharge on Cosmos", () => {
       replaces += 1;
       if (body.notifiedAt && replaces === 3) throw transient();
     };
-    await expect(run()).rejects.toThrow("Service Unavailable");
+    await expect(run()).rejects.toMatchObject({
+      message: "Service Unavailable",
+      paymentRecorded: true,
+    });
     expect(sendEmails).toHaveBeenCalledTimes(1);
 
     // A retry inside the claim window leaves the claimer to finish.

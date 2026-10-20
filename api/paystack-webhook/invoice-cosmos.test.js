@@ -183,6 +183,26 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(subjects()).toHaveLength(2);
   });
 
+  it("does not say a payment is waiting when only saving notifiedAt failed", async () => {
+    db.container("payments").hooks.beforeReplace = async (id, body) => {
+      if (body.notifiedAt) throw unavailable();
+    };
+    expect((await run()).status).toBe(500);
+    expect(subjects()).toEqual([
+      ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+      [
+        "admin@example.com",
+        "Paystack will retry the confirmation emails for a recorded payment on invoice INV-2026-0042",
+      ],
+    ]);
+    const { html } = sent[2];
+    expect(html).toContain("The payment is recorded");
+    expect(html).toContain("the client may get the receipt twice");
+    expect(html).not.toContain("waiting to be recorded");
+    expect(html).not.toContain("Do not mark the invoice paid by hand");
+  });
+
   it("finishes a paid run with the settlement it recorded, not the edited invoice", async () => {
     // Replaces on the payments row: 1 invoiceApplied, 2 the email claim.
     let replaces = 0;
