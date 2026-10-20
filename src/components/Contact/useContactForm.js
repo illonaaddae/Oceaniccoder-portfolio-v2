@@ -68,6 +68,7 @@ export function useContactForm() {
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
       console.error("Form submit error:", err);
+      turnstile.reset(); // the server may have spent the token; get a fresh one for the retry
       setStatus("error");
 
       let errorMessage = "Something went wrong. Please try again later.";
