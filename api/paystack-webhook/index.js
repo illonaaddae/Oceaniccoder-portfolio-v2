@@ -17,7 +17,13 @@ const cosmos = require("../shared/cosmos");
 const { dataBackend, writeHold } = require("../shared/backend");
 const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
 const { createCosmosLocks } = require("../shared/locks");
-const { recordInvoiceCharge, claimRetryAlert, releaseRetryAlert } = require("./invoiceCharge");
+const {
+  recordInvoiceCharge,
+  claimRetryAlert,
+  releaseRetryAlert,
+  claimEscalation,
+  releaseEscalation,
+} = require("./invoiceCharge");
 const { shell, heading, p, card, notice, small } = require("../shared/email/ui");
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
@@ -167,7 +173,33 @@ function webhookRetryEmail(reason, detail) {
       notice({ tone: "warn", text: `Reason: ${reason}` }) +
       (detail ? p(`Detail: ${detail}`) : "") +
       small(
-        "This email is sent once per payment. Later attempts are only logged. If the payment is still missing from the Payments tab after a day, check the function logs.",
+        "This email is sent once per payment. Later attempts are only logged, and one more email follows if the payment is still failing 24 hours from now.",
+      ),
+  });
+}
+
+// The one follow-up to webhookRetryEmail, when the same payment still fails a
+// day later. Paystack gives up 72 hours after the charge, so this is the
+// point to look into it and be ready to record the payment by hand.
+function webhookEscalationEmail(reason, detail) {
+  return shell({
+    preview: `Paystack payment still unrecorded after 24 hours: ${reason}`,
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Webhook still failing",
+        tone: "danger",
+        title: "A Paystack payment is still not recorded",
+        intro:
+          "Paystack's retries for this payment are still failing 24 hours after the first alert. Paystack stops retrying 72 hours after the charge; after that the payment is not delivered again.",
+      }) +
+      notice({ tone: "danger", text: `Reason: ${reason}` }) +
+      (detail ? p(`Detail: ${detail}`) : "") +
+      p(
+        "Check the function logs for the cause and fix it, so a remaining retry can record the payment. If it cannot be fixed before the retries run out (72 hours after the charge), record the payment by hand from the Paystack dashboard.",
+      ) +
+      small(
+        "If you record it by hand and a retry later succeeds, the client gets a second receipt. This is the last email about this payment; later attempts are only logged.",
       ),
   });
 }
@@ -674,6 +706,8 @@ module.exports = async function (context, req) {
         // is worse than a repeated email.
         const alert = { store, reference, invoiceNumber, log: context.log };
         let claimedInCosmos = false;
+        // The alert lock was already taken by an earlier failure.
+        let alertedBefore = false;
         await alertOnce({
           claim: async () => {
             try {
@@ -681,6 +715,7 @@ module.exports = async function (context, req) {
               alert.locks = createCosmosLocks(cosmos.getDatabase());
               const claimed = await claimRetryAlert(alert);
               claimedInCosmos = claimed;
+              alertedBefore = !claimed;
               return claimed;
             } catch (claimErr) {
               context.log.error(
@@ -704,6 +739,33 @@ module.exports = async function (context, req) {
             ),
           log: context.log,
         });
+        // A recorded payment is not lost when the retries run out, so it is
+        // not escalated.
+        if (alertedBefore && !recorded) {
+          await alertOnce({
+            claim: async () => {
+              try {
+                return await claimEscalation(alert);
+              } catch (claimErr) {
+                context.log.error(
+                  `paystack-webhook: could not record the escalation: ${claimErr.message}`,
+                );
+                return false;
+              }
+            },
+            release: () => releaseEscalation(alert),
+            send: () =>
+              sendEmail(
+                resendKey,
+                fromEmail,
+                adminEmail,
+                `Action needed: a payment for invoice ${invoiceNumber} is still unrecorded after 24 hours`,
+                webhookEscalationEmail(reason, detail),
+                context.log,
+              ),
+            log: context.log,
+          });
+        }
       }
       retry();
     }
@@ -869,6 +931,7 @@ module.exports.emails = {
   webhookFailedEmail,
   webhookRetryEmail,
   recordedRetryEmail,
+  webhookEscalationEmail,
   invalidBackendEmail,
   recordFailedEmail,
   clientReceiptEmail,

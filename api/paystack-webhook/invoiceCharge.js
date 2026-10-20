@@ -28,11 +28,17 @@
 
 const { evaluateSettlement } = require("./settlement");
 const { paymentIdFor } = require("../shared/quotes/repo.cosmos");
+const { lockId } = require("../shared/tokens");
 
 // A delivery that claims the emails and then dies leaves its claim behind;
 // once it is this old another delivery takes over. Longer than a function
 // run, shorter than Paystack's first retry interval.
 const NOTIFY_CLAIM_MS = 2 * 60 * 1000;
+
+// A payment still failing this long after its first alert gets one more
+// email: Paystack stops retrying 72 hours after the charge, and by then it
+// has to be recorded by hand.
+const ESCALATE_AFTER_MS = 24 * 60 * 60 * 1000;
 
 // Invoices written before currencies were stored are in cedis.
 const DEFAULT_INVOICE_CURRENCY = "GHS";
@@ -276,8 +282,8 @@ const ALERT_KEY = (reference) => `alert:${reference}`;
 
 /**
  * Whether this delivery should email the admin about a retryable failure.
- * Paystack retries for days, so only one email goes per reference; the
- * caller logs every attempt. The `alert:<reference>` lock is the only gate:
+ * Paystack retries for days, so only one email goes per reference (and one
+ * escalation a day later, see claimEscalation); the caller logs every attempt. The `alert:<reference>` lock is the only gate:
  * creating it is atomic, so of any number of concurrent deliveries exactly
  * one gets true. Once this charge's payments row exists, alertedAt records
  * on it that the admin was told.
@@ -295,8 +301,17 @@ async function claimRetryAlert({
   now = () => new Date(),
 }) {
   if (!(await locks.take(ALERT_KEY(reference)))) return false;
-  // The claim is the lock. alertedAt is only a record, so failing to write
-  // it must not undo the claim: the lock would stay taken with no email.
+  // The claim is the lock. firstFailedAt and alertedAt are only records, so
+  // failing to write them must not undo the claim: the lock would stay taken
+  // with no email. Without firstFailedAt, claimEscalation uses the lock's
+  // createdAt, which is the same moment.
+  try {
+    await store.updateLock(lockId(ALERT_KEY(reference)), (lock) =>
+      lock.firstFailedAt ? null : { firstFailedAt: now().toISOString() },
+    );
+  } catch (err) {
+    log.error(`paystack-webhook: could not note firstFailedAt for ${reference}: ${err.message}`);
+  }
   try {
     const paymentId = paymentIdFor(reference);
     const row = await store.readPayment(paymentId);
@@ -333,4 +348,47 @@ async function releaseRetryAlert({ store, locks, reference, invoiceNumber, log }
   await locks.release(ALERT_KEY(reference));
 }
 
-module.exports = { recordInvoiceCharge, claimRetryAlert, releaseRetryAlert, NOTIFY_CLAIM_MS };
+/**
+ * Whether this delivery should send the one escalation for a reference whose
+ * alert went out at least ESCALATE_AFTER_MS ago and which still fails. The
+ * `escalatedAt` note on the alert lock is the claim: it is set with an etag
+ * check, so of concurrent deliveries one gets true. If the send fails the
+ * caller gives it back with releaseEscalation.
+ */
+async function claimEscalation({ store, reference, now = () => new Date() }) {
+  const at = now();
+  try {
+    const { changed } = await store.updateLock(lockId(ALERT_KEY(reference)), (lock) => {
+      if (lock.escalatedAt) return null;
+      const since = Date.parse(lock.firstFailedAt || lock.createdAt || "");
+      if (!Number.isFinite(since) || at.getTime() - since < ESCALATE_AFTER_MS) return null;
+      return { escalatedAt: at.toISOString() };
+    });
+    return changed;
+  } catch (err) {
+    // The alert claim was given back in the meantime: nothing was alerted yet.
+    if (err && err.code === 404) return false;
+    throw err;
+  }
+}
+
+/** Gives back an escalation claim whose email did not go. */
+async function releaseEscalation({ store, reference }) {
+  try {
+    await store.updateLock(lockId(ALERT_KEY(reference)), (lock) =>
+      lock.escalatedAt ? { escalatedAt: null } : null,
+    );
+  } catch (err) {
+    if (!(err && err.code === 404)) throw err;
+  }
+}
+
+module.exports = {
+  recordInvoiceCharge,
+  claimRetryAlert,
+  releaseRetryAlert,
+  claimEscalation,
+  releaseEscalation,
+  NOTIFY_CLAIM_MS,
+  ESCALATE_AFTER_MS,
+};

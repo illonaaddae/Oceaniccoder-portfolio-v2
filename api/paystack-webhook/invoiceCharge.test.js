@@ -3,8 +3,15 @@
 // the real store. Email sending is a recorder, so nothing leaves the process.
 import { describe, it, expect, vi } from "vitest";
 
-const { recordInvoiceCharge, claimRetryAlert, releaseRetryAlert, NOTIFY_CLAIM_MS } =
-  await import("./invoiceCharge.js");
+const {
+  recordInvoiceCharge,
+  claimRetryAlert,
+  releaseRetryAlert,
+  claimEscalation,
+  releaseEscalation,
+  NOTIFY_CLAIM_MS,
+  ESCALATE_AFTER_MS,
+} = await import("./invoiceCharge.js");
 const { createCosmosInvoiceStore, MAX_REPLACE_ATTEMPTS } =
   await import("../shared/invoices/store.cosmos.js");
 const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
@@ -522,5 +529,57 @@ describe("claimRetryAlert", () => {
     });
     expect(await claim(ctx)).toBe(true);
     expect(ctx.payments.docs.get(PAYMENT_ID)._etag).toBe(seeded._etag);
+  });
+});
+
+describe("claimEscalation", () => {
+  const LOCK_ID = lockId(`alert:${REFERENCE}`);
+  const FIRST = new Date("2026-10-17T10:00:00.000Z");
+  const at = (ms) => () => new Date(FIRST.getTime() + ms);
+  const seedLock = (db, fields) =>
+    db.container("locks").seed({ id: LOCK_ID, key: `alert:${REFERENCE}`, ...fields });
+
+  it("claims once, and only from 24 hours after firstFailedAt", async () => {
+    const { db, store } = setup();
+    seedLock(db, { createdAt: FIRST.toISOString(), firstFailedAt: FIRST.toISOString() });
+    const claim = (now) => claimEscalation({ store, reference: REFERENCE, now });
+    expect(await claim(at(ESCALATE_AFTER_MS - 1))).toBe(false);
+    expect(await claim(at(ESCALATE_AFTER_MS))).toBe(true);
+    expect(await claim(at(ESCALATE_AFTER_MS + 1))).toBe(false);
+
+    await releaseEscalation({ store, reference: REFERENCE });
+    expect(db.container("locks").docs.get(LOCK_ID).escalatedAt).toBeNull();
+    expect(await claim(at(ESCALATE_AFTER_MS + 2))).toBe(true);
+  });
+
+  it("falls back to the lock's createdAt without firstFailedAt", async () => {
+    const { db, store } = setup();
+    seedLock(db, { createdAt: FIRST.toISOString() });
+    expect(await claimEscalation({ store, reference: REFERENCE, now: at(ESCALATE_AFTER_MS) })).toBe(
+      true,
+    );
+  });
+
+  it("claims nothing when the alert lock is gone", async () => {
+    const { store } = setup();
+    expect(await claimEscalation({ store, reference: REFERENCE, now: at(ESCALATE_AFTER_MS) })).toBe(
+      false,
+    );
+    await expect(releaseEscalation({ store, reference: REFERENCE })).resolves.toBeUndefined();
+  });
+
+  it("starts from the firstFailedAt claimRetryAlert notes on the lock", async () => {
+    const { db, store, log } = setup();
+    expect(
+      await claimRetryAlert({
+        store,
+        locks: createCosmosLocks(db),
+        reference: REFERENCE,
+        invoiceNumber: "INV-2026-0042",
+        log,
+        now: () => FIRST,
+      }),
+    ).toBe(true);
+    expect(db.container("locks").docs.get(LOCK_ID).firstFailedAt).toBe(FIRST.toISOString());
   });
 });

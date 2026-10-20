@@ -8,6 +8,7 @@
 
 const INVOICES = "invoices";
 const PAYMENTS = "payments";
+const LOCKS = "locks";
 // The first replace plus three retries when the etag no longer matches.
 const MAX_REPLACE_ATTEMPTS = 4;
 
@@ -59,6 +60,7 @@ async function updateWith(container, id, decide, now) {
 function createCosmosInvoiceStore(db, { now = () => new Date() } = {}) {
   const invoices = db.container(INVOICES);
   const payments = db.container(PAYMENTS);
+  const locks = db.container(LOCKS);
 
   return {
     readPayment: (id) => readById(payments, id),
@@ -93,6 +95,9 @@ function createCosmosInvoiceStore(db, { now = () => new Date() } = {}) {
     },
 
     updateInvoice: (id, decide) => updateWith(invoices, id, decide, now),
+
+    /** Notes on a lock row (shared/locks.js) that its holder keeps, by lock id. */
+    updateLock: (id, decide) => updateWith(locks, id, decide, now),
   };
 }
 
