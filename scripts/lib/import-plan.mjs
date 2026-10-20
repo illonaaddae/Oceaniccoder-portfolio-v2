@@ -36,7 +36,11 @@ export const MONEY_CONTAINERS = new Set(["payments", "invoices"]);
 // so Cosmos holds rows Appwrite never had.
 export const SUBMITTED_CONTAINERS = new Set(Object.keys(SCHEMAS));
 
-/** The settings row that records the cutover. Never public, never imported. */
+// The row that records the cutover. It lives in `locks` because that
+// container is `manage: false`: /api/manage can't list, edit or delete it,
+// and no public read touches it. Lock rows use hashed ids (`s_...`), so no
+// lock can take this id.
+export const CUTOVER_MARKER_CONTAINER = "locks";
 export const CUTOVER_MARKER_ID = "cutover";
 
 /** Containers --prune may delete from. */
@@ -168,7 +172,7 @@ export function refusalAfterCutover(flags, marker) {
   );
 }
 
-/** The settings row --mark-cutover writes. */
+/** The row --mark-cutover writes. */
 export function cutoverMarker(now) {
   return {
     id: CUTOVER_MARKER_ID,
@@ -226,7 +230,7 @@ export function planContainer(id, docs, existing, flags) {
   const wanted = new Set(docs.map((doc) => doc.id));
   for (const row of existing) {
     if (wanted.has(row.id)) continue;
-    if (id === "settings" && row.id === CUTOVER_MARKER_ID) continue;
+    if (id === CUTOVER_MARKER_CONTAINER && row.id === CUTOVER_MARKER_ID) continue;
     if (flags.prune && canPrune(id, flags) && !isCosmosNative(id, row)) plan.prune.push(row);
     else plan.kept.push(row);
   }
