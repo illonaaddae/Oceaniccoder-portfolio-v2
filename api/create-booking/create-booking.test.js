@@ -472,6 +472,37 @@ describe("create-booking slot check on Cosmos", () => {
       expect(sent.html).toContain("was free (ECONNREFUSED)");
     });
 
+    // QA repro: Cosmos accepted the connection and never answered, so the
+    // function hung past the browser's 10 s abort and never sent the alert.
+    it("gives up after 5 s, cancels the query and alerts the owner that it timed out", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        vi.mocked(bookings.items.query).mockImplementation(() => ({
+          fetchAll: () => new Promise(() => {}),
+        }));
+        stubHttps(200, { id: "email-alert" });
+
+        const ctx = { res: null, log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } };
+        const done = handler(ctx, { method: "POST", body: validBody, query: {} });
+        await vi.advanceTimersByTimeAsync(4999);
+        expect(ctx.res).toBeNull();
+        await vi.advanceTimersByTimeAsync(1);
+        await done;
+
+        expect(ctx.res.status).toBe(503);
+        expect(JSON.parse(ctx.res.body)).toEqual({ error: "slot_check_failed" });
+        const { abortSignal } = vi.mocked(bookings.items.query).mock.calls[0][1];
+        expect(abortSignal.aborted).toBe(true);
+        expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "timed out");
+        expect(mockRequest).toHaveBeenCalledTimes(1);
+        expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
+        const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+        expect(sent.html).toContain("was free (timed out)");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("still answers 503 when the alert itself can't be sent", async () => {
       mockRequest.mockImplementationOnce(() => {
         throw new Error("socket hang up");

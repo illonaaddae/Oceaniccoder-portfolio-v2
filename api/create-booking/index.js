@@ -18,6 +18,7 @@ const {
 const cosmos = require("../shared/cosmos");
 const { dataBackend } = require("../shared/backend");
 const { errorReason } = require("../shared/errors");
+const { withDeadline } = require("../shared/deadline");
 
 const MEETING_DURATIONS = { discovery: 30, project: 60, mentorship: 45, general: 30 };
 const MEETING_LABELS = {
@@ -217,19 +218,29 @@ async function isSlotTaken(date, time) {
   return (data.total ?? 0) > 0;
 }
 
+// The browser gives up after 10 s. Bounding the check well inside that leaves
+// time for the owner alert, which a hung query would never reach.
+const SLOT_CHECK_TIMEOUT_MS = 5000;
+
 // Same match as the bookings check in /api/submit, which guards the row write.
 async function isSlotTakenInCosmos(date, time) {
-  const { resources } = await cosmos
-    .getDatabase()
-    .container("bookings")
-    .items.query({
-      query: "SELECT TOP 1 c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
-      parameters: [
-        { name: "@date", value: date },
-        { name: "@time", value: time },
-      ],
-    })
-    .fetchAll();
+  const { resources } = await withDeadline(SLOT_CHECK_TIMEOUT_MS, (abortSignal) =>
+    cosmos
+      .getDatabase()
+      .container("bookings")
+      .items.query(
+        {
+          query:
+            "SELECT TOP 1 c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
+          parameters: [
+            { name: "@date", value: date },
+            { name: "@time", value: time },
+          ],
+        },
+        { abortSignal },
+      )
+      .fetchAll(),
+  );
   return resources.length > 0;
 }
 
