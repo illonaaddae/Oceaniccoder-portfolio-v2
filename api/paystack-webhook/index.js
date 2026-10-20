@@ -524,7 +524,8 @@ module.exports = async function (context, req) {
   }
 
   // Checked before the quote branch too: the quote service reads the same
-  // setting and would only throw, so a quote charge would fail without an alert.
+  // setting and would only throw, so a quote charge would fail without an
+  // alert.
   let backend;
   try {
     backend = dataBackend();
@@ -571,9 +572,10 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp).
-  // Metadata is whatever the browser sent, so anything but a string is ignored:
-  // an object or array would reach the invoice query as a value.
+  // Extract invoice number from metadata or parse from reference
+  // (PAY-INV-XXXXXX-timestamp). Metadata is whatever the browser sent, so
+  // anything but a string is ignored: an object or array would reach the
+  // invoice query as a value.
   const invoiceNumber =
     (typeof metadata.invoiceNumber === "string" && metadata.invoiceNumber) ||
     (reference && reference.replace(/^(?:PAY|OC)-/, "").replace(/-\d+$/, ""));
@@ -650,7 +652,8 @@ module.exports = async function (context, req) {
         );
         return;
       }
-      // Another delivery is mid-way through the emails; the retry finds them sent.
+      // Another delivery is mid-way through the emails; the retry finds them
+      // sent.
       if (outcome === "busy") {
         retry();
         return;

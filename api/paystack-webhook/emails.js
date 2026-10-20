@@ -164,8 +164,8 @@ function recordedConflictEmail(reason, detail) {
 }
 
 // For an invalid DATA_BACKEND or WRITE_HOLD, which fails every delivery
-// until the setting is fixed. Paystack retries for 72 hours; after that the charges are not
-// delivered again and must be recorded by hand.
+// until the setting is fixed. Paystack retries for 72 hours; after that the
+// charges are not delivered again and must be recorded by hand.
 function invalidSettingEmail(setting, detail) {
   return shell({
     preview: `Paystack webhooks are failing: ${setting} is not valid`,

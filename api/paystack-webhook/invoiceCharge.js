@@ -26,8 +26,8 @@
 //      crash between sending and notifiedAt resends them (at least once).
 //
 // Store errors are thrown. The caller alerts (once per reference, see
-// claimRetryAlert and releaseRetryAlert) and answers 500, so Paystack retries and the next delivery
-// resumes at the first step not done.
+// claimRetryAlert and releaseRetryAlert) and answers 500, so Paystack
+// retries and the next delivery resumes at the first step not done.
 
 const { evaluateSettlement } = require("./settlement");
 const { currencySymbol } = require("./emails");
@@ -334,10 +334,11 @@ const ALERT_KEY = (reference) => `alert:${reference}`;
 /**
  * Whether this delivery should email the admin about a retryable failure.
  * Paystack retries for days, so only one email goes per reference (and one
- * escalation a day later, see claimEscalation); the caller logs every attempt. The `alert:<reference>` lock is the only gate:
- * creating it is atomic, so of any number of concurrent deliveries exactly
- * one gets true. Once this charge's payments row exists, alertedAt records
- * on it that the admin was told.
+ * escalation a day later, see claimEscalation); the caller logs every
+ * attempt. The `alert:<reference>` lock is the only gate: creating it is
+ * atomic, so of any number of concurrent deliveries exactly one gets true.
+ * Once this charge's payments row exists, alertedAt records on it that the
+ * admin was told.
  *
  * The claim is taken before the send, not after, because only a claim taken
  * first keeps concurrent deliveries to one email. If the send fails the
