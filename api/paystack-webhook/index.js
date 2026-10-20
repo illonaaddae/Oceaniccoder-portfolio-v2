@@ -172,6 +172,31 @@ function webhookRetryEmail(reason, detail) {
   });
 }
 
+// For a failure after the payment row and the invoice change were written,
+// while sending the confirmation emails or saving that they went. Nothing is
+// waiting to be recorded, so it must not say so.
+function recordedRetryEmail(reason, detail) {
+  return shell({
+    preview: `Paystack will retry the confirmation emails: ${reason}`,
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Webhook will be retried",
+        tone: "warn",
+        title: "A payment is recorded but its emails are unfinished",
+        intro:
+          "The payment is recorded and the invoice updated. What failed came after: sending the confirmation emails, or saving that they were sent.",
+      }) +
+      notice({
+        tone: "warn",
+        text: "Paystack will retry the webhook, and the retry sends any confirmation not yet saved as sent, so the client may get the receipt twice. Nothing needs recording by hand.",
+      }) +
+      notice({ tone: "warn", text: `Reason: ${reason}` }) +
+      (detail ? p(`Detail: ${detail}`) : "") +
+      small("This email is sent once per payment. Later attempts are only logged."),
+  });
+}
+
 // For an invalid DATA_BACKEND, which fails every delivery until the setting
 // is fixed. Paystack retries for 72 hours; after that the charges are not
 // delivered again and must be recorded by hand.
@@ -640,6 +665,7 @@ module.exports = async function (context, req) {
       // Every step is recorded on the payments row, so the retry resumes here.
       const reason = "Cosmos rejected the update";
       const detail = `${err.message} (invoice ${invoiceNumber}, reference ${reference})`;
+      const recorded = Boolean(err && err.paymentRecorded);
       context.log.error(`paystack-webhook: ${reason}; Paystack will retry — ${detail}`);
       // No email can go, so take no claim that a later attempt would need.
       if (resendKey && adminEmail) {
@@ -670,8 +696,10 @@ module.exports = async function (context, req) {
               resendKey,
               fromEmail,
               adminEmail,
-              `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
-              webhookRetryEmail(reason, detail),
+              recorded
+                ? `Paystack will retry the confirmation emails for a recorded payment on invoice ${invoiceNumber}`
+                : `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
+              recorded ? recordedRetryEmail(reason, detail) : webhookRetryEmail(reason, detail),
               context.log,
             ),
           log: context.log,
@@ -840,6 +868,7 @@ module.exports = async function (context, req) {
 module.exports.emails = {
   webhookFailedEmail,
   webhookRetryEmail,
+  recordedRetryEmail,
   invalidBackendEmail,
   recordFailedEmail,
   clientReceiptEmail,

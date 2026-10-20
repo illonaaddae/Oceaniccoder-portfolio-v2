@@ -122,6 +122,13 @@ function notPaidReason({ settlement, amountPaid, currency, invoice }) {
   return `paid ${sym}${amountPaid.toFixed(2)} against a total of ${sym}${settlement.expected.toFixed(2)}`;
 }
 
+/** Marks a store error as raised after the payment was fully recorded. */
+function markRecorded(err) {
+  const error = err instanceof Error ? err : new Error(String(err));
+  error.paymentRecorded = true;
+  return error;
+}
+
 /**
  * @param {object} args
  * @param {object} args.store       createCosmosInvoiceStore(db)
@@ -130,6 +137,8 @@ function notPaidReason({ settlement, amountPaid, currency, invoice }) {
  *                                    amountPaid, currency, reference, settlement }) => Promise
  * @param {object} args.log         context.log
  * @param {Function} [args.now]
+ * Store errors are thrown; one thrown after the invoice change was recorded
+ * has paymentRecorded: true, as only the emails are left to finish.
  * @returns {Promise<{ outcome: "recorded" | "duplicate" | "conflict" | "no-invoice"
  *   | "ambiguous-invoice" | "busy" }>}
  *   "conflict": the row at our id belongs to another charge.
@@ -229,29 +238,37 @@ async function recordInvoiceCharge({ store, charge, sendEmails, log, now = () =>
 
   if (payment.notifiedAt) return { outcome: "recorded" };
 
-  const claimedAt = now();
-  const claim = await store.updatePayment(paymentId, (current) => {
-    if (current.notifiedAt) return null;
-    const previous = Date.parse(current.notifyClaimedAt || "");
-    if (Number.isFinite(previous) && claimedAt.getTime() - previous < NOTIFY_CLAIM_MS) return null;
-    return { notifyClaimedAt: claimedAt.toISOString() };
-  });
-  if (!claim.changed) {
-    if (claim.doc.notifiedAt) return { outcome: "recorded" };
-    log.info(`paystack-webhook: another delivery is sending the emails for ${reference}`);
-    return { outcome: "busy" };
-  }
+  // The payment and the invoice change are written; only the emails are
+  // left. A failure from here is marked so the caller does not tell the admin
+  // the payment is still waiting to be recorded.
+  try {
+    const claimedAt = now();
+    const claim = await store.updatePayment(paymentId, (current) => {
+      if (current.notifiedAt) return null;
+      const previous = Date.parse(current.notifyClaimedAt || "");
+      if (Number.isFinite(previous) && claimedAt.getTime() - previous < NOTIFY_CLAIM_MS)
+        return null;
+      return { notifyClaimedAt: claimedAt.toISOString() };
+    });
+    if (!claim.changed) {
+      if (claim.doc.notifiedAt) return { outcome: "recorded" };
+      log.info(`paystack-webhook: another delivery is sending the emails for ${reference}`);
+      return { outcome: "busy" };
+    }
 
-  await sendEmails({
-    invoiceNumber,
-    clientName,
-    clientEmail,
-    amountPaid,
-    currency,
-    reference,
-    settlement,
-  });
-  await store.updatePayment(paymentId, () => ({ notifiedAt: now().toISOString() }));
+    await sendEmails({
+      invoiceNumber,
+      clientName,
+      clientEmail,
+      amountPaid,
+      currency,
+      reference,
+      settlement,
+    });
+    await store.updatePayment(paymentId, () => ({ notifiedAt: now().toISOString() }));
+  } catch (err) {
+    throw markRecorded(err);
+  }
   return { outcome: "recorded" };
 }
 
