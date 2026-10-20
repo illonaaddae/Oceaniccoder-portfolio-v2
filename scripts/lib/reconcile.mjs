@@ -11,13 +11,20 @@ export class UsageError extends Error {}
 // A runaway loop guard: 100 per page, so this is 100,000 transactions.
 const MAX_PAGES = 1000;
 
-/** Command-line arguments → { since } as an ISO string. Throws UsageError. */
+const ISO_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+const MODES = new Set(["live", "test"]);
+
+/** Command-line arguments → { since (ISO string), mode }. Throws UsageError. */
 export function parseReconcileArgs(argv) {
   let since;
+  let mode;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--since") {
       since = argv[i + 1];
+      i++;
+    } else if (arg === "--mode") {
+      mode = argv[i + 1];
       i++;
     } else if (arg === "--apply") {
       throw new UsageError(
@@ -31,21 +38,31 @@ export function parseReconcileArgs(argv) {
   if (!/^\d{4}-\d{2}-\d{2}/.test(since) || Number.isNaN(Date.parse(since))) {
     throw new UsageError(`--since must be an ISO date or time, not "${since}"`);
   }
-  return { since: new Date(since).toISOString() };
+  // Without a zone, Node reads a date-time as local time and a bare date as
+  // UTC; either way the window would not be what the runbook means.
+  if (!ISO_WITH_ZONE.test(since)) {
+    throw new UsageError(`--since needs a time with Z or an offset, e.g. 2026-10-27T18:00:00Z`);
+  }
+  if (!MODES.has(mode)) throw new UsageError("--mode live or --mode test is required");
+  return { since: new Date(since).toISOString(), mode };
 }
 
-/**
- * Every successful transaction since `since`. `fetchPage(page)` answers with
- * Paystack's list body for that page number, `perPage` rows a page.
- *
- * Paystack documents two meta shapes for GET /transaction: offset
- * ({ total, skipped, perPage, page, pageCount }) and, in one example, a cursor
- * shape ({ next, previous, perPage }). Paging here is by page number only.
- * With the cursor shape it carries on while `next` is set or the page was
- * full; Paystack's cursor parameters (use_cursor, next) are not used because
- * their behaviour is not verified. A page that repeats the one before means
- * the page number was ignored, and fails rather than loop.
- */
+/** "live" or "test" from a Paystack secret key's prefix. Never echoes the key. */
+export function paystackKeyMode(key) {
+  if (typeof key === "string" && key.startsWith("sk_live_")) return "live";
+  if (typeof key === "string" && key.startsWith("sk_test_")) return "test";
+  throw new UsageError("PAYSTACK_SECRET_KEY is not a Paystack secret key (sk_live_ or sk_test_)");
+}
+
+/** The host of COSMOS_ENDPOINT, to show which account is read. */
+export function cosmosHost(endpoint) {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return "(unreadable COSMOS_ENDPOINT)";
+  }
+}
+
 const txKey = (tx) => tx.id ?? tx.reference;
 
 export async function listSuccessfulTransactions(fetchPage, perPage) {

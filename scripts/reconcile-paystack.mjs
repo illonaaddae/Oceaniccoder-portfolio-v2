@@ -8,9 +8,14 @@
 // settles it: quote-pay writes a pending row before the charge. Rows settled
 // as failed, duplicate or refunded are listed for a look by hand.
 //
-// Usage:
-//   PAYSTACK_SECRET_KEY=... COSMOS_ENDPOINT=... COSMOS_KEY=... \
-//     node scripts/reconcile-paystack.mjs --since 2026-10-28T18:00:00Z
+// Usage, with PAYSTACK_SECRET_KEY, COSMOS_ENDPOINT and COSMOS_KEY (the
+// read-only key is enough) in .env.cutover (chmod 600, never committed):
+//   node --env-file=.env.cutover scripts/reconcile-paystack.mjs \
+//     --since 2026-10-27T18:00:00Z --mode live
+//
+// --since  a time with Z or an offset
+// --mode   live or test; must match the key's sk_live_/sk_test_ prefix. The
+//          mode and the Cosmos host are printed first; keys never are.
 //
 // Exit codes: 0 every transaction is settled, 3 some are unrecorded or
 // unsettled, 2 bad arguments, 1 any other failure (Paystack or Cosmos error).
@@ -18,9 +23,11 @@
 import { createRequire } from "node:module";
 import {
   UsageError,
+  cosmosHost,
   describeTransaction,
   listSuccessfulTransactions,
   parseReconcileArgs,
+  paystackKeyMode,
   reconcileTransactions,
 } from "./lib/reconcile.mjs";
 
@@ -51,10 +58,16 @@ function paystackPageFetcher(secret, since) {
 }
 
 async function main() {
-  const { since } = parseReconcileArgs(process.argv.slice(2));
+  const { since, mode } = parseReconcileArgs(process.argv.slice(2));
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret) throw new Error("PAYSTACK_SECRET_KEY must be set");
+  const keyMode = paystackKeyMode(secret);
+  if (keyMode !== mode) {
+    throw new UsageError(`--mode ${mode} given, but PAYSTACK_SECRET_KEY is a ${keyMode} key`);
+  }
   const payments = createClient().database(DATABASE_ID).container("payments");
+  console.log(`Paystack mode: ${keyMode.toUpperCase()}`);
+  console.log(`Cosmos account: ${cosmosHost(process.env.COSMOS_ENDPOINT)}\n`);
 
   const transactions = await listSuccessfulTransactions(
     paystackPageFetcher(secret, since),

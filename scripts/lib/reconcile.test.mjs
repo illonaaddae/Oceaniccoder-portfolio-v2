@@ -3,6 +3,8 @@ import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 import {
   UsageError,
+  cosmosHost,
+  paystackKeyMode,
   describeTransaction,
   listSuccessfulTransactions,
   parseReconcileArgs,
@@ -13,21 +15,68 @@ const require = createRequire(import.meta.url);
 const { paymentIdFor } = require("../../api/shared/quotes/repo.cosmos.js");
 
 describe("parseReconcileArgs", () => {
-  it("needs a valid --since", () => {
-    expect(parseReconcileArgs(["--since", "2026-10-28T18:00:00Z"])).toEqual({
+  const live = ["--mode", "live"];
+
+  it("needs a --since with a time and a zone", () => {
+    expect(parseReconcileArgs(["--since", "2026-10-28T18:00:00Z", ...live])).toEqual({
       since: "2026-10-28T18:00:00.000Z",
+      mode: "live",
     });
-    expect(() => parseReconcileArgs([])).toThrow("--since");
+    expect(parseReconcileArgs(["--since", "2026-10-28T19:00:00+01:00", ...live]).since).toBe(
+      "2026-10-28T18:00:00.000Z",
+    );
+    expect(() => parseReconcileArgs(live)).toThrow("--since");
     expect(() => parseReconcileArgs(["--since"])).toThrow("--since");
-    expect(() => parseReconcileArgs(["--since", "yesterday"])).toThrow("ISO");
-    expect(() => parseReconcileArgs(["--since", "2026-13-40"])).toThrow("ISO");
+    expect(() => parseReconcileArgs(["--since", "yesterday", ...live])).toThrow("ISO");
+    expect(() => parseReconcileArgs(["--since", "2026-13-40T00:00:00Z", ...live])).toThrow("ISO");
+    // Without a zone Node reads the time as local, which shifts the window.
+    expect(() => parseReconcileArgs(["--since", "2026-10-28T18:00:00", ...live])).toThrow(
+      "Z or an offset",
+    );
+    expect(() => parseReconcileArgs(["--since", "2026-10-28", ...live])).toThrow("Z or an offset");
+  });
+
+  it("needs --mode live or test", () => {
+    const since = ["--since", "2026-10-28T18:00:00Z"];
+    expect(parseReconcileArgs([...since, "--mode", "test"]).mode).toBe("test");
+    expect(() => parseReconcileArgs(since)).toThrow("--mode");
+    expect(() => parseReconcileArgs([...since, "--mode", "prod"])).toThrow("--mode");
   });
 
   it("refuses --apply and unknown arguments", () => {
-    expect(() => parseReconcileArgs(["--since", "2026-10-28", "--apply"])).toThrow(
+    expect(() => parseReconcileArgs(["--since", "2026-10-28T00:00:00Z", "--apply"])).toThrow(
       "not implemented",
     );
     expect(() => parseReconcileArgs(["--fix"])).toThrow(UsageError);
+  });
+});
+
+describe("paystackKeyMode", () => {
+  it("reads the mode from the key prefix", () => {
+    expect(paystackKeyMode("sk_live_abc")).toBe("live");
+    expect(paystackKeyMode("sk_test_abc")).toBe("test");
+  });
+
+  it("refuses any other key without echoing it", () => {
+    for (const key of ["pk_live_abc", "abc", ""]) {
+      let error;
+      try {
+        paystackKeyMode(key);
+      } catch (err) {
+        error = err;
+      }
+      expect(error).toBeInstanceOf(UsageError);
+      if (key) expect(error.message).not.toContain(key);
+    }
+  });
+});
+
+describe("cosmosHost", () => {
+  it("shows only the host of the endpoint", () => {
+    expect(cosmosHost("https://oceaniccoder-db.documents.azure.com:443/")).toBe(
+      "oceaniccoder-db.documents.azure.com",
+    );
+    expect(cosmosHost("not a url")).toBe("(unreadable COSMOS_ENDPOINT)");
   });
 });
 
