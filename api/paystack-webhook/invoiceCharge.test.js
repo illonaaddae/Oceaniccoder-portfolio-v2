@@ -312,6 +312,13 @@ describe("recordInvoiceCharge on Cosmos", () => {
     expect(invoices.docs.get("inv1")._etag).toBe(before);
   });
 
+  it("leaves an invoice that is already paid and not archived untouched", async () => {
+    const { invoices, run } = setup({ invoice: invoiceDoc({ status: "paid" }) });
+    const before = invoices.docs.get("inv1")._etag;
+    expect(await run()).toEqual({ outcome: "recorded" });
+    expect(invoices.docs.get("inv1")._etag).toBe(before);
+  });
+
   it("clears an archive that landed between the read and the paid write", async () => {
     const { invoices, run } = setup();
     let raced = false;

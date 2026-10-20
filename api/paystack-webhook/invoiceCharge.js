@@ -81,12 +81,13 @@ async function createOrRead(store, row) {
 // Paid when the money settles the invoice, otherwise only un-archived: an
 // archived invoice that receives any money must not stay hidden. Decided on
 // the invoice as stored at each attempt, so an archive that lands between
-// the read and the write is cleared on the retry the etag forces.
+// the read and the write is cleared on the retry the etag forces. null, so
+// no write, when there is nothing to change.
 function invoiceChange(settles) {
   return (current) => {
     const unarchive = current.archivedAt ? { archivedAt: null } : null;
-    if (settles) return { status: "paid", ...unarchive };
-    return unarchive;
+    if (!settles || current.status === "paid") return unarchive;
+    return { status: "paid", ...unarchive };
   };
 }
 
