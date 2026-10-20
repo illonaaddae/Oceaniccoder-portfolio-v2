@@ -156,6 +156,18 @@ describe("recordInvoiceCharge on Cosmos", () => {
     expect(sendEmails).toHaveBeenCalledTimes(1);
   });
 
+  it("stops as a conflict when the invoice a resumed row names is gone", async () => {
+    const { invoices, payments, sendEmails, run } = setup();
+    failNext(invoices, "beforeReplace");
+    await expect(run()).rejects.toThrow("Service Unavailable");
+    expect(stored(payments, PAYMENT_ID).invoiceId).toBe("inv1");
+    invoices.docs.delete("inv1");
+    invoices.seed(invoiceDoc({ id: "inv2" }));
+    expect(await run()).toEqual({ outcome: "conflict" });
+    expect(stored(invoices, "inv2").status).toBe("sent");
+    expect(sendEmails).not.toHaveBeenCalled();
+  });
+
   it("settles a resumed row without a stored settlement against the current invoice", async () => {
     const { payments, sendEmails, run } = setup({ invoice: invoiceDoc({ total: 1000 }) });
     payments.seed({

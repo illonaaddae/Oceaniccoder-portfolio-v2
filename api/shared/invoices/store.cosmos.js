@@ -94,6 +94,8 @@ function createCosmosInvoiceStore(db, { now = () => new Date() } = {}) {
       return resources;
     },
 
+    readInvoice: (id) => readById(invoices, id),
+
     updateInvoice: (id, decide) => updateWith(invoices, id, decide, now),
 
     /** Notes on a lock row (shared/locks.js) that its holder keeps, by lock id. */
