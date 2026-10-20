@@ -52,6 +52,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { applyPlan, isCode, isMissingContainer } from "./lib/apply-plan.mjs";
 import {
   CUTOVER_MARKER_CONTAINER,
   CUTOVER_MARKER_ID,
@@ -69,7 +70,6 @@ import {
   driftAdvice,
   refuseMarkerInBackup,
   rowsCreatedAfter,
-  uniqueKeyQuery,
 } from "./lib/import-plan.mjs";
 
 const require = createRequire(import.meta.url);
@@ -96,15 +96,13 @@ async function resolveBackupDir(explicit) {
   return path.resolve("backup", dates[dates.length - 1]);
 }
 
-const isCode = (err, code) => Boolean(err) && err.code === code;
-
 /** Every row a query returns; an empty list for a missing container on a dry run. */
 async function queryAll(container, query, { missingIsEmpty }) {
   try {
     const { resources } = await container.items.query(query).fetchAll();
     return resources;
   } catch (err) {
-    if (missingIsEmpty && isCode(err, 404)) return [];
+    if (missingIsEmpty && isMissingContainer(err)) return [];
     throw err;
   }
 }
@@ -115,7 +113,8 @@ async function readMarker(db) {
     const { resource } = await item.read();
     return resource ?? null;
   } catch (err) {
-    if (isCode(err, 404)) return null;
+    // No locks container yet means no marker either.
+    if (isCode(err, 404) || isMissingContainer(err)) return null;
     throw err;
   }
 }
@@ -169,37 +168,6 @@ function describePlan(id, plan, dryRun) {
     plan.kept.length && `${plan.kept.length} not in backup, kept`,
   ].filter(Boolean);
   return `  ${id.padEnd(22)} [${plan.mode}] ${parts.join(", ")}`;
-}
-
-async function applyPlan(id, container, plan) {
-  const outcome = { raced: 0, clashes: [] };
-  // Sequential on purpose: ~200 small documents, and the free tier's
-  // 1,000 RU/s is shared by every container. The SDK retries 429s itself.
-  // Prune first: a stale row can hold the unique key a backup row needs.
-  for (const row of plan.prune) await container.item(row.id, row.pk).delete();
-  for (const doc of plan.create) {
-    try {
-      await container.items.create(doc);
-    } catch (err) {
-      if (!isCode(err, 409)) throw err;
-      const query = uniqueKeyQuery(id, doc);
-      if (query?.missingFields) {
-        // Can't look the holder up without the key's value.
-        outcome.clashes.push({ id: doc.id, missingFields: query.missingFields });
-        continue;
-      }
-      const holders = query ? (await container.items.query(query).fetchAll()).resources : [];
-      if (holders.length > 0) {
-        // A different row holds the key, so the backup row is left out.
-        outcome.clashes.push({ id: doc.id, holders: holders.map((r) => r.id) });
-      } else {
-        // Written by a live function since the plan was made: keep that row.
-        outcome.raced += 1;
-      }
-    }
-  }
-  for (const doc of plan.overwrite) await container.items.upsert(doc);
-  return outcome;
 }
 
 function printChecks(checks, label) {
@@ -320,11 +288,15 @@ async function main() {
 
     const { raced, clashes } = await applyPlan(id, container, plan);
     if (raced) console.log(`    ${raced} created by a live function meanwhile, kept`);
+    if (clashes.length > 0) failed = true;
     for (const clash of clashes) {
+      const reason = clash.missingFields
+        ? `it has no ${clash.missingFields.join(", ")}`
+        : clash.holders.length > 0
+          ? `Cosmos row ${clash.holders.join(", ")} holds its key`
+          : "Cosmos answered 409 but no row holding its key was found";
       console.log(
-        clash.holders
-          ? `    unique-key clash: backup row ${clash.id} not created, Cosmos row ${clash.holders.join(", ")} holds its key`
-          : `    unique-key clash: backup row ${clash.id} not created; it has no ${clash.missingFields.join(", ")}`,
+        `    unique-key clash: backup row ${clash.id} not ${clash.write === "create" ? "created" : "overwritten"}; ${reason}`,
       );
     }
 
@@ -371,7 +343,8 @@ async function main() {
   }
   // After the marker Cosmos is live, so it is expected to move on from the backup.
   const drifted = checks.stateDrift.length > 0 && !marker;
-  if (failed) console.log("\nSome backup rows are missing from Cosmos.");
+  if (failed)
+    console.log("\nSome backup rows were not written (missing or a unique-key clash, above).");
   if (drifted) {
     console.log(
       `\nSome invoices, quotes or payments differ from the backup. ${driftAdvice(flags)}`,
