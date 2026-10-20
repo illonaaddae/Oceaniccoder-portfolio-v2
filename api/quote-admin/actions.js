@@ -169,8 +169,12 @@ const actions = {
     if (!["sent", "accepted"].includes(quote.status))
       throw new HttpError(409, "Only sent or accepted quotes have a link.");
     // New link is the leak response, so it also locks out every browser that
-    // entered a code. Done first: if it fails, the old link and sessions stay
-    // as they were instead of a new link with old sessions still open.
+    // entered a code. The epoch goes first, so either failure fails closed:
+    // - the epoch write fails: nothing changed; the old link and sessions
+    //   stay as they were, never a new link with old sessions still open;
+    // - the link write fails after it: every session is already locked out
+    //   and the old link still works, behind a new code. Pressing New link
+    //   again finishes the job.
     await bumpEpoch(svc.locks, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, { tokenHash: hashToken(token) });
