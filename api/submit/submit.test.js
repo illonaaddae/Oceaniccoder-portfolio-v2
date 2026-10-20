@@ -37,12 +37,13 @@ function setup({
   database = fakeDatabase(),
   sendEmail = vi.fn(async () => ({ ok: true, id: "e1" })),
   clock = { ms: Date.parse("2026-10-20T09:00:00Z") },
+  storeVisitorImage = vi.fn(),
 } = {}) {
   const verifyTurnstile = vi.fn(async () => turnstile);
   const run = createHandler({
     getDatabase: () => database.db,
     verifyTurnstile,
-    storeVisitorImage: vi.fn(),
+    storeVisitorImage,
     sendEmail,
     now: () => clock.ms,
   });
@@ -102,6 +103,55 @@ describe("POST /api/submit/{collection}", () => {
 
     expect(status).toBe(500);
     expect(context.log.error).toHaveBeenCalledWith("submit/messages failed:", "Cosmos unavailable");
+  });
+
+  it("never shows the visitor the database's own error text", async () => {
+    // Cosmos SDK errors carry the HTTP status in `code`.
+    const cosmosError = Object.assign(new Error('Message: {"Errors":["partition key mismatch"]}'), {
+      code: 400,
+    });
+    const database = fakeDatabase({ create: () => Promise.reject(cosmosError) });
+    const { call } = setup({ database });
+
+    const { status, body, context } = await call("messages", { ...MESSAGE, turnstileToken: "t" });
+
+    expect(status).toBe(500);
+    expect(body.error).toBe("Couldn't save that. Please try again.");
+    expect(context.log.error).toHaveBeenCalledWith("submit/messages failed:", cosmosError.message);
+  });
+
+  it("never shows the visitor other server errors marked 400", async () => {
+    const internal = Object.assign(new Error("Invalid blob name"), { status: 400 });
+    const database = fakeDatabase({ create: () => Promise.reject(internal) });
+    const { call } = setup({ database });
+
+    const { status, body } = await call("messages", { ...MESSAGE, turnstileToken: "t" });
+
+    expect(status).toBe(500);
+    expect(body.error).toBe("Couldn't save that. Please try again.");
+  });
+
+  it("still shows the visitor why their photo was refused", async () => {
+    const storeVisitorImage = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.reject(
+          Object.assign(new Error("The photo is too large (max 5 MB)."), { status: 400 }),
+        ),
+      );
+    const { call, database } = setup({ storeVisitorImage });
+
+    const { status, body } = await call("testimonials", {
+      name: "Ama",
+      role: "Founder",
+      content: "Great work.",
+      imageData: "data:image/png;base64,AAAA",
+      turnstileToken: "t",
+    });
+
+    expect(status).toBe(400);
+    expect(body.error).toBe("The photo is too large (max 5 MB).");
+    expect(database.created).toHaveLength(0);
   });
 
   it("answers 409 when the booking slot is already taken", async () => {
