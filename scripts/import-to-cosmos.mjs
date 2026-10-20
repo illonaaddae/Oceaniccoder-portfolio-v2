@@ -48,6 +48,7 @@ import {
   planContainer,
   quoteNumberLock,
   refusalAfterCutover,
+  uniqueKeyQuery,
 } from "./lib/import-plan.mjs";
 
 const require = createRequire(import.meta.url);
@@ -151,22 +152,30 @@ function describePlan(id, plan, dryRun) {
   return `  ${id.padEnd(22)} [${plan.mode}] ${parts.join(", ")}`;
 }
 
-async function applyPlan(container, plan) {
-  let raced = 0;
+async function applyPlan(id, container, plan) {
+  const outcome = { raced: 0, clashes: [] };
   // Sequential on purpose: ~200 small documents, and the free tier's
   // 1,000 RU/s is shared by every container. The SDK retries 429s itself.
+  // Prune first: a stale row can hold the unique key a backup row needs.
+  for (const row of plan.prune) await container.item(row.id, row.pk).delete();
   for (const doc of plan.create) {
     try {
       await container.items.create(doc);
     } catch (err) {
-      // Written by a live function since the plan was made: keep that row.
       if (!isCode(err, 409)) throw err;
-      raced += 1;
+      const query = uniqueKeyQuery(id, doc);
+      const holders = query ? (await container.items.query(query).fetchAll()).resources : [];
+      if (holders.length > 0) {
+        // A different row holds the key, so the backup row is left out.
+        outcome.clashes.push({ id: doc.id, holders: holders.map((r) => r.id) });
+      } else {
+        // Written by a live function since the plan was made: keep that row.
+        outcome.raced += 1;
+      }
     }
   }
   for (const doc of plan.overwrite) await container.items.upsert(doc);
-  for (const row of plan.prune) await container.item(row.id, row.pk).delete();
-  return raced;
+  return outcome;
 }
 
 function printChecks(checks, label) {
@@ -281,8 +290,13 @@ async function main() {
     for (const doc of plan.forcedNewer) console.warn(`    forced over newer Cosmos row ${doc.id}`);
     if (flags.dryRun) continue;
 
-    const raced = await applyPlan(container, plan);
+    const { raced, clashes } = await applyPlan(id, container, plan);
     if (raced) console.log(`    ${raced} created by a live function meanwhile, kept`);
+    for (const { id: docId, holders } of clashes) {
+      console.log(
+        `    unique-key clash: backup row ${docId} not created, Cosmos row ${holders.join(", ")} holds its key`,
+      );
+    }
 
     const rows = await queryAll(container, "SELECT c.id FROM c", readOpts);
     const found = new Set(rows.map((r) => r.id));

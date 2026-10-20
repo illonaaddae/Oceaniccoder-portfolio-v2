@@ -216,6 +216,24 @@ export function planContainer(id, docs, existing, flags) {
   return plan;
 }
 
+/**
+ * The query for the other rows that hold `doc`'s unique key (unique keys
+ * apply per partition, so the partition field is part of it), or null when
+ * the container has none. A 409 on such a container names the clash with it.
+ */
+export function uniqueKeyQuery(id, doc) {
+  const { partitionKey, uniqueKeys } = CONTAINERS[id];
+  if (!uniqueKeys) return null;
+  const fields = [...new Set([partitionKey, ...uniqueKeys.flat()].map((p) => p.slice(1)))];
+  const clauses = ["c.id != @id"];
+  const parameters = [{ name: "@id", value: doc.id }];
+  fields.forEach((field, i) => {
+    clauses.push(`c["${field}"] = @k${i}`);
+    parameters.push({ name: `@k${i}`, value: doc[field] });
+  });
+  return { query: `SELECT c.id FROM c WHERE ${clauses.join(" AND ")}`, parameters };
+}
+
 /** Full Cosmos rows as they would be after `plan` ran (for dry-run checks). */
 export function afterPlan(rows, plan) {
   const pruned = new Set(plan.prune.map((row) => row.id));

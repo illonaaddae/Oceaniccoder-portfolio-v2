@@ -14,6 +14,7 @@ import {
   planContainer,
   quoteNumberLock,
   refusalAfterCutover,
+  uniqueKeyQuery,
 } from "./import-plan.mjs";
 
 const require = createRequire(import.meta.url);
@@ -257,6 +258,29 @@ describe("planContainer", () => {
     const plan = planContainer("bookings", [], [row("x")], flags(["--prune", "--pre-cutover"]));
     expect(plan.prune).toEqual([]);
     expect(ids(plan.kept)).toEqual(["x"]);
+  });
+});
+
+describe("uniqueKeyQuery", () => {
+  it("finds another row holding the same partition and unique key", () => {
+    expect(uniqueKeyQuery("blog_reactions", { id: "r1", postId: "p1", visitorId: "v1" })).toEqual({
+      query: 'SELECT c.id FROM c WHERE c.id != @id AND c["postId"] = @k0 AND c["visitorId"] = @k1',
+      parameters: [
+        { name: "@id", value: "r1" },
+        { name: "@k0", value: "p1" },
+        { name: "@k1", value: "v1" },
+      ],
+    });
+  });
+
+  it("names a key once when the partition is the unique key", () => {
+    expect(uniqueKeyQuery("project_videos", { id: "v1", projectId: "p1" }).query).toBe(
+      'SELECT c.id FROM c WHERE c.id != @id AND c["projectId"] = @k0',
+    );
+  });
+
+  it("is null for containers without unique keys", () => {
+    expect(uniqueKeyQuery("projects", { id: "a" })).toBeNull();
   });
 });
 
