@@ -214,6 +214,33 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     ]);
   });
 
+  it("says the payment is recorded when its invoice is renumbered after being applied", async () => {
+    db.container("payments").seed({
+      id: paymentIdFor(REFERENCE),
+      invoiceNumber: "INV-2026-0042",
+      paystackReference: REFERENCE,
+      amount: 500,
+      currency: "GHS",
+      invoiceApplied: true,
+      invoiceId: "inv1",
+      settles: true,
+      expected: 500,
+      invoiceCurrency: "GHS",
+    });
+    db.container("invoices").docs.get("inv1").invoiceNumber = "INV-2026-0099";
+    expect((await run()).status).toBe(200);
+    expect(subjects()).toEqual([
+      [
+        "admin@example.com",
+        "Action needed: receipt not sent for a recorded payment on invoice INV-2026-0042",
+      ],
+    ]);
+    const { html } = sent[0];
+    expect(html).toContain("The payment is recorded");
+    expect(html).toContain("the confirmation emails were not sent");
+    expect(html).not.toContain("may be unrecorded");
+  });
+
   it("does not move a resumed payment to another invoice that took the old number", async () => {
     failNext(db.container("invoices"), "beforeReplace", 1);
     expect((await run()).status).toBe(500);

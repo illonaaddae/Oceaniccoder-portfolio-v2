@@ -108,6 +108,29 @@ function recordedRetryEmail(reason, detail) {
   });
 }
 
+// For a payment applied to its invoice whose emails were not sent because the
+// invoice has since been renumbered or deleted. The money is recorded, so it
+// must not say the payment may be unrecorded.
+function recordedConflictEmail(reason, detail) {
+  return shell({
+    preview: `Receipt not sent for a recorded payment: ${reason}`,
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Receipt not sent",
+        tone: "warn",
+        title: "A payment is recorded but its receipt was not sent",
+        intro:
+          "The payment is recorded and its invoice was updated, but the invoice has since been renumbered or deleted, so the confirmation emails were not sent.",
+      }) +
+      notice({ tone: "warn", text: `Reason: ${reason}` }) +
+      (detail ? p(`Detail: ${detail}`) : "") +
+      small(
+        "Nothing needs recording by hand. Send the client a receipt yourself if they need one.",
+      ),
+  });
+}
+
 // For an invalid DATA_BACKEND or WRITE_HOLD, which fails every delivery
 // until the setting is fixed. Paystack retries for 72 hours; after that the charges are not
 // delivered again and must be recorded by hand.
@@ -215,6 +238,7 @@ module.exports = {
   webhookFailedEmail,
   webhookRetryEmail,
   recordedRetryEmail,
+  recordedConflictEmail,
   webhookEscalationEmail,
   invalidSettingEmail,
   recordFailedEmail,
