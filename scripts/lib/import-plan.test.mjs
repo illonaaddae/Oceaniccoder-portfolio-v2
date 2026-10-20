@@ -389,17 +389,24 @@ describe("backfillLockRows", () => {
 });
 
 describe("--created-after", () => {
+  const after = (value, ...rest) => flags(["--insert-only", "--created-after", value, ...rest]);
+
   it("needs a time with Z or an offset", () => {
-    expect(flags(["--created-after", "2026-10-28T18:00:00Z"]).createdAfter).toBe(
-      "2026-10-28T18:00:00.000Z",
-    );
-    expect(flags(["--created-after", "2026-10-28T19:00:00+01:00"]).createdAfter).toBe(
-      "2026-10-28T18:00:00.000Z",
-    );
+    expect(after("2026-10-28T18:00:00Z").createdAfter).toBe("2026-10-28T18:00:00.000Z");
+    expect(after("2026-10-28T19:00:00+01:00").createdAfter).toBe("2026-10-28T18:00:00.000Z");
     for (const value of ["2026-10-28", "2026-10-28T18:00:00", "soon"]) {
-      expect(() => flags(["--created-after", value])).toThrow("Z or an offset");
+      expect(() => after(value)).toThrow("Z or an offset");
     }
     expect(flags().createdAfter).toBeNull();
+  });
+
+  it("runs only with --insert-only, so older rows never look absent from the backup", () => {
+    const time = ["--created-after", "2026-10-28T18:00:00Z"];
+    expect(() => flags(time)).toThrow("--created-after needs --insert-only");
+    expect(() => flags([...time, "--prune", "--pre-cutover"])).toThrow(UsageError);
+    expect(() => flags([...time, "--pre-cutover"])).toThrow("--created-after needs --insert-only");
+    expect(() => flags([...time, "--force-overwrite"])).toThrow(UsageError);
+    expect(after("2026-10-28T18:00:00Z", "--dry-run").dryRun).toBe(true);
   });
 
   it("keeps only rows created after the time, and counts unreadable ones", () => {

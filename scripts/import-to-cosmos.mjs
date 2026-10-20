@@ -37,7 +37,8 @@
 //                           a backup/<date>-final folder must be named)
 // --only a,b                only these containers; an unknown name fails
 // --created-after <time>    only backup rows created after this time (Z or an
-//                           offset), e.g. the final-backup time T
+//                           offset), e.g. the final backup's takenAt. Needs
+//                           --insert-only.
 // --force-overwrite         also overwrite rows that are newer in Cosmos
 // --prune-money             with --prune, also prune payments and invoices
 // --allow-overwrite-after-cutover
