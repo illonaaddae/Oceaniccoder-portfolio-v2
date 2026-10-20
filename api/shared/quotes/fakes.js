@@ -187,6 +187,9 @@ function createFakeLocks() {
     async release(key) {
       held.delete(key);
     },
+    async has(key) {
+      return held.has(key);
+    },
   };
 }
 
