@@ -156,8 +156,10 @@ function markRecorded(err) {
  * has paymentRecorded: true, as only the emails are left to finish.
  * @returns {Promise<{ outcome: "recorded" | "duplicate" | "conflict" | "no-invoice"
  *   | "ambiguous-invoice" | "busy" }>}
- *   "conflict": the row at our id belongs to another charge, or the invoice
- *   it was created for is gone or no longer has this number.
+ *   "conflict": the row at our id belongs to another charge or was edited by
+ *   hand, or the invoice it was created for is gone or no longer has this
+ *   number. With recorded: true the payment was already applied to that
+ *   invoice and only the emails were left.
  *   "busy": another delivery is sending the emails right now; answer so that
  *   Paystack retries, and the retry will find the work done.
  */
@@ -165,11 +167,13 @@ async function recordInvoiceCharge(args) {
   // Set once the payments row is seen with invoiceApplied: from then on the
   // payment is recorded whatever fails, and the caller must not say otherwise.
   const progress = { applied: false };
+  let result;
   try {
-    return await recordSteps(args, progress);
+    result = await recordSteps(args, progress);
   } catch (err) {
     throw progress.applied ? markRecorded(err) : err;
   }
+  return result.outcome === "conflict" && progress.applied ? { ...result, recorded: true } : result;
 }
 
 async function recordSteps({ store, charge, sendEmails, log, now = () => new Date() }, progress) {

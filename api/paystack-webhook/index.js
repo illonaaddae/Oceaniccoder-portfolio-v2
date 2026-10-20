@@ -29,6 +29,7 @@ const {
   webhookFailedEmail,
   webhookRetryEmail,
   recordedRetryEmail,
+  recordedConflictEmail,
   webhookEscalationEmail,
   invalidSettingEmail,
   recordFailedEmail,
@@ -493,7 +494,7 @@ module.exports = async function (context, req) {
     let store;
     try {
       store = createCosmosInvoiceStore(cosmos.getDatabase());
-      const { outcome } = await recordInvoiceCharge({
+      const { outcome, recorded } = await recordInvoiceCharge({
         store,
         charge: {
           reference,
@@ -518,6 +519,23 @@ module.exports = async function (context, req) {
           "more than one invoice has this number, so none was marked",
           `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
         );
+        return;
+      }
+      if (outcome === "conflict" && recorded) {
+        const reason = "the invoice this payment was applied to was renumbered or deleted";
+        const detail = `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`;
+        context.log.error(`paystack-webhook: ${reason} — ${detail}`);
+        if (resendKey && adminEmail) {
+          await sendEmail(
+            resendKey,
+            fromEmail,
+            adminEmail,
+            `Action needed: receipt not sent for a recorded payment on invoice ${invoiceNumber}`,
+            recordedConflictEmail(reason, detail),
+            context.log,
+          );
+        }
+        ok();
         return;
       }
       if (outcome === "conflict") {
