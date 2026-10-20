@@ -32,27 +32,58 @@ describe("parseReconcileArgs", () => {
 });
 
 describe("listSuccessfulTransactions", () => {
-  it("follows the pages until pageCount", async () => {
-    const pages = { 1: ["a", "b"], 2: ["c"] };
+  const txs = (...refs) => refs.map((reference) => ({ reference }));
+  const run = async (pages, perPage = 2) => {
     const asked = [];
     const all = await listSuccessfulTransactions(async (page) => {
       asked.push(page);
-      return {
-        data: pages[page].map((reference) => ({ reference })),
-        meta: { page, pageCount: 2 },
-      };
+      return pages[page] ?? { data: [], meta: {} };
+    }, perPage);
+    return { refs: all.map((t) => t.reference), asked };
+  };
+
+  it("follows offset pages until pageCount", async () => {
+    const result = await run({
+      1: { data: txs("a", "b"), meta: { page: 1, pageCount: 2, perPage: 2 } },
+      2: { data: txs("c"), meta: { page: 2, pageCount: 2, perPage: 2 } },
     });
-    expect(all.map((t) => t.reference)).toEqual(["a", "b", "c"]);
-    expect(asked).toEqual([1, 2]);
+    expect(result).toEqual({ refs: ["a", "b", "c"], asked: [1, 2] });
+  });
+
+  it("follows cursor-shaped pages by page number while next is set", async () => {
+    const result = await run({
+      1: { data: txs("a", "b"), meta: { next: "cur2", previous: null, perPage: 2 } },
+      2: { data: txs("c"), meta: { next: null, previous: "cur1", perPage: 2 } },
+    });
+    expect(result).toEqual({ refs: ["a", "b", "c"], asked: [1, 2] });
+  });
+
+  it("asks for another page after a full cursor-shaped page with no next", async () => {
+    const result = await run({
+      1: { data: txs("a", "b"), meta: { next: null, previous: null, perPage: 2 } },
+      2: { data: [], meta: { next: null, previous: null, perPage: 2 } },
+    });
+    expect(result).toEqual({ refs: ["a", "b"], asked: [1, 2] });
+  });
+
+  it("fails on a full page with neither pageCount nor a cursor", async () => {
+    await expect(run({ 1: { data: txs("a", "b"), meta: {} } })).rejects.toThrow(
+      "neither pageCount nor a cursor",
+    );
+    expect(await run({ 1: { data: txs("a"), meta: {} } })).toEqual({ refs: ["a"], asked: [1] });
+  });
+
+  it("fails when a page repeats the one before (page number ignored)", async () => {
+    const same = { data: txs("a", "b"), meta: { next: "cur", perPage: 2 } };
+    await expect(run({ 1: same, 2: same })).rejects.toThrow("same transactions");
   });
 
   it("stops on an empty page and fails on a malformed one", async () => {
-    const empty = await listSuccessfulTransactions(async () => ({
-      data: [],
-      meta: { pageCount: 9 },
-    }));
-    expect(empty).toEqual([]);
-    await expect(listSuccessfulTransactions(async () => ({ message: "x" }))).rejects.toThrow(
+    expect(await run({ 1: { data: [], meta: { pageCount: 9 } } })).toEqual({
+      refs: [],
+      asked: [1],
+    });
+    await expect(listSuccessfulTransactions(async () => ({ message: "x" }), 2)).rejects.toThrow(
       "no data list",
     );
   });

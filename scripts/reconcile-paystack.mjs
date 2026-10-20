@@ -56,7 +56,10 @@ async function main() {
   if (!secret) throw new Error("PAYSTACK_SECRET_KEY must be set");
   const payments = createClient().database(DATABASE_ID).container("payments");
 
-  const transactions = await listSuccessfulTransactions(paystackPageFetcher(secret, since));
+  const transactions = await listSuccessfulTransactions(
+    paystackPageFetcher(secret, since),
+    PER_PAGE,
+  );
   const { resources: rows } = await payments.items
     .query("SELECT c.id, c.paystackReference, c.status FROM c")
     .fetchAll();
