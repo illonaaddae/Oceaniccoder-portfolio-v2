@@ -22,7 +22,9 @@ const { createServices } = require("../shared/quotes/service");
 const MINUTE_MS = 60 * 1000;
 const SENDS_PER_IP_HOUR = 10;
 const VERIFIES_PER_IP_10_MIN = 30;
-const RESEND_AFTER_SECONDS = 60;
+// Classic Functions may freeze the instance once the handler returns, so the
+// lockout alert is awaited, but never for longer than this.
+const ALERT_WAIT_MS = 2000;
 const VISIBLE = ["sent", "accepted", "declined", "expired"];
 const CONTACT = "hello@oceaniccoder.dev";
 
@@ -30,6 +32,7 @@ const inactive = () => new HttpError(404, "This link is no longer active.", { in
 const NO_EMAIL = `This quote can't be opened with a code. Contact ${CONTACT} to open it.`;
 const GATE_OFF = "This quote opens without a code right now.";
 const TOO_MANY = "Too many tries. Ask for a new code.";
+const BLOCKED = `Too many wrong codes were entered on this link, so no more codes will be sent. Contact ${CONTACT} for a new link.`;
 const NEW_CODE = {
   invalid: "That code isn't valid any more. Ask for a new one.",
   expired: "That code has expired. Ask for a new one.",
@@ -42,6 +45,7 @@ const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]
 function createHandler(deps) {
   const env = deps.env || process.env;
   const sendMail = deps.send || sendEmail;
+  const alertWaitMs = deps.alertWaitMs ?? ALERT_WAIT_MS;
   const allowSendFromIp = createRateLimiter({ limit: SENDS_PER_IP_HOUR, windowMs: 60 * MINUTE_MS });
   const allowVerifyFromIp = createRateLimiter({
     limit: VERIFIES_PER_IP_10_MIN,
@@ -57,9 +61,18 @@ function createHandler(deps) {
   async function status({ svc, secret, quote, req, nowMs }) {
     const unlocked = await A.hasAccess({ secret, locks: svc.locks, req, quote, nowMs });
     const maskedEmail = A.maskEmail(quote.clientEmail);
+    const blocked =
+      !unlocked &&
+      Boolean(maskedEmail) &&
+      (await A.sendsBlocked(svc.locks, quote, await A.currentEpoch(svc.locks, quote)));
     return {
       status: 200,
-      body: { locked: !unlocked, canUnlock: Boolean(maskedEmail), maskedEmail },
+      body: {
+        locked: !unlocked,
+        canUnlock: Boolean(maskedEmail) && !blocked,
+        blocked,
+        maskedEmail,
+      },
     };
   }
 
@@ -67,24 +80,50 @@ function createHandler(deps) {
     if (!allowSendFromIp(ip || "unknown", 1, nowMs))
       throw new HttpError(429, "Too many codes asked for. Try again later.");
     if (!A.maskEmail(quote.clientEmail)) throw new HttpError(409, NO_EMAIL, { noEmail: true });
-    const slots = await A.takeSendSlots(svc.locks, quote.id, nowMs);
+    const epoch = await A.currentEpoch(svc.locks, quote);
+    if (await A.sendsBlocked(svc.locks, quote, epoch)) {
+      context.log(`quote-access blocked quote=${quote.quoteNumber}`);
+      throw new HttpError(403, BLOCKED, { blocked: true });
+    }
+    const slots = await A.takeSendSlots(svc.locks, quote, epoch, nowMs);
     if (!slots.ok) {
       context.log(`quote-access limit quote=${quote.quoteNumber}`);
       throw new HttpError(
         429,
         "A code was sent recently. Check your inbox, or wait to ask again.",
-        { retryAfterSeconds: slots.retryAfterSeconds },
+        {
+          retryAfterSeconds: slots.retryAfterSeconds,
+        },
       );
     }
-    const epoch = await A.currentEpoch(svc.locks, quote);
-    const { challenge, code } = A.issueChallenge(secret, quote, epoch, nowMs);
-    const minutes = A.CODE_TTL_MS / MINUTE_MS;
-    const mail = await sendMail({
-      to: quote.clientEmail,
-      ...T.accessCode(V.accessCodeView(quote, code, minutes)),
-    });
+
+    // Anything that goes wrong after the slots were taken hands the gap back,
+    // so the client can ask again at once. A failed hand-back is logged and
+    // the client still gets the error for the original failure.
+    const releaseGap = async () => {
+      try {
+        await slots.releaseGap();
+      } catch (err) {
+        context.log.error(
+          `quote-access gap release failed quote=${quote.quoteNumber}: ${redact(err && err.message)}`,
+        );
+      }
+    };
+    let issued;
+    let mail;
+    try {
+      issued = A.issueChallenge(secret, quote, epoch, nowMs);
+      const minutes = A.CODE_TTL_MS / MINUTE_MS;
+      mail = await sendMail({
+        to: quote.clientEmail,
+        ...T.accessCode(V.accessCodeView(quote, issued.code, minutes)),
+      });
+    } catch (err) {
+      await releaseGap();
+      throw err;
+    }
     if (!mail.ok) {
-      await slots.releaseMinute();
+      await releaseGap();
       context.log.error(
         `quote-access send failed quote=${quote.quoteNumber}: ${redact(mail.error)}`,
       );
@@ -94,19 +133,31 @@ function createHandler(deps) {
     return {
       status: 200,
       body: {
-        challenge,
+        challenge: issued.challenge,
         maskedEmail: A.maskEmail(quote.clientEmail),
         expiresInSeconds: A.CODE_TTL_MS / 1000,
-        retryAfterSeconds: RESEND_AFTER_SECONDS,
+        retryAfterSeconds: slots.retryAfterSeconds,
       },
     };
   }
 
-  async function alertLockout(context, quote, nowMs) {
-    const mail = await sendMail({
-      to: env.RESEND_TO_EMAIL,
-      ...T.accessLockedAlert(V.accessLockedView(quote, new Date(nowMs).toISOString())),
+  // Awaited but capped at ALERT_WAIT_MS: the 429 must not wait on Resend, and
+  // a fire-and-forget send could be frozen with the instance after return.
+  async function alertLockout(context, quote, nowMs, blocked) {
+    let timer;
+    const timedOut = new Promise((resolve) => {
+      timer = setTimeout(() => resolve({ ok: false, error: "timed out" }), alertWaitMs);
     });
+    const sending = Promise.resolve()
+      .then(() =>
+        sendMail({
+          to: env.RESEND_TO_EMAIL,
+          ...T.accessLockedAlert(V.accessLockedView(quote, new Date(nowMs).toISOString(), blocked)),
+        }),
+      )
+      .catch((err) => ({ ok: false, error: err && err.message }));
+    const mail = await Promise.race([sending, timedOut]);
+    clearTimeout(timer);
     if (!mail.ok)
       context.log.error(
         `quote-access lock alert failed quote=${quote.quoteNumber}: ${redact(mail.error)}`,
@@ -135,9 +186,12 @@ function createHandler(deps) {
         throw new HttpError(400, "That code isn't right. Check the email and try again.", {
           triesLeft,
         });
-      context.log.warn(`quote-access lock quote=${quote.quoteNumber}`);
-      // Only one request can hold the last try slot, so this sends once per challenge.
-      await alertLockout(context, quote, nowMs);
+      // Only one request can hold the last try slot, so this runs once per challenge.
+      const lockouts = await A.recordLockout(svc.locks, quote, checked.epoch);
+      const blocked = lockouts >= A.MAX_LOCKOUTS;
+      context.log.warn(`quote-access lock quote=${quote.quoteNumber} lockouts=${lockouts}`);
+      await alertLockout(context, quote, nowMs, blocked);
+      if (blocked) throw new HttpError(403, BLOCKED, { triesLeft: 0, blocked: true });
       throw new HttpError(429, TOO_MANY, { triesLeft: 0, newCodeNeeded: true });
     }
     if (!(await A.takeUse(svc.locks, checked.challengeId)))
@@ -162,11 +216,12 @@ function createHandler(deps) {
       const run = Object.hasOwn(ACTIONS, body.action) ? ACTIONS[body.action] : null;
       if (!run) throw new HttpError(400, "Unknown action.");
       if (!isTokenShape(body.token)) throw inactive();
-      if (!A.gateEnabled(env)) {
+      const logError = (message) => context.log.error(message);
+      if (!A.gateEnabled(env, logError)) {
         if (body.action === "status") return send(context, 200, { locked: false, gateOff: true });
         throw new HttpError(409, GATE_OFF, { gateOff: true });
       }
-      const secret = A.accessSecret(env, (message) => context.log.error(message));
+      const secret = A.accessSecret(env, logError);
       const svc = deps.services();
       const quote = await findQuote(svc, body.token);
       const result = await run({

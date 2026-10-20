@@ -26,8 +26,19 @@ describe("gateEnabled (QUOTE_ACCESS_GATE)", () => {
   it("is off only for off", () => {
     expect(A.gateEnabled({ QUOTE_ACCESS_GATE: "off" })).toBe(false);
   });
-  it.each(["OFF", "0", "false", "no"])("refuses %j instead of guessing", (value) => {
-    expect(() => A.gateEnabled({ QUOTE_ACCESS_GATE: value })).toThrow(/must be "on" or "off"/);
+  it("answers 503 for any other value instead of guessing, and logs it once", () => {
+    const log = vi.fn();
+    for (const value of ["OFF", "0", "false", "no"]) {
+      let caught;
+      try {
+        A.gateEnabled({ QUOTE_ACCESS_GATE: value }, log);
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toMatchObject({ status: 503 });
+    }
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls[0][0]).toContain("QUOTE_ACCESS_GATE");
   });
 });
 
@@ -91,9 +102,12 @@ describe("codes", () => {
       expect(plain).not.toContain(tag);
       expect(tag).not.toMatch(/kofi|example/i);
     }
+    const tagOf = (t) => JSON.parse(Buffer.from(t.split(".")[1], "base64url").toString()).m;
     const otherSecret = A.issueChallenge("t".repeat(32), QUOTE, 0, NOW).challenge;
-    const otherTag = JSON.parse(Buffer.from(otherSecret.split(".")[1], "base64url").toString()).m;
-    expect(otherTag).not.toBe(tags[0]);
+    expect(tagOf(otherSecret)).not.toBe(tags[0]);
+    // Same client on another quote: a different tag, so tokens don't link quotes.
+    const otherQuote = A.issueChallenge(SECRET, { ...QUOTE, id: "q9" }, 0, NOW).challenge;
+    expect(tagOf(otherQuote)).not.toBe(tags[0]);
   });
 
   it("keeps the code out of the challenge token", () => {
@@ -186,43 +200,78 @@ describe("tries and single use", () => {
 });
 
 describe("takeSendSlots", () => {
-  it("allows one send a minute per quote and says when to retry", async () => {
+  const slots = (locks, nowMs, quote = QUOTE, epoch = 0) =>
+    A.takeSendSlots(locks, quote, epoch, nowMs);
+
+  it("keeps code emails at least 60 seconds apart, rolling rather than per clock minute", async () => {
     const locks = createFakeLocks();
-    expect((await A.takeSendSlots(locks, "q1", NOW)).ok).toBe(true);
-    expect(await A.takeSendSlots(locks, "q1", NOW + 1000)).toEqual({
-      ok: false,
-      retryAfterSeconds: 29,
-    });
-    expect((await A.takeSendSlots(locks, "q2", NOW)).ok).toBe(true);
-    expect((await A.takeSendSlots(locks, "q1", NOW + 30 * 1000)).ok).toBe(true);
+    const start = Date.parse("2026-10-20T09:00:59.000Z");
+    const first = await slots(locks, start);
+    expect(first).toMatchObject({ ok: true, retryAfterSeconds: 61 });
+    // Two seconds later, across the clock minute: still refused.
+    expect(await slots(locks, start + 2000)).toEqual({ ok: false, retryAfterSeconds: 59 });
+    expect((await slots(locks, start + 59 * 1000)).ok).toBe(false);
+    expect((await slots(locks, start + 61 * 1000)).ok).toBe(true);
   });
 
-  it("allows five an hour and ten a UTC day per quote", async () => {
+  it("lets only one of two concurrent sends through", async () => {
     const locks = createFakeLocks();
-    const minute = 60 * 1000;
+    const both = await Promise.all([slots(locks, NOW), slots(locks, NOW + 15 * 1000)]);
+    expect(both.filter((r) => r.ok)).toHaveLength(1);
+  });
+
+  it("counts per quote, revision and epoch, so revise and rotate give the quota back", async () => {
+    const locks = createFakeLocks();
+    expect((await slots(locks, NOW)).ok).toBe(true);
+    expect((await slots(locks, NOW, { ...QUOTE, id: "q2" })).ok).toBe(true);
+    expect((await slots(locks, NOW)).ok).toBe(false);
+    expect((await slots(locks, NOW, { ...QUOTE, revision: 3 })).ok).toBe(true);
+    expect((await slots(locks, NOW, QUOTE, 1)).ok).toBe(true);
+  });
+
+  it("allows five an hour and ten a UTC day", async () => {
+    const locks = createFakeLocks();
+    const gap = 90 * 1000;
     const start = Date.parse("2026-10-20T09:00:00.000Z");
     const results = [];
-    for (let i = 0; i < 6; i += 1)
-      results.push(await A.takeSendSlots(locks, "q1", start + i * minute));
+    for (let i = 0; i < 6; i += 1) results.push(await slots(locks, start + i * gap));
     expect(results.map((r) => r.ok)).toEqual([true, true, true, true, true, false]);
-    expect(results[5].retryAfterSeconds).toBe(55 * 60);
+    expect(results[5].retryAfterSeconds).toBe(3600 - 450);
 
-    for (let i = 0; i < 5; i += 1) await A.takeSendSlots(locks, "q1", start + 3600000 + i * minute);
-    const day = await A.takeSendSlots(locks, "q1", start + 2 * 3600000);
+    for (let i = 0; i < 5; i += 1) await slots(locks, start + 3600000 + i * gap);
+    const day = await slots(locks, start + 2 * 3600000);
     expect(day).toEqual({ ok: false, retryAfterSeconds: 13 * 3600 });
-    expect((await A.takeSendSlots(locks, "q1", Date.parse("2026-10-21T00:00:00.000Z"))).ok).toBe(
-      true,
-    );
+    expect((await slots(locks, Date.parse("2026-10-21T00:00:00.000Z"))).ok).toBe(true);
   });
 
-  it("hands the minute back when the email fails, and the refused send keeps nothing", async () => {
+  it("hands the gap back when the email fails, and a refused send keeps nothing", async () => {
     const locks = createFakeLocks();
-    const first = await A.takeSendSlots(locks, "q1", NOW);
-    await first.releaseMinute();
-    expect((await A.takeSendSlots(locks, "q1", NOW)).ok).toBe(true);
+    const first = await slots(locks, NOW);
+    await first.releaseGap();
+    expect((await slots(locks, NOW)).ok).toBe(true);
     const held = locks.held.size;
-    await A.takeSendSlots(locks, "q1", NOW);
+    await slots(locks, NOW + 1000);
     expect(locks.held.size).toBe(held);
+  });
+});
+
+describe("lockouts", () => {
+  it("blocks sends after three locked-out codes on one revision and epoch", async () => {
+    const locks = createFakeLocks();
+    expect(await A.sendsBlocked(locks, QUOTE, 0)).toBe(false);
+    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(1);
+    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(2);
+    expect(await A.sendsBlocked(locks, QUOTE, 0)).toBe(false);
+    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(3);
+    expect(await A.sendsBlocked(locks, QUOTE, 0)).toBe(true);
+    expect(await A.recordLockout(locks, QUOTE, 0)).toBe(3);
+  });
+
+  it("starts again after a rotate or a revise", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 3; i += 1) await A.recordLockout(locks, QUOTE, 0);
+    expect(await A.sendsBlocked(locks, QUOTE, 1)).toBe(false);
+    expect(await A.sendsBlocked(locks, { ...QUOTE, revision: 3 }, 0)).toBe(false);
   });
 });
 
@@ -237,7 +286,7 @@ describe("session cookie and hasAccess", () => {
 
   it("sets an HttpOnly, Secure, SameSite=Strict cookie on /api for 30 days", async () => {
     const { header } = await unlocked();
-    expect(header).toMatch(/^oc_qa_[0-9a-f]{16}=v1\.[\w-]+\.[\w-]+; /);
+    expect(header).toMatch(/^__Secure-oc_qa_[0-9a-f]{16}=v1\.[\w-]+\.[\w-]+; /);
     expect(header).toContain("; Max-Age=2592000; Path=/api; HttpOnly; Secure; SameSite=Strict");
     expect(header).not.toContain("kofi");
     expect(header).not.toContain(QUOTE.tokenHash);

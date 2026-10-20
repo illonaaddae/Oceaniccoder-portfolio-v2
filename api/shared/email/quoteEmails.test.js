@@ -162,6 +162,13 @@ describe("quote email templates", () => {
     expect(mail.html).toContain("Kofi Mensah");
     expect(mail.html).toContain("Use New link on the quote");
     expect(mail.text).toContain("https://oceaniccoder.dev/admin/dashboard");
+    expect(mail.html).not.toContain("third locked code");
+  });
+
+  it("says when no more codes will be sent until New link or Revise", () => {
+    const mail = T.accessLockedAlert({ ...SAMPLE_VIEWS.accessLockedAlert.view, blocked: true });
+    expect(mail.html).toContain("no more codes will be sent until you use New link or Revise");
+    expect(mail.text).toContain("no more codes will be sent until you use New link or Revise");
   });
 
   it("covers every template sample", () => {
