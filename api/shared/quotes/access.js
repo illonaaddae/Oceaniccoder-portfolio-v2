@@ -154,7 +154,7 @@ function issueChallenge(secret, quote, epoch, nowMs) {
 
 /**
  * Checks a challenge against the quote the link found. Returns
- * { ok: true, challengeId } or { ok: false, reason } with reason one of
+ * { ok: true, challengeId, epoch } or { ok: false, reason } with reason one of
  * "invalid" (bad signature or shape), "expired", "stale" (another quote, an
  * older revision or epoch, or the client email changed since it was sent).
  */
@@ -166,7 +166,7 @@ async function checkChallenge({ secret, locks, quote, challenge, nowMs }) {
   if (p.q !== quote.id || p.r !== quote.revision || p.m !== mailTag(secret, quote.clientEmail))
     return { ok: false, reason: "stale" };
   if (!(await isEpochCurrent(locks, quote, p.e))) return { ok: false, reason: "stale" };
-  return { ok: true, challengeId: p.c };
+  return { ok: true, challengeId: p.c, epoch: p.e };
 }
 
 /** Constant-time comparison of a typed code with the challenge's code. */

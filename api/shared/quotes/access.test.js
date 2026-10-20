@@ -117,7 +117,7 @@ describe("checkChallenge", () => {
   it("accepts a fresh challenge for the same quote, revision, epoch and email", async () => {
     const locks = createFakeLocks();
     const { challenge, challengeId } = A.issueChallenge(SECRET, QUOTE, 0, NOW);
-    expect(await check(locks, challenge)).toEqual({ ok: true, challengeId });
+    expect(await check(locks, challenge)).toEqual({ ok: true, challengeId, epoch: 0 });
   });
 
   it("refuses a tampered body or signature, and a token signed with another secret", async () => {
