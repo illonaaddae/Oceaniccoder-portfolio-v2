@@ -3,7 +3,8 @@
 // repo.js and fakes.js is in contract.test.js.
 import { describe, it, expect, vi } from "vitest";
 
-const { createCosmosQuoteRepo, paymentIdFor } = await import("./repo.cosmos.js");
+const { createCosmosQuoteRepo } = await import("./repo.cosmos.js");
+const { paymentIdFor } = await import("../tokens.js");
 const { createCosmosLocks } = await import("../locks.js");
 const { createFakeCosmos } = await import("../fakeCosmos.js");
 const { lockId } = await import("../tokens.js");

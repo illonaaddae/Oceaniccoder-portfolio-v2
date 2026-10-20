@@ -15,8 +15,9 @@
 //   - JSON fields are written as JSON. Rows imported from Appwrite hold them
 //     as strings; reads accept both.
 
-const crypto = require("crypto");
 const { newId } = require("../cosmos");
+const { paymentIdFor } = require("../tokens");
+const { withoutSystemFields, readById, updateWith } = require("../cosmosRows");
 const { quoteNumber } = require("./model");
 
 const QUOTES = "quotes";
@@ -35,26 +36,7 @@ const JSON_FIELDS = {
   extras: {},
 };
 const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
-const SYSTEM_FIELDS = ["_rid", "_self", "_etag", "_attachments", "_ts"];
-// The first replace plus three retries when the etag no longer matches.
-const MAX_REPLACE_ATTEMPTS = 4;
-// Up to this many milliseconds of random wait before a retry, so two writers
-// that collided do not reread and collide again in lockstep.
-const RETRY_JITTER_MS = 50;
 const NUMBER_ATTEMPTS = 5;
-
-const isCode = (err, code) => Boolean(err) && err.code === code;
-
-/** Payment id for a Paystack reference: one row per reference. */
-function paymentIdFor(reference) {
-  return `pi_${crypto.createHash("sha256").update(reference).digest("hex")}`;
-}
-
-function withoutSystemFields(doc) {
-  const out = { ...doc };
-  for (const key of SYSTEM_FIELDS) delete out[key];
-  return out;
-}
 
 function parse(raw, fallback) {
   if (raw === null || raw === undefined || raw === "") return structuredClone(fallback);
@@ -97,23 +79,6 @@ function cleanPatch(patch) {
   return out;
 }
 
-function notFound(id) {
-  return Object.assign(new Error(`Document not found: ${id}`), { code: 404 });
-}
-
-// Point read by id (every container here is partitioned by id). The SDK
-// resolves a missing item with an undefined resource; older versions threw 404.
-async function readById(container, id) {
-  if (typeof id !== "string" || !id) return null;
-  try {
-    const { resource } = await container.item(id, id).read();
-    return resource || null;
-  } catch (err) {
-    if (isCode(err, 404)) return null;
-    throw err;
-  }
-}
-
 async function queryAll(container, query, parameters = []) {
   const { resources } = await container.items.query({ query, parameters }).fetchAll();
   return resources;
@@ -126,28 +91,12 @@ function newestFirst(rows) {
   return rows.sort((a, b) => (key(a) > key(b) ? -1 : key(a) < key(b) ? 1 : 0));
 }
 
-// Read, merge, replace if nobody changed the row meanwhile. Returns the row
+// Merge the patch into the row with an etag-checked replace. Returns the row
 // as stored. Throws 404 for a missing row, like Appwrite's updateDocument.
 async function mergeAndReplace(container, id, patch) {
   const changes = cleanPatch(patch);
-  for (let attempt = 1; ; attempt++) {
-    const current = await readById(container, id);
-    if (!current) throw notFound(id);
-    const next = {
-      ...withoutSystemFields(current),
-      ...changes,
-      updatedAt: new Date().toISOString(),
-    };
-    try {
-      const { resource } = await container.item(id, id).replace(next, {
-        accessCondition: { type: "IfMatch", condition: current._etag },
-      });
-      return resource;
-    } catch (err) {
-      if (!isCode(err, 412) || attempt >= MAX_REPLACE_ATTEMPTS) throw err;
-    }
-    await new Promise((resolve) => setTimeout(resolve, Math.random() * RETRY_JITTER_MS));
-  }
+  const { doc } = await updateWith(container, id, () => changes);
+  return doc;
 }
 
 function createCosmosQuoteRepo(db, { locks } = {}) {
@@ -305,4 +254,4 @@ function createCosmosQuoteRepo(db, { locks } = {}) {
   };
 }
 
-module.exports = { createCosmosQuoteRepo, paymentIdFor };
+module.exports = { createCosmosQuoteRepo };

@@ -12,12 +12,11 @@ const {
   NOTIFY_CLAIM_MS,
   ESCALATE_AFTER_MS,
 } = await import("./invoiceCharge.js");
-const { createCosmosInvoiceStore, MAX_REPLACE_ATTEMPTS } =
-  await import("../shared/invoices/store.cosmos.js");
+const { createCosmosInvoiceStore } = await import("../shared/invoices/store.cosmos.js");
+const { MAX_REPLACE_ATTEMPTS } = await import("../shared/cosmosRows.js");
 const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
-const { paymentIdFor } = await import("../shared/quotes/repo.cosmos.js");
 const { createCosmosLocks } = await import("../shared/locks.js");
-const { lockId } = await import("../shared/tokens.js");
+const { lockId, paymentIdFor } = await import("../shared/tokens.js");
 
 const REFERENCE = "PAY-INV-2026-0042-1760000000";
 const PAYMENT_ID = paymentIdFor(REFERENCE);
