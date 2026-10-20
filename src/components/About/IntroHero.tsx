@@ -1,13 +1,13 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { About } from "../../types";
+import { IMAGES } from "@/utils/imageUrls";
 
 /** Shown until the dashboard's About fields are filled in. */
 const DEFAULT_NAME = "Illona";
 const DEFAULT_TAGLINE =
   "Software and AI engineer, founder of SLINT Tech, and mentor to the next generation of African innovators. Below is my story, my work, and where I'm headed.";
-const DEFAULT_HEADSHOT =
-  "https://oceaniccodermedia.blob.core.windows.net/media/69444ce3002c5e175da5/headshot.webp";
+const DEFAULT_HEADSHOT = IMAGES.headshot;
 
 interface IntroHeroProps {
   about?: About | null;
