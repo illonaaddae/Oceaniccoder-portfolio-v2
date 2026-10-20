@@ -625,6 +625,16 @@ module.exports = async function (context, req) {
     return;
   }
 
+  // The reference keys the quote settle locks and the Cosmos rows and holds
+  // the invoice number, so it is read as a string; anything else counts as
+  // no reference.
+  if (data.reference != null && typeof data.reference !== "string") {
+    context.log.warn(
+      `paystack-webhook: charge has a reference that is not a string (${typeof data.reference}) — treating it as none`,
+    );
+  }
+  const reference = typeof data.reference === "string" ? data.reference : "";
+
   // Quote stage payments carry metadata.kind = "quote". They are settled by
   // the quote service, which re-fetches the transaction from Paystack rather
   // than trusting this payload, and uses lock documents so the webhook, the
@@ -632,31 +642,26 @@ module.exports = async function (context, req) {
   // failure answers 500 so Paystack retries, as on the Cosmos invoice path
   // (the Appwrite invoice path answers 200).
   if (metadata.kind === "quote") {
+    if (!reference) {
+      await bail("quote payment has no Paystack reference");
+      return;
+    }
     try {
-      const result = await quoteService.handleQuoteCharge(data.reference);
+      const result = await quoteService.handleQuoteCharge(reference);
       if (result.state === "unknown") {
-        await bail("quote payment reference not found", `reference: ${data.reference || "none"}`);
+        await bail("quote payment reference not found", `reference: ${reference}`);
         return;
       }
       // "pending" is not final: a settle-lock loser can return it while another
       // caller is still working; Paystack or the return page will complete it.
-      context.log.info(`paystack-webhook: quote payment ${data.reference} → ${result.state}`);
+      context.log.info(`paystack-webhook: quote payment ${reference} → ${result.state}`);
       ok();
     } catch (err) {
-      context.log.error(`paystack-webhook: quote payment ${data.reference} failed: ${err.message}`);
+      context.log.error(`paystack-webhook: quote payment ${reference} failed: ${err.message}`);
       retry();
     }
     return;
   }
-
-  // The reference keys the Cosmos rows and holds the invoice number, so it
-  // is read as a string; anything else counts as no reference.
-  if (data.reference != null && typeof data.reference !== "string") {
-    context.log.warn(
-      `paystack-webhook: charge has a reference that is not a string (${typeof data.reference}) — treating it as none`,
-    );
-  }
-  const reference = typeof data.reference === "string" ? data.reference : "";
 
   // Extract invoice number from metadata or parse from reference (PAY-INV-XXXXXX-timestamp).
   // Metadata is whatever the browser sent, so anything but a string is ignored:
