@@ -255,6 +255,21 @@ describe("quote-access verify", () => {
     expect(r).toMatchObject({ status: 400, body: { newCodeNeeded: true } });
   });
 
+  it("gives no working cookie when the admin issues a new link mid-verify", async () => {
+    const t = setup();
+    const { body, code } = await t.sendCode();
+    const take = t.locks.take.bind(t.locks);
+    t.locks.take = async (key) => {
+      if (key.startsWith("qa:used:")) await A.bumpEpoch({ ...t.locks, take }, base);
+      return take(key);
+    };
+    const r = await verify(t, body.challenge, code);
+    const req = { headers: { cookie: r.cookie.split(";")[0] } };
+    const quote = await t.repo.get("q1");
+    const nowMs = t.clock.ms;
+    expect(await A.hasAccess({ secret: SECRET, locks: t.locks, req, quote, nowMs })).toBe(false);
+  });
+
   it("asks for six digits before spending a try", async () => {
     const t = setup();
     const { body, code } = await t.sendCode();
