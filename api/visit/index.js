@@ -34,6 +34,7 @@
 
 const { getAnalyticsContainer, newId } = require("../shared/cosmos");
 const { clientIp } = require("../shared/turnstile");
+const { createRateLimiter } = require("../shared/rateLimit");
 const {
   MAX_BODY_BYTES,
   allowedHosts,
@@ -50,7 +51,6 @@ const DEFAULT_RAW_TTL_DAYS = 90;
 const MINUTE_MS = 60 * 1000;
 const PER_IP_LIMIT = 60;
 const INSTANCE_LIMIT = 300;
-const RATE_MAX_KEYS = 5000;
 const DAILY_LIMIT = 50000;
 const DROP_LOG_SAMPLE = 0.01;
 const MAX_ALERT_KEYS = 100;
@@ -60,28 +60,6 @@ function rawTtlSeconds(env) {
   const days = Number(env.ANALYTICS_RAW_TTL_DAYS);
   const valid = Number.isInteger(days) && days >= 1 && days <= 3650;
   return (valid ? days : DEFAULT_RAW_TTL_DAYS) * DAY_SECONDS;
-}
-
-/**
- * Fixed-window event counter per key, in memory (so per instance). When full,
- * it evicts the key whose window started first: a window that restarts is
- * moved to the end of the Map, so insertion order is window order. One noisy
- * client can push out stale keys but never reset everyone's count.
- */
-function createRateLimiter({ limit, windowMs = MINUTE_MS, maxKeys = RATE_MAX_KEYS }) {
-  const windows = new Map();
-  return function allow(key, count, nowMs) {
-    let w = windows.get(key);
-    if (!w || nowMs - w.start >= windowMs) {
-      windows.delete(key);
-      while (windows.size >= maxKeys) windows.delete(windows.keys().next().value);
-      w = { start: nowMs, count: 0 };
-      windows.set(key, w);
-    }
-    if (w.count + count > limit) return false;
-    w.count += count;
-    return true;
-  };
 }
 
 /**
@@ -275,5 +253,4 @@ function createHandler(deps) {
 
 module.exports = createHandler({ container: getAnalyticsContainer });
 module.exports.createHandler = createHandler;
-module.exports.createRateLimiter = createRateLimiter;
 module.exports.createDailyCeiling = createDailyCeiling;
