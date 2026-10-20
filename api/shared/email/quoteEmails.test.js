@@ -136,9 +136,39 @@ describe("quote email templates", () => {
     });
   });
 
+  describe("access code", () => {
+    const view = SAMPLE_VIEWS.accessCode.view;
+
+    it("puts the code in the subject, the preview, the html and the text", () => {
+      const mail = T.accessCode(view);
+      expect(mail.subject).toBe("482915 is your code for quote Q-2026-0007");
+      expect(mail.html).toContain("Your code is 482915. It works for 10 minutes.");
+      expect(mail.html).toContain(">482915</div>");
+      expect(mail.text).toContain("Use this code to open your quote from OceanicCoder: 482915");
+      expect(mail.text).toContain("It works for 10 minutes.");
+      expect(mail.html).toContain("Hi Kofi,");
+    });
+
+    it("carries no link to the quote", () => {
+      const mail = T.accessCode(view);
+      expect(mail.html).not.toContain("/q/");
+      expect(mail.text).not.toMatch(/https?:/);
+    });
+  });
+
+  it("tells the owner which quote locked and how to cut off a shared link", () => {
+    const mail = T.accessLockedAlert(SAMPLE_VIEWS.accessLockedAlert.view);
+    expect(mail.subject).toBe("Code locked after 5 wrong tries on Q-2026-0007");
+    expect(mail.html).toContain("Kofi Mensah");
+    expect(mail.html).toContain("Use New link on the quote");
+    expect(mail.text).toContain("https://oceaniccoder.dev/admin/dashboard");
+  });
+
   it("covers every template sample", () => {
     expect(Object.keys(SAMPLES).sort()).toEqual(
       [
+        "accessCode",
+        "accessLockedAlert",
         "maintenanceOffer",
         "paymentAlert",
         "paymentAlertProblem",

@@ -121,6 +121,20 @@ const SAMPLE_VIEWS = {
       whatsappLink: "https://wa.me/233241234567",
     },
   },
+  accessCode: {
+    template: "accessCode",
+    view: { clientFirstName: "Kofi", quoteNumber: "Q-2026-0007", code: "482915", minutes: 10 },
+  },
+  accessLockedAlert: {
+    template: "accessLockedAlert",
+    view: {
+      clientName: "Kofi Mensah",
+      quoteNumber: "Q-2026-0007",
+      title: "Online store with Paystack checkout",
+      lockedOn: "20 Oct 2026",
+      adminLink: "https://oceaniccoder.dev/admin/dashboard",
+    },
+  },
   paymentAlert: {
     template: "paymentAlert",
     view: {

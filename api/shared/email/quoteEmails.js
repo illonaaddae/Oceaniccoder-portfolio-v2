@@ -355,7 +355,76 @@ function maintenanceOffer(v) {
   return { subject, html, text };
 }
 
+// The code that opens a quote link. No link in it, so a forwarded or
+// intercepted copy can't open the quote by itself.
+function accessCode(v) {
+  const subject = `${v.code} is your code for quote ${v.quoteNumber}`;
+  const html = shell({
+    preview: `Your code is ${v.code}. It works for ${v.minutes} minutes.`,
+    meta: { label: "Quote", number: v.quoteNumber },
+    reason: CLIENT_REASON,
+    body:
+      heading({
+        eyebrow: "Your code",
+        title: "Open your quote",
+        intro: `Hi ${v.clientFirstName}, use this code to open your quote from OceanicCoder.`,
+      }) +
+      card({
+        highlightLabel: "Code",
+        highlight: v.code,
+        rows: [["Works for", `${v.minutes} minutes`]],
+      }) +
+      small(
+        "If you didn't try to open it, ignore this email. Nobody can open the quote without the code.",
+      ),
+  });
+  const text = lines(
+    `Hi ${v.clientFirstName},`,
+    `Use this code to open your quote from OceanicCoder: ${v.code}`,
+    `It works for ${v.minutes} minutes.`,
+    "If you didn't try to open it, ignore this email. Nobody can open the quote without the code.",
+  );
+  return { subject, html, text };
+}
+
+function accessLockedAlert(v) {
+  const subject = `Code locked after 5 wrong tries on ${v.quoteNumber}`;
+  const advice =
+    "If the client didn't ask for a code, the link may have been shared. Use New link on the quote to lock out every browser, then send the client the new link.";
+  const html = shell({
+    preview: `Five wrong codes were entered for ${v.quoteNumber}.`,
+    meta: { label: "Quote", number: v.quoteNumber },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Quote access",
+        tone: "warn",
+        title: "A quote code was locked",
+        intro: `Five wrong codes were entered for ${v.quoteNumber}. That code no longer works, and a new one goes only to the client's email.`,
+      }) +
+      card({
+        title: "Quote",
+        rows: [
+          ["Client", v.clientName],
+          ["Quote", v.title],
+          ["Date", v.lockedOn],
+        ],
+      }) +
+      notice({ tone: "warn", text: advice }) +
+      buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
+  });
+  const text = lines(
+    `Five wrong codes were entered for ${v.quoteNumber} (${v.title}, ${v.clientName}) on ${v.lockedOn}.`,
+    "That code no longer works, and a new one goes only to the client's email.",
+    advice,
+    v.adminLink,
+  );
+  return { subject, html, text };
+}
+
 module.exports = {
+  accessCode,
+  accessLockedAlert,
   maintenanceOffer,
   quoteSent,
   quoteAccepted,
