@@ -3,14 +3,18 @@
 // Creates the `portfolio` database and its containers if missing (layout in
 // api/shared/cosmos.js), then writes the backup rows by id, so re-running it
 // before cutover just refreshes the data. The rules (scripts/lib/import-plan.mjs):
-//   - payments, invoices, quotes and locks are only ever created: a row
-//     already in Cosmos is kept, and nothing is pruned from them.
-//   - Elsewhere a row is overwritten unless Cosmos has it with a newer
-//     updatedAt (a live edit). --force-overwrite overwrites those too.
+//   - Without --pre-cutover, payments, invoices, quotes and locks are only
+//     ever created: a row already in Cosmos is kept.
+//   - Elsewhere, and in those four with --pre-cutover, a row is overwritten
+//     unless Cosmos has it with a newer updatedAt (a live edit).
+//     --force-overwrite overwrites those too.
 //   - --insert-only creates missing rows and overwrites nothing.
 //   - Rows in Cosmos but not in the backup are reported. --prune deletes them,
-//     but only with --pre-cutover, never from the create-only containers or
-//     the ones /api/submit writes, and never once the cutover marker exists.
+//     but only with --pre-cutover, never from the ones /api/submit writes, from
+//     payments and invoices only with --prune-money as well, and never once the
+//     cutover marker exists.
+//   - Before the marker, a real run fails if any invoice, quote or payment in
+//     the backup differs from Cosmos in status or updatedAt.
 //
 // Refuses to import a row that still links to Appwrite Storage: that backup
 // was taken before scripts/rewrite-media-urls.mjs ran, so take a new one.
@@ -25,6 +29,7 @@
 // --backup <dir>            backup folder (default: the newest backup/<date>)
 // --only a,b                only these containers; an unknown name fails
 // --force-overwrite         also overwrite rows that are newer in Cosmos
+// --prune-money             with --prune, also prune payments and invoices
 // --backfill-quote-locks    create the missing quoteNumber lock rows
 
 import { existsSync } from "node:fs";
@@ -33,6 +38,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import {
   CUTOVER_MARKER_ID,
+  DRIFT_CHECKED,
   afterPlan,
   IMPORTED_CONTAINERS,
   UsageError,
@@ -196,6 +202,11 @@ function printChecks(checks, label) {
     checks.quotesWithoutLock,
     (q) => `${q.id}: ${q.quoteNumber ?? "no quoteNumber"}`,
   );
+  report(
+    "invoices, quotes and payments that differ from the backup",
+    checks.stateDrift,
+    (d) => `${d.container}/${d.id}: ${d.problem}`,
+  );
   if (problems === 0) console.log("  no problems found");
 }
 
@@ -293,6 +304,7 @@ async function main() {
     quotes: await all("quotes"),
     locks: await all("locks"),
     backupPayments: docsByContainer.payments ?? null,
+    backupState: Object.fromEntries(DRIFT_CHECKED.map((id) => [id, docsByContainer[id] ?? null])),
   });
   printChecks(checks, flags.dryRun ? "Cosmos after this import, dry run" : "Cosmos");
   if (flags.backfillQuoteLocks) {
@@ -303,12 +315,16 @@ async function main() {
     console.log("\nDry run: nothing written.");
     return 0;
   }
-  console.log(
-    failed
-      ? "\nSome backup rows are missing from Cosmos."
-      : "\nImport complete; every backup row is in Cosmos.",
-  );
-  return failed ? 1 : 0;
+  // After the marker Cosmos is live, so it is expected to move on from the backup.
+  const drifted = checks.stateDrift.length > 0 && !marker;
+  if (failed) console.log("\nSome backup rows are missing from Cosmos.");
+  if (drifted) {
+    console.log(
+      "\nSome invoices, quotes or payments differ from the backup. Re-run with --pre-cutover.",
+    );
+  }
+  if (!failed && !drifted) console.log("\nImport complete; every backup row is in Cosmos.");
+  return failed || drifted ? 1 : 0;
 }
 
 main().then(
