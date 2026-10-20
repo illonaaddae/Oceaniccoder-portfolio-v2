@@ -78,8 +78,9 @@ export async function listSuccessfulTransactions(fetchPage, perPage) {
     if (fresh.length === 0) {
       throw new Error(`Paystack page ${page} returned the same transactions as an earlier page`);
     }
-    for (const tx of body.data) seen.add(txKey(tx));
-    all.push(...body.data);
+    // A charge landing mid-run shifts rows onto the next page; keep one copy.
+    for (const tx of fresh) seen.add(txKey(tx));
+    all.push(...fresh);
 
     const meta = body.meta ?? {};
     const full = body.data.length >= perPage;
@@ -141,6 +142,16 @@ export function reconcileTransactions(transactions, payments) {
     }
   }
   return result;
+}
+
+/**
+ * 3 when a charge has no row or no settled row (replay its webhook), 4 when
+ * the only lines left are settled with a problem (resolve or refund by hand),
+ * 0 when everything is settled.
+ */
+export function reconcileExitCode({ unrecorded, unsettled, problems }) {
+  if (unrecorded.length > 0 || unsettled.length > 0) return 3;
+  return problems.length > 0 ? 4 : 0;
 }
 
 /** One report line for a transaction; amounts arrive in minor units. */
