@@ -8,6 +8,12 @@
 // deleting the lock row in the Appwrite console (locks table, id = "s_" plus a
 // sha256 prefix of the key), or in the Cosmos `locks` container once
 // DATA_BACKEND=cosmos. Both use the same id, so imported locks keep holding.
+//
+// The Paystack webhook's `alert:<reference>` locks (Cosmos only) are kept on
+// purpose once their email went: they stop a second alert for the same
+// payment and carry its notes (firstFailedAt, escalatedAt, recorded). They
+// are released only when the alert email fails, and nothing deletes them
+// later; there is one small row per payment that ever failed.
 
 const { sdk, DATABASE_ID } = require("./appwrite");
 const { lockId } = require("./tokens");
