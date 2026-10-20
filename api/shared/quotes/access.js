@@ -1,7 +1,8 @@
 // Email-code access to a client quote link (docs/plans/2026-10-20-quote-access-code.md).
 //
-// The link token finds the quote; a 6-digit code emailed to the client proves
-// the person holding the link can read the client's mail. Nothing secret is
+// The link token finds the quote. The browser proves it can read the
+// client's mail either with the one-time link code in the emailed link's
+// fragment (#k=), or with a 6-digit code emailed on request. Nothing secret is
 // stored: the challenge is an HMAC-signed token, the code is derived from it,
 // and the 30-day unlock is an HMAC-signed HttpOnly cookie. Counts that must
 // hold across instances (tries, single use, send quotas, the access epoch)
@@ -23,6 +24,10 @@ const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 const CODE_TTL_MS = 10 * MINUTE_MS;
 const SESSION_TTL_MS = 30 * DAY_MS;
+// A link code works for 45 days from the email it came in: longer than a
+// quote's usual validity plus the wait for a payment request, short enough
+// that an old email found later is no longer a key. Each new email mints one.
+const LINK_CODE_TTL_MS = 45 * DAY_MS;
 const MAX_TRIES = 5;
 const SENDS_PER_HOUR = 5;
 const SENDS_PER_DAY = 10;
@@ -300,6 +305,52 @@ function sendsBlocked(locks, quote, epoch) {
   return locks.has(`${lockoutPrefix(quote, epoch)}:${MAX_LOCKOUTS}`);
 }
 
+// Link codes: the one-time "#k=" part of a link the admin emails, which
+// signs the browser in without a typed code. "<nonce>.<minted, base36 ms>.<hmac>",
+// where the HMAC covers the quote id, revision, access epoch and email tag,
+// so Revise, New link or a changed client email void every code minted
+// before. Nothing is stored until it is claimed (qa:lk:<nonce>).
+const LINK_CODE_RE = /^([\w-]{22})\.([0-9a-z]{1,12})\.([\w-]{43})$/;
+
+function linkSig(secret, quote, epoch, nonce, minted) {
+  return hmac(
+    secret,
+    "qa-link:",
+    `${quote.id}:${quote.revision}:${epoch}:${mailTag(secret, quote)}:${nonce}:${minted}`,
+  ).toString("base64url");
+}
+
+/** A fresh single-use link code for this quote's current revision and epoch. */
+function mintLinkCode(secret, quote, epoch, nowMs) {
+  const nonce = crypto.randomBytes(16).toString("base64url");
+  const minted = nowMs.toString(36);
+  return `${nonce}.${minted}.${linkSig(secret, quote, epoch, nonce, minted)}`;
+}
+
+/**
+ * Checks a link code against the quote the link found and its current epoch.
+ * Returns { ok: true, nonce, epoch } or { ok: false, reason } with reason
+ * "invalid" (shape, signature, another quote, revision, epoch or email) or
+ * "expired". It doesn't mark the code used; claimLinkCode does.
+ */
+async function checkLinkCode({ secret, locks, quote, linkCode, nowMs }) {
+  const m = typeof linkCode === "string" ? LINK_CODE_RE.exec(linkCode) : null;
+  if (!m) return { ok: false, reason: "invalid" };
+  const [, nonce, minted, sig] = m;
+  const epoch = await currentEpoch(locks, quote);
+  const expected = Buffer.from(linkSig(secret, quote, epoch, nonce, minted));
+  if (!equalBytes(Buffer.from(sig), expected)) return { ok: false, reason: "invalid" };
+  const mintedMs = parseInt(minted, 36);
+  if (!(mintedMs <= nowMs && nowMs < mintedMs + LINK_CODE_TTL_MS))
+    return { ok: false, reason: "expired" };
+  return { ok: true, nonce, epoch };
+}
+
+/** Marks a link code used. False if it was claimed before. */
+function claimLinkCode(locks, nonce) {
+  return locks.take(`qa:lk:${nonce}`);
+}
+
 /** Per quote, not per link, so a payment request's fresh link keeps the unlock. */
 const sessionCookieName = (quoteId) =>
   `__Secure-oc_qa_${sha256Hex(`qa-name:${quoteId}`).slice(0, 16)}`;
@@ -362,4 +413,8 @@ module.exports = {
   sessionCookieName,
   sessionCookie,
   hasAccess,
+  LINK_CODE_TTL_MS,
+  mintLinkCode,
+  checkLinkCode,
+  claimLinkCode,
 };

@@ -1,13 +1,17 @@
-// POST /api/quote-access — the email code that opens a client quote link.
-//   { action: "status", token }                  -> { locked, canUnlock, maskedEmail }
+// POST /api/quote-access — opening a client quote link in a new browser.
+//   { action: "status", token }                  -> { locked, canUnlock, blocked, maskedEmail }
+//   { action: "claim", token, linkCode }         -> { ok: true } + the unlock cookie
 //   { action: "send", token }                    -> { challenge, retryAfterSeconds, ... }
 //   { action: "verify", token, challenge, code } -> { ok: true } + the unlock cookie
 // Rules and reasons: docs/plans/2026-10-20-quote-access-code.md and
-// api/shared/quotes/access.js. Codes go only to the client email on the quote,
-// and only on this POST, so a mail scanner opening the link never sends one.
+// api/shared/quotes/access.js. Claim takes the one-time link code from the
+// emailed link's #k= fragment; when it is missing or spent, the page asks for
+// a 6-digit code instead. Codes go only to the client email on the quote.
+// Everything is a POST from page script, so a mail scanner that only fetches
+// the link never claims a link code or sends a code.
 //
-// Logs name the quote number and counts only: never the code, challenge,
-// cookie, link token, email address or IP.
+// Logs name the quote number and counts only: never the code, link code,
+// challenge, cookie, link token, email address or IP.
 
 const { send, readJson, handleError, HttpError, str } = require("../shared/http");
 const { isTokenShape, hashToken } = require("../shared/tokens");
@@ -32,6 +36,7 @@ const inactive = () => new HttpError(404, "This link is no longer active.", { in
 const NO_EMAIL = `This quote can't be opened with a code. Contact ${CONTACT} to open it.`;
 const GATE_OFF = "This quote opens without a code right now.";
 const TOO_MANY = "Too many tries. Ask for a new code.";
+const LINK_CODE_NEEDED = "This link needs a code to open here. We'll email you one.";
 const BLOCKED = `Too many wrong codes were entered on this link, so no more codes will be sent. Contact ${CONTACT} for a new link.`;
 const NEW_CODE = {
   invalid: "That code isn't valid any more. Ask for a new one.",
@@ -211,10 +216,41 @@ function createHandler(deps) {
     };
   }
 
-  const ACTIONS = { status, send: sendCode, verify: verifyCode };
+  // Allowed even when codes are blocked: a link code can't be guessed, it
+  // only comes in an email the admin sent, so it proves what a typed code
+  // would. The block is there to stop guessing.
+  async function claim({ context, svc, secret, quote, body, ip, nowMs }) {
+    if (!allowVerifyFromIp(ip || "unknown", 1, nowMs)) throw new HttpError(429, TOO_MANY);
+    const checked = await A.checkLinkCode({
+      secret,
+      locks: svc.locks,
+      quote,
+      linkCode: body.linkCode,
+      nowMs,
+    });
+    if (!checked.ok) {
+      context.log(`quote-access claim refused quote=${quote.quoteNumber} reason=${checked.reason}`);
+      throw new HttpError(400, LINK_CODE_NEEDED, { codeNeeded: true });
+    }
+    if (!(await A.claimLinkCode(svc.locks, checked.nonce))) {
+      context.log(`quote-access claim refused quote=${quote.quoteNumber} reason=used`);
+      throw new HttpError(409, LINK_CODE_NEEDED, { codeNeeded: true });
+    }
+    context.log(`quote-access claim ok quote=${quote.quoteNumber}`);
+    return {
+      status: 200,
+      body: { ok: true },
+      cookie: A.sessionCookie(secret, quote, checked.epoch, nowMs),
+    };
+  }
+
+  const ACTIONS = { status, claim, send: sendCode, verify: verifyCode };
 
   return async function (context, req) {
     try {
+      // function.json allows only POST; this keeps a GET from ever claiming
+      // a link code if that binding changes.
+      if (req.method !== "POST") throw new HttpError(405, "Use POST.");
       const body = readJson(req);
       const run = Object.hasOwn(ACTIONS, body.action) ? ACTIONS[body.action] : null;
       if (!run) throw new HttpError(400, "Unknown action.");
