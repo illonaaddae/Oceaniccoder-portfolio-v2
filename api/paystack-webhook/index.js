@@ -23,6 +23,7 @@ const {
   releaseRetryAlert,
   claimEscalation,
   releaseEscalation,
+  noteAlertRecorded,
 } = require("./invoiceCharge");
 const {
   currencySymbol,
@@ -267,7 +268,7 @@ async function alertRetryableFailure({
   mail,
   log,
 }) {
-  const alert = { store, reference, invoiceNumber, log };
+  const alert = { store, reference, invoiceNumber, recorded, log };
   let tracked = true;
   const processKey = `alert:${reference}`;
   let claimedInCosmos = false;
@@ -311,9 +312,19 @@ async function alertRetryableFailure({
   });
   if (sent) return recorded ? "recorded" : tracked ? "retry" : "untracked";
 
+  if (!alertedBefore) return null;
   // A recorded payment is not lost when the retries run out, so it is not
-  // escalated.
-  if (!alertedBefore || recorded) return null;
+  // escalated, now or by a later delivery that cannot see the payments row.
+  if (recorded) {
+    try {
+      await noteAlertRecorded(alert);
+    } catch (noteErr) {
+      log.error(
+        `paystack-webhook: could not note the recorded payment on the alert: ${noteErr.message}`,
+      );
+    }
+    return null;
+  }
   const escalated = await alertOnce({
     claim: async () => {
       try {
