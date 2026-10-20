@@ -143,6 +143,9 @@ export function parseArgs(argv) {
     const createdAfter = parseZonedTime(flags.createdAfter);
     if (!createdAfter) throw new UsageError("--created-after needs a time with Z or an offset");
     flags.createdAfter = createdAfter;
+    // The filter runs before planning, so every older row would look absent
+    // from the backup: a prune would delete it, an overwrite would skip it.
+    if (!flags.insertOnly) throw new UsageError("--created-after needs --insert-only");
   }
 
   if (flags.markCutover && given.some((arg) => arg !== "--mark-cutover")) {
