@@ -78,10 +78,11 @@ const claimInProcess = (key) => {
  * At most one claim is held at a time, but delivery is at-least-once: a send
  * that times out after Resend accepted it counts as failed, so the next retry
  * can mail the same alert again. A duplicate alert beats a silent one.
+ * Resolves true when the alert was sent.
  */
 async function alertOnce({ claim, release, send, log }) {
-  if (!(await claim())) return;
-  if (await send()) return;
+  if (!(await claim())) return false;
+  if (await send()) return true;
   try {
     await release();
   } catch (err) {
@@ -89,6 +90,7 @@ async function alertOnce({ claim, release, send, log }) {
       `paystack-webhook: could not give back the alert claim, so later attempts will not email: ${err.message}`,
     );
   }
+  return false;
 }
 
 function httpsPost(hostname, path, headers, body) {
@@ -231,6 +233,81 @@ async function sendPaymentEmails(
       log,
     );
   }
+}
+
+/**
+ * Tells the admin about a retryable failure on the Cosmos invoice branch:
+ * one email per reference, claimed through the alert lock, and one
+ * escalation if the same payment still fails a day after that. When Cosmos
+ * cannot record the claim, the alert is claimed in this process instead, so
+ * it still goes (once per process). Resolves which email went: "retry",
+ * "recorded", "escalation" or null.
+ */
+async function alertRetryableFailure({
+  store,
+  reference,
+  invoiceNumber,
+  recorded,
+  reason,
+  detail,
+  mail,
+  log,
+}) {
+  const alert = { store, reference, invoiceNumber, log };
+  const processKey = `alert:${reference}`;
+  let claimedInCosmos = false;
+  // The alert lock was already taken by an earlier failure.
+  let alertedBefore = false;
+  const sent = await alertOnce({
+    claim: async () => {
+      try {
+        if (!store) throw new Error("the invoice store could not be opened");
+        alert.locks = createCosmosLocks(cosmos.getDatabase());
+        claimedInCosmos = await claimRetryAlert(alert);
+        alertedBefore = !claimedInCosmos;
+        return claimedInCosmos;
+      } catch (claimErr) {
+        log.error(`paystack-webhook: could not record the alert: ${claimErr.message}`);
+        return claimInProcess(processKey);
+      }
+    },
+    release: async () =>
+      claimedInCosmos ? releaseRetryAlert(alert) : processAlerts.delete(processKey),
+    send: () =>
+      recorded
+        ? mail(
+            `Paystack will retry the confirmation emails for a recorded payment on invoice ${invoiceNumber}`,
+            recordedRetryEmail(reason, detail),
+          )
+        : mail(
+            `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
+            webhookRetryEmail(reason, detail),
+          ),
+    log,
+  });
+  if (sent) return recorded ? "recorded" : "retry";
+
+  // A recorded payment is not lost when the retries run out, so it is not
+  // escalated.
+  if (!alertedBefore || recorded) return null;
+  const escalated = await alertOnce({
+    claim: async () => {
+      try {
+        return await claimEscalation(alert);
+      } catch (claimErr) {
+        log.error(`paystack-webhook: could not record the escalation: ${claimErr.message}`);
+        return false;
+      }
+    },
+    release: () => releaseEscalation(alert),
+    send: () =>
+      mail(
+        `Action needed: a payment for invoice ${invoiceNumber} is still unrecorded after 24 hours`,
+        webhookEscalationEmail(reason, detail),
+      ),
+    log,
+  });
+  return escalated ? "escalation" : null;
 }
 
 module.exports = async function (context, req) {
@@ -553,77 +630,28 @@ module.exports = async function (context, req) {
       ok();
     } catch (err) {
       // Every step is recorded on the payments row, so the retry resumes here.
-      const reason = "Cosmos rejected the update";
+      const reason =
+        typeof err?.code === "number"
+          ? `Cosmos rejected the update (status ${err.code})`
+          : "the payment could not be recorded";
       const detail = `${err.message} (invoice ${invoiceNumber}, reference ${reference})`;
-      const recorded = Boolean(err && err.paymentRecorded);
       context.log.error(`paystack-webhook: ${reason}; Paystack will retry — ${detail}`);
-      // No email can go, so take no claim that a later attempt would need.
+      // Claim only when an email can go: a claim with no email would use up
+      // the one alert for this reference.
       if (resendKey && adminEmail) {
-        // When the claim itself fails (Cosmos down or not configured), mail
-        // anyway, once per process: an unrecorded payment nobody hears about
-        // is worse than a repeated email.
-        const alert = { store, reference, invoiceNumber, log: context.log };
-        let claimedInCosmos = false;
-        // The alert lock was already taken by an earlier failure.
-        let alertedBefore = false;
-        await alertOnce({
-          claim: async () => {
-            try {
-              if (!store) throw err;
-              alert.locks = createCosmosLocks(cosmos.getDatabase());
-              const claimed = await claimRetryAlert(alert);
-              claimedInCosmos = claimed;
-              alertedBefore = !claimed;
-              return claimed;
-            } catch (claimErr) {
-              context.log.error(
-                `paystack-webhook: could not record the alert: ${claimErr.message}`,
-              );
-              return claimInProcess(`alert:${reference}`);
-            }
-          },
-          release: async () =>
-            claimedInCosmos ? releaseRetryAlert(alert) : processAlerts.delete(`alert:${reference}`),
-          send: () =>
-            sendEmail(
-              resendKey,
-              fromEmail,
-              adminEmail,
-              recorded
-                ? `Paystack will retry the confirmation emails for a recorded payment on invoice ${invoiceNumber}`
-                : `Action needed: Paystack will retry a payment for invoice ${invoiceNumber}`,
-              recorded ? recordedRetryEmail(reason, detail) : webhookRetryEmail(reason, detail),
-              context.log,
-            ),
+        const alerted = await alertRetryableFailure({
+          store,
+          reference,
+          invoiceNumber,
+          recorded: Boolean(err?.paymentRecorded),
+          reason,
+          detail,
+          mail: (subject, html) =>
+            sendEmail(resendKey, fromEmail, adminEmail, subject, html, context.log),
           log: context.log,
         });
-        // A recorded payment is not lost when the retries run out, so it is
-        // not escalated.
-        if (alertedBefore && !recorded) {
-          await alertOnce({
-            claim: async () => {
-              try {
-                return await claimEscalation(alert);
-              } catch (claimErr) {
-                context.log.error(
-                  `paystack-webhook: could not record the escalation: ${claimErr.message}`,
-                );
-                return false;
-              }
-            },
-            release: () => releaseEscalation(alert),
-            send: () =>
-              sendEmail(
-                resendKey,
-                fromEmail,
-                adminEmail,
-                `Action needed: a payment for invoice ${invoiceNumber} is still unrecorded after 24 hours`,
-                webhookEscalationEmail(reason, detail),
-                context.log,
-              ),
-            log: context.log,
-          });
-        }
+        if (alerted)
+          context.log.info(`paystack-webhook: sent the ${alerted} alert for ${reference}`);
       }
       retry();
     }
