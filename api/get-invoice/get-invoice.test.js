@@ -272,6 +272,26 @@ describe("get-invoice on Cosmos", () => {
     expect(r).toEqual({ status: 500, body: { error: "Internal error" } });
   });
 
+  it("answers 500 after 5 s and cancels the read when Cosmos never replies", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      vi.spyOn(invoices.items, "query").mockImplementation(() => ({
+        fetchAll: () => new Promise(() => {}),
+      }));
+      const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
+      const done = handler(context, { method: "GET", query: { number: "INV-2026-0042" } });
+      await vi.advanceTimersByTimeAsync(5000);
+      await done;
+
+      expect(context.res.status).toBe(500);
+      expect(JSON.parse(context.res.body)).toEqual({ error: "Internal error" });
+      expect(vi.mocked(invoices.items.query).mock.calls[0][1].abortSignal.aborted).toBe(true);
+      expect(context.log.error).toHaveBeenCalledWith("get-invoice error:", "timed out");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   // @azure/cosmos reports a refused connection with an empty message.
   it("logs the error code when the Cosmos error has no message", async () => {
     vi.spyOn(invoices.items, "query").mockImplementation(() => {

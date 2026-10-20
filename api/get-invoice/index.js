@@ -10,6 +10,7 @@ const sdk = require("node-appwrite");
 const cosmos = require("../shared/cosmos");
 const { dataBackend } = require("../shared/backend");
 const { errorReason } = require("../shared/errors");
+const { withDeadline } = require("../shared/deadline");
 
 const { canOpenInvoice, hasSignature, unsignedGraceCovers } = require("../shared/invoiceLinks");
 const { createRateLimiter } = require("../shared/rateLimit");
@@ -52,15 +53,24 @@ async function findInAppwrite(apiKey, number) {
   return (result.documents && result.documents[0]) || null;
 }
 
+// Answer the pay page with an error rather than leave it waiting on a
+// Cosmos endpoint that accepted the connection and never replied.
+const READ_TIMEOUT_MS = 5000;
+
 async function findInCosmos(number) {
-  const { resources } = await cosmos
-    .getDatabase()
-    .container(COLLECTION_ID)
-    .items.query({
-      query: "SELECT TOP 1 * FROM c WHERE c.invoiceNumber = @number",
-      parameters: [{ name: "@number", value: number }],
-    })
-    .fetchAll();
+  const { resources } = await withDeadline(READ_TIMEOUT_MS, (abortSignal) =>
+    cosmos
+      .getDatabase()
+      .container(COLLECTION_ID)
+      .items.query(
+        {
+          query: "SELECT TOP 1 * FROM c WHERE c.invoiceNumber = @number",
+          parameters: [{ name: "@number", value: number }],
+        },
+        { abortSignal },
+      )
+      .fetchAll(),
+  );
   return resources[0] || null;
 }
 
