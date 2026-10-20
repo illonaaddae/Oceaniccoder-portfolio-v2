@@ -73,9 +73,7 @@ function createHandler(deps) {
       throw new HttpError(
         429,
         "A code was sent recently. Check your inbox, or wait to ask again.",
-        {
-          retryAfterSeconds: slots.retryAfterSeconds,
-        },
+        { retryAfterSeconds: slots.retryAfterSeconds },
       );
     }
     const epoch = await A.currentEpoch(svc.locks, quote);
@@ -146,12 +144,13 @@ function createHandler(deps) {
       throw new HttpError(409, "That code has already been used. Ask for a new one.", {
         newCodeNeeded: true,
       });
-    const epoch = await A.currentEpoch(svc.locks, quote);
+    // The epoch the code was checked against, so a rotate mid-request can't
+    // hand an old code a cookie for the new epoch.
     context.log(`quote-access verify ok quote=${quote.quoteNumber}`);
     return {
       status: 200,
       body: { ok: true },
-      cookie: A.sessionCookie(secret, quote, epoch, nowMs),
+      cookie: A.sessionCookie(secret, quote, checked.epoch, nowMs),
     };
   }
 
