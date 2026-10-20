@@ -203,6 +203,22 @@ describe("locks", () => {
     await expect(createLocks(db).take("k")).rejects.toThrow("down");
     await expect(createLocks(db).release("k")).resolves.toBeUndefined();
   });
+  it("reads whether a lock is held without creating it", async () => {
+    const notFound = Object.assign(new Error("nf"), { code: 404 });
+    const db = {
+      getDocument: vi.fn().mockResolvedValueOnce({}).mockRejectedValueOnce(notFound),
+      createDocument: vi.fn(),
+    };
+    const locks = createLocks(db);
+    expect(await locks.has("qa:epoch:q1:1:1")).toBe(true);
+    expect(await locks.has("qa:epoch:q1:1:2")).toBe(false);
+    expect(db.getDocument.mock.calls[0][2]).toMatch(/^s_[0-9a-f]{34}$/);
+    expect(db.createDocument).not.toHaveBeenCalled();
+  });
+  it("rethrows a failed read", async () => {
+    const db = { getDocument: vi.fn().mockRejectedValue(new Error("down")) };
+    await expect(createLocks(db).has("k")).rejects.toThrow("down");
+  });
 });
 
 describe("quote repo, additional paths", () => {
