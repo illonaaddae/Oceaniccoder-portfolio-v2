@@ -29,6 +29,7 @@
 // resumes at the first step not done.
 
 const { evaluateSettlement } = require("./settlement");
+const { currencySymbol } = require("./emails");
 const { lockId, paymentIdFor } = require("../shared/tokens");
 
 // A delivery that claims the emails and then dies leaves its claim behind;
@@ -43,8 +44,6 @@ const ESCALATE_AFTER_MS = 24 * 60 * 60 * 1000;
 
 // Invoices written before currencies were stored are in cedis.
 const DEFAULT_INVOICE_CURRENCY = "GHS";
-
-const currencySymbol = (currency) => (currency === "GHS" ? "₵" : currency);
 
 /**
  * What a payments row at paymentIdFor(reference) means for this charge. The

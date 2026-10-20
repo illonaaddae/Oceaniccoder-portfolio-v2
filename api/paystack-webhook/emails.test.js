@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const { emails } = require("./index.js");
+const emails = require("./emails.js");
 
 describe("paystack-webhook invoice emails", () => {
   it("brands every email with the shared kit", () => {
