@@ -229,28 +229,27 @@ function recordedRetryEmail(reason, detail) {
   });
 }
 
-// For an invalid DATA_BACKEND, which fails every delivery until the setting
-// is fixed. Paystack retries for 72 hours; after that the charges are not
+// For an invalid DATA_BACKEND or WRITE_HOLD, which fails every delivery
+// until the setting is fixed. Paystack retries for 72 hours; after that the charges are not
 // delivered again and must be recorded by hand.
-function invalidBackendEmail(detail) {
+function invalidSettingEmail(setting, detail) {
   return shell({
-    preview: "Paystack webhooks are failing: DATA_BACKEND is not valid",
+    preview: `Paystack webhooks are failing: ${setting} is not valid`,
     reason: ADMIN_REASON,
     body:
       heading({
         eyebrow: "Webhooks failing",
         tone: "danger",
         title: "Paystack payments are not being recorded",
-        intro:
-          "DATA_BACKEND is not valid, so every Paystack webhook is refused and Paystack will retry it.",
+        intro: `${setting} is not valid, so every Paystack webhook is refused and Paystack will retry it.`,
       }) +
       notice({
         tone: "danger",
-        text: "Fix DATA_BACKEND in the Static Web App configuration within Paystack's 72-hour retry window. Charges whose retries run out before then are lost and must be recorded by hand.",
+        text: `Fix ${setting} in the Static Web App configuration within Paystack's 72-hour retry window. Charges whose retries run out before then are lost and must be recorded by hand.`,
       }) +
       notice({ tone: "warn", text: `Detail: ${detail}` }) +
       p(
-        'Once it is fixed, the next retries record the payments automatically; do not mark those invoices paid by hand. To find the affected charges, look in the Paystack dashboard for webhooks that failed since this email, and in the function logs for "DATA_BACKEND is not valid".',
+        `Once it is fixed, the next retries record the payments automatically; do not mark those invoices paid by hand. To find the affected charges, look in the Paystack dashboard for webhooks that failed since this email, and in the function logs for "${setting} is not valid".`,
       ) +
       small(
         "This email is sent once while the setting is wrong (per running function instance). Every refused webhook is still logged.",
@@ -477,6 +476,32 @@ module.exports = async function (context, req) {
     context.res = { status: 500, headers: CORS, body: JSON.stringify({ error: "retry" }) };
   };
 
+  /**
+   * A server setting with a value the code refuses fails every delivery
+   * until it is fixed. Answer 500 so Paystack retries, and mail the admin
+   * once per process: one email per refused webhook would flood the inbox.
+   */
+  const refuseInvalidSetting = async (setting, err, subject) => {
+    context.log.error(`paystack-webhook: ${setting} is not valid — ${err.message}`);
+    if (resendKey && adminEmail) {
+      await alertOnce({
+        claim: async () => claimInProcess(setting),
+        release: async () => processAlerts.delete(setting),
+        send: () =>
+          sendEmail(
+            resendKey,
+            fromEmail,
+            adminEmail,
+            subject,
+            invalidSettingEmail(setting, err.message),
+            context.log,
+          ),
+        log: context.log,
+      });
+    }
+    retry();
+  };
+
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
     await bail("PAYSTACK_SECRET_KEY is not set in Azure configuration");
@@ -544,7 +569,20 @@ module.exports = async function (context, req) {
   // The data is being moved between databases. Paystack retries any non-2xx,
   // so nothing is lost: the charge is recorded once the hold is lifted. Checked
   // after the signature so a misconfigured key still raises its alert now.
-  if (writeHold()) {
+  // An invalid value throws; it is refused like an invalid DATA_BACKEND, with
+  // one alert, before anything is processed.
+  let held;
+  try {
+    held = writeHold();
+  } catch (err) {
+    await refuseInvalidSetting(
+      "WRITE_HOLD",
+      err,
+      "Action needed: WRITE_HOLD has an invalid value; payments are not being recorded",
+    );
+    return;
+  }
+  if (held) {
     context.log.warn("paystack-webhook: WRITE_HOLD is on — answering 503 so Paystack retries");
     context.res = { status: 503, headers: CORS, body: JSON.stringify({ error: "write hold" }) };
     return;
@@ -579,24 +617,11 @@ module.exports = async function (context, req) {
   try {
     backend = dataBackend();
   } catch (err) {
-    context.log.error(`paystack-webhook: DATA_BACKEND is not valid — ${err.message}`);
-    if (resendKey && adminEmail) {
-      await alertOnce({
-        claim: async () => claimInProcess("DATA_BACKEND"),
-        release: async () => processAlerts.delete("DATA_BACKEND"),
-        send: () =>
-          sendEmail(
-            resendKey,
-            fromEmail,
-            adminEmail,
-            "Action needed: Paystack webhooks are failing and will be retried",
-            invalidBackendEmail(err.message),
-            context.log,
-          ),
-        log: context.log,
-      });
-    }
-    retry();
+    await refuseInvalidSetting(
+      "DATA_BACKEND",
+      err,
+      "Action needed: Paystack webhooks are failing and will be retried",
+    );
     return;
   }
 
@@ -932,7 +957,7 @@ module.exports.emails = {
   webhookRetryEmail,
   recordedRetryEmail,
   webhookEscalationEmail,
-  invalidBackendEmail,
+  invalidSettingEmail,
   recordFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
