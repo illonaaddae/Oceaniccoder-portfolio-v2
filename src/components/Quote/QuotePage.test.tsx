@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -405,17 +406,15 @@ describe("QuotePage access gate", () => {
     fetchQuoteAccess.mockResolvedValue(lockedStatus);
     sendQuoteCode.mockResolvedValue(codeSent);
     renderAt("/q/tokB");
-    expect(await screen.findByText("We sent a code to k•••••@example.com.")).toHaveAttribute(
-      "role",
-      "status",
-    );
+    await screen.findByText("We sent a code to k•••••@example.com.");
+    expect(screen.getByRole("status")).toHaveTextContent("We sent a code to k•••••@example.com.");
     expect(sendQuoteCode).toHaveBeenCalledTimes(1);
     expect(sendQuoteCode).toHaveBeenCalledWith("tokB");
     expect(screen.getByLabelText("6-digit code")).toHaveFocus();
     expect(screen.queryByText("Online store")).toBeNull();
     // The countdown is visible but kept out of the button's accessible name.
     const resend = screen.getByRole("button", { name: "Send a new code" });
-    expect(resend).toBeDisabled();
+    expect(resend).toHaveAttribute("aria-disabled", "true");
     expect(resend).toHaveTextContent(/in 1:(30|29)/);
   });
 
@@ -505,6 +504,78 @@ describe("QuotePage access gate", () => {
     renderAt("/q/tokG?preview=admin");
     expect(await screen.findByRole("heading", { name: "Online store" })).toBeInTheDocument();
     expect(fetchClientQuote).toHaveBeenCalledWith("tokG", { preview: false, admin: true });
+  });
+
+  it("admin preview keeps its mode on the pay and invoice links, and offers no accept form", async () => {
+    const due = { ...baseQuote.stages[0], state: "due" as const, dueAt: "2026-10-02T00:00:00Z" };
+    fetchClientQuote.mockResolvedValue({
+      quote: {
+        ...baseQuote,
+        status: "accepted",
+        acceptedName: "Kofi",
+        stages: [due, baseQuote.stages[1]],
+      },
+    });
+    renderAt("/q/tokG2?preview=admin");
+    for (const link of await screen.findAllByRole("link", { name: /pay the deposit|pay now/i }))
+      expect(link.getAttribute("href")).toBe("/q/tokG2/pay/deposit?preview=admin");
+    expect(screen.getByRole("link", { name: "Invoice" })).toHaveAttribute(
+      "href",
+      "/q/tokG2/invoice/deposit?preview=admin",
+    );
+  });
+
+  it("admin preview of a sent quote shows a note instead of the accept form", async () => {
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    renderAt("/q/tokG3?preview=admin");
+    expect(await screen.findByText(/preview only: your client accepts/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/full name/i)).toBeNull();
+  });
+
+  it("claims a link code once under StrictMode", async () => {
+    window.history.replaceState(null, "", "/q/tokS#k=STRICT");
+    captureLinkCode();
+    claimQuoteLink.mockResolvedValue({ ok: true });
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    render(
+      <StrictMode>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/q/tokS"]}>
+            <Routes>
+              <Route path="/q/:token" element={<QuotePage />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </StrictMode>,
+    );
+    expect(await screen.findByRole("heading", { name: "Online store" })).toBeInTheDocument();
+    expect(claimQuoteLink).toHaveBeenCalledTimes(1);
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+  });
+
+  it("says cookies are blocked when a good link code still leaves the quote locked", async () => {
+    window.history.replaceState(null, "", "/q/tokK#k=GOOD");
+    captureLinkCode();
+    claimQuoteLink.mockResolvedValue({ ok: true });
+    fetchClientQuote.mockRejectedValue(locked());
+    renderAt("/q/tokK");
+    expect(await screen.findByText(/didn't keep the sign-in/)).toBeInTheDocument();
+    expect(fetchQuoteAccess).not.toHaveBeenCalled();
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+  });
+
+  it("says cookies are blocked when a right code still leaves the quote locked", async () => {
+    fetchClientQuote.mockRejectedValue(locked());
+    fetchQuoteAccess.mockResolvedValue(lockedStatus);
+    sendQuoteCode.mockResolvedValue(codeSent);
+    verifyQuoteCode.mockResolvedValue({ ok: true });
+    renderAt("/q/tokL");
+    const input = await screen.findByLabelText("6-digit code");
+    await waitFor(() => expect(sendQuoteCode).toHaveBeenCalled());
+    fireEvent.paste(input, { clipboardData: { getData: () => "123456" } });
+    await userEvent.click(screen.getByRole("button", { name: "Open quote" }));
+    expect(await screen.findByText(/didn't keep the sign-in/)).toBeInTheDocument();
+    expect(sendQuoteCode).toHaveBeenCalledTimes(1);
   });
 
   it("admin preview without a dashboard session shows no code screen", async () => {

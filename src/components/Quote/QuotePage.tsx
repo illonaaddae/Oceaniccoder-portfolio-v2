@@ -7,7 +7,7 @@ import StagePlan from "./StagePlan";
 import QuoteActions from "./QuoteActions";
 import InactiveLink from "./InactiveLink";
 import { LockedQuote } from "./QuoteAccessGate";
-import { useClientQuote } from "./useClientQuote";
+import { previewQuery, useClientQuote } from "./useClientQuote";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ClientQuote } from "@/types/quote";
 
@@ -63,7 +63,7 @@ function PrintButton({ className = "" }: { className?: string }) {
   );
 }
 
-function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
+function NextStep({ quote, token, query }: { quote: ClientQuote; token: string; query: string }) {
   const next = quote.stages.find((s) => s.state === "due");
   if (quote.summary.complete) {
     return (
@@ -95,7 +95,7 @@ function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
         : {formatMinor(next.amountMinor, quote.currency)}
       </p>
       <Link
-        to={`/q/${token}/pay/${next.id}`}
+        to={`/q/${token}/pay/${next.id}${query}`}
         className="inline-flex min-h-12 items-center px-6 rounded-xl font-semibold text-white"
         style={{ background: "var(--quote-cta)" }}
       >
@@ -116,7 +116,7 @@ export default function QuotePage() {
   // ?preview=admin is the dashboard's Preview link; ?preview=1 only skips
   // recording the first view.
   const admin = params.get("preview") === "admin";
-  const { state, reload, setQuote, lock } = useClientQuote(token, {
+  const { state, reload, unlocked, setQuote, lock } = useClientQuote(token, {
     preview: params.get("preview") === "1",
     admin,
   });
@@ -134,7 +134,15 @@ export default function QuotePage() {
       </QuoteShell>
     );
   if (state.kind === "locked")
-    return <LockedQuote token={token} onUnlocked={reload} admin={admin} />;
+    return (
+      <LockedQuote
+        token={token}
+        onUnlocked={unlocked}
+        onRetry={reload}
+        admin={admin}
+        cookieBlocked={state.cookieBlocked}
+      />
+    );
   if (state.kind === "error")
     return (
       <QuoteShell title="Your quote">
@@ -147,18 +155,23 @@ export default function QuotePage() {
     <QuoteShell title={`${quote.title} · ${quote.quoteNumber}`}>
       <JourneyBar quote={quote} />
       <StatusBanner quote={quote} />
-      {quote.status === "accepted" && <NextStep quote={quote} token={token} />}
-      <QuoteDocument quote={quote} />
-      <StagePlan quote={quote} token={token} />
-      <TermsAndNotes quote={quote} />
-      {quote.status === "sent" && (
-        <QuoteActions
-          token={token}
-          quote={quote}
-          onChange={setQuote}
-          onLocked={admin ? undefined : lock}
-        />
+      {quote.status === "accepted" && (
+        <NextStep quote={quote} token={token} query={previewQuery(admin)} />
       )}
+      <QuoteDocument quote={quote} />
+      <StagePlan quote={quote} token={token} query={previewQuery(admin)} />
+      <TermsAndNotes quote={quote} />
+      {quote.status === "sent" &&
+        (admin ? (
+          // Only the client answers a quote; the server refuses it from a preview.
+          <QuoteCard className="print:hidden">
+            <p style={{ color: "var(--text-secondary)" }}>
+              Preview only: your client accepts or declines the quote here.
+            </p>
+          </QuoteCard>
+        ) : (
+          <QuoteActions token={token} quote={quote} onChange={setQuote} onLocked={lock} />
+        ))}
       <OptionalExtras quote={quote} money={(m) => formatMinor(m, quote.currency)} />
     </QuoteShell>
   );

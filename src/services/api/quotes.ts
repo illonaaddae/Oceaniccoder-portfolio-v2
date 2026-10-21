@@ -15,6 +15,8 @@ export interface QuoteAccessDetails {
   newCodeNeeded?: boolean;
   /** The quote has no client email, so no code can be sent. */
   noEmail?: boolean;
+  /** The kill switch is on: the quote opens without a code. */
+  gateOff?: boolean;
   retryAfterSeconds?: number;
 }
 
@@ -28,6 +30,7 @@ function accessDetails(body: Record<string, unknown>): QuoteAccessDetails {
     blocked: flag(body.blocked),
     newCodeNeeded: flag(body.newCodeNeeded),
     noEmail: flag(body.noEmail),
+    gateOff: flag(body.gateOff),
     retryAfterSeconds: count(body.retryAfterSeconds),
   };
 }
