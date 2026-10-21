@@ -11,6 +11,9 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
+// The pay link carries ?s=, an HMAC of the invoice number.
+const { canOpenInvoice } = require("../shared/invoiceLinks");
+
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
 const DATABASE_ID = "6943493400018e7c314c";
@@ -29,6 +32,17 @@ module.exports = async function (context, req) {
       status: 400,
       headers: CORS,
       body: JSON.stringify({ error: "Missing invoice number" }),
+    };
+    return;
+  }
+
+  // Same answer as an unknown number, before any lookup, so a guessed number
+  // learns nothing about whether that invoice exists.
+  if (!canOpenInvoice(number, req.query.s, process.env.RECEIPT_SIGNING_SECRET)) {
+    context.res = {
+      status: 404,
+      headers: CORS,
+      body: JSON.stringify({ error: "Invoice not found" }),
     };
     return;
   }
