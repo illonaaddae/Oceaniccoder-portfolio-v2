@@ -70,16 +70,28 @@ export default function PaidPage() {
             <p style={{ color: "var(--text-secondary)" }}>
               We've emailed your receipt. You'll hear from us shortly about next steps.
             </p>
-            {receiptPath && (
+            {/* No receipt path means this browser isn't unlocked (a new device
+                after Paystack): the quote link then leads to the code screen. */}
+            {receiptPath ? (
+              <>
+                <Link
+                  to={receiptPath}
+                  className="inline-block mt-6 mr-3 px-5 py-3 rounded-xl font-semibold text-white"
+                  style={{ background: "var(--quote-cta)" }}
+                >
+                  View receipt
+                </Link>
+                {back}
+              </>
+            ) : (
               <Link
-                to={receiptPath}
-                className="inline-block mt-6 mr-3 px-5 py-3 rounded-xl font-semibold text-white"
+                to={`/q/${token}`}
+                className="inline-block mt-6 px-5 py-3 rounded-xl font-semibold text-white"
                 style={{ background: "var(--quote-cta)" }}
               >
-                View receipt
+                Open your quote
               </Link>
             )}
-            {back}
           </>
         )}
         {reference && (state === "checking" || state === "pending") && (
