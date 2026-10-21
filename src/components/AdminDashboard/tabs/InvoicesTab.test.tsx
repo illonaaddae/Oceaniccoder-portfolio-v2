@@ -229,6 +229,7 @@ describe("InvoicesTab", () => {
       expect(link).toHaveAttribute("href", absolute);
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
       await waitFor(() => expect(link).toHaveFocus());
+      expect(link).toHaveAccessibleDescription("Your browser blocked the new tab.");
       expect(open).toHaveBeenCalledTimes(1);
       await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
       expect(writeText).toHaveBeenCalledWith(absolute);

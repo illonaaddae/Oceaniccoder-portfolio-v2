@@ -446,9 +446,10 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
             color: "var(--text-primary)",
           }}
         >
-          <span>Your browser blocked the new tab.</span>
+          <span id="blocked-pay-link-note">Your browser blocked the new tab.</span>
           <a
             ref={blockedPayLinkRef}
+            aria-describedby="blocked-pay-link-note"
             href={blockedPayLink.href}
             target="_blank"
             rel="noopener noreferrer"
