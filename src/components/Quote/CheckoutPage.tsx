@@ -13,11 +13,12 @@ import {
 } from "react-icons/fa";
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading, SectionLabel } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
+import { LockedQuote } from "./QuoteAccessGate";
 import AnimatedCard from "@/components/Payment/AnimatedCard";
 import { CopyButton } from "@/components/Payment/BankTransfer";
 import MomoNetworkPicker, { type MomoNetwork } from "@/components/Payment/MomoNetworkPicker";
 import { useClientQuote } from "./useClientQuote";
-import { startStagePayment, checkStagePayment } from "@/services/api/quotes";
+import { startStagePayment, checkStagePayment, isLockedError } from "@/services/api/quotes";
 import { loadPaystackV2 } from "@/utils/paystackV2";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { PAYMENT_CONFIG } from "@/config/payment";
@@ -41,7 +42,7 @@ const TEST_MODE = String(import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "").startsW
 export default function CheckoutPage() {
   const { token = "", stageId = "" } = useParams();
   const navigate = useNavigate();
-  const { state, reload } = useClientQuote(token, true);
+  const { state, reload, lock } = useClientQuote(token, { preview: true });
   const [method, setMethod] = useState<UiMethod>("card");
   const [network, setNetwork] = useState<MomoNetwork | null>(null);
   const [email, setEmail] = useState("");
@@ -80,6 +81,7 @@ export default function CheckoutPage() {
         <InactiveLink />
       </QuoteShell>
     );
+  if (state.kind === "locked") return <LockedQuote token={token} onUnlocked={reload} />;
   if (state.kind === "error")
     return (
       <QuoteShell title="Payment">
@@ -133,6 +135,11 @@ export default function CheckoutPage() {
     } catch (err) {
       if (attempt.stopped) return;
       setBusy(false);
+      // The unlock ended while the page was open (New link, Revise, 30 days).
+      if (isLockedError(err)) {
+        lock();
+        return;
+      }
       setNote({
         tone: "error",
         text: err instanceof Error ? err.message : "We couldn't start the payment.",
