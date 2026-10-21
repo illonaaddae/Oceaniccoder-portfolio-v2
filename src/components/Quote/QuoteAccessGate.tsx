@@ -301,7 +301,7 @@ export default function QuoteAccessGate({
               }}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? ERROR_ID : undefined}
-              className={`glass-input w-full min-w-0 sm:w-56 rounded-xl px-4 py-3 text-xl tracking-[0.1em] sm:tracking-[0.3em] tabular-nums ${FOCUS_RING}`}
+              className={`glass-input w-full min-w-0 sm:w-56 rounded-xl px-3 sm:px-4 py-3 text-lg tracking-normal sm:text-xl sm:tracking-[0.3em] tabular-nums ${FOCUS_RING}`}
               style={{ borderColor: "var(--text-secondary)" }}
             />
           </div>
@@ -341,10 +341,12 @@ export default function QuoteAccessGate({
               {/* Visible only: a screen reader would otherwise hear every tick. */}
               {waitSeconds > 0 && <span aria-hidden="true"> in {clock(waitSeconds)}</span>}
             </button>
-            <span id={RESEND_HINT_ID} className="sr-only">
-              You can ask for a new code in about {resendMinutes}{" "}
-              {resendMinutes === 1 ? "minute" : "minutes"}.
-            </span>
+            {waitSeconds > 0 && (
+              <span id={RESEND_HINT_ID} className="sr-only">
+                You can ask for a new code in about {resendMinutes}{" "}
+                {resendMinutes === 1 ? "minute" : "minutes"}.
+              </span>
+            )}
           </div>
           <p
             className="text-sm [overflow-wrap:anywhere]"
