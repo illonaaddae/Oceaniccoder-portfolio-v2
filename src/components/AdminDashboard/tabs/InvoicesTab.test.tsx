@@ -196,13 +196,49 @@ describe("InvoicesTab", () => {
     ]);
   });
 
-  it("opens the pay page in a new tab", async () => {
-    const open = vi.spyOn(window, "open").mockImplementation(() => null);
-    await renderTab();
-    const menu = await openMenu("INV-2026-0042");
-    await userEvent.click(within(menu).getByRole("menuitem", { name: "View pay page" }));
-    expect(open).toHaveBeenCalledWith("/pay/INV-2026-0042", "_blank", "noopener,noreferrer");
-    open.mockRestore();
+  describe("View pay page", () => {
+    const signed = "/pay/INV-2026-0042?s=signature";
+    const fakeTab = () => ({ opener: {}, location: { href: "" }, close: vi.fn() });
+    const clickViewPayPage = async () => {
+      await renderTab();
+      const menu = await openMenu("INV-2026-0042");
+      await userEvent.click(within(menu).getByRole("menuitem", { name: "View pay page" }));
+    };
+
+    it("opens a tab in the click and sends it to the signed link from the server", async () => {
+      routeQuoteAdmin(async () => ({ link: signed }));
+      const tab = fakeTab();
+      const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as typeof window);
+      await clickViewPayPage();
+      await waitFor(() => expect(tab.location.href).toBe(signed));
+      expect(quoteAdmin).toHaveBeenCalledWith("invoicePayLink", { id: "inv1" });
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(tab.opener).toBeNull();
+      open.mockRestore();
+    });
+
+    it("opens the signed link directly when the blank tab was blocked", async () => {
+      routeQuoteAdmin(async () => ({ link: signed }));
+      const open = vi.spyOn(window, "open").mockReturnValue(null);
+      await clickViewPayPage();
+      await waitFor(() =>
+        expect(open).toHaveBeenLastCalledWith(signed, "_blank", "noopener,noreferrer"),
+      );
+      open.mockRestore();
+    });
+
+    it("closes the tab and shows the error when the link can't be signed", async () => {
+      routeQuoteAdmin(async () => {
+        throw new Error("Pay links need RECEIPT_SIGNING_SECRET to be set.");
+      });
+      const tab = fakeTab();
+      const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as typeof window);
+      await clickViewPayPage();
+      expect(await screen.findByText(/RECEIPT_SIGNING_SECRET/)).toBeInTheDocument();
+      expect(tab.close).toHaveBeenCalled();
+      expect(tab.location.href).toBe("");
+      open.mockRestore();
+    });
   });
 
   it("marks a one-off invoice paid and records the payment", async () => {

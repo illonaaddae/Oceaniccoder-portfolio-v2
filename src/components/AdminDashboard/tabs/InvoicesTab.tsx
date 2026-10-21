@@ -287,6 +287,25 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
     }
   };
 
+  // Only the server can sign the pay link. The tab opens inside the click,
+  // because Safari blocks a window.open that comes after an await.
+  const viewPayPage = async (inv: Invoice) => {
+    const tab = window.open("", "_blank");
+    setActionError(null);
+    try {
+      const { link } = await quoteAdmin<{ link: string }>("invoicePayLink", { id: inv.$id });
+      if (!tab) {
+        window.open(link, "_blank", "noopener,noreferrer");
+        return;
+      }
+      tab.opener = null;
+      tab.location.href = link;
+    } catch (e) {
+      tab?.close();
+      setActionError(e instanceof Error ? e.message : "Couldn't open the pay page.");
+    }
+  };
+
   const copyNumber = async (number: string) => {
     try {
       await navigator.clipboard.writeText(number);
@@ -351,12 +370,7 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
     const inv = row.invoice;
     actions.push({
       label: "View pay page",
-      onSelect: () =>
-        window.open(
-          `/pay/${encodeURIComponent(inv.invoiceNumber)}`,
-          "_blank",
-          "noopener,noreferrer",
-        ),
+      onSelect: () => void viewPayPage(inv),
     });
     const unpaid = row.status !== "paid";
     // Mark as paid stays hidden on archived invoices: restore first.

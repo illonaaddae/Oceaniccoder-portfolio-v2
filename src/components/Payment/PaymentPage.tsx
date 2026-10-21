@@ -251,6 +251,8 @@ const PaymentPage: React.FC = () => {
   const { invoiceNumber } = useParams<{ invoiceNumber: string }>();
   const [searchParams] = useSearchParams();
   const isSuccessParam = searchParams.get("payment") === "success";
+  // The pay link's signature; get-invoice answers 404 without a valid one.
+  const signature = searchParams.get("s");
 
   const [invoice, setInvoice] = useState<PublicInvoice | null>(null);
   const [loading, setLoading] = useState(true);
@@ -286,11 +288,13 @@ const PaymentPage: React.FC = () => {
     const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
     const killTimer = window.setTimeout(() => controller.abort(), 15000);
 
+    const query = new URLSearchParams({ number: invoiceNumber });
+    if (signature) query.set("s", signature);
+
     try {
-      const res = await fetch(
-        apiUrl(`/api/get-invoice?number=${encodeURIComponent(invoiceNumber)}`),
-        { signal: controller.signal },
-      );
+      const res = await fetch(apiUrl(`/api/get-invoice?${query.toString()}`), {
+        signal: controller.signal,
+      });
       const data = (await res.json()) as PublicInvoice & { error?: string };
 
       if (!res.ok) {
@@ -311,7 +315,7 @@ const PaymentPage: React.FC = () => {
       setLoading(false);
       setSlowWarning(false);
     }
-  }, [invoiceNumber]);
+  }, [invoiceNumber, signature]);
 
   useEffect(() => {
     void doFetch();
