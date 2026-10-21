@@ -297,6 +297,10 @@ const PaymentPage: React.FC = () => {
       });
       const data = (await res.json()) as PublicInvoice & { error?: string };
 
+      if (res.status === 429) {
+        setFetchError("busy");
+        return;
+      }
       if (!res.ok) {
         setFetchError(data.error ?? "Invoice not found.");
         return;
@@ -372,6 +376,16 @@ const PaymentPage: React.FC = () => {
                 >
                   Try Again
                 </button>
+              </>
+            ) : fetchError === "busy" ? (
+              <>
+                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Too many requests
+                </h2>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  This page was loaded too many times in a short while. Wait a few minutes, then
+                  reload it.
+                </p>
               </>
             ) : (
               <>

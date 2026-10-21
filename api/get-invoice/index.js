@@ -1,5 +1,7 @@
-// GET /api/get-invoice?number=INV-123456
-// Fetches invoice by invoice number for public access (no auth required).
+// GET /api/get-invoice?number=INV-123456&s=<signature>
+// Fetches an invoice for its pay page. Needs the signature from the emailed or
+// admin pay link; until 2026-11-21 an unsigned link still opens an old unpaid
+// invoice (api/shared/invoiceLinks.js).
 // Uses APPWRITE_API_KEY env var — set this in Azure Portal > Configuration.
 
 const sdk = require("node-appwrite");

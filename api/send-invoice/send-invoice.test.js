@@ -1,5 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 const { renderInvoiceEmail } = await import("./index.js");
 const { verifyInvoice } = await import("../shared/tokens.js");
@@ -126,5 +129,42 @@ describe("renderInvoiceEmail", () => {
     expect(html).not.toContain('INV"/><x');
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("https://oceaniccoder.dev/pay/INV%22%2F%3E%3Cx");
+  });
+});
+
+describe("send-invoice handler configuration", () => {
+  // index.js reads requireAdmin when it loads, so stub it and load a fresh copy.
+  function loadHandler() {
+    const adminAuth = require("../shared/adminAuth.js");
+    const real = adminAuth.requireAdmin;
+    adminAuth.requireAdmin = async () => ({ user: { $id: "admin" } });
+    delete require.cache[require.resolve("./index.js")];
+    const handler = require("./index.js");
+    adminAuth.requireAdmin = real;
+    return handler;
+  }
+
+  const send = async (handler) => {
+    const context = { res: null, log: Object.assign(() => {}, { error: () => {} }) };
+    await handler(context, { method: "POST", headers: {}, body: base });
+    return { status: context.res.status, body: JSON.parse(context.res.body) };
+  };
+
+  afterEach(() => {
+    delete process.env.RESEND_API_KEY;
+    delete process.env.RECEIPT_SIGNING_SECRET;
+  });
+
+  it("names the missing signing secret instead of a generic error", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    expect(await send(loadHandler())).toEqual({
+      status: 503,
+      body: { error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set." },
+    });
+  });
+
+  it("still answers Not configured when the Resend key is missing", async () => {
+    process.env.RECEIPT_SIGNING_SECRET = SECRET;
+    expect(await send(loadHandler())).toEqual({ status: 503, body: { error: "Not configured" } });
   });
 });

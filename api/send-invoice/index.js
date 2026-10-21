@@ -244,12 +244,20 @@ module.exports = async function (context, req) {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
   const sym = currencySymbol || currency;
 
-  // Without the signing secret the email could carry no working pay link.
-  if (!apiKey || !process.env.RECEIPT_SIGNING_SECRET) {
+  if (!apiKey) {
     context.res = {
       status: 503,
       headers: CORS,
       body: JSON.stringify({ error: "Not configured" }),
+    };
+    return;
+  }
+  // Without the signing secret the email could carry no working pay link.
+  if (!process.env.RECEIPT_SIGNING_SECRET) {
+    context.res = {
+      status: 503,
+      headers: CORS,
+      body: JSON.stringify({ error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set." }),
     };
     return;
   }

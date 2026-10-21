@@ -14,12 +14,12 @@ const invoice = {
   estimatedDelivery: null,
 };
 
-function renderAt(path: string, response: { ok: boolean; body: unknown }) {
-  const fetchMock = vi
-    .spyOn(globalThis, "fetch")
-    .mockResolvedValue(
-      new Response(JSON.stringify(response.body), { status: response.ok ? 200 : 404 }),
-    );
+function renderAt(path: string, response: { ok: boolean; body: unknown; status?: number }) {
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(JSON.stringify(response.body), {
+      status: response.status ?? (response.ok ? 200 : 404),
+    }),
+  );
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
@@ -59,5 +59,15 @@ describe("PaymentPage", () => {
     ).toBeInTheDocument();
     expect(requested(fetchMock).has("s")).toBe(false);
     expect(screen.queryByText("Ama Owusu")).toBeNull();
+  });
+
+  it("asks the client to wait, not that the invoice is missing, when rate limited", async () => {
+    renderAt("/pay/INV-123456?s=abc", {
+      ok: false,
+      status: 429,
+      body: { error: "Too many requests. Try again in a few minutes." },
+    });
+    expect(await screen.findByRole("heading", { name: "Too many requests" })).toBeInTheDocument();
+    expect(screen.queryByText("Invoice Not Found")).toBeNull();
   });
 });
