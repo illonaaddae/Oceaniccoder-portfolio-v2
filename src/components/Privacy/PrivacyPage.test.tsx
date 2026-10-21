@@ -45,7 +45,9 @@ describe("PrivacyPage", () => {
   it("states the analytics promises", () => {
     renderPage();
     const visiting = screen.getByRole("region", { name: "When you visit the site" });
-    expect(within(visiting).getByText(/We use no tracking cookies/)).toBeInTheDocument();
+    expect(
+      within(visiting).getByText(/We use no tracking or advertising cookies/),
+    ).toBeInTheDocument();
     expect(within(visiting).getByText(/don't store your IP address/)).toBeInTheDocument();
     expect(within(visiting).getByText(/deleted automatically after 90 days/)).toBeInTheDocument();
     expect(
@@ -74,7 +76,11 @@ describe("PrivacyPage", () => {
   // Turnstile only runs when VITE_DATA_BACKEND=cosmos, which production doesn't set.
   it("does not claim a spam check the live site doesn't run", () => {
     renderPage();
-    expect(document.body.textContent).not.toMatch(/turnstile|cloudflare/i);
+    expect(document.body.textContent).not.toMatch(/turnstile/i);
+    // Cloudflare appears only as the host in front of Paystack's checkout.
+    const quotes = screen.getByRole("region", { name: "Quotes and payments" });
+    const outside = (document.body.textContent ?? "").replace(quotes.textContent ?? "", "");
+    expect(outside).not.toMatch(/cloudflare/i);
   });
 
   it("says form data is stored with Appwrite", () => {
@@ -123,9 +129,13 @@ describe("PrivacyPage", () => {
       within(quotes).getByText(/wrong codes are kept until the quote is\s+revised/),
     ).toBeInTheDocument();
     expect(
-      within(quotes).getByText(/code requests are deleted within two days/),
+      within(quotes).getByText(/code requests and code entries are deleted within two days/),
     ).toBeInTheDocument();
     expect(within(quotes).getByText(/IP address is used in\s+memory/)).toBeInTheDocument();
+    expect(within(quotes).getByText(/random\s+marker, kept for 45 days/)).toBeInTheDocument();
+    expect(
+      within(quotes).getByText(/Cloudflare, which\s+protects Paystack's servers/),
+    ).toBeInTheDocument();
     const visiting = screen.getByRole("region", { name: "When you visit the site" });
     expect(
       within(visiting).getByText(/reference to that code in session storage/),
