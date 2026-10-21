@@ -137,7 +137,7 @@ describe("one-time link codes", () => {
     const send = vi.fn().mockResolvedValue({ ok: true });
     const n = createNotifier({ send, base: BASE });
     await n.quoteEmailAgain(quote("sent"), "tok", [], "kofi@example.com", "C4");
-    expect(send.mock.calls[0][0].text).toContain("Nothing else is needed to open it");
+    expect(send.mock.calls[0][0].text).toContain("This link usually opens straight away.");
   });
 
   it("tells an extra address the link asks for a code sent to the client", async () => {
@@ -147,7 +147,7 @@ describe("one-time link codes", () => {
     const { html, text } = send.mock.calls[0][0];
     for (const body of [html, text]) {
       expect(body).toContain("This link asks for a short code that we email to Prince.");
-      expect(body).not.toContain("Nothing else is needed");
+      expect(body).not.toContain("usually opens straight away");
       expect(body).not.toContain("kofi@example.com");
     }
   });
