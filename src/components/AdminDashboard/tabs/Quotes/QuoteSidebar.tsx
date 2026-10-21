@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck, FaEye } from "react-icons/fa";
-import { quoteAdmin } from "@/services/api/quotes";
+import { adminPreviewLink, quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { useConfirm } from "../../ConfirmContext";
 import { CustomSelect } from "@/components/ui/CustomSelect";
@@ -259,7 +259,7 @@ export default function QuoteSidebar({
             style={btnStyle}
             target="_blank"
             rel="noopener noreferrer"
-            href={`${link}?preview=1`}
+            href={adminPreviewLink(link)}
           >
             <FaExternalLinkAlt className="inline mr-1" />
             Preview
@@ -419,11 +419,21 @@ export default function QuoteSidebar({
             to {quote.clientEmail || "the client"} with a fresh link. The link they have now stops
             working.
           </p>
+          <p
+            id="quote-email-again-code-note"
+            className="text-xs"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Only the client&apos;s own email opens the quote straight away. Anyone else you add sees
+            a code screen, and the code goes to the client&apos;s address (the new one, if you save
+            it).
+          </p>
           <label className="block text-sm" style={{ color: "var(--text-secondary)" }}>
             Also send to (optional)
             <input
               ref={againRef}
               type="email"
+              aria-describedby="quote-email-again-code-note"
               placeholder="another@example.com"
               maxLength={254}
               value={again.to}
