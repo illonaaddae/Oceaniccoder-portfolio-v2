@@ -34,7 +34,9 @@ const requested = (fetchMock: ReturnType<typeof renderAt>) =>
   new URL(String(fetchMock.mock.calls[0][0]), "https://oceaniccoder.dev").searchParams;
 
 describe("PaymentPage", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it("sends the pay link's signature with the invoice lookup", async () => {
     const fetchMock = renderAt("/pay/INV-123456?s=abc_DEF-123", { ok: true, body: invoice });
