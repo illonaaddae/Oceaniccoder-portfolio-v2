@@ -107,6 +107,16 @@ describe("QuoteAccessGate sending a code", () => {
     expect(sendQuoteCode).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the resend hint out of the reading order when there is no wait", async () => {
+    sendQuoteCode.mockResolvedValue({ ...SENT, retryAfterSeconds: 0 });
+    setup();
+    await screen.findByText("We sent a code to k•••••@example.com.");
+    expect(screen.getByRole("button", { name: "Send a new code" })).not.toHaveAttribute(
+      "aria-describedby",
+    );
+    expect(screen.queryByText(/you can ask for a new code/i)).toBeNull();
+  });
+
   it("on 502 shows the error, lets the client resend and puts focus back", async () => {
     sendQuoteCode
       .mockRejectedValueOnce(fail("We couldn't send the code.", 502))
