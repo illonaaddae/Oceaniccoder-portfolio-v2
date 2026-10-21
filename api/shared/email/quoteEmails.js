@@ -31,10 +31,17 @@ function invoiceBlock(inv) {
   });
 }
 
-// The quote link opens without a code from the client's own email; anywhere
-// else the page emails a code first (api/shared/quotes/access.js).
-const QUOTE_ACCESS_NOTE =
-  "Nothing else is needed to open it from this email. If you open it on another device, we'll email you a short code first.";
+// How the quote link opens (api/shared/quotes/access.js). v.linkOpens: this
+// copy carries the one-time link code, so it opens straight away here.
+// v.codeByEmail: it doesn't (an extra Email again address), so the page asks
+// for a code, which goes to the client. Neither: the gate is off; say nothing.
+function accessNote(v) {
+  if (v.linkOpens)
+    return "Nothing else is needed to open it from this email. If you open it on another device, we'll email you a short code first.";
+  if (v.codeByEmail)
+    return `This link asks for a short code that we email to ${v.clientFirstName}.`;
+  return "";
+}
 
 function quoteSent(v) {
   const updated = v.revision > 1;
@@ -64,7 +71,7 @@ function quoteSent(v) {
         "Accept it by typing your name",
         v.singleStage ? "Pay in full to book your slot" : "Pay the deposit to book your slot",
       ]) +
-      small(`${QUOTE_ACCESS_NOTE}\n\nQuestions? Reply to this email.`),
+      small([accessNote(v), "Questions? Reply to this email."].filter(Boolean).join("\n\n")),
   });
   const text = lines(
     `Hi ${v.clientFirstName},`,
@@ -73,7 +80,7 @@ function quoteSent(v) {
     `Payment plan: ${v.planSummary}`,
     `Valid until: ${v.validUntil}`,
     `View and accept it here: ${v.link}`,
-    QUOTE_ACCESS_NOTE,
+    accessNote(v),
     "Questions? Reply to this email.",
   );
   return { subject, html, text };

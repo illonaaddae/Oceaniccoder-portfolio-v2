@@ -25,6 +25,7 @@ const SAMPLE_VIEWS = {
       validUntil: "24 Oct 2026",
       planSummary: "60% deposit, 40% balance",
       link: "https://oceaniccoder.dev/q/sample-token",
+      linkOpens: true,
     },
   },
   quoteAccepted: {

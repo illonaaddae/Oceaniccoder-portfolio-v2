@@ -24,12 +24,15 @@ const MANUAL_METHODS = ["bank", "momo", "cash"];
 // came with; call it once per email so every email has its own code. The
 // epoch is read here: send, Email again and payment requests don't change it
 // (rotate does, and mints with the epoch bumpEpoch returns). While the gate is
-// off, mint returns null and the links go out bare.
+// off (gated: false), mint returns null and the links go out bare.
 async function linkCodes(svc, quote) {
-  if (!gateEnabled()) return () => null;
+  if (!gateEnabled()) return { gated: false, mint: () => null };
   const secret = accessSecret();
   const epoch = await currentEpoch(svc.locks, quote);
-  return (updated) => mintLinkCode(secret, updated, epoch, svc.now().getTime());
+  return {
+    gated: true,
+    mint: (updated) => mintLinkCode(secret, updated, epoch, svc.now().getTime()),
+  };
 }
 
 const normalEmail = (email) =>
@@ -149,7 +152,7 @@ const actions = {
     if (quote.status !== "draft") throw new HttpError(409, "Only drafts can be sent.");
     const problem = M.sendError(quote);
     if (problem) throw new HttpError(400, problem);
-    const mint = await linkCodes(svc, quote);
+    const { mint } = await linkCodes(svc, quote);
     const token = newToken();
     const now = svc.now();
     const updated = await svc.repo.update(quote.id, {
@@ -247,7 +250,7 @@ const actions = {
         "Nothing is due on this quote, so there's no email to send. Use New link to share the quote page.",
       );
 
-    const mint = await linkCodes(svc, quote);
+    const codes = await linkCodes(svc, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, {
       tokenHash: hashToken(token),
@@ -257,15 +260,17 @@ const actions = {
     // Only the client's own copy signs a browser in. Anyone else it goes to
     // gets the code screen, and the code goes to the client.
     const results = await Promise.all(
-      addresses.map((address) =>
-        svc.notify.quoteEmailAgain(
+      addresses.map((address) => {
+        const own = normalEmail(address) === normalEmail(updated.clientEmail);
+        return svc.notify.quoteEmailAgain(
           updated,
           token,
           stages,
           address,
-          normalEmail(address) === normalEmail(updated.clientEmail) ? mint(updated) : null,
-        ),
-      ),
+          own ? codes.mint(updated) : null,
+          !own && codes.gated,
+        );
+      }),
     );
     const emailedTo = addresses.filter((_, i) => results[i].ok);
     const failedTo = addresses.filter((_, i) => !results[i].ok);
@@ -286,7 +291,7 @@ const actions = {
     if (stage.state === "paid") throw new HttpError(409, "This stage is already paid.");
     const due = { ...((quote.payState && quote.payState.due) || {}) };
     due[stage.id] = due[stage.id] || svc.now().toISOString();
-    const mint = await linkCodes(svc, quote);
+    const { mint } = await linkCodes(svc, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, {
       payState: { due },

@@ -730,6 +730,22 @@ describe("quote-admin link codes", () => {
     );
     expect(byAddress["other@example.com"]).toBeNull();
     expect(await check(t, id, byAddress["kofi@example.com"])).toMatchObject({ ok: true });
+    // The extra copy says the link asks for a code; the client's own doesn't.
+    const codeByEmail = Object.fromEntries(
+      t.notify.quoteEmailAgain.mock.calls.map((c) => [c[3], c[5]]),
+    );
+    expect(codeByEmail).toEqual({ "kofi@example.com": false, "other@example.com": true });
+  });
+
+  it("Email again with the gate off mentions no code on any copy", async () => {
+    vi.stubEnv("QUOTE_ACCESS_GATE", "off");
+    const t = setup();
+    const id = (await sentQuote(t)).body.quote.id;
+    await t.call({ action: "emailAgain", id, to: "other@example.com" });
+    for (const c of t.notify.quoteEmailAgain.mock.calls) {
+      expect(c[4]).toBeNull();
+      expect(c[5]).toBe(false);
+    }
   });
 
   it("Email again to a saved new address gives the code to the new address", async () => {
