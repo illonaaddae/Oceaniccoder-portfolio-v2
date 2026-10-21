@@ -419,21 +419,11 @@ export default function QuoteSidebar({
             to {quote.clientEmail || "the client"} with a fresh link. The link they have now stops
             working.
           </p>
-          <p
-            id="quote-email-again-code-note"
-            className="text-xs"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Only the client&apos;s own email opens the quote straight away. Anyone else you add sees
-            a code screen, and the code goes to the client&apos;s address (the new one, if you save
-            it).
-          </p>
           <label className="block text-sm" style={{ color: "var(--text-secondary)" }}>
             Also send to (optional)
             <input
               ref={againRef}
               type="email"
-              aria-describedby="quote-email-again-code-note"
               placeholder="another@example.com"
               maxLength={254}
               value={again.to}
