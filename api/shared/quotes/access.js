@@ -389,6 +389,63 @@ function claimLinkCode(locks, nonce) {
   return locks.take(`qa:lk:${nonce}`);
 }
 
+// Retention for the qa:* lock rows (owner decision, 2026-10-21):
+// - qa:send:, qa:try:, qa:used: one day; every window they guard is shorter;
+// - qa:lk: the link-code lifetime plus skew, so a used link code can't be
+//   claimed again while it would still check out;
+// - qa:miss: until its revision or epoch is superseded (Revise, New link, or
+//   the quote is gone); a live counter is never dropped;
+// - qa:epoch: never; it holds the lockout of every older session.
+const SHORT_LIVED = ["qa:send:", "qa:try:", "qa:used:"];
+const SHORT_RETENTION_MS = DAY_MS;
+const LINK_RETENTION_MS = LINK_CODE_TTL_MS + CLOCK_SKEW_MS;
+
+// "qa:miss:<quoteId>:<revision>:<epoch>:<n>", read from the right so a quote
+// id can't shift the fields.
+function parseMissKey(key) {
+  const parts = key.split(":");
+  if (parts.length < 6) return null;
+  const [rev, epoch] = parts.slice(-3, -1).map(Number);
+  const quoteId = parts.slice(2, -3).join(":");
+  if (!quoteId || !isCount(rev) || !isCount(epoch)) return null;
+  return { quoteId, rev, epoch };
+}
+
+/**
+ * Deletes qa:* lock rows past their retention. Run once a day from the
+ * maintenance cron. Returns { deleted, kept }. Rows for other features are
+ * never touched.
+ */
+async function pruneAccessLocks({ locks, repo, nowMs }) {
+  // listBefore is strict, so +1 ms takes rows exactly one day old too.
+  const rows = await locks.listBefore(new Date(nowMs - SHORT_RETENTION_MS + 1).toISOString());
+  const quotes = new Map();
+  const superseded = async ({ quoteId, rev, epoch }) => {
+    if (!quotes.has(quoteId)) quotes.set(quoteId, await repo.get(quoteId));
+    const quote = quotes.get(quoteId);
+    if (!quote || quote.revision !== rev) return true;
+    return (await currentEpoch(locks, quote)) > epoch;
+  };
+  let deleted = 0;
+  let kept = 0;
+  for (const { key, createdAt } of rows) {
+    if (typeof key !== "string" || !key.startsWith("qa:")) continue;
+    const ageMs = nowMs - Date.parse(createdAt);
+    let drop = false;
+    if (SHORT_LIVED.some((prefix) => key.startsWith(prefix))) drop = true;
+    else if (key.startsWith("qa:lk:")) drop = ageMs >= LINK_RETENTION_MS;
+    else if (key.startsWith("qa:miss:")) {
+      const miss = parseMissKey(key);
+      drop = miss !== null && (await superseded(miss));
+    }
+    if (drop) {
+      await locks.release(key);
+      deleted += 1;
+    } else kept += 1;
+  }
+  return { deleted, kept };
+}
+
 /** Per quote, not per link, so a payment request's fresh link keeps the unlock. */
 const sessionCookieName = (quoteId) =>
   `__Secure-oc_qa_${sha256Hex(`qa-name:${quoteId}`).slice(0, 16)}`;
@@ -455,4 +512,5 @@ module.exports = {
   mintLinkCode,
   checkLinkCode,
   claimLinkCode,
+  pruneAccessLocks,
 };
