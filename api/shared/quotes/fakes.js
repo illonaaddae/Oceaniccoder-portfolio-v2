@@ -188,8 +188,8 @@ function createFakeLocks({ now = () => Date.now() } = {}) {
       return true;
     },
     async release(key) {
-      held.delete(key);
       createdAt.delete(key);
+      return held.delete(key);
     },
     async listBefore(beforeIso, cap = 5000) {
       return [...held]

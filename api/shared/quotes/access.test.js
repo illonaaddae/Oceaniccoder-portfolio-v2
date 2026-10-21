@@ -489,9 +489,9 @@ describe("pruneAccessLocks (retention)", () => {
       await t.locks.take(key);
     t.clock.ms += DAY - 1;
     await t.locks.take("qa:try:fresh:1");
-    expect(await t.prune()).toEqual({ deleted: 0, kept: 0 });
+    expect(await t.prune()).toEqual({ deleted: 0, kept: 0, skipped: 0 });
     t.clock.ms += 1;
-    expect(await t.prune()).toEqual({ deleted: 3, kept: 0 });
+    expect(await t.prune()).toEqual({ deleted: 3, kept: 0, skipped: 0 });
     expect([...t.locks.held]).toEqual(["qa:try:fresh:1"]);
   });
 
@@ -526,7 +526,7 @@ describe("pruneAccessLocks (retention)", () => {
     await A.recordMiss(t.locks, { ...QUOTE, id: "gone" }, 0);
     await A.recordMiss(t.locks, QUOTE, 0);
     t.clock.ms += DAY;
-    expect(await t.prune()).toEqual({ deleted: 2, kept: 1 });
+    expect(await t.prune()).toEqual({ deleted: 2, kept: 1, skipped: 0 });
     expect([...t.locks.held]).toEqual(["qa:miss:q1:2:0:1"]);
   });
 
@@ -536,7 +536,20 @@ describe("pruneAccessLocks (retention)", () => {
     await t.locks.take("settle:REF-1");
     await t.locks.take("respond:q1:2");
     t.clock.ms += 400 * DAY;
-    expect(await t.prune()).toEqual({ deleted: 0, kept: 1 });
+    expect(await t.prune()).toEqual({ deleted: 0, kept: 1, skipped: 2 });
     expect(t.locks.held.size).toBe(3);
+  });
+
+  it("does not count a row another run already deleted", async () => {
+    const t = world();
+    await t.locks.take("qa:used:cid");
+    t.clock.ms += DAY;
+    const release = t.locks.release;
+    t.locks.release = async (key) => {
+      await release(key);
+      return release(key);
+    };
+    expect(await t.prune()).toEqual({ deleted: 0, kept: 0, skipped: 0 });
+    expect(t.locks.held.size).toBe(0);
   });
 });

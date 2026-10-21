@@ -111,7 +111,11 @@ describe("quote-maintenance-due", () => {
     expect(t.repo.quotes.get("q3").maintenanceOfferSentAt).toBe("2026-12-03T08:00:00.000Z");
 
     // Run again: nothing left to send.
-    expect((await t.call()).body).toEqual({ sent: 0, failed: 0, pruned: { deleted: 0, kept: 0 } });
+    expect((await t.call()).body).toEqual({
+      sent: 0,
+      failed: 0,
+      pruned: { deleted: 0, kept: 0, skipped: 0 },
+    });
   });
 
   it("is due exactly at launch + freeDays - 7", async () => {
@@ -149,7 +153,7 @@ describe("quote-maintenance-due", () => {
     await t.locks.take("qa:try:cid:1");
     await t.locks.take("settle:REF-1");
     const r = await t.call();
-    expect(r.body).toEqual({ sent: 0, failed: 0, pruned: { deleted: 1, kept: 0 } });
+    expect(r.body).toEqual({ sent: 0, failed: 0, pruned: { deleted: 1, kept: 0, skipped: 1 } });
     expect([...t.locks.held]).toEqual(["settle:REF-1"]);
   });
 
