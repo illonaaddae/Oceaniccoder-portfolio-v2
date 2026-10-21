@@ -120,7 +120,7 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 | `TURNSTILE_SECRET_KEY`    | Checks visitor form tokens (`/api/submit`)                                                                                                                     |
 | `ANALYTICS_ALLOWED_HOSTS` | Optional. Comma-separated hosts `/api/visit` accepts page views from (default `oceaniccoder.dev,www.oceaniccoder.dev`; localhost is added only off production) |
 | `ANALYTICS_RAW_TTL_DAYS`  | Optional. Days raw page views live in the Cosmos `analytics` container (default 90)                                                                            |
-| `RECEIPT_SIGNING_SECRET`  | Signs receipt links (`/receipt/<ref>?s=`); any long random string                                                                                              |
+| `RECEIPT_SIGNING_SECRET`  | Signs receipt and invoice pay links (`/receipt/<ref>?s=`, `/pay/<invoice>?s=`); any long random string                                                         |
 | `QUOTE_ACCESS_SECRET`     | Signs quote access codes and unlock cookies; random, 32+ characters. Missing: code checks answer 503. Rotating it signs every client out                       |
 | `QUOTE_ACCESS_GATE`       | Optional. `off` lets quote links open without an email code (kill switch); unset or `on` keeps the code; any other value is refused                            |
 | `SITE_URL`                | Base URL in quote emails and Paystack callbacks (default `https://oceaniccoder.dev`)                                                                           |
