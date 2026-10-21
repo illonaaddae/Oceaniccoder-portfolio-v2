@@ -1,5 +1,5 @@
 // In-memory, per-instance rate limiting. Used by /api/visit (page views) and
-// /api/submit (admin alert emails).
+// /api/quote-access (code sends, code entries and link claims).
 
 const MINUTE_MS = 60 * 1000;
 const DEFAULT_MAX_KEYS = 5000;

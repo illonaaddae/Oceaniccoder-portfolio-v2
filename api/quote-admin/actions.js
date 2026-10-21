@@ -12,6 +12,7 @@ const {
   gateEnabled,
   accessSecret,
   mintLinkCode,
+  normalEmail,
 } = require("../shared/quotes/access");
 
 const MANUAL_METHODS = ["bank", "momo", "cash"];
@@ -34,11 +35,6 @@ async function linkCodes(svc, quote) {
     mint: (updated) => mintLinkCode(secret, updated, epoch, svc.now().getTime()),
   };
 }
-
-const normalEmail = (email) =>
-  String(email || "")
-    .trim()
-    .toLowerCase();
 
 async function load(svc, id) {
   const quote = typeof id === "string" && id ? await svc.repo.get(id) : null;
