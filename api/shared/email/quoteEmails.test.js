@@ -177,9 +177,7 @@ describe("quote email templates", () => {
       expect(mail.subject).toBe("482915 is your code for quote Q-2026-0007");
       expect(mail.html).toContain("Your verification code is 482915. It works for 10 minutes.");
       expect(mail.html).toContain("Hi Kofi, someone opened your quote in a new browser.");
-      expect(mail.text).toContain(
-        "If it wasn't you, ignore this email: nobody can open the quote without this code.",
-      );
+      expect(mail.text).toContain("If it wasn't you, you can ignore this email.");
     });
 
     it("leads with a plain verification sentence for Gmail's copy chip and autofill", () => {

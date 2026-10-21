@@ -424,9 +424,9 @@ export default function QuoteSidebar({
             className="text-xs"
             style={{ color: "var(--text-secondary)" }}
           >
-            Only the client&apos;s own email opens the quote straight away. Anyone else you add sees
-            a code screen, and the code goes to the client&apos;s address (the new one, if you save
-            it).
+            While quote access codes are on, only the client&apos;s own email opens the quote
+            straight away. Anyone else you add sees a code screen, and the code goes to the
+            client&apos;s address (the new one, if you save it).
           </p>
           <label className="block text-sm" style={{ color: "var(--text-secondary)" }}>
             Also send to (optional)
