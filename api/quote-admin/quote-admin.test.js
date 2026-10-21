@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { createHandler } = await import("./index.js");
+const { verifyInvoice } = await import("../shared/tokens.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
 const access = await import("../shared/quotes/access.js");
@@ -624,6 +625,35 @@ describe("quote-admin archive and restore", () => {
     expect(t.repo.payments.get("p1").archivedAt).toBeNull();
   });
 
+  describe("invoicePayLink", () => {
+    afterEach(() => {
+      delete process.env.RECEIPT_SIGNING_SECRET;
+    });
+
+    it("returns a signed pay path for a one-off invoice", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042" }] });
+      const r = await t.call({ action: "invoicePayLink", id: "inv1" });
+      expect(r.status).toBe(200);
+      const [, number, sig] = r.body.link.match(/^\/pay\/([^?]+)\?s=(.+)$/);
+      expect(number).toBe("INV-2026-0042");
+      expect(verifyInvoice("INV-2026-0042", sig, "test-secret")).toBe(true);
+    });
+
+    it("answers 503 when the signing secret is missing", async () => {
+      const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042" }] });
+      const r = await t.call({ action: "invoicePayLink", id: "inv1" });
+      expect(r.status).toBe(503);
+      expect(r.body.error).toMatch(/RECEIPT_SIGNING_SECRET/);
+    });
+
+    it("answers 409 for an invoice with no number", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup({ invoices: [{ id: "inv1", status: "sent" }] });
+      expect((await t.call({ action: "invoicePayLink", id: "inv1" })).status).toBe(409);
+    });
+  });
+
   it("archives and restores a one-off invoice", async () => {
     const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042", status: "sent" }] });
     const archived = await t.call({ action: "archiveInvoice", id: "inv1" });
@@ -634,19 +664,22 @@ describe("quote-admin archive and restore", () => {
     expect(t.repo.invoices.get("inv1")).toMatchObject({ status: "sent", archivedAt: null });
   });
 
-  it.each(["archivePayment", "restorePayment", "archiveInvoice", "restoreInvoice"])(
-    "%s returns 404 for an unknown id and 400 for a missing or unsafe one",
-    async (action) => {
-      const t = setup();
-      const getPayment = vi.spyOn(t.repo, "getPayment");
-      const getInvoice = vi.spyOn(t.repo, "getInvoice");
-      expect((await t.call({ action, id: "nope" })).status).toBe(404);
-      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(37), 42];
-      for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
-      // Only the well-formed id reached the repo.
-      expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
-    },
-  );
+  it.each([
+    "archivePayment",
+    "restorePayment",
+    "archiveInvoice",
+    "restoreInvoice",
+    "invoicePayLink",
+  ])("%s returns 404 for an unknown id and 400 for a missing or unsafe one", async (action) => {
+    const t = setup();
+    const getPayment = vi.spyOn(t.repo, "getPayment");
+    const getInvoice = vi.spyOn(t.repo, "getInvoice");
+    expect((await t.call({ action, id: "nope" })).status).toBe(404);
+    const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(37), 42];
+    for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
+    // Only the well-formed id reached the repo.
+    expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
+  });
 
   it("keeps stage state unchanged after archiving an attempt", async () => {
     const t = setup();

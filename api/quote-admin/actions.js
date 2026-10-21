@@ -5,6 +5,7 @@ const { HttpError, str } = require("../shared/http");
 const M = require("../shared/quotes/model");
 const V = require("../shared/quotes/views");
 const { newToken, hashToken } = require("../shared/tokens");
+const { invoicePayPath } = require("../shared/invoiceLinks");
 const { sendMaintenanceOffer } = require("../shared/quotes/maintenance");
 const {
   bumpEpoch,
@@ -418,6 +419,16 @@ const actions = {
     const invoice = await loadInvoice(svc, input.id);
     const updated = await svc.repo.updateInvoice(invoice.id, { archivedAt: null });
     return { invoice: archiveView(updated) };
+  },
+
+  // The signed /pay/ link for a one-off invoice. The browser has no secret to
+  // sign with, so the dashboard asks for it here.
+  async invoicePayLink(svc, input) {
+    const invoice = await loadInvoice(svc, input.id);
+    if (!invoice.invoiceNumber) throw new HttpError(409, "This invoice has no number to pay.");
+    const secret = svc.receiptSecret ?? process.env.RECEIPT_SIGNING_SECRET;
+    if (!secret) throw new HttpError(503, "Pay links need RECEIPT_SIGNING_SECRET to be set.");
+    return { link: invoicePayPath(invoice.invoiceNumber, secret) };
   },
 };
 
