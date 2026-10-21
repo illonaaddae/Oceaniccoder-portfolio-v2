@@ -413,8 +413,10 @@ function parseMissKey(key) {
 
 /**
  * Deletes qa:* lock rows past their retention. Run once a day from the
- * maintenance cron. Returns { deleted, kept }. Rows for other features are
- * never touched.
+ * maintenance cron. Returns { deleted, kept, skipped }: skipped counts other
+ * features' rows, which are never touched but still fill the listing, so a
+ * run with a large skipped and no deleted means the listing cap is spent on
+ * rows this never deletes.
  */
 async function pruneAccessLocks({ locks, repo, nowMs }) {
   // listBefore is strict, so +1 ms takes rows exactly one day old too.
@@ -428,8 +430,12 @@ async function pruneAccessLocks({ locks, repo, nowMs }) {
   };
   let deleted = 0;
   let kept = 0;
+  let skipped = 0;
   for (const { key, createdAt } of rows) {
-    if (typeof key !== "string" || !key.startsWith("qa:")) continue;
+    if (typeof key !== "string" || !key.startsWith("qa:")) {
+      skipped += 1;
+      continue;
+    }
     const ageMs = nowMs - Date.parse(createdAt);
     let drop = false;
     if (SHORT_LIVED.some((prefix) => key.startsWith(prefix))) drop = true;
@@ -438,12 +444,10 @@ async function pruneAccessLocks({ locks, repo, nowMs }) {
       const miss = parseMissKey(key);
       drop = miss !== null && (await superseded(miss));
     }
-    if (drop) {
-      await locks.release(key);
-      deleted += 1;
-    } else kept += 1;
+    if (!drop) kept += 1;
+    else if (await locks.release(key)) deleted += 1;
   }
-  return { deleted, kept };
+  return { deleted, kept, skipped };
 }
 
 /** Per quote, not per link, so a payment request's fresh link keeps the unlock. */

@@ -25,11 +25,14 @@ function createLocks(db) {
         throw err;
       }
     },
+    // True when this call deleted the row, false when it was already gone.
     async release(key) {
       try {
         await db.deleteDocument(DATABASE_ID, LOCKS, lockId(key));
+        return true;
       } catch (err) {
-        if (!(err && err.code === 404)) throw err;
+        if (err && err.code === 404) return false;
+        throw err;
       }
     },
     // Locks created before `beforeIso`, oldest first, as { key, createdAt },

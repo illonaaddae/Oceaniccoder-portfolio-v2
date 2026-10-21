@@ -201,7 +201,11 @@ describe("locks", () => {
       deleteDocument: vi.fn().mockRejectedValue(Object.assign(new Error("nf"), { code: 404 })),
     };
     await expect(createLocks(db).take("k")).rejects.toThrow("down");
-    await expect(createLocks(db).release("k")).resolves.toBeUndefined();
+    await expect(createLocks(db).release("k")).resolves.toBe(false);
+  });
+  it("reports whether release deleted the lock", async () => {
+    const db = { deleteDocument: vi.fn().mockResolvedValue({}) };
+    expect(await createLocks(db).release("k")).toBe(true);
   });
   it("reads whether a lock is held without creating it", async () => {
     const notFound = Object.assign(new Error("nf"), { code: 404 });
