@@ -31,6 +31,11 @@ function invoiceBlock(inv) {
   });
 }
 
+// The quote link opens without a code from the client's own email; anywhere
+// else the page emails a code first (api/shared/quotes/access.js).
+const QUOTE_ACCESS_NOTE =
+  "Nothing else is needed to open it from this email. If you open it on another device, we'll email you a short code first.";
+
 function quoteSent(v) {
   const updated = v.revision > 1;
   const subject = `${updated ? "Updated quote" : "Your quote"} from OceanicCoder: ${v.title}`;
@@ -59,7 +64,7 @@ function quoteSent(v) {
         "Accept it by typing your name",
         v.singleStage ? "Pay in full to book your slot" : "Pay the deposit to book your slot",
       ]) +
-      small("Questions? Reply to this email."),
+      small(`${QUOTE_ACCESS_NOTE}\n\nQuestions? Reply to this email.`),
   });
   const text = lines(
     `Hi ${v.clientFirstName},`,
@@ -68,6 +73,7 @@ function quoteSent(v) {
     `Payment plan: ${v.planSummary}`,
     `Valid until: ${v.validUntil}`,
     `View and accept it here: ${v.link}`,
+    QUOTE_ACCESS_NOTE,
     "Questions? Reply to this email.",
   );
   return { subject, html, text };
