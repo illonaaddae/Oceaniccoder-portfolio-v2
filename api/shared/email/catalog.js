@@ -137,7 +137,8 @@ const CATALOG = [
     render: () =>
       htmlOnly(
         `Invoice ${invoiceSample.invoiceNumber} from OceanicCoder`,
-        renderInvoiceEmail(invoiceSample, new Date("2026-10-11T12:00:00.000Z")),
+        // A throwaway secret: a preview must never carry a pay link that works.
+        renderInvoiceEmail(invoiceSample, new Date("2026-10-11T12:00:00.000Z"), "email-preview"),
       ),
   },
   {

@@ -1,7 +1,10 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 const { renderInvoiceEmail } = await import("./index.js");
+const { verifyInvoice } = await import("../shared/tokens.js");
+
+const SECRET = "test-signing-secret";
 
 const NOW = new Date("2026-10-10T12:00:00.000Z");
 const base = {
@@ -25,6 +28,13 @@ const base = {
 };
 
 describe("renderInvoiceEmail", () => {
+  beforeEach(() => {
+    process.env.RECEIPT_SIGNING_SECRET = SECRET;
+  });
+  afterEach(() => {
+    delete process.env.RECEIPT_SIGNING_SECRET;
+  });
+
   it("derives subtotal and total from the items when they are missing", () => {
     const { subtotal: _s, tax: _t, total: _total, ...rest } = base;
     const html = renderInvoiceEmail({ ...rest, taxRate: 0 }, NOW);
@@ -60,10 +70,18 @@ describe("renderInvoiceEmail", () => {
     expect(html).toContain("Deposit covers design.<br>Balance on launch.");
   });
 
-  it("links to the pay page and the reply address", () => {
+  it("links to the signed pay page and the reply address", () => {
     const html = renderInvoiceEmail(base, NOW);
-    expect(html).toContain('href="https://oceaniccoder.dev/pay/INV-2026-0042"');
+    const sig = html.match(/href="https:\/\/oceaniccoder\.dev\/pay\/INV-2026-0042\?s=([^"]+)"/);
+    expect(sig).not.toBeNull();
+    expect(verifyInvoice("INV-2026-0042", sig[1], SECRET)).toBe(true);
+    expect(html).not.toContain('href="https://oceaniccoder.dev/pay/INV-2026-0042"');
     expect(html).toContain('href="mailto:hello@oceaniccoder.dev"');
+  });
+
+  it("refuses to build the email without a signing secret", () => {
+    delete process.env.RECEIPT_SIGNING_SECRET;
+    expect(() => renderInvoiceEmail(base, NOW)).toThrow(/RECEIPT_SIGNING_SECRET/);
   });
 
   it("leaves out optional parts that were not given", () => {
