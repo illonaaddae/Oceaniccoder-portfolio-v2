@@ -379,8 +379,7 @@ function accessCode(v) {
   // autofill find the code.
   const verification = `Your verification code is ${v.code}.`;
   const opened = "Someone opened your quote in a new browser. Here's your code:";
-  const ignore =
-    "If it wasn't you, ignore this email: nobody can open the quote without this code.";
+  const ignore = "If it wasn't you, you can ignore this email.";
   const html = shell({
     preview: `${verification} It works for ${v.minutes} minutes.`,
     meta: { label: "Quote", number: v.quoteNumber },

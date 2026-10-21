@@ -77,10 +77,12 @@ describe("PrivacyPage", () => {
   it("does not claim a spam check the live site doesn't run", () => {
     renderPage();
     expect(document.body.textContent).not.toMatch(/turnstile/i);
-    // Cloudflare appears only as the host in front of Paystack's checkout.
+    // Cloudflare appears once, as the host in front of Paystack's checkout.
+    expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(1);
     const quotes = screen.getByRole("region", { name: "Quotes and payments" });
-    const outside = (document.body.textContent ?? "").replace(quotes.textContent ?? "", "");
-    expect(outside).not.toMatch(/cloudflare/i);
+    expect(
+      within(quotes).getByText(/Cloudflare, which\s+protects Paystack's servers/),
+    ).toBeInTheDocument();
   });
 
   it("says form data is stored with Appwrite", () => {
@@ -132,7 +134,7 @@ describe("PrivacyPage", () => {
       within(quotes).getByText(/code requests and code entries are deleted within two days/),
     ).toBeInTheDocument();
     expect(within(quotes).getByText(/IP address is used in\s+memory/)).toBeInTheDocument();
-    expect(within(quotes).getByText(/random\s+marker, kept for 45 days/)).toBeInTheDocument();
+    expect(within(quotes).getByText(/random\s+marker, kept for up to 47 days/)).toBeInTheDocument();
     expect(
       within(quotes).getByText(/Cloudflare, which\s+protects Paystack's servers/),
     ).toBeInTheDocument();
