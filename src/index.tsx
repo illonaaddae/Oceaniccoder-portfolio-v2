@@ -1,3 +1,6 @@
+// First: takes a quote link's one-time code out of the URL before anything
+// else runs (see the module).
+import "./utils/quoteLinkCode";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";

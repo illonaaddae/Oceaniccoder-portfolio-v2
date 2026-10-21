@@ -6,6 +6,7 @@ import { OptionalExtras } from "./ProposalSections";
 import StagePlan from "./StagePlan";
 import QuoteActions from "./QuoteActions";
 import InactiveLink from "./InactiveLink";
+import { LockedQuote } from "./QuoteAccessGate";
 import { useClientQuote } from "./useClientQuote";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ClientQuote } from "@/types/quote";
@@ -112,7 +113,13 @@ function NextStep({ quote, token }: { quote: ClientQuote; token: string }) {
 export default function QuotePage() {
   const { token = "" } = useParams();
   const [params] = useSearchParams();
-  const { state, reload, setQuote } = useClientQuote(token, params.get("preview") === "1");
+  // ?preview=admin is the dashboard's Preview link; ?preview=1 only skips
+  // recording the first view.
+  const admin = params.get("preview") === "admin";
+  const { state, reload, setQuote, lock } = useClientQuote(token, {
+    preview: params.get("preview") === "1",
+    admin,
+  });
 
   if (state.kind === "loading")
     return (
@@ -126,6 +133,8 @@ export default function QuotePage() {
         <InactiveLink />
       </QuoteShell>
     );
+  if (state.kind === "locked")
+    return <LockedQuote token={token} onUnlocked={reload} admin={admin} />;
   if (state.kind === "error")
     return (
       <QuoteShell title="Your quote">
@@ -142,7 +151,14 @@ export default function QuotePage() {
       <QuoteDocument quote={quote} />
       <StagePlan quote={quote} token={token} />
       <TermsAndNotes quote={quote} />
-      {quote.status === "sent" && <QuoteActions token={token} quote={quote} onChange={setQuote} />}
+      {quote.status === "sent" && (
+        <QuoteActions
+          token={token}
+          quote={quote}
+          onChange={setQuote}
+          onLocked={admin ? undefined : lock}
+        />
+      )}
       <OptionalExtras quote={quote} money={(m) => formatMinor(m, quote.currency)} />
     </QuoteShell>
   );
