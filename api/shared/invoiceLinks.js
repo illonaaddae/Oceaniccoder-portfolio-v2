@@ -39,7 +39,8 @@ function canOpenInvoice(invoiceNumber, sig, secret, now = Date.now()) {
  * unchanged, and archiving never ends the client's pay link.
  */
 function unsignedGraceCovers(doc) {
-  const created = Date.parse(doc && doc.$createdAt);
+  // Appwrite rows carry $createdAt; Cosmos rows (DATA_BACKEND=cosmos) carry createdAt.
+  const created = Date.parse(doc && (doc.$createdAt || doc.createdAt));
   return created < UNSIGNED_INVOICES_CREATED_BEFORE && doc.status !== "paid";
 }
 

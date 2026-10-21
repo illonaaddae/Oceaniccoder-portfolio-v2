@@ -48,9 +48,15 @@ describe("PaymentPage", () => {
   it("sends no signature for an unsigned link and shows the server's not-found answer", async () => {
     const fetchMock = renderAt("/pay/INV-123456", {
       ok: false,
-      body: { error: "Invoice not found" },
+      body: {
+        error: "This payment link is not valid. Ask us for a new one at hello@oceaniccoder.dev.",
+      },
     });
-    expect(await screen.findByText("Invoice not found")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "This payment link is not valid. Ask us for a new one at hello@oceaniccoder.dev.",
+      ),
+    ).toBeInTheDocument();
     expect(requested(fetchMock).has("s")).toBe(false);
     expect(screen.queryByText("Ama Owusu")).toBeNull();
   });

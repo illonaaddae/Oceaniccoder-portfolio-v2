@@ -54,12 +54,19 @@ describe("unsignedGraceCovers", () => {
     expect(L.unsignedGraceCovers({ $createdAt: "2026-10-27T23:59:59.999Z", status: "sent" })).toBe(
       true,
     );
+    expect(L.unsignedGraceCovers({ createdAt: "2026-10-27T23:59:59.999Z", status: "sent" })).toBe(
+      true,
+    );
   });
 
   it.each([
     ["created on the cutoff", { $createdAt: "2026-10-28T00:00:00.000Z", status: "sent" }],
     ["paid", { $createdAt: "2026-10-01T00:00:00.000Z", status: "paid" }],
     ["missing its creation time", { status: "sent" }],
+    [
+      "created on the cutoff, as a Cosmos row",
+      { createdAt: "2026-10-28T00:00:00.000Z", status: "sent" },
+    ],
     ["missing", null],
   ])("refuses an invoice %s", (_, doc) => {
     expect(L.unsignedGraceCovers(doc)).toBe(false);
