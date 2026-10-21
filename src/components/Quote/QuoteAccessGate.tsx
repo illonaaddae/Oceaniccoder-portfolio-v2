@@ -76,14 +76,14 @@ function ContactUs({ message, announce }: { message: string; announce: boolean }
         ref={ref}
         role={announce ? "alert" : undefined}
         tabIndex={announce ? -1 : undefined}
-        className="mb-6 [overflow-wrap:anywhere] focus:outline-none"
+        className="mb-6 text-base [overflow-wrap:anywhere] focus:outline-none"
         style={{ color: "var(--text-secondary)" }}
       >
         {message}
       </p>
       <a
         href={`mailto:${CONTACT}?subject=${encodeURIComponent("Quote link")}`}
-        className="inline-block px-5 py-3 rounded-xl font-semibold text-white"
+        className="inline-block px-5 py-3 rounded-xl text-base font-semibold text-white"
         style={{ background: "var(--quote-cta)" }}
       >
         Email {CONTACT}
@@ -92,6 +92,8 @@ function ContactUs({ message, announce }: { message: string; announce: boolean }
   );
 }
 
+// Text sizes here are rem (text-base, text-sm): on phones body has a px
+// font-size, and inherited text would not follow the reader's text size.
 const FOCUS_RING =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-teal)]";
 
@@ -258,7 +260,10 @@ export default function QuoteAccessGate({
         <ContactUs message={screen.message} announce={screen.announce} />
       ) : (
         <form onSubmit={(e) => void submit(e)} className="space-y-4" noValidate>
-          <p className="[overflow-wrap:anywhere]" style={{ color: "var(--text-secondary)" }}>
+          <p
+            className="text-base [overflow-wrap:anywhere]"
+            style={{ color: "var(--text-secondary)" }}
+          >
             To keep your quote private, it opens with a code we email to you.
           </p>
           <p
@@ -322,7 +327,7 @@ export default function QuoteAccessGate({
             <button
               type="submit"
               aria-disabled={verifying}
-              className={`min-h-12 px-8 rounded-xl font-semibold text-white transition-opacity aria-disabled:opacity-50 aria-disabled:cursor-not-allowed ${FOCUS_RING}`}
+              className={`min-h-12 px-8 rounded-xl text-base font-semibold text-white transition-opacity aria-disabled:opacity-50 aria-disabled:cursor-not-allowed ${FOCUS_RING}`}
               style={{ background: "var(--quote-cta)" }}
             >
               {verifying ? "Checking…" : "Open quote"}
@@ -334,7 +339,7 @@ export default function QuoteAccessGate({
               }}
               aria-disabled={resendWaits}
               aria-describedby={waitSeconds > 0 ? RESEND_HINT_ID : undefined}
-              className={`min-h-12 px-5 rounded-xl border aria-disabled:opacity-60 aria-disabled:cursor-not-allowed ${FOCUS_RING}`}
+              className={`min-h-12 px-5 rounded-xl border text-base aria-disabled:opacity-60 aria-disabled:cursor-not-allowed ${FOCUS_RING}`}
               style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
             >
               {challenge ? "Send a new code" : "Send a code"}
@@ -390,7 +395,7 @@ export function LockedQuote({
         <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
           Preview needs your dashboard session
         </h1>
-        <p style={{ color: "var(--text-secondary)" }}>
+        <p className="text-base" style={{ color: "var(--text-secondary)" }}>
           Sign in to the dashboard in this browser, then open Preview again. No code was sent to the
           client.
         </p>
