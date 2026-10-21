@@ -354,7 +354,9 @@ function invoiceCard(q, stage, token, base, linkCode) {
 }
 
 // linkCode: the one-time code for the client's own copy of the email, or null.
-function quoteSentView(q, token, base = siteBase(), linkCode = null) {
+// codeByEmail: a copy without one while the gate is on (an extra Email again
+// address), so the email says the link asks for a code.
+function quoteSentView(q, token, base = siteBase(), linkCode = null, codeByEmail = false) {
   return {
     clientFirstName: firstName(q.clientName),
     quoteNumber: q.quoteNumber,
@@ -366,6 +368,8 @@ function quoteSentView(q, token, base = siteBase(), linkCode = null) {
     // One stage means paying in full: the emails then drop the deposit wording.
     singleStage: q.schedule.length === 1,
     link: quoteLink(token, base, linkCode),
+    linkOpens: Boolean(linkCode),
+    codeByEmail: !linkCode && codeByEmail,
   };
 }
 

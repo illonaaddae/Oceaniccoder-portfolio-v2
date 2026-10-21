@@ -132,4 +132,23 @@ describe("one-time link codes", () => {
     await createNotifier({ send, base: BASE }).quoteEmailAgain(quote("sent"), "tok", [], "a@b.co");
     expect(send.mock.calls[0][0].text).not.toContain("#k=");
   });
+
+  it("tells the client's own copy it opens straight away", async () => {
+    const send = vi.fn().mockResolvedValue({ ok: true });
+    const n = createNotifier({ send, base: BASE });
+    await n.quoteEmailAgain(quote("sent"), "tok", [], "kofi@example.com", "C4");
+    expect(send.mock.calls[0][0].text).toContain("Nothing else is needed to open it");
+  });
+
+  it("tells an extra address the link asks for a code sent to the client", async () => {
+    const send = vi.fn().mockResolvedValue({ ok: true });
+    const n = createNotifier({ send, base: BASE });
+    await n.quoteEmailAgain(quote("sent"), "tok", [], "a@b.co", null, true);
+    const { html, text } = send.mock.calls[0][0];
+    for (const body of [html, text]) {
+      expect(body).toContain("This link asks for a short code that we email to Prince.");
+      expect(body).not.toContain("Nothing else is needed");
+      expect(body).not.toContain("kofi@example.com");
+    }
+  });
 });

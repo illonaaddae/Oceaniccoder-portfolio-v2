@@ -75,12 +75,37 @@ describe("quote email templates", () => {
     expect(acc.text).not.toMatch(/deposit/i);
   });
 
-  it("tells the client the quote email needs no code here, and a code elsewhere", () => {
-    const sent = T.quoteSent(SAMPLE_VIEWS.quoteSent.view);
-    for (const body of [sent.html, sent.text]) {
-      expect(body).toContain("Nothing else is needed to open it from this email.");
-      expect(body).toContain("another device");
-    }
+  describe("how the quote link opens", () => {
+    const view = { ...SAMPLE_VIEWS.quoteSent.view, linkOpens: false, codeByEmail: false };
+    const OPENS = "Nothing else is needed to open it from this email.";
+    const ASKS = "This link asks for a short code that we email to Kofi.";
+
+    it("says the link opens straight away when this copy carries a link code", () => {
+      const sent = T.quoteSent({ ...view, linkOpens: true });
+      for (const body of [sent.html, sent.text]) {
+        expect(body).toContain(OPENS);
+        expect(body).toContain("another device");
+        expect(body).not.toContain("asks for a short code");
+      }
+    });
+
+    it("says the link asks for a code sent to the client on a copy without one", () => {
+      const sent = T.quoteSent({ ...view, codeByEmail: true });
+      for (const body of [sent.html, sent.text]) {
+        expect(body).toContain(ASKS);
+        expect(body).not.toContain(OPENS);
+        expect(body).not.toContain("@example");
+      }
+    });
+
+    it("says nothing about codes while the gate is off", () => {
+      const sent = T.quoteSent(view);
+      for (const body of [sent.html, sent.text]) {
+        expect(body).not.toContain(OPENS);
+        expect(body).not.toContain("asks for a short code");
+        expect(body).toContain("Questions? Reply to this email.");
+      }
+    });
   });
 
   it("keeps the deposit wording for a staged quote", () => {

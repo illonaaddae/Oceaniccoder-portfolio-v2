@@ -34,10 +34,11 @@ function createNotifier({
     // A sent or accepted quote emailed again with a fresh link, to one address.
     // A sent quote gets the quote email. An accepted one gets what is due now:
     // the acceptance email while the deposit is due, else that stage's invoice.
-    quoteEmailAgain: (q, token, stages, address, linkCode = null) =>
+    // codeByEmail: this copy has no link code but the gate is on.
+    quoteEmailAgain: (q, token, stages, address, linkCode = null, codeByEmail = false) =>
       safe(() => {
         if (q.status !== "accepted")
-          return to(address, T.quoteSent(V.quoteSentView(q, token, base, linkCode)));
+          return to(address, T.quoteSent(V.quoteSentView(q, token, base, linkCode, codeByEmail)));
         // Only the earliest due stage: one email, one invoice. Once it is paid,
         // Email again sends the next stage if it has been requested; otherwise
         // Request (or Resend request) on that stage does.
