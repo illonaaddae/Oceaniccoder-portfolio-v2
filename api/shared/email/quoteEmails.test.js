@@ -142,16 +142,29 @@ describe("quote email templates", () => {
     it("puts the code in the subject, the preview, the html and the text", () => {
       const mail = T.accessCode(view);
       expect(mail.subject).toBe("482915 is your code for quote Q-2026-0007");
-      expect(mail.html).toContain("Your code is 482915. It works for 10 minutes.");
-      expect(mail.html).toContain(">482915</div>");
-      expect(mail.text).toContain(
-        "Someone opened your quote in a new browser. Here's your code: 482915",
-      );
-      expect(mail.text).toContain("It works for 10 minutes.");
+      expect(mail.html).toContain("Your verification code is 482915. It works for 10 minutes.");
+      expect(mail.html).toContain("Hi Kofi, someone opened your quote in a new browser.");
       expect(mail.text).toContain(
         "If it wasn't you, ignore this email: nobody can open the quote without this code.",
       );
-      expect(mail.html).toContain("Hi Kofi, someone opened your quote in a new browser.");
+    });
+
+    it("leads with a plain verification sentence for Gmail's copy chip and autofill", () => {
+      const mail = T.accessCode(view);
+      expect(mail.text.split("\n")[0]).toBe("Your verification code is 482915.");
+      const body = mail.html.slice(mail.html.indexOf("<h1"));
+      expect(body.indexOf("Your verification code is 482915.")).toBeLessThan(
+        body.indexOf("someone opened your quote"),
+      );
+    });
+
+    it("shows the code alone, unspaced and selectable in one tap", () => {
+      const mail = T.accessCode(view);
+      expect(mail.html).toMatch(/user-select:all">482915<\/div>/);
+      expect(mail.text.split("\n")).toContain("482915");
+      expect(mail.text).toContain(
+        "Someone opened your quote in a new browser. Here's your code:\n\n482915\n\nIt works for 10 minutes.",
+      );
     });
 
     it("carries no link to the quote", () => {
