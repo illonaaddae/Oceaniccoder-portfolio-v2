@@ -217,13 +217,23 @@ describe("InvoicesTab", () => {
       open.mockRestore();
     });
 
-    it("opens the signed link directly when the blank tab was blocked", async () => {
+    it("shows the signed link to open or copy when the browser blocked the tab", async () => {
       routeQuoteAdmin(async () => ({ link: signed }));
       const open = vi.spyOn(window, "open").mockReturnValue(null);
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
       await clickViewPayPage();
-      await waitFor(() =>
-        expect(open).toHaveBeenLastCalledWith(signed, "_blank", "noopener,noreferrer"),
+      const absolute = `${window.location.origin}${signed}`;
+      const link = await screen.findByRole("link", { name: absolute });
+      expect(link).toHaveAttribute("href", absolute);
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      expect(open).toHaveBeenCalledTimes(1);
+      await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
+      expect(writeText).toHaveBeenCalledWith(absolute);
+      await userEvent.click(
+        within(link.parentElement as HTMLElement).getByRole("button", { name: "Dismiss" }),
       );
+      expect(screen.queryByRole("link", { name: absolute })).not.toBeInTheDocument();
       open.mockRestore();
     });
 

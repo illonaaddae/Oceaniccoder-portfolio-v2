@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaFileInvoiceDollar } from "react-icons/fa";
+import { FaFileInvoiceDollar, FaTimes } from "react-icons/fa";
 import { getInvoices, updateInvoice } from "@/services/api/invoices";
 import { createPayment, getPaymentsForInvoice } from "@/services/api/payments";
 import { apiUrl } from "@/utils/apiUrl";
@@ -80,6 +80,8 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  // The signed pay link, shown when the browser blocked the new tab.
+  const [blockedPayLink, setBlockedPayLink] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [filter, setFilter] = useState<InvoiceFilter>("all");
@@ -288,14 +290,16 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   };
 
   // Only the server can sign the pay link. The tab opens inside the click,
-  // because Safari blocks a window.open that comes after an await.
+  // because Safari blocks a window.open that comes after an await. If the
+  // browser blocked even that, the link is shown to open or copy by hand.
   const viewPayPage = async (inv: Invoice) => {
     const tab = window.open("", "_blank");
     setActionError(null);
+    setBlockedPayLink(null);
     try {
       const { link } = await quoteAdmin<{ link: string }>("invoicePayLink", { id: inv.$id });
       if (!tab) {
-        window.open(link, "_blank", "noopener,noreferrer");
+        setBlockedPayLink(new URL(link, window.location.origin).href);
         return;
       }
       tab.opener = null;
@@ -303,6 +307,15 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
     } catch (e) {
       tab?.close();
       setActionError(e instanceof Error ? e.message : "Couldn't open the pay page.");
+    }
+  };
+
+  const copyPayLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setNotice("Copied the pay link.");
+    } catch {
+      setActionError("Couldn't copy to the clipboard. Select the link instead.");
     }
   };
 
@@ -412,6 +425,43 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
           message={`Quote invoices couldn't load: ${quoteError}`}
           onDismiss={() => setQuoteError(null)}
         />
+      )}
+      {blockedPayLink && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-4 py-3 text-sm"
+          style={{
+            background: "var(--status-pending-bg)",
+            borderColor: "var(--status-pending-border)",
+            color: "var(--status-pending-text)",
+          }}
+        >
+          <span>Your browser blocked the new tab. Open the pay page here:</span>
+          <a
+            href={blockedPayLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="break-all font-medium underline"
+          >
+            {blockedPayLink}
+          </a>
+          <button
+            type="button"
+            onClick={() => void copyPayLink(blockedPayLink)}
+            className="rounded border px-2 py-1 font-medium"
+            style={{ borderColor: "var(--status-pending-border)" }}
+          >
+            Copy link
+          </button>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => setBlockedPayLink(null)}
+            className="rounded p-1"
+          >
+            <FaTimes aria-hidden="true" />
+          </button>
+        </div>
       )}
       <p className="sr-only" role="status" aria-live="polite">
         {notice}
