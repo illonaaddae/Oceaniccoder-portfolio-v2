@@ -63,10 +63,10 @@ const renderAt = (path: string) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
-  fetchQuoteAccess.mockResolvedValue({ locked: true, maskedEmail: "k•••••@example.com" });
+  fetchQuoteAccess.mockResolvedValue({ locked: true, maskedEmail: "k•••••@e•••••.com" });
   sendQuoteCode.mockResolvedValue({
     challenge: "v1.c.s",
-    maskedEmail: "k•••••@example.com",
+    maskedEmail: "k•••••@e•••••.com",
     expiresInSeconds: 600,
     retryAfterSeconds: 90,
   });

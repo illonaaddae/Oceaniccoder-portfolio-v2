@@ -91,10 +91,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   fetchClientQuote.mockResolvedValue({ quote });
   checkStagePayment.mockResolvedValue({ state: "pending", receiptPath: null });
-  fetchQuoteAccess.mockResolvedValue({ locked: true, maskedEmail: "k•••••@example.com" });
+  fetchQuoteAccess.mockResolvedValue({ locked: true, maskedEmail: "k•••••@e•••••.com" });
   sendQuoteCode.mockResolvedValue({
     challenge: "v1.c.s",
-    maskedEmail: "k•••••@example.com",
+    maskedEmail: "k•••••@e•••••.com",
     expiresInSeconds: 600,
     retryAfterSeconds: 90,
   });
