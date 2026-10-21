@@ -403,6 +403,36 @@ async function hasAccess({ secret, locks, req, quote, nowMs }) {
   return isEpochCurrent(locks, quote, p.e);
 }
 
+const LOCKED = "Enter the code we email you to open this quote.";
+
+/**
+ * The gate on the client endpoints that show or change a quote. Returns how
+ * the request got in: "off" (kill switch), "session" or "admin". Otherwise
+ * throws 401 { locked: true }, which carries nothing from the quote.
+ * isAdmin, when given, runs only without a session, so a client's request
+ * never waits on the admin check.
+ */
+async function requireAccess({ env, logError, locks, req, quote, nowMs, isAdmin }) {
+  if (!gateEnabled(env, logError)) return "off";
+  const secret = accessSecret(env, logError);
+  if (await hasAccess({ secret, locks, req, quote, nowMs })) return "session";
+  if (isAdmin && (await isAdmin())) return "admin";
+  throw new HttpError(401, LOCKED, { locked: true });
+}
+
+/**
+ * The admin check for requireAccess, or null unless the page asked for it
+ * (admin=1, sent only from a ?preview=admin page). requireAdmin is
+ * api/shared/adminAuth.js, passed in so tests can replace it.
+ */
+function adminCheck(requireAdmin, context, req, flag) {
+  if (flag !== "1") return null;
+  return async () => {
+    const auth = await requireAdmin(context, req);
+    return Boolean(auth && auth.user);
+  };
+}
+
 module.exports = {
   CODE_TTL_MS,
   MAX_TRIES,
@@ -428,4 +458,6 @@ module.exports = {
   mintLinkCode,
   checkLinkCode,
   claimLinkCode,
+  requireAccess,
+  adminCheck,
 };

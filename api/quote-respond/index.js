@@ -6,12 +6,17 @@
 // the revision, so a double submit or an accept/decline race writes once.
 // Emails and the inquiry status run after the write; their failures are
 // logged and never fail the response.
+//
+// Behind the quote access gate (api/shared/quotes/access.js): without an
+// unlock it answers 401 locked. There is no admin bypass; the admin doesn't
+// answer a quote for the client.
 
 const { send, readJson, handleError, HttpError, str } = require("../shared/http");
 const { isTokenShape, hashToken, hashIp } = require("../shared/tokens");
 const { clientIp } = require("../shared/turnstile");
 const M = require("../shared/quotes/model");
 const V = require("../shared/quotes/views");
+const A = require("../shared/quotes/access");
 const { createServices } = require("../shared/quotes/service");
 
 const INACTIVE_MSG = "This link is no longer active.";
@@ -149,6 +154,7 @@ async function decline(context, svc, quote, body) {
 }
 
 function createHandler(deps) {
+  const env = deps.env || process.env;
   return async function (context, req) {
     try {
       const body = readJson(req);
@@ -159,6 +165,14 @@ function createHandler(deps) {
       const quote = await svc.repo.findByTokenHash(hashToken(body.token));
       if (!quote || ["draft", "cancelled"].includes(quote.status))
         throw new HttpError(404, INACTIVE_MSG, { inactive: true });
+      await A.requireAccess({
+        env,
+        logError: (message) => context.log.error(message),
+        locks: svc.locks,
+        req,
+        quote,
+        nowMs: svc.now().getTime(),
+      });
       if (M.isExpired(quote, svc.now().getTime()) || quote.status === "expired") {
         if (quote.status !== "expired") await svc.repo.update(quote.id, { status: "expired" });
         throw new HttpError(409, "This quote has expired. Ask for an updated quote.");
