@@ -75,6 +75,14 @@ describe("quote email templates", () => {
     expect(acc.text).not.toMatch(/deposit/i);
   });
 
+  it("tells the client the quote email needs no code here, and a code elsewhere", () => {
+    const sent = T.quoteSent(SAMPLE_VIEWS.quoteSent.view);
+    for (const body of [sent.html, sent.text]) {
+      expect(body).toContain("Nothing else is needed to open it from this email.");
+      expect(body).toContain("another device");
+    }
+  });
+
   it("keeps the deposit wording for a staged quote", () => {
     const acc = T.quoteAccepted({ ...SAMPLE_VIEWS.quoteAccepted.view, singleStage: false });
     expect(acc.html).toContain("Pay the deposit");
