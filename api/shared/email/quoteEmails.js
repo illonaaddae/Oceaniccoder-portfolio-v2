@@ -37,7 +37,7 @@ function invoiceBlock(inv) {
 // for a code, which goes to the client. Neither: the gate is off; say nothing.
 function accessNote(v) {
   if (v.linkOpens)
-    return "Nothing else is needed to open it from this email. If you open it on another device, we'll email you a short code first.";
+    return "This link usually opens straight away. If you open it on another device, we'll email you a short code first.";
   if (v.codeByEmail)
     return `This link asks for a short code that we email to ${v.clientFirstName}.`;
   return "";

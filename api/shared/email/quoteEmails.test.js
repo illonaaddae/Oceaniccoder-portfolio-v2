@@ -77,7 +77,7 @@ describe("quote email templates", () => {
 
   describe("how the quote link opens", () => {
     const view = { ...SAMPLE_VIEWS.quoteSent.view, linkOpens: false, codeByEmail: false };
-    const OPENS = "Nothing else is needed to open it from this email.";
+    const OPENS = "This link usually opens straight away.";
     const ASKS = "This link asks for a short code that we email to Kofi.";
 
     it("says the link opens straight away when this copy carries a link code", () => {
