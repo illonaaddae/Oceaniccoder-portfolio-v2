@@ -6,7 +6,14 @@ vi.mock("./adminHeaders", () => ({
     .mockResolvedValue({ "Content-Type": "application/json", Authorization: "Bearer jwt" }),
 }));
 
-import { fetchClientQuote, quoteAdmin, QuoteApiError, checkStagePayment } from "./quotes";
+import {
+  adminPreviewLink,
+  fetchClientQuote,
+  isLockedError,
+  quoteAdmin,
+  QuoteApiError,
+  checkStagePayment,
+} from "./quotes";
 
 type FetchInit = Parameters<typeof fetch>[1] & object;
 
@@ -88,5 +95,39 @@ describe("quote services", () => {
     const err = await fetchClientQuote("tok").catch((e) => e);
     expect(err).toBeInstanceOf(QuoteApiError);
     expect(err).toMatchObject({ status: 200, message: "Unexpected response from the server." });
+  });
+
+  it("reads the access gate's answer into the error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Enter the code.", locked: true, triesLeft: "3" }),
+      }),
+    );
+    const err = (await fetchClientQuote("tok").catch((e) => e)) as QuoteApiError;
+    expect(isLockedError(err)).toBe(true);
+    // Only well-typed values get through.
+    expect(err.access.triesLeft).toBeUndefined();
+    expect(isLockedError(new QuoteApiError("x", 401))).toBe(false);
+  });
+
+  it("asks for the admin preview with the admin headers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ quote: {} }) }),
+    );
+    await fetchClientQuote("tok", { admin: true });
+    const [url, init] = (fetch as unknown as { mock: { calls: [string, FetchInit][] } }).mock
+      .calls[0];
+    expect(url).toBe("/api/quote-view?token=tok&preview=1&admin=1");
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer jwt");
+  });
+
+  it("builds the admin preview link without the link code", () => {
+    expect(adminPreviewLink("https://oceaniccoder.dev/q/T#k=abc")).toBe(
+      "https://oceaniccoder.dev/q/T?preview=admin",
+    );
   });
 });

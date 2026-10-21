@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -7,6 +7,10 @@ import type { ClientQuote } from "@/types/quote";
 
 const fetchClientQuote = vi.fn();
 const respondToQuote = vi.fn();
+const fetchQuoteAccess = vi.fn();
+const claimQuoteLink = vi.fn();
+const sendQuoteCode = vi.fn();
+const verifyQuoteCode = vi.fn();
 vi.mock("@/services/api/quotes", async () => {
   const actual =
     await vi.importActual<typeof import("@/services/api/quotes")>("@/services/api/quotes");
@@ -14,11 +18,16 @@ vi.mock("@/services/api/quotes", async () => {
     ...actual,
     fetchClientQuote: (...a: unknown[]) => fetchClientQuote(...a),
     respondToQuote: (...a: unknown[]) => respondToQuote(...a),
+    fetchQuoteAccess: (...a: unknown[]) => fetchQuoteAccess(...a),
+    claimQuoteLink: (...a: unknown[]) => claimQuoteLink(...a),
+    sendQuoteCode: (...a: unknown[]) => sendQuoteCode(...a),
+    verifyQuoteCode: (...a: unknown[]) => verifyQuoteCode(...a),
   };
 });
 
 import QuotePage from "./QuotePage";
 import { QuoteApiError } from "@/services/api/quotes";
+import { captureLinkCode } from "@/utils/quoteLinkCode";
 
 const baseQuote: ClientQuote = {
   quoteNumber: "Q-2026-0001",
@@ -110,6 +119,11 @@ const renderAt = (path = "/q/tok") =>
 beforeEach(() => {
   fetchClientQuote.mockReset();
   respondToQuote.mockReset();
+  fetchQuoteAccess.mockReset();
+  claimQuoteLink.mockReset();
+  sendQuoteCode.mockReset();
+  verifyQuoteCode.mockReset();
+  sessionStorage.clear();
 });
 
 describe("QuotePage", () => {
@@ -213,7 +227,7 @@ describe("QuotePage", () => {
     fetchClientQuote.mockResolvedValue({ quote: baseQuote });
     renderAt("/q/tok?preview=1");
     await screen.findByRole("heading", { name: "Online store" });
-    expect(fetchClientQuote).toHaveBeenCalledWith("tok", true);
+    expect(fetchClientQuote).toHaveBeenCalledWith("tok", { preview: true, admin: false });
   });
 
   it("declines with a reason", async () => {
@@ -325,5 +339,191 @@ describe("QuotePage", () => {
       /overflow-wrap:anywhere/,
     );
     expect(screen.getByText("Store build").className).toMatch(/overflow-wrap:anywhere/);
+  });
+});
+
+// Each test uses its own link token: a link code is claimed, and a code
+// emailed automatically, once per link per page load.
+describe("QuotePage access gate", () => {
+  const locked = () =>
+    new QuoteApiError(
+      "Enter the code we email you to open this quote.",
+      401,
+      undefined,
+      undefined,
+      {
+        locked: true,
+      },
+    );
+  const codeSent = {
+    challenge: "v1.chal.sig",
+    maskedEmail: "k•••••@example.com",
+    expiresInSeconds: 600,
+    retryAfterSeconds: 90,
+  };
+  const lockedStatus = {
+    locked: true,
+    canUnlock: true,
+    blocked: false,
+    maskedEmail: "k•••••@example.com",
+  };
+  let visibility: "visible" | "hidden" = "visible";
+
+  beforeEach(() => {
+    visibility = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibility,
+    });
+  });
+
+  it("claims the link code on load, drops it from the URL and never emails a code", async () => {
+    window.history.replaceState(null, "", "/q/tokA#k=LINKCODE");
+    captureLinkCode();
+    expect(window.location.hash).toBe("");
+    expect(window.location.pathname).toBe("/q/tokA");
+    claimQuoteLink.mockResolvedValue({ ok: true });
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    renderAt("/q/tokA");
+    expect(await screen.findByRole("heading", { name: "Online store" })).toBeInTheDocument();
+    expect(claimQuoteLink).toHaveBeenCalledTimes(1);
+    expect(claimQuoteLink).toHaveBeenCalledWith("tokA", "LINKCODE");
+    expect(claimQuoteLink.mock.invocationCallOrder[0]).toBeLessThan(
+      fetchClientQuote.mock.invocationCallOrder[0],
+    );
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+    expect(fetchQuoteAccess).not.toHaveBeenCalled();
+  });
+
+  it("emails a code once when the link code was already used", async () => {
+    window.history.replaceState(null, "", "/q/tokB#k=USED");
+    captureLinkCode();
+    claimQuoteLink.mockRejectedValue(
+      new QuoteApiError("This link needs a code.", 409, undefined, undefined, {}),
+    );
+    fetchClientQuote.mockRejectedValue(locked());
+    fetchQuoteAccess.mockResolvedValue(lockedStatus);
+    sendQuoteCode.mockResolvedValue(codeSent);
+    renderAt("/q/tokB");
+    expect(await screen.findByText("We sent a code to k•••••@example.com.")).toHaveAttribute(
+      "role",
+      "status",
+    );
+    expect(sendQuoteCode).toHaveBeenCalledTimes(1);
+    expect(sendQuoteCode).toHaveBeenCalledWith("tokB");
+    expect(screen.getByLabelText("6-digit code")).toHaveFocus();
+    expect(screen.queryByText("Online store")).toBeNull();
+    // The countdown is visible but kept out of the button's accessible name.
+    const resend = screen.getByRole("button", { name: "Send a new code" });
+    expect(resend).toBeDisabled();
+    expect(resend).toHaveTextContent(/in 1:(30|29)/);
+  });
+
+  it("waits for the page to be visible before emailing a code", async () => {
+    visibility = "hidden";
+    fetchClientQuote.mockRejectedValue(locked());
+    fetchQuoteAccess.mockResolvedValue(lockedStatus);
+    sendQuoteCode.mockResolvedValue(codeSent);
+    renderAt("/q/tokC");
+    await screen.findByLabelText("6-digit code");
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+    visibility = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    await waitFor(() => expect(sendQuoteCode).toHaveBeenCalledTimes(1));
+  });
+
+  it("opens the quote after the right code, with spaces pasted in", async () => {
+    fetchClientQuote.mockRejectedValueOnce(locked()).mockResolvedValue({ quote: baseQuote });
+    fetchQuoteAccess.mockResolvedValue(lockedStatus);
+    sendQuoteCode.mockResolvedValue(codeSent);
+    verifyQuoteCode
+      .mockRejectedValueOnce(
+        new QuoteApiError("That code isn't right.", 400, undefined, undefined, { triesLeft: 3 }),
+      )
+      .mockResolvedValue({ ok: true });
+    renderAt("/q/tokD");
+    const input = await screen.findByLabelText("6-digit code");
+    await waitFor(() => expect(sendQuoteCode).toHaveBeenCalled());
+    expect(input).toHaveAttribute("inputmode", "numeric");
+    expect(input).toHaveAttribute("autocomplete", "one-time-code");
+    expect(input).toHaveAttribute("maxlength", "6");
+
+    const paste = (text: string) =>
+      fireEvent.paste(input, { clipboardData: { getData: () => text } });
+    paste("111-111");
+    expect(input).toHaveValue("111111");
+    await userEvent.click(screen.getByRole("button", { name: "Open quote" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "That code isn't right. 3 tries left.",
+    );
+    expect(input).toHaveAttribute("aria-describedby", screen.getByRole("alert").id);
+
+    paste("123 456");
+    await userEvent.click(screen.getByRole("button", { name: "Open quote" }));
+    expect(await screen.findByRole("heading", { name: "Online store" })).toBeInTheDocument();
+    expect(verifyQuoteCode).toHaveBeenLastCalledWith("tokD", "v1.chal.sig", "123456");
+    expect(sendQuoteCode).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not submit until asked, and asks for six digits", async () => {
+    fetchClientQuote.mockRejectedValue(locked());
+    fetchQuoteAccess.mockResolvedValue(lockedStatus);
+    sendQuoteCode.mockResolvedValue(codeSent);
+    renderAt("/q/tokD2");
+    const input = await screen.findByLabelText("6-digit code");
+    await userEvent.type(input, "12345");
+    expect(verifyQuoteCode).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Open quote" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Enter the 6-digit code");
+    expect(verifyQuoteCode).not.toHaveBeenCalled();
+  });
+
+  it("shows the contact address and sends nothing when codes are blocked", async () => {
+    fetchClientQuote.mockRejectedValue(locked());
+    fetchQuoteAccess.mockResolvedValue({ ...lockedStatus, canUnlock: false, blocked: true });
+    renderAt("/q/tokE");
+    expect(await screen.findByText(/too many wrong codes/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Email hello@oceaniccoder.dev" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mailto:hello@oceaniccoder.dev"),
+    );
+    expect(screen.queryByLabelText("6-digit code")).toBeNull();
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+  });
+
+  it("tells the client to get in touch when the quote has no email", async () => {
+    fetchClientQuote.mockRejectedValue(locked());
+    fetchQuoteAccess.mockResolvedValue({ locked: true, canUnlock: false, maskedEmail: null });
+    renderAt("/q/tokF");
+    expect(await screen.findByText(/can't be opened with a code/i)).toBeInTheDocument();
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+  });
+
+  it("admin preview asks with the admin session and never emails the client", async () => {
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    renderAt("/q/tokG?preview=admin");
+    expect(await screen.findByRole("heading", { name: "Online store" })).toBeInTheDocument();
+    expect(fetchClientQuote).toHaveBeenCalledWith("tokG", { preview: false, admin: true });
+  });
+
+  it("admin preview without a dashboard session shows no code screen", async () => {
+    fetchClientQuote.mockRejectedValue(locked());
+    renderAt("/q/tokH?preview=admin");
+    expect(await screen.findByText(/preview needs your dashboard session/i)).toBeInTheDocument();
+    expect(fetchQuoteAccess).not.toHaveBeenCalled();
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+  });
+
+  it("shows the code screen when the unlock ends before accepting", async () => {
+    fetchClientQuote.mockResolvedValue({ quote: baseQuote });
+    respondToQuote.mockRejectedValue(locked());
+    fetchQuoteAccess.mockResolvedValue(lockedStatus);
+    sendQuoteCode.mockResolvedValue(codeSent);
+    renderAt("/q/tokI");
+    await userEvent.type(await screen.findByLabelText(/full name/i), "Kofi Mensah");
+    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: /accept quote/i }));
+    expect(await screen.findByLabelText("6-digit code")).toBeInTheDocument();
   });
 });

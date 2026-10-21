@@ -1,12 +1,13 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
+import { LockedQuote } from "./QuoteAccessGate";
 import { useClientQuote } from "./useClientQuote";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 
 export default function StageInvoicePage() {
   const { token = "", stageId = "" } = useParams();
-  const { state, reload } = useClientQuote(token, true);
+  const { state, reload } = useClientQuote(token, { preview: true });
   if (state.kind === "loading")
     return (
       <QuoteShell title="Invoice" width="narrow">
@@ -19,6 +20,7 @@ export default function StageInvoicePage() {
         <InactiveLink />
       </QuoteShell>
     );
+  if (state.kind === "locked") return <LockedQuote token={token} onUnlocked={reload} />;
   if (state.kind === "error")
     return (
       <QuoteShell title="Invoice" width="narrow">
