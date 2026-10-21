@@ -358,7 +358,7 @@ describe("QuotePage access gate", () => {
     );
   const codeSent = {
     challenge: "v1.chal.sig",
-    maskedEmail: "k•••••@example.com",
+    maskedEmail: "k•••••@e•••••.com",
     expiresInSeconds: 600,
     retryAfterSeconds: 90,
   };
@@ -366,7 +366,7 @@ describe("QuotePage access gate", () => {
     locked: true,
     canUnlock: true,
     blocked: false,
-    maskedEmail: "k•••••@example.com",
+    maskedEmail: "k•••••@e•••••.com",
   };
   let visibility: "visible" | "hidden" = "visible";
 
@@ -406,8 +406,8 @@ describe("QuotePage access gate", () => {
     fetchQuoteAccess.mockResolvedValue(lockedStatus);
     sendQuoteCode.mockResolvedValue(codeSent);
     renderAt("/q/tokB");
-    await screen.findByText("We sent a code to k•••••@example.com.");
-    expect(screen.getByRole("status")).toHaveTextContent("We sent a code to k•••••@example.com.");
+    await screen.findByText("We sent a code to k•••••@e•••••.com.");
+    expect(screen.getByRole("status")).toHaveTextContent("We sent a code to k•••••@e•••••.com.");
     expect(sendQuoteCode).toHaveBeenCalledTimes(1);
     expect(sendQuoteCode).toHaveBeenCalledWith("tokB");
     expect(screen.getByLabelText("6-digit code")).toHaveFocus();

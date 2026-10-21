@@ -25,7 +25,7 @@ const fail = (message: string, status: number, access: QuoteAccessDetails = {}) 
   new QuoteApiError(message, status, undefined, undefined, access);
 const SENT = {
   challenge: "v1.c1.sig",
-  maskedEmail: "k•••••@example.com",
+  maskedEmail: "k•••••@e•••••.com",
   expiresInSeconds: 600,
   retryAfterSeconds: 90,
 };
@@ -61,7 +61,7 @@ beforeEach(() => {
     locked: true,
     canUnlock: true,
     blocked: false,
-    maskedEmail: "k•••••@example.com",
+    maskedEmail: "k•••••@e•••••.com",
   });
   sendQuoteCode.mockResolvedValue(SENT);
 });
@@ -74,7 +74,7 @@ describe("QuoteAccessGate sending a code", () => {
     );
     verifyQuoteCode.mockResolvedValue({ ok: true });
     const t = setup({ token: "kept" });
-    expect(await screen.findByText("We sent a code to k•••••@example.com.")).toBeInTheDocument();
+    expect(await screen.findByText("We sent a code to k•••••@e•••••.com.")).toBeInTheDocument();
     await enter("123456");
     expect(sendQuoteCode).not.toHaveBeenCalled();
     expect(verifyQuoteCode).toHaveBeenCalledWith("kept", "v1.saved.sig", "123456");
@@ -85,9 +85,9 @@ describe("QuoteAccessGate sending a code", () => {
   it("announces a resend as a new code", async () => {
     sendQuoteCode.mockResolvedValue({ ...SENT, retryAfterSeconds: 0 });
     setup();
-    expect(await screen.findByText("We sent a code to k•••••@example.com.")).toBeInTheDocument();
+    expect(await screen.findByText("We sent a code to k•••••@e•••••.com.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Send a new code" }));
-    await screen.findByText("We sent a new code to k•••••@example.com.");
+    await screen.findByText("We sent a new code to k•••••@e•••••.com.");
     expect(screen.getByRole("status")).toHaveTextContent("We sent a new code");
     expect(sendQuoteCode).toHaveBeenCalledTimes(2);
   });
@@ -110,7 +110,7 @@ describe("QuoteAccessGate sending a code", () => {
   it("keeps the resend hint out of the reading order when there is no wait", async () => {
     sendQuoteCode.mockResolvedValue({ ...SENT, retryAfterSeconds: 0 });
     setup();
-    await screen.findByText("We sent a code to k•••••@example.com.");
+    await screen.findByText("We sent a code to k•••••@e•••••.com.");
     expect(screen.getByRole("button", { name: "Send a new code" })).not.toHaveAttribute(
       "aria-describedby",
     );
@@ -125,7 +125,7 @@ describe("QuoteAccessGate sending a code", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't send the code.");
     expect(await input()).toHaveFocus();
     await userEvent.click(screen.getByRole("button", { name: "Send a code" }));
-    expect(await screen.findByText("We sent a code to k•••••@example.com.")).toBeInTheDocument();
+    expect(await screen.findByText("We sent a code to k•••••@e•••••.com.")).toBeInTheDocument();
   });
 
   it.each([
@@ -175,7 +175,7 @@ describe("QuoteAccessGate checking a code", () => {
   it("announces the same wrong-code message again on a second try", async () => {
     verifyQuoteCode.mockRejectedValue(fail("That code isn't right.", 400, { triesLeft: 4 }));
     setup();
-    await screen.findByText("We sent a code to k•••••@example.com.");
+    await screen.findByText("We sent a code to k•••••@e•••••.com.");
     await enter("111111");
     const first = await screen.findByRole("alert");
     expect(first).toHaveTextContent("That code isn't right. 4 tries left.");
@@ -192,7 +192,7 @@ describe("QuoteAccessGate checking a code", () => {
   ])("forgets a %s code's challenge and asks for a code first", async (_, status, message) => {
     verifyQuoteCode.mockRejectedValue(fail(message, status, { newCodeNeeded: true }));
     const t = setup();
-    await screen.findByText("We sent a code to k•••••@example.com.");
+    await screen.findByText("We sent a code to k•••••@e•••••.com.");
     expect(sessionStorage.getItem(`oc-quote-code:${t.token}`)).not.toBeNull();
     await enter("123456");
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
@@ -205,7 +205,7 @@ describe("QuoteAccessGate checking a code", () => {
   it("on 403 blocked announces the contact message and moves focus to it", async () => {
     verifyQuoteCode.mockRejectedValue(fail("Blocked.", 403, { blocked: true, triesLeft: 0 }));
     const t = setup();
-    await screen.findByText("We sent a code to k•••••@example.com.");
+    await screen.findByText("We sent a code to k•••••@e•••••.com.");
     await enter("123456");
     const message = await screen.findByRole("alert");
     expect(message).toHaveTextContent(BLOCKED);
