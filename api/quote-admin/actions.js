@@ -6,9 +6,36 @@ const M = require("../shared/quotes/model");
 const V = require("../shared/quotes/views");
 const { newToken, hashToken } = require("../shared/tokens");
 const { sendMaintenanceOffer } = require("../shared/quotes/maintenance");
-const { bumpEpoch } = require("../shared/quotes/access");
+const {
+  bumpEpoch,
+  currentEpoch,
+  gateEnabled,
+  accessSecret,
+  mintLinkCode,
+} = require("../shared/quotes/access");
 
 const MANUAL_METHODS = ["bank", "momo", "cash"];
+
+// One-time link codes for the client's emails (the "#k=" fragment that signs
+// the browser in). Checks the gate and secret before the caller writes
+// anything, so a missing secret refuses the action instead of sending an
+// email nobody can open. The returned mint(updated) takes the quote as
+// written, with its new tokenHash, because a code only works with the link it
+// came with; call it once per email so every email has its own code. The
+// epoch is read here: send, Email again and payment requests don't change it
+// (rotate does, and mints with the epoch bumpEpoch returns). While the gate is
+// off, mint returns null and the links go out bare.
+async function linkCodes(svc, quote) {
+  if (!gateEnabled()) return () => null;
+  const secret = accessSecret();
+  const epoch = await currentEpoch(svc.locks, quote);
+  return (updated) => mintLinkCode(secret, updated, epoch, svc.now().getTime());
+}
+
+const normalEmail = (email) =>
+  String(email || "")
+    .trim()
+    .toLowerCase();
 
 async function load(svc, id) {
   const quote = typeof id === "string" && id ? await svc.repo.get(id) : null;
@@ -122,6 +149,7 @@ const actions = {
     if (quote.status !== "draft") throw new HttpError(409, "Only drafts can be sent.");
     const problem = M.sendError(quote);
     if (problem) throw new HttpError(400, problem);
+    const mint = await linkCodes(svc, quote);
     const token = newToken();
     const now = svc.now();
     const updated = await svc.repo.update(quote.id, {
@@ -132,7 +160,7 @@ const actions = {
       viewedAt: null,
     });
     await svc.repo.setInquiryStatus(updated.inquiryId, "quoted");
-    const mail = await svc.notify.quoteSent(updated, token);
+    const mail = await svc.notify.quoteSent(updated, token, mint(updated));
     return detail(svc, updated, { link: V.quoteLink(token), emailed: mail.ok });
   },
 
@@ -175,10 +203,17 @@ const actions = {
     // - the link write fails after it: every session is already locked out
     //   and the old link still works, behind a new code. Pressing New link
     //   again finishes the job.
-    await bumpEpoch(svc.locks, quote);
+    // The gate and secret are checked first, so a missing secret refuses New
+    // link before it locks anyone out.
+    const enabled = gateEnabled();
+    const secret = enabled ? accessSecret() : null;
+    const epoch = await bumpEpoch(svc.locks, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, { tokenHash: hashToken(token) });
-    return detail(svc, updated, { link: V.quoteLink(token), emailed: false });
+    // The admin shares this link by hand, so it carries a link code too,
+    // minted for the epoch just taken: one read before it would be dead.
+    const linkCode = enabled ? mintLinkCode(secret, updated, epoch, svc.now().getTime()) : null;
+    return detail(svc, updated, { link: V.quoteLink(token, undefined, linkCode), emailed: false });
   },
 
   // Emails a sent or accepted quote again, e.g. when the client asks for it at
@@ -212,14 +247,25 @@ const actions = {
         "Nothing is due on this quote, so there's no email to send. Use New link to share the quote page.",
       );
 
+    const mint = await linkCodes(svc, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, {
       tokenHash: hashToken(token),
       ...(save ? { clientEmail: extra } : {}),
     });
     const stages = M.stageStates(updated, payments, now);
+    // Only the client's own copy signs a browser in. Anyone else it goes to
+    // gets the code screen, and the code goes to the client.
     const results = await Promise.all(
-      addresses.map((address) => svc.notify.quoteEmailAgain(updated, token, stages, address)),
+      addresses.map((address) =>
+        svc.notify.quoteEmailAgain(
+          updated,
+          token,
+          stages,
+          address,
+          normalEmail(address) === normalEmail(updated.clientEmail) ? mint(updated) : null,
+        ),
+      ),
     );
     const emailedTo = addresses.filter((_, i) => results[i].ok);
     const failedTo = addresses.filter((_, i) => !results[i].ok);
@@ -240,6 +286,7 @@ const actions = {
     if (stage.state === "paid") throw new HttpError(409, "This stage is already paid.");
     const due = { ...((quote.payState && quote.payState.due) || {}) };
     due[stage.id] = due[stage.id] || svc.now().toISOString();
+    const mint = await linkCodes(svc, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, {
       payState: { due },
@@ -250,7 +297,13 @@ const actions = {
       await svc.repo.listPayments(updated.quoteNumber),
       svc.now().getTime(),
     );
-    const mail = await svc.notify.paymentRequest(updated, after[stage.index], token, after);
+    const mail = await svc.notify.paymentRequest(
+      updated,
+      after[stage.index],
+      token,
+      after,
+      mint(updated),
+    );
     return detail(svc, updated, { link: V.quoteLink(token), emailed: mail.ok });
   },
 
