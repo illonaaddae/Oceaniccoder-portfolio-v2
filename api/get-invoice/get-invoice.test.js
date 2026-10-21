@@ -97,6 +97,13 @@ describe("get-invoice", () => {
     const r = await call({ number: "INV-31", s: undefined }, "198.51.100.7");
     expect(r.status).toBe(429);
     expect(lookup).not.toHaveBeenCalled();
+    const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
+    await handler(context, {
+      method: "GET",
+      headers: { "x-forwarded-for": "198.51.100.7" },
+      query: { number: "INV-32" },
+    });
+    expect(context.res.headers["Cache-Control"]).toBe("no-store");
     expect((await call({ number: "INV-31", s: undefined }, "198.51.100.8")).status).toBe(404);
   });
 
@@ -162,12 +169,24 @@ describe("get-invoice", () => {
       ["created after the release", { $createdAt: "2026-10-28T00:00:00.000Z" }],
       ["already paid", { status: "paid" }],
       ["with no creation time", { $createdAt: undefined }],
+      [
+        "created after the release, in Appwrite's offset format",
+        { $createdAt: "2026-10-28T00:00:00.000+00:00" },
+      ],
     ])("refuses an unsigned link during the grace period to an invoice %s", async (_, over) => {
       vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
       lookup.mockResolvedValue({ documents: [{ ...invoice, ...over }] });
       expect(await run("INV-2026-0042", undefined)).toEqual(notFound);
       lookup.mockResolvedValue({ documents: [{ ...invoice, ...over }] });
       expect((await run("INV-2026-0042")).status).toBe(200);
+    });
+
+    it("opens an old unpaid invoice whose creation time uses Appwrite's offset format", async () => {
+      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
+      lookup.mockResolvedValue({
+        documents: [{ ...invoice, $createdAt: "2026-10-27T23:59:59.999+00:00" }],
+      });
+      expect((await run("INV-2026-0042", undefined)).status).toBe(200);
     });
 
     it("refuses a wrong signature even during the grace period", async () => {

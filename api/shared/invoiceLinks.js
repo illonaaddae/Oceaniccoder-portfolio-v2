@@ -34,7 +34,9 @@ function canOpenInvoice(invoiceNumber, sig, secret, now = Date.now()) {
 
 /**
  * For an unsigned request that canOpenInvoice let through: true only for an
- * unpaid invoice old enough to have been emailed without a signature.
+ * unpaid invoice old enough to have been emailed without a signature. Drafts
+ * and archived invoices stay in: editing a draft re-emails it with its status
+ * unchanged, and archiving never ends the client's pay link.
  */
 function unsignedGraceCovers(doc) {
   const created = Date.parse(doc && doc.$createdAt);
