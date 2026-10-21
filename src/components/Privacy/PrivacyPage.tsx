@@ -82,7 +82,8 @@ const PrivacyPage: React.FC = () => (
         </h1>
         <p className="text-lg">
           This page explains what oceaniccoder.dev collects, why, who helps us handle it and what
-          you can ask us to do with it. The short version: one sign-in cookie on quote pages, no
+          you can ask us to do with it. The short version: we set one sign-in cookie, on quote
+          pages; Paystack sets its own cookies only when you open its checkout to pay; there are no
           tracking or advertising cookies, and we only keep what we need to answer you and run the
           business.
         </p>
@@ -118,8 +119,9 @@ const PrivacyPage: React.FC = () => (
         <SubHeading>What we don&apos;t do</SubHeading>
         <List>
           <li>
-            We use no tracking cookies. The only cookie is the quote sign-in cookie described under
-            &quot;Quotes and payments&quot;.
+            We use no tracking or advertising cookies. The only cookie we set is the quote sign-in
+            cookie described under &quot;Quotes and payments&quot;. When you pay, Paystack&apos;s
+            checkout sets its own cookies.
           </li>
           <li>
             We don&apos;t store your IP address or your browser&apos;s full identifying string. Our
@@ -213,8 +215,10 @@ const PrivacyPage: React.FC = () => (
           browser signed in to that quote for 30 days. It is used only for that, and it stops
           working early if the quote is revised or its link is replaced. Your IP address is used in
           memory to limit how often codes can be asked for and is never saved. Records of code
-          requests are deleted within two days; counts of wrong codes are kept until the quote is
-          revised or its link is replaced.
+          requests and code entries are deleted within two days; counts of wrong codes are kept
+          until the quote is revised or its link is replaced. A used sign-in link leaves a random
+          marker, kept for 45 days so the link can&apos;t be used twice; it holds nothing about you
+          except when the link was used.
         </p>
         <p>
           When you accept a quote, we keep a record of the agreement: the name you type, the time, a
@@ -227,6 +231,12 @@ const PrivacyPage: React.FC = () => (
           details. We keep your name, email, the amount and currency, the Paystack reference, the
           payment method (and the mobile money network, if used), the invoice number and the date
           paid. If you pay by bank transfer, no payment provider is involved.
+        </p>
+        <p>
+          Paystack&apos;s checkout loads from Paystack only when you choose to pay, either in a
+          window on our page or on Paystack&apos;s own site. Paystack, and Cloudflare, which
+          protects Paystack&apos;s servers, set their own cookies while it is open; Paystack&apos;s
+          privacy policy covers them.
         </p>
       </Section>
 
