@@ -3,12 +3,17 @@
 // shared secret in the x-cron-key header. A quote is due when it is fully
 // paid, has at least one plan, has no maintenanceOfferSentAt yet and its
 // offer date (a week before the free period ends) has passed.
+//
+// The same daily run deletes quote-access lock rows past their retention
+// (pruneAccessLocks in shared/quotes/access.js). A clean-up failure is logged
+// and never stops or fails the offers.
 
 const crypto = require("crypto");
 const { send, handleError } = require("../shared/http");
 const M = require("../shared/quotes/model");
 const { createServices } = require("../shared/quotes/service");
 const { sendMaintenanceOffer } = require("../shared/quotes/maintenance");
+const { pruneAccessLocks } = require("../shared/quotes/access");
 
 // Hashing both sides first gives equal-length buffers, so the comparison
 // takes the same time whatever the caller sent.
@@ -62,7 +67,15 @@ function createHandler(deps) {
           );
         }
       }
-      return send(context, 200, { sent, failed });
+      let pruned = null;
+      try {
+        pruned = await pruneAccessLocks({ locks: svc.locks, repo: svc.repo, nowMs });
+      } catch (err) {
+        context.log.error(
+          `quote-maintenance-due: lock clean-up: ${err && (err.stack || err.message)}`,
+        );
+      }
+      return send(context, 200, { sent, failed, pruned });
     } catch (err) {
       return handleError(context, err, "quote-maintenance-due");
     }

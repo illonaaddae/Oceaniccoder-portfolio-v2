@@ -470,3 +470,73 @@ describe("link codes", () => {
     });
   });
 });
+
+describe("pruneAccessLocks (retention)", () => {
+  const { createFakeRepo } = require("./fakes.js");
+  const DAY = 24 * 3600 * 1000;
+
+  function world() {
+    const clock = { ms: NOW };
+    const locks = createFakeLocks({ now: () => clock.ms });
+    const repo = createFakeRepo({ quotes: [{ ...QUOTE }] });
+    const prune = () => A.pruneAccessLocks({ locks, repo, nowMs: clock.ms });
+    return { clock, locks, repo, prune };
+  }
+
+  it("deletes send, try and used rows after a day and keeps younger ones", async () => {
+    const t = world();
+    for (const key of ["qa:send:q1:2:0:g:1", "qa:try:cid:1", "qa:used:cid"])
+      await t.locks.take(key);
+    t.clock.ms += DAY - 1;
+    await t.locks.take("qa:try:fresh:1");
+    expect(await t.prune()).toEqual({ deleted: 0, kept: 0 });
+    t.clock.ms += 1;
+    expect(await t.prune()).toEqual({ deleted: 3, kept: 0 });
+    expect([...t.locks.held]).toEqual(["qa:try:fresh:1"]);
+  });
+
+  it("keeps used link codes for 45 days plus the clock skew", async () => {
+    const t = world();
+    await t.locks.take("qa:lk:nonce");
+    t.clock.ms += A.LINK_CODE_TTL_MS + 5 * 60 * 1000 - 1;
+    await t.prune();
+    expect(t.locks.held.has("qa:lk:nonce")).toBe(true);
+    t.clock.ms += 1;
+    await t.prune();
+    expect(t.locks.held.has("qa:lk:nonce")).toBe(false);
+  });
+
+  it("keeps the wrong-code count until Revise or New link supersedes it", async () => {
+    const t = world();
+    await A.recordMiss(t.locks, QUOTE, 0);
+    t.clock.ms += 30 * DAY;
+    await t.prune();
+    expect(t.locks.held.has("qa:miss:q1:2:0:1")).toBe(true);
+
+    await A.bumpEpoch(t.locks, QUOTE);
+    t.clock.ms += DAY;
+    await t.prune();
+    expect(t.locks.held.has("qa:miss:q1:2:0:1")).toBe(false);
+    expect(t.locks.held.has("qa:epoch:q1:2:1")).toBe(true);
+  });
+
+  it("drops wrong-code counts for an older revision or a deleted quote", async () => {
+    const t = world();
+    await A.recordMiss(t.locks, { ...QUOTE, revision: 1 }, 0);
+    await A.recordMiss(t.locks, { ...QUOTE, id: "gone" }, 0);
+    await A.recordMiss(t.locks, QUOTE, 0);
+    t.clock.ms += DAY;
+    expect(await t.prune()).toEqual({ deleted: 2, kept: 1 });
+    expect([...t.locks.held]).toEqual(["qa:miss:q1:2:0:1"]);
+  });
+
+  it("never deletes epochs or other features' locks", async () => {
+    const t = world();
+    await A.bumpEpoch(t.locks, QUOTE);
+    await t.locks.take("settle:REF-1");
+    await t.locks.take("respond:q1:2");
+    t.clock.ms += 400 * DAY;
+    expect(await t.prune()).toEqual({ deleted: 0, kept: 1 });
+    expect(t.locks.held.size).toBe(3);
+  });
+});
