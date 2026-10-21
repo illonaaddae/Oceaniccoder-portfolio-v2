@@ -215,6 +215,34 @@ describe("locks", () => {
     expect(db.getDocument.mock.calls[0][2]).toMatch(/^s_[0-9a-f]{34}$/);
     expect(db.createDocument).not.toHaveBeenCalled();
   });
+  it("lists locks created before a time, following the cursor", async () => {
+    const page = (n, start) =>
+      Array.from({ length: n }, (_, i) => ({
+        $id: `s_${start + i}`,
+        key: `qa:try:c:${start + i}`,
+        $createdAt: "2026-10-01T00:00:00.000Z",
+      }));
+    const db = {
+      listDocuments: vi
+        .fn()
+        .mockResolvedValueOnce({ documents: page(100, 0) })
+        .mockResolvedValueOnce({ documents: page(3, 100) }),
+    };
+    const rows = await createLocks(db).listBefore("2026-10-20T00:00:00.000Z");
+    expect(rows).toHaveLength(103);
+    expect(rows[0]).toEqual({ key: "qa:try:c:0", createdAt: "2026-10-01T00:00:00.000Z" });
+    expect(db.listDocuments).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(db.listDocuments.mock.calls[1][2])).toContain("s_99");
+  });
+  it("stops listing locks at the cap", async () => {
+    const db = {
+      listDocuments: vi.fn().mockResolvedValue({
+        documents: Array.from({ length: 5 }, (_, i) => ({ $id: `s_${i}`, key: `k${i}` })),
+      }),
+    };
+    expect(await createLocks(db).listBefore("2026-10-20T00:00:00.000Z", 5)).toHaveLength(5);
+    expect(db.listDocuments).toHaveBeenCalledTimes(1);
+  });
   it("rethrows a failed read", async () => {
     const db = { getDocument: vi.fn().mockRejectedValue(new Error("down")) };
     await expect(createLocks(db).has("k")).rejects.toThrow("down");
