@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   FaArrowLeft,
   FaCheck,
@@ -17,7 +17,7 @@ import { LockedQuote } from "./QuoteAccessGate";
 import AnimatedCard from "@/components/Payment/AnimatedCard";
 import { CopyButton } from "@/components/Payment/BankTransfer";
 import MomoNetworkPicker, { type MomoNetwork } from "@/components/Payment/MomoNetworkPicker";
-import { useClientQuote } from "./useClientQuote";
+import { previewQuery, useClientQuote } from "./useClientQuote";
 import { startStagePayment, checkStagePayment, isLockedError } from "@/services/api/quotes";
 import { loadPaystackV2 } from "@/utils/paystackV2";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
@@ -42,7 +42,10 @@ const TEST_MODE = String(import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "").startsW
 export default function CheckoutPage() {
   const { token = "", stageId = "" } = useParams();
   const navigate = useNavigate();
-  const { state, reload, lock } = useClientQuote(token, { preview: true });
+  const [params] = useSearchParams();
+  const admin = params.get("preview") === "admin";
+  const query = previewQuery(admin);
+  const { state, reload, unlocked, lock } = useClientQuote(token, { preview: true, admin });
   const [method, setMethod] = useState<UiMethod>("card");
   const [network, setNetwork] = useState<MomoNetwork | null>(null);
   const [email, setEmail] = useState("");
@@ -81,7 +84,16 @@ export default function CheckoutPage() {
         <InactiveLink />
       </QuoteShell>
     );
-  if (state.kind === "locked") return <LockedQuote token={token} onUnlocked={reload} />;
+  if (state.kind === "locked")
+    return (
+      <LockedQuote
+        token={token}
+        onUnlocked={unlocked}
+        onRetry={reload}
+        admin={admin}
+        cookieBlocked={state.cookieBlocked}
+      />
+    );
   if (state.kind === "error")
     return (
       <QuoteShell title="Payment">
@@ -92,7 +104,7 @@ export default function CheckoutPage() {
   const { quote } = state;
   const stage = quote.stages.find((s) => s.id === stageId);
   if (!stage || stage.state !== "due" || quote.status !== "accepted")
-    return <Navigate to={`/q/${token}`} replace />;
+    return <Navigate to={`/q/${token}${query}`} replace />;
 
   const money = (m: number) => formatMinor(m, quote.currency);
   const methods = METHODS.filter((m) => m.id !== "apple_pay" || APPLE_PAY);
@@ -113,6 +125,11 @@ export default function CheckoutPage() {
   const pay = async (e: FormEvent) => {
     e.preventDefault();
     if (method === "bank") return;
+    // The server has no admin bypass for paying; say so instead of a lock screen.
+    if (admin) {
+      setNote({ tone: "info", text: "Preview only: payments are turned off here." });
+      return;
+    }
     if (method === "momo" && !network) {
       setNote({ tone: "error", text: "Choose your Mobile Money network first." });
       return;
@@ -629,7 +646,7 @@ export default function CheckoutPage() {
               </>
             )}
             <Link
-              to={`/q/${token}`}
+              to={`/q/${token}${query}`}
               className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold"
               style={{ color: "var(--text-secondary)" }}
             >

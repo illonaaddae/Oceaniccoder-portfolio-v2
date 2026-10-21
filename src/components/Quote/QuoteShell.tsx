@@ -182,10 +182,21 @@ export function QuoteRouteFallback() {
   );
 }
 
-export function QuoteError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function QuoteError({
+  message,
+  onRetry,
+  title = "Something went wrong",
+}: {
+  message: string;
+  onRetry?: () => void;
+  title?: string;
+}) {
   return (
     <QuoteCard className="text-center">
-      <p className="mb-4" style={{ color: "var(--text-primary)" }}>
+      <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+        {title}
+      </h1>
+      <p className="mb-4 [overflow-wrap:anywhere]" style={{ color: "var(--text-primary)" }}>
         {message}
       </p>
       {onRetry && (

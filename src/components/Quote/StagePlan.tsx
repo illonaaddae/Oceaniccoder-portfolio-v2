@@ -48,11 +48,14 @@ export default function StagePlan({
   quote,
   token,
   preview = false,
+  query = "",
 }: {
   quote: ClientQuote;
   token: string;
   /** Admin preview: show the buttons the client would see, but disabled. */
   preview?: boolean;
+  /** Added to the pay and invoice links ("?preview=admin" inside the dashboard's Preview). */
+  query?: string;
 }) {
   return (
     <QuoteCard>
@@ -151,7 +154,7 @@ export default function StagePlan({
                 <>
                   {s.state === "due" && quote.status === "accepted" && (
                     <Link
-                      to={`/q/${token}/pay/${s.id}`}
+                      to={`/q/${token}/pay/${s.id}${query}`}
                       className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
                       style={{ background: "var(--quote-cta)" }}
                     >
@@ -160,7 +163,7 @@ export default function StagePlan({
                   )}
                   {s.state !== "later" && (
                     <Link
-                      to={`/q/${token}/invoice/${s.id}`}
+                      to={`/q/${token}/invoice/${s.id}${query}`}
                       className="px-4 py-2 rounded-lg text-sm border"
                       style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
                     >
