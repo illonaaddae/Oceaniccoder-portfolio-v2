@@ -10,6 +10,14 @@ const { signInvoice, verifyInvoice } = require("./tokens");
 // so a typo in app settings cannot reopen unsigned access.
 const UNSIGNED_LINKS_ACCEPTED_UNTIL = Date.parse("2026-11-21T00:00:00.000Z");
 
+// Only invoices that could have gone out by email unsigned get the grace:
+// created before this date and not yet paid. It sits on the cutover date, a
+// few days after this ships, so an invoice emailed by the old code during the
+// deploy still opens; invoices created after it never open unsigned.
+const UNSIGNED_INVOICES_CREATED_BEFORE = Date.parse("2026-10-28T00:00:00.000Z");
+
+const hasSignature = (sig) => sig !== undefined && sig !== null && sig !== "";
+
 /** Throws when the secret is missing: a pay link without a signature is no use. */
 function invoicePayPath(invoiceNumber, secret) {
   return `/pay/${encodeURIComponent(invoiceNumber)}?s=${signInvoice(invoiceNumber, secret)}`;
@@ -20,10 +28,24 @@ function invoicePayPath(invoiceNumber, secret) {
  * wrong is always refused; only a missing one falls back to the grace period.
  */
 function canOpenInvoice(invoiceNumber, sig, secret, now = Date.now()) {
-  if (sig !== undefined && sig !== null && sig !== "") {
-    return verifyInvoice(invoiceNumber, sig, secret);
-  }
+  if (hasSignature(sig)) return verifyInvoice(invoiceNumber, sig, secret);
   return now < UNSIGNED_LINKS_ACCEPTED_UNTIL;
 }
 
-module.exports = { UNSIGNED_LINKS_ACCEPTED_UNTIL, invoicePayPath, canOpenInvoice };
+/**
+ * For an unsigned request that canOpenInvoice let through: true only for an
+ * unpaid invoice old enough to have been emailed without a signature.
+ */
+function unsignedGraceCovers(doc) {
+  const created = Date.parse(doc && doc.$createdAt);
+  return created < UNSIGNED_INVOICES_CREATED_BEFORE && doc.status !== "paid";
+}
+
+module.exports = {
+  UNSIGNED_LINKS_ACCEPTED_UNTIL,
+  UNSIGNED_INVOICES_CREATED_BEFORE,
+  hasSignature,
+  invoicePayPath,
+  canOpenInvoice,
+  unsignedGraceCovers,
+};

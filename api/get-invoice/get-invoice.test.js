@@ -13,12 +13,23 @@ const SECRET = "test-signing-secret";
 const sign = (number) => signInvoice(number, SECRET);
 
 // run(number) sends a valid signature; run(number, s) sends s (undefined: none).
+// Each call comes from its own IP so the per-IP limit never trips by accident.
+let nextIp = 1;
 const run = async (number, ...given) => {
   const s = given.length ? given[0] : sign(number);
+  const ip = `203.0.113.${nextIp++ % 250}`;
+  return call({ number, s }, ip);
+};
+const call = async ({ number, s }, ip) => {
   const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
-  await handler(context, { method: "GET", query: s === undefined ? { number } : { number, s } });
+  await handler(context, {
+    method: "GET",
+    headers: { "x-forwarded-for": ip },
+    query: s === undefined ? { number } : { number, s },
+  });
   return { status: context.res.status, body: JSON.parse(context.res.body) };
 };
+const NOT_VALID = "This payment link is not valid. Ask us for a new one at hello@oceaniccoder.dev.";
 
 const invoice = {
   $id: "inv1",
@@ -28,6 +39,7 @@ const invoice = {
   total: 500,
   currency: "GHS",
   status: "sent",
+  $createdAt: "2026-10-01T09:00:00.000Z",
 };
 
 // File-wide so every describe block signs with the same secret.
@@ -62,11 +74,34 @@ describe("get-invoice", () => {
 
   it("returns 404 for an unknown invoice number", async () => {
     vi.spyOn(sdk.Databases.prototype, "listDocuments").mockResolvedValue({ documents: [] });
-    expect((await run("INV-NOPE")).status).toBe(404);
+    expect(await run("INV-NOPE")).toEqual({ status: 404, body: { error: NOT_VALID } });
+  });
+
+  it("tells browsers and caches never to keep the reply", async () => {
+    vi.spyOn(sdk.Databases.prototype, "listDocuments").mockResolvedValue({ documents: [invoice] });
+    const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
+    const number = "INV-2026-0042";
+    await handler(context, { method: "GET", headers: {}, query: { number, s: sign(number) } });
+    expect(context.res.headers["Cache-Control"]).toBe("no-store");
+    expect(context.res.headers["Access-Control-Allow-Origin"]).toBe("https://oceaniccoder.dev");
+  });
+
+  it("answers 429 after 30 requests in 10 minutes from one IP, before any lookup", async () => {
+    const lookup = vi
+      .spyOn(sdk.Databases.prototype, "listDocuments")
+      .mockResolvedValue({ documents: [] });
+    for (let n = 0; n < 30; n += 1) {
+      expect((await call({ number: `INV-${n}`, s: undefined }, "198.51.100.7")).status).toBe(404);
+    }
+    lookup.mockClear();
+    const r = await call({ number: "INV-31", s: undefined }, "198.51.100.7");
+    expect(r.status).toBe(429);
+    expect(lookup).not.toHaveBeenCalled();
+    expect((await call({ number: "INV-31", s: undefined }, "198.51.100.8")).status).toBe(404);
   });
 
   describe("signed links", () => {
-    const notFound = { status: 404, body: { error: "Invoice not found" } };
+    const notFound = { status: 404, body: { error: NOT_VALID } };
     let lookup;
     beforeEach(() => {
       lookup = vi
@@ -114,13 +149,25 @@ describe("get-invoice", () => {
       expect(await run("INV-2026-0042")).toEqual(notFound);
     });
 
-    // Invoice emails sent before signing shipped have no ?s=; they keep
-    // working, unchanged, until the cutoff.
-    it("still serves an unsigned link during the grace period", async () => {
+    // Invoice emails sent before signing shipped have no ?s=; an unpaid
+    // invoice from before the release keeps working until the cutoff.
+    it("still serves an unsigned link to an old unpaid invoice during the grace period", async () => {
       vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
       const r = await run("INV-2026-0042", undefined);
       expect(r.status).toBe(200);
       expect(r.body.invoiceNumber).toBe("INV-2026-0042");
+    });
+
+    it.each([
+      ["created after the release", { $createdAt: "2026-10-28T00:00:00.000Z" }],
+      ["already paid", { status: "paid" }],
+      ["with no creation time", { $createdAt: undefined }],
+    ])("refuses an unsigned link during the grace period to an invoice %s", async (_, over) => {
+      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
+      lookup.mockResolvedValue({ documents: [{ ...invoice, ...over }] });
+      expect(await run("INV-2026-0042", undefined)).toEqual(notFound);
+      lookup.mockResolvedValue({ documents: [{ ...invoice, ...over }] });
+      expect((await run("INV-2026-0042")).status).toBe(200);
     });
 
     it("refuses a wrong signature even during the grace period", async () => {

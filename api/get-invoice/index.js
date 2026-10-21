@@ -4,15 +4,30 @@
 
 const sdk = require("node-appwrite");
 
+const { canOpenInvoice, hasSignature, unsignedGraceCovers } = require("../shared/invoiceLinks");
+const { createRateLimiter } = require("../shared/rateLimit");
+const { clientIp } = require("../shared/turnstile");
+
+// Only our own pages call this, and the answer holds a client's details, so
+// no other origin may read it and no cache may keep it.
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
+  Vary: "Origin",
   "Content-Type": "application/json",
+  "Cache-Control": "no-store",
 };
 
-// The pay link carries ?s=, an HMAC of the invoice number.
-const { canOpenInvoice } = require("../shared/invoiceLinks");
+// One reply for a bad signature, an unsigned link out of grace and an unknown
+// number, so a guess learns nothing about which invoices exist.
+const NOT_FOUND = JSON.stringify({
+  error: "This payment link is not valid. Ask us for a new one at hello@oceaniccoder.dev.",
+});
+
+// Per instance. A client opens their pay page a handful of times; this caps
+// anyone trying invoice numbers in bulk.
+const allowFromIp = createRateLimiter({ limit: 30, windowMs: 10 * 60 * 1000 });
 
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
@@ -22,6 +37,15 @@ const COLLECTION_ID = "invoices";
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
+    return;
+  }
+
+  if (!allowFromIp(clientIp(req) || "unknown", 1, Date.now())) {
+    context.res = {
+      status: 429,
+      headers: CORS,
+      body: JSON.stringify({ error: "Too many requests. Try again in a few minutes." }),
+    };
     return;
   }
 
@@ -39,11 +63,7 @@ module.exports = async function (context, req) {
   // Same answer as an unknown number, before any lookup, so a guessed number
   // learns nothing about whether that invoice exists.
   if (!canOpenInvoice(number, req.query.s, process.env.RECEIPT_SIGNING_SECRET)) {
-    context.res = {
-      status: 404,
-      headers: CORS,
-      body: JSON.stringify({ error: "Invoice not found" }),
-    };
+    context.res = { status: 404, headers: CORS, body: NOT_FOUND };
     return;
   }
 
@@ -67,15 +87,17 @@ module.exports = async function (context, req) {
     ]);
 
     if (!result.documents || result.documents.length === 0) {
-      context.res = {
-        status: 404,
-        headers: CORS,
-        body: JSON.stringify({ error: "Invoice not found" }),
-      };
+      context.res = { status: 404, headers: CORS, body: NOT_FOUND };
       return;
     }
 
     const doc = result.documents[0];
+
+    // The check above let an unsigned link through on the date alone.
+    if (!hasSignature(req.query.s) && !unsignedGraceCovers(doc)) {
+      context.res = { status: 404, headers: CORS, body: NOT_FOUND };
+      return;
+    }
 
     // Return only safe, public-facing fields — no phone (PII not needed for payment)
     const safe = {
