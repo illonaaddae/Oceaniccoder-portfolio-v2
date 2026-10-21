@@ -652,6 +652,13 @@ describe("quote-admin archive and restore", () => {
       const t = setup({ invoices: [{ id: "inv1", status: "sent" }] });
       expect((await t.call({ action: "invoicePayLink", id: "inv1" })).status).toBe(409);
     });
+
+    it("answers 404 for an unknown invoice and 400 for an unsafe id", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup();
+      expect((await t.call({ action: "invoicePayLink", id: "nope" })).status).toBe(404);
+      expect((await t.call({ action: "invoicePayLink", id: "../x" })).status).toBe(400);
+    });
   });
 
   it("archives and restores a one-off invoice", async () => {
@@ -664,22 +671,19 @@ describe("quote-admin archive and restore", () => {
     expect(t.repo.invoices.get("inv1")).toMatchObject({ status: "sent", archivedAt: null });
   });
 
-  it.each([
-    "archivePayment",
-    "restorePayment",
-    "archiveInvoice",
-    "restoreInvoice",
-    "invoicePayLink",
-  ])("%s returns 404 for an unknown id and 400 for a missing or unsafe one", async (action) => {
-    const t = setup();
-    const getPayment = vi.spyOn(t.repo, "getPayment");
-    const getInvoice = vi.spyOn(t.repo, "getInvoice");
-    expect((await t.call({ action, id: "nope" })).status).toBe(404);
-    const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(37), 42];
-    for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
-    // Only the well-formed id reached the repo.
-    expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
-  });
+  it.each(["archivePayment", "restorePayment", "archiveInvoice", "restoreInvoice"])(
+    "%s returns 404 for an unknown id and 400 for a missing or unsafe one",
+    async (action) => {
+      const t = setup();
+      const getPayment = vi.spyOn(t.repo, "getPayment");
+      const getInvoice = vi.spyOn(t.repo, "getInvoice");
+      expect((await t.call({ action, id: "nope" })).status).toBe(404);
+      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(37), 42];
+      for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
+      // Only the well-formed id reached the repo.
+      expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
+    },
+  );
 
   it("keeps stage state unchanged after archiving an attempt", async () => {
     const t = setup();

@@ -30,16 +30,22 @@ const invoice = {
   status: "sent",
 };
 
+// File-wide so every describe block signs with the same secret.
+beforeEach(() => {
+  process.env.RECEIPT_SIGNING_SECRET = SECRET;
+});
+afterEach(() => {
+  vi.useRealTimers();
+  delete process.env.RECEIPT_SIGNING_SECRET;
+});
+
 describe("get-invoice", () => {
   beforeEach(() => {
     process.env.APPWRITE_API_KEY = "test-key";
-    process.env.RECEIPT_SIGNING_SECRET = SECRET;
   });
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.useRealTimers();
     delete process.env.APPWRITE_API_KEY;
-    delete process.env.RECEIPT_SIGNING_SECRET;
   });
 
   // Archiving is admin bookkeeping; the client's pay link keeps working and
