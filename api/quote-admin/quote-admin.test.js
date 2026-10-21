@@ -283,7 +283,7 @@ describe("quote-admin", () => {
     const before = t.repo.quotes.get(id).tokenHash;
     const r = await t.call({ action: "rotate", id });
     expect(r.status).toBe(200);
-    expect(r.body.link).toMatch(/^https:\/\/oceaniccoder\.dev\/q\/[A-Za-z0-9_-]{43}#k=\S+$/);
+    expect(r.body.link).toMatch(/^https:\/\/oceaniccoder\.dev\/q\/[A-Za-z0-9_-]{43}$/);
     expect(r.body.link).not.toBe(sent.body.link);
     expect(t.repo.quotes.get(id).tokenHash).not.toBe(before);
   });
@@ -767,24 +767,13 @@ describe("quote-admin link codes", () => {
     expect(await check(t, id, code)).toMatchObject({ ok: true, epoch: 0 });
   });
 
-  it("New link carries a code minted for the epoch it just took", async () => {
+  it("New link returns a bare link and voids every code emailed before it", async () => {
     const t = setup();
     const id = await accepted(t);
+    await t.call({ action: "requestStage", id, stageId: "balance" });
+    const emailed = t.notify.paymentRequest.mock.calls[0][4];
     const r = await t.call({ action: "rotate", id });
-    const code = r.body.link.split("#k=")[1];
-    expect(await check(t, id, code)).toMatchObject({ ok: true, epoch: 1 });
-    const again = await t.call({ action: "rotate", id });
-    expect(await check(t, id, again.body.link.split("#k=")[1])).toMatchObject({ epoch: 2 });
-    expect(await check(t, id, code)).toMatchObject({ ok: false });
-  });
-
-  it("New link without the access secret changes nothing", async () => {
-    const t = setup();
-    const id = await accepted(t);
-    const before = t.repo.quotes.get(id).tokenHash;
-    vi.stubEnv("QUOTE_ACCESS_SECRET", "");
-    expect((await t.call({ action: "rotate", id })).status).toBe(503);
-    expect(t.repo.quotes.get(id).tokenHash).toBe(before);
-    expect(await access.currentEpoch(t.locks, await t.repo.get(id))).toBe(0);
+    expect(r.body.link).not.toContain("#");
+    expect(await check(t, id, emailed)).toMatchObject({ ok: false });
   });
 });

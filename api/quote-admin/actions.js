@@ -23,7 +23,7 @@ const MANUAL_METHODS = ["bank", "momo", "cash"];
 // written, with its new tokenHash, because a code only works with the link it
 // came with; call it once per email so every email has its own code. The
 // epoch is read here: send, Email again and payment requests don't change it
-// (rotate does, and mints with the epoch bumpEpoch returns). While the gate is
+// (rotate does, and returns a bare link). While the gate is
 // off (gated: false), mint returns null and the links go out bare.
 async function linkCodes(svc, quote) {
   if (!gateEnabled()) return { gated: false, mint: () => null };
@@ -206,17 +206,12 @@ const actions = {
     // - the link write fails after it: every session is already locked out
     //   and the old link still works, behind a new code. Pressing New link
     //   again finishes the job.
-    // The gate and secret are checked first, so a missing secret refuses New
-    // link before it locks anyone out.
-    const enabled = gateEnabled();
-    const secret = enabled ? accessSecret() : null;
-    const epoch = await bumpEpoch(svc.locks, quote);
+    // The link goes back bare, like every link the admin sees: whoever opens
+    // it is emailed a code at the client's address.
+    await bumpEpoch(svc.locks, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, { tokenHash: hashToken(token) });
-    // The admin shares this link by hand, so it carries a link code too,
-    // minted for the epoch just taken: one read before it would be dead.
-    const linkCode = enabled ? mintLinkCode(secret, updated, epoch, svc.now().getTime()) : null;
-    return detail(svc, updated, { link: V.quoteLink(token, undefined, linkCode), emailed: false });
+    return detail(svc, updated, { link: V.quoteLink(token), emailed: false });
   },
 
   // Emails a sent or accepted quote again, e.g. when the client asks for it at
