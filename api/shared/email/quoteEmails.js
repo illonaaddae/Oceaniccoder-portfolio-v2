@@ -8,7 +8,9 @@ const {
   multiline,
   shell,
   heading,
+  p,
   card,
+  codeBlock,
   button,
   buttons,
   steps,
@@ -360,32 +362,29 @@ function maintenanceOffer(v) {
 // forwarded or intercepted copy can't open the quote by itself.
 function accessCode(v) {
   const subject = `${v.code} is your code for quote ${v.quoteNumber}`;
+  // A plain sentence first, so Gmail's "Copy code" and Apple's one-time-code
+  // autofill find the code.
+  const verification = `Your verification code is ${v.code}.`;
   const opened = "Someone opened your quote in a new browser. Here's your code:";
   const ignore =
     "If it wasn't you, ignore this email: nobody can open the quote without this code.";
   const html = shell({
-    preview: `Your code is ${v.code}. It works for ${v.minutes} minutes.`,
+    preview: `${verification} It works for ${v.minutes} minutes.`,
     meta: { label: "Quote", number: v.quoteNumber },
     reason: CLIENT_REASON,
     body:
-      heading({
-        eyebrow: "Your code",
-        title: "Open your quote",
-        intro: `Hi ${v.clientFirstName}, ${opened.charAt(0).toLowerCase()}${opened.slice(1)}`,
-      }) +
-      card({
-        highlightLabel: "Code",
-        highlight: v.code,
-        rows: [["Works for", `${v.minutes} minutes`]],
-      }) +
+      heading({ eyebrow: "Your code", title: "Open your quote", intro: verification }) +
+      p(`Hi ${v.clientFirstName}, ${opened.charAt(0).toLowerCase()}${opened.slice(1)}`) +
+      codeBlock({ label: "Code", code: v.code }) +
+      p(`It works for ${v.minutes} minutes.`) +
       small(ignore),
   });
-  const text = lines(
-    `Hi ${v.clientFirstName},`,
-    `${opened} ${v.code}`,
-    `It works for ${v.minutes} minutes.`,
-    ignore,
-  );
+  const text = [
+    verification,
+    `Hi ${v.clientFirstName},\n${opened}`,
+    v.code,
+    `It works for ${v.minutes} minutes.\n${ignore}`,
+  ].join("\n\n");
   return { subject, html, text };
 }
 
