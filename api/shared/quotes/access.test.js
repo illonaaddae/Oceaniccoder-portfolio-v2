@@ -100,7 +100,6 @@ describe("codes", () => {
     for (const tag of tags) {
       expect(tag).toMatch(/^[\w-]{22}$/);
       expect(plain).not.toContain(tag);
-      expect(tag).not.toMatch(/kofi|example/i);
     }
     const tagOf = (t) => JSON.parse(Buffer.from(t.split(".")[1], "base64url").toString()).m;
     const otherSecret = A.issueChallenge("t".repeat(32), QUOTE, 0, NOW).challenge;
@@ -112,9 +111,12 @@ describe("codes", () => {
 
   it("keeps the code out of the challenge token", () => {
     const { challenge, code } = A.issueChallenge(SECRET, QUOTE, 0, NOW);
-    const body = Buffer.from(challenge.split(".")[1], "base64url").toString();
-    expect(body).not.toContain(code);
-    expect(body).not.toContain("kofi");
+    const payload = JSON.parse(Buffer.from(challenge.split(".")[1], "base64url").toString());
+    // Exact fields, so no code or email field can creep in; values that can't
+    // match by chance are checked directly.
+    expect(Object.keys(payload).sort()).toEqual(["c", "e", "m", "q", "r", "x"]);
+    expect(Object.values(payload)).not.toContain(code);
+    expect(JSON.stringify(payload).toLowerCase()).not.toContain(QUOTE.clientEmail.toLowerCase());
   });
 });
 
@@ -295,7 +297,10 @@ describe("session cookie and hasAccess", () => {
     const { header } = await unlocked();
     expect(header).toMatch(/^__Secure-oc_qa_[0-9a-f]{16}=v1\.[\w-]+\.[\w-]+; /);
     expect(header).toContain("; Max-Age=2592000; Path=/api; HttpOnly; Secure; SameSite=Strict");
-    expect(header).not.toContain("kofi");
+    const value = header.split(";")[0].split("=")[1];
+    const payload = JSON.parse(Buffer.from(value.split(".")[1], "base64url").toString());
+    expect(Object.keys(payload).sort()).toEqual(["e", "m", "q", "r", "x"]);
+    expect(JSON.stringify(payload).toLowerCase()).not.toContain(QUOTE.clientEmail.toLowerCase());
     expect(header).not.toContain(QUOTE.tokenHash);
   });
 
@@ -380,7 +385,13 @@ describe("link codes", () => {
     const locks = createFakeLocks();
     const code = A.mintLinkCode(SECRET, QUOTE, 0, NOW);
     expect(code).toMatch(/^[\w-]{22}\.[0-9a-z]+\.[\w-]{43}$/);
-    expect(code).not.toMatch(/kofi|example|q1/i);
+    // Only the nonce, mint time and signature: nothing that names the quote or client.
+    const [nonce, minted, sig] = code.split(".");
+    expect(nonce).toHaveLength(22);
+    expect(parseInt(minted, 36)).toBe(NOW);
+    expect(sig).toHaveLength(43);
+    expect(code.toLowerCase()).not.toContain(QUOTE.clientEmail.toLowerCase());
+    expect(code).not.toContain(QUOTE.tokenHash);
     const r = await check(locks, code);
     expect(r).toMatchObject({ ok: true, epoch: 0 });
     expect(await A.claimLinkCode(locks, r.nonce)).toBe(true);
