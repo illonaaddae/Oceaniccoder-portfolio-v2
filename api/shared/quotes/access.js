@@ -391,14 +391,15 @@ function claimLinkCode(locks, nonce) {
 
 // Retention for the qa:* lock rows (owner decision, 2026-10-21):
 // - qa:send:, qa:try:, qa:used: one day; every window they guard is shorter;
-// - qa:lk: the link-code lifetime plus skew, so a used link code can't be
-//   claimed again while it would still check out;
+// - qa:lk: the link-code lifetime plus skew plus a day, so a used link code
+//   can't be claimed again while it would still check out, even if the lock
+//   store's clock runs behind ours;
 // - qa:miss: until its revision or epoch is superseded (Revise, New link, or
 //   the quote is gone); a live counter is never dropped;
 // - qa:epoch: never; it holds the lockout of every older session.
 const SHORT_LIVED = ["qa:send:", "qa:try:", "qa:used:"];
 const SHORT_RETENTION_MS = DAY_MS;
-const LINK_RETENTION_MS = LINK_CODE_TTL_MS + CLOCK_SKEW_MS;
+const LINK_RETENTION_MS = LINK_CODE_TTL_MS + CLOCK_SKEW_MS + DAY_MS;
 
 // "qa:miss:<quoteId>:<revision>:<epoch>:<n>", read from the right so a quote
 // id can't shift the fields.
@@ -528,6 +529,7 @@ module.exports = {
   gateEnabled,
   accessSecret,
   maskEmail,
+  normalEmail,
   currentEpoch,
   bumpEpoch,
   codeFor,

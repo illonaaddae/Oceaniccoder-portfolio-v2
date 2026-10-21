@@ -498,7 +498,7 @@ function accessCodeView(q, code, minutes) {
 }
 
 // The owner's alert when a code locks out after five wrong tries. blocked:
-// it was the last lockout allowed, so no more codes go out on this link.
+// the quote's 15th wrong code; no more codes are sent or checked on this link.
 function accessLockedView(q, at, blocked = false, base = siteBase()) {
   return {
     blocked,

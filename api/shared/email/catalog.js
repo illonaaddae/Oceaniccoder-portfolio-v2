@@ -327,7 +327,7 @@ const CATALOG = [
     id: "accessLockedAlert",
     group: "admin",
     name: "Quote code locked",
-    when: "Five wrong codes are entered on a quote link",
+    when: "Five wrong codes on one code, or fifteen on a quote link",
     render: quote("accessLockedAlert"),
   },
   {
