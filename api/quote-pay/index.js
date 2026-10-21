@@ -5,11 +5,17 @@
 //   GET  — check a reference from the return page or while the popup is open.
 //          Verifies with Paystack and settles if needed (same code path as the
 //          webhook), so the page never trusts a query string.
+// POST is behind the quote access gate (api/shared/quotes/access.js). GET is
+// not: a client returning from Paystack on another device must still see the
+// payment settle. It returns the receipt path only with an unlock or, with
+// admin=1, the admin session.
 
 const { send, readJson, handleError, HttpError, str } = require("../shared/http");
+const { requireAdmin } = require("../shared/adminAuth");
 const { isTokenShape, hashToken } = require("../shared/tokens");
 const M = require("../shared/quotes/model");
 const V = require("../shared/quotes/views");
+const A = require("../shared/quotes/access");
 const { createServices, handleQuoteCharge } = require("../shared/quotes/service");
 
 const CHANNELS = { card: "card", momo: "mobile_money", apple_pay: "apple_pay" };
@@ -31,7 +37,7 @@ async function quoteFor(svc, token) {
   return quote;
 }
 
-async function start(svc, body) {
+async function start(svc, body, gate) {
   const method = str(body.method, 20);
   const email = str(body.email, 254).toLowerCase();
   if (!CHANNELS[method]) throw new HttpError(400, "Choose card, Mobile Money or Apple Pay.");
@@ -42,6 +48,7 @@ async function start(svc, body) {
     throw new HttpError(400, "Choose your Mobile Money network.");
 
   const quote = await quoteFor(svc, body.token);
+  await gate(quote);
   if (quote.status !== "accepted") throw new HttpError(409, "Accept the quote before paying.");
   const now = svc.now();
   const payments = await svc.repo.listPayments(quote.quoteNumber);
@@ -108,7 +115,7 @@ async function start(svc, body) {
   }
 }
 
-async function check(svc, query, charge) {
+async function check(svc, query, charge, gate) {
   const quote = await quoteFor(svc, query.token);
   const reference = str(query.reference, 80);
   const payment = reference ? await svc.repo.findPaymentByReference(reference) : null;
@@ -116,18 +123,45 @@ async function check(svc, query, charge) {
   const result = await charge(reference, svc);
   const state = STATE[result.state] || "pending";
   const receiptPath =
-    state === "paid" ? V.receiptPath(reference, process.env.RECEIPT_SIGNING_SECRET) : null;
+    state === "paid" && (await gate(quote))
+      ? V.receiptPath(reference, process.env.RECEIPT_SIGNING_SECRET)
+      : null;
   return { state, receiptPath };
 }
 
 function createHandler(deps) {
+  const env = deps.env || process.env;
+  const checkAdmin = deps.requireAdmin || requireAdmin;
   return async function (context, req) {
+    const access = (svc, quote, flag) =>
+      A.requireAccess({
+        env,
+        logError: (message) => context.log.error(message),
+        locks: svc.locks,
+        req,
+        quote,
+        nowMs: svc.now().getTime(),
+        isAdmin: A.adminCheck(checkAdmin, context, req, flag),
+      });
+    // The payment is already settled when this runs, so a gate that can't
+    // answer (a missing secret, a locks outage) costs only the receipt link,
+    // never the paid state.
+    const mayShowReceipt = (svc) => async (quote) => {
+      try {
+        await access(svc, quote, (req.query || {}).admin);
+        return true;
+      } catch (err) {
+        if (!(err instanceof HttpError))
+          context.log.error(`quote-pay receipt access: ${err && (err.stack || err.message)}`);
+        return false;
+      }
+    };
     try {
       const svc = deps.services();
       const body =
         req.method === "GET"
-          ? await check(svc, req.query || {}, deps.handleQuoteCharge)
-          : await start(svc, readJson(req));
+          ? await check(svc, req.query || {}, deps.handleQuoteCharge, mayShowReceipt(svc))
+          : await start(svc, readJson(req), (quote) => access(svc, quote, null));
       return send(context, 200, body);
     } catch (err) {
       return handleError(context, err, "quote-pay");
