@@ -126,12 +126,39 @@ const mailTag = (secret, quote) =>
     .toString("base64url")
     .slice(0, 22);
 
-/** "p•••••@hotmail.com": first character, five dots, the domain. Null if it isn't an address. */
+// Webmail domains are shown in full: they say nothing about who the client
+// is. Any other domain usually names their business, so it is masked too.
+const WEBMAIL = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "yahoo.com",
+  "icloud.com",
+  "me.com",
+  "proton.me",
+  "protonmail.com",
+  "aol.com",
+]);
+const DOTS = "•••••";
+
+function maskDomain(domain) {
+  if (WEBMAIL.has(domain) || /^gmx\.[a-z]+$/.test(domain)) return domain;
+  const dot = domain.lastIndexOf(".");
+  if (dot < 1) return `${domain[0]}${DOTS}`;
+  return `${domain[0]}${DOTS}${domain.slice(dot)}`;
+}
+
+/**
+ * "p•••••@hotmail.com" for webmail, "j•••••@s•••••.com" for any other domain
+ * (first character, five dots, the top-level domain). Null if it isn't an address.
+ */
 function maskEmail(email) {
   const address = normalEmail(email);
   const at = address.lastIndexOf("@");
   if (at < 1 || at === address.length - 1) return null;
-  return `${address[0]}•••••${address.slice(at)}`;
+  return `${address[0]}${DOTS}@${maskDomain(address.slice(at + 1))}`;
 }
 
 const epochKey = (quote, n) => `qa:epoch:${quote.id}:${quote.revision}:${n}`;

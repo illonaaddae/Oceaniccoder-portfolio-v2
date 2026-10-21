@@ -66,7 +66,15 @@ describe("maskEmail", () => {
   it.each([
     ["peter.mensah@hotmail.com", "p•••••@hotmail.com"],
     ["  Ama@Gmail.com ", "a•••••@gmail.com"],
-    ["x@y.co", "x•••••@y.co"],
+    ["k@googlemail.com", "k•••••@googlemail.com"],
+    ["k@proton.me", "k•••••@proton.me"],
+    ["k@gmx.de", "k•••••@gmx.de"],
+    ["k@gmx.net", "k•••••@gmx.net"],
+    ["jane@studiokofi.com", "j•••••@s•••••.com"],
+    ["jane@mail.studiokofi.com.gh", "j•••••@m•••••.gh"],
+    ["x@y.co", "x•••••@y•••••.co"],
+    ["x@localhost", "x•••••@l•••••"],
+    ["x@gmx.studio.com", "x•••••@g•••••.com"],
   ])("masks %j as %j", (email, masked) => {
     expect(A.maskEmail(email)).toBe(masked);
   });

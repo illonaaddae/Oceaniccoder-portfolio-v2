@@ -7,7 +7,7 @@ These override the proposal below wherever the two differ; the sections below ar
 - A 6-digit code is emailed to the client email on the quote. It is valid for 10 minutes, allows 5 tries and works once. A correct code unlocks the browser for 30 days, not sliding.
 - The quote, pay and stage-invoice pages are gated behind the quote link. Signed receipts are unchanged.
 - A later payment request (`requestStage`, which issues a fresh link) does **not** need a new code: the unlock survives it. Only Revise and the admin "New link" (`rotate`, the leak response) lock every browser. See "Session binding" below.
-- The code screen shows a masked email: the first character, five dots and the domain ("p•••••@hotmail.com").
+- The code screen shows a masked email: the first character, five dots and the domain for webmail ("p•••••@hotmail.com"; gmail.com, googlemail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, me.com, proton.me, protonmail.com, aol.com, gmx.\*). Any other domain usually names the client's business, so it is masked as well, keeping only the top-level domain: "j•••••@s•••••.com" (compliance review, 2026-10-21).
 - The owner gets one email when a code locks out after 5 wrong tries (once per challenge).
 - Kill switch: `QUOTE_ACCESS_GATE=off` restores today's link-only behaviour.
 - The code goes in the email subject.
