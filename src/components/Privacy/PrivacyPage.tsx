@@ -213,8 +213,8 @@ const PrivacyPage: React.FC = () => (
           browser signed in to that quote for 30 days. It is used only for that, and it stops
           working early if the quote is revised or its link is replaced. Your IP address is used in
           memory to limit how often codes can be asked for and is never saved. Records of code
-          requests are deleted after a day; counts of wrong codes are kept until the link is
-          replaced.
+          requests are deleted within two days; counts of wrong codes are kept until the quote is
+          revised or its link is replaced.
         </p>
         <p>
           When you accept a quote, we keep a record of the agreement: the name you type, the time, a

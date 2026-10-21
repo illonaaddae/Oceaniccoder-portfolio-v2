@@ -119,6 +119,12 @@ describe("PrivacyPage", () => {
     ).toBeInTheDocument();
     expect(within(quotes).getByText(/signed in to that quote for 30 days/)).toBeInTheDocument();
     expect(within(quotes).getByText(/revised or its link is replaced/)).toBeInTheDocument();
+    expect(
+      within(quotes).getByText(/wrong codes are kept until the quote is\s+revised/),
+    ).toBeInTheDocument();
+    expect(
+      within(quotes).getByText(/code requests are deleted within two days/),
+    ).toBeInTheDocument();
     expect(within(quotes).getByText(/IP address is used in\s+memory/)).toBeInTheDocument();
     const visiting = screen.getByRole("region", { name: "When you visit the site" });
     expect(
