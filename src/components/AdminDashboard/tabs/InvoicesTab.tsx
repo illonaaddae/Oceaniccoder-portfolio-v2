@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaFileInvoiceDollar, FaTimes } from "react-icons/fa";
 import { getInvoices, updateInvoice } from "@/services/api/invoices";
 import { createPayment, getPaymentsForInvoice } from "@/services/api/payments";
@@ -80,8 +80,16 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
-  // The signed pay link, shown when the browser blocked the new tab.
-  const [blockedPayLink, setBlockedPayLink] = useState<string | null>(null);
+  // The signed pay link, shown when the browser blocked the new tab. Focus
+  // moves to its link so keyboard and screen reader users land on it.
+  const [blockedPayLink, setBlockedPayLink] = useState<{ href: string; number: string } | null>(
+    null,
+  );
+  // eslint-disable-next-line no-undef -- DOM global type, not a runtime value
+  const blockedPayLinkRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    if (blockedPayLink) blockedPayLinkRef.current?.focus();
+  }, [blockedPayLink]);
   const [busy, setBusy] = useState<string | null>(null);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [filter, setFilter] = useState<InvoiceFilter>("all");
@@ -299,7 +307,10 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
     try {
       const { link } = await quoteAdmin<{ link: string }>("invoicePayLink", { id: inv.$id });
       if (!tab) {
-        setBlockedPayLink(new URL(link, window.location.origin).href);
+        setBlockedPayLink({
+          href: new URL(link, window.location.origin).href,
+          number: inv.invoiceNumber,
+        });
         return;
       }
       tab.opener = null;
@@ -428,26 +439,26 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
       )}
       {blockedPayLink && (
         <div
-          role="status"
           className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-4 py-3 text-sm"
           style={{
             background: "var(--status-pending-bg)",
             borderColor: "var(--status-pending-border)",
-            color: "var(--status-pending-text)",
+            color: "var(--text-primary)",
           }}
         >
-          <span>Your browser blocked the new tab. Open the pay page here:</span>
+          <span>Your browser blocked the new tab.</span>
           <a
-            href={blockedPayLink}
+            ref={blockedPayLinkRef}
+            href={blockedPayLink.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="break-all font-medium underline"
+            className="font-medium underline"
           >
-            {blockedPayLink}
+            Open the pay page for {blockedPayLink.number}
           </a>
           <button
             type="button"
-            onClick={() => void copyPayLink(blockedPayLink)}
+            onClick={() => void copyPayLink(blockedPayLink.href)}
             className="rounded border px-2 py-1 font-medium"
             style={{ borderColor: "var(--status-pending-border)" }}
           >
@@ -455,7 +466,7 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
           </button>
           <button
             type="button"
-            aria-label="Dismiss"
+            aria-label="Dismiss pay link"
             onClick={() => setBlockedPayLink(null)}
             className="rounded p-1"
           >

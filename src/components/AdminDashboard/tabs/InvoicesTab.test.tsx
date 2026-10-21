@@ -224,16 +224,16 @@ describe("InvoicesTab", () => {
       Object.assign(navigator, { clipboard: { writeText } });
       await clickViewPayPage();
       const absolute = `${window.location.origin}${signed}`;
-      const link = await screen.findByRole("link", { name: absolute });
+      const name = "Open the pay page for INV-2026-0042";
+      const link = await screen.findByRole("link", { name });
       expect(link).toHaveAttribute("href", absolute);
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      await waitFor(() => expect(link).toHaveFocus());
       expect(open).toHaveBeenCalledTimes(1);
       await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
       expect(writeText).toHaveBeenCalledWith(absolute);
-      await userEvent.click(
-        within(link.parentElement as HTMLElement).getByRole("button", { name: "Dismiss" }),
-      );
-      expect(screen.queryByRole("link", { name: absolute })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Dismiss pay link" }));
+      expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
       open.mockRestore();
     });
 
