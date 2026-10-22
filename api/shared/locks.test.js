@@ -87,7 +87,10 @@ describe.each(BACKENDS)("locks contract on %s", (_name, makeLocks) => {
       { key: "qa:send:a", createdAt: at(T0) },
       { key: "qa:send:b", createdAt: at(T0 + 1000) },
     ]);
-    expect(await locks.listBefore(at(T0 + 5000), 2)).toHaveLength(2);
+    expect((await locks.listBefore(at(T0 + 5000), 2)).map((row) => row.key)).toEqual([
+      "qa:send:a",
+      "qa:send:b",
+    ]);
     expect(await locks.listBefore(at(T0))).toEqual([]);
   });
 });
@@ -143,5 +146,15 @@ describe("Cosmos locks", () => {
       throw Object.assign(new Error("read failed"), { code: 503 });
     };
     await expect(locks.has("k")).rejects.toThrow("read failed");
+
+    // A lagging replica answers 404/1002: that is not "no lock".
+    const lagging = {
+      container: () => ({
+        item: () => ({
+          read: async () => ({ resource: undefined, statusCode: 404, substatus: 1002 }),
+        }),
+      }),
+    };
+    await expect(createCosmosLocks(lagging).has("k")).rejects.toThrow("read session not available");
   });
 });

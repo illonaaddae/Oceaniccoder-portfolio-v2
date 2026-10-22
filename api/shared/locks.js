@@ -121,11 +121,17 @@ function createCosmosLocks(db, { now = () => Date.now() } = {}) {
         .fetchAll();
       return resources.map((d) => ({ key: d.key, createdAt: d.createdAt }));
     },
-    // Read-only, as has() above. The SDK resolves a missing item as
-    // { resource: undefined } and throws for anything else.
+    // Read-only, as has() above. The SDK resolves any 404 as
+    // { resource: undefined } and throws for anything else. A 404 with
+    // substatus 1002 (read session not available) is a lagging replica, not
+    // a missing lock: answering "absent" would let a revoked session or a
+    // locked-out quote through, so it throws instead.
     async has(key) {
       const id = lockId(key);
-      const { resource } = await container.item(id, id).read();
+      const { resource, substatus } = await container.item(id, id).read();
+      if (resource === undefined && substatus === 1002) {
+        throw new Error("Lock read failed: Cosmos read session not available (404/1002)");
+      }
       return resource !== undefined;
     },
   };
