@@ -73,7 +73,15 @@ function createLocks(db) {
 
 // The same locks on Cosmos. The container is partitioned by id, and an id
 // that exists already fails the create with 409, as in Appwrite.
-function createCosmosLocks(db) {
+//
+// The quote access rules (5 tries, single-use codes, epochs) need a create to
+// conflict with every earlier create and a read to see the caller's own
+// writes. That holds on Session or Strong consistency, with one client per
+// process (getDatabase() in cosmos.js) so the session token is reused. The
+// account must not be set to Eventual or Consistent Prefix.
+//
+// `now` stamps createdAt, which listBefore reads; tests pass a clock.
+function createCosmosLocks(db, { now = () => Date.now() } = {}) {
   const container = db.container(LOCKS);
   return {
     async take(key) {
@@ -81,7 +89,7 @@ function createCosmosLocks(db) {
         await container.items.create({
           id: lockId(key),
           key: key.slice(0, 200),
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(now()).toISOString(),
         });
         return true;
       } catch (err) {
@@ -89,13 +97,36 @@ function createCosmosLocks(db) {
         throw err;
       }
     },
+    // True when this call deleted the row, false when it was already gone.
     async release(key) {
       const id = lockId(key);
       try {
         await container.item(id, id).delete();
+        return true;
       } catch (err) {
-        if (!(err && err.code === 404)) throw err;
+        if (err && err.code === 404) return false;
+        throw err;
       }
+    },
+    // As listBefore above. Imported rows carry Appwrite's $createdAt as
+    // createdAt (toCosmos), so they age out on the same clock.
+    async listBefore(beforeIso, cap = 5000) {
+      const top = Math.floor(cap);
+      if (!(top >= 1)) return [];
+      const { resources } = await container.items
+        .query({
+          query: `SELECT TOP ${top} * FROM c WHERE c.createdAt < @before ORDER BY c.createdAt ASC`,
+          parameters: [{ name: "@before", value: beforeIso }],
+        })
+        .fetchAll();
+      return resources.map((d) => ({ key: d.key, createdAt: d.createdAt }));
+    },
+    // Read-only, as has() above. The SDK resolves a missing item as
+    // { resource: undefined } and throws for anything else.
+    async has(key) {
+      const id = lockId(key);
+      const { resource } = await container.item(id, id).read();
+      return resource !== undefined;
     },
   };
 }

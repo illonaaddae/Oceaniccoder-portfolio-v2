@@ -10,7 +10,7 @@
 // Queries run through a small evaluator for the SQL the repo writes:
 //   SELECT [TOP n] * | c.field FROM c
 //   [WHERE cond AND cond ...] [ORDER BY c.field ASC|DESC]
-// where cond is `c.f = @p`, `STARTSWITH(c.f, @p)` or
+// where cond is `c.f = @p`, `c.f < @p`, `STARTSWITH(c.f, @p)` or
 // `(NOT IS_DEFINED(c.f) OR IS_NULL(c.f))`. Anything else throws, and so does
 // a literal value in the SQL text, so a test can't pass on an unparameterised
 // or unsupported query.
@@ -26,6 +26,11 @@ const CONDITIONS = [
   {
     re: new RegExp(String.raw`^${FIELD} = (@[A-Za-z0-9_]+)$`),
     test: (doc, field, value) => doc[field] !== undefined && doc[field] === value,
+  },
+  {
+    // Cosmos compares only values of the same type; a missing field never matches.
+    re: new RegExp(String.raw`^${FIELD} < (@[A-Za-z0-9_]+)$`),
+    test: (doc, field, value) => typeof doc[field] === typeof value && doc[field] < value,
   },
   {
     re: new RegExp(String.raw`^STARTSWITH\(${FIELD}, (@[A-Za-z0-9_]+)\)$`),
