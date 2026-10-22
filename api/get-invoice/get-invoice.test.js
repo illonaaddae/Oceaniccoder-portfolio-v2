@@ -261,7 +261,37 @@ describe("get-invoice on Cosmos", () => {
 
   it("returns 404 when no invoice has that number", async () => {
     invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
-    expect((await run("INV-NOPE")).status).toBe(404);
+    expect(await run("INV-NOPE")).toEqual({ status: 404, body: { error: NOT_VALID } });
+  });
+
+  it("refuses a bad signature before reading Cosmos", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL });
+    invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
+    expect(await run("INV-2026-0042", undefined)).toEqual({
+      status: 404,
+      body: { error: NOT_VALID },
+    });
+    expect(await run("INV-2026-0042", "A".repeat(32))).toEqual({
+      status: 404,
+      body: { error: NOT_VALID },
+    });
+    expect(invoices.queries).toEqual([]);
+  });
+
+  // Cosmos rows carry createdAt where Appwrite rows carry $createdAt.
+  it("applies the unsigned-link grace period to the Cosmos createdAt", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
+    const row = { invoiceNumber: "INV-2026-0042", total: 500, status: "sent" };
+    invoices.seed({ ...row, id: "old", createdAt: "2026-10-01T09:00:00.000Z" });
+    expect((await run("INV-2026-0042", undefined)).status).toBe(200);
+
+    invoices.docs.clear();
+    invoices.seed({ ...row, id: "new", createdAt: "2026-10-28T00:00:00.000Z" });
+    expect(await run("INV-2026-0042", undefined)).toEqual({
+      status: 404,
+      body: { error: NOT_VALID },
+    });
+    expect((await run("INV-2026-0042")).status).toBe(200);
   });
 
   it("returns 500 without details when Cosmos fails", async () => {
@@ -279,7 +309,11 @@ describe("get-invoice on Cosmos", () => {
         fetchAll: () => new Promise(() => {}),
       }));
       const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
-      const done = handler(context, { method: "GET", query: { number: "INV-2026-0042" } });
+      const done = handler(context, {
+        method: "GET",
+        headers: { "x-forwarded-for": "192.0.2.10" },
+        query: { number: "INV-2026-0042", s: sign("INV-2026-0042") },
+      });
       await vi.advanceTimersByTimeAsync(5000);
       await done;
 
@@ -298,7 +332,11 @@ describe("get-invoice on Cosmos", () => {
       throw Object.assign(new Error(""), { name: "RestError", code: "ECONNREFUSED" });
     });
     const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
-    await handler(context, { method: "GET", query: { number: "INV-2026-0042" } });
+    await handler(context, {
+      method: "GET",
+      headers: { "x-forwarded-for": "192.0.2.11" },
+      query: { number: "INV-2026-0042", s: sign("INV-2026-0042") },
+    });
     expect(context.res.status).toBe(500);
     expect(context.log.error).toHaveBeenCalledWith("get-invoice error:", "ECONNREFUSED");
   });
