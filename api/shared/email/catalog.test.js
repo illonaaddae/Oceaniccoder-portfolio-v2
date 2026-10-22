@@ -45,6 +45,7 @@ describe("email catalog", () => {
       "webhookRecordedConflict",
       "webhookInvalidSetting",
       "inquiryReceivedAlert",
+      "messageReceivedAlert",
       "inquiryReviewed",
       "inquiryQuoted",
       "inquiryWon",

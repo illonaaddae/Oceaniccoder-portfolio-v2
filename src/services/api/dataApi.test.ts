@@ -6,6 +6,7 @@ import {
   manageDelete,
   manageUpdate,
   setAdminReads,
+  submitRow,
 } from "./dataApi";
 
 const jsonResponse = (status: number, body: unknown) =>
@@ -96,5 +97,19 @@ describe("admin writes", () => {
 
     await expect(manageDelete("projects", "p1")).resolves.toBeUndefined();
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "DELETE", body: undefined });
+  });
+});
+
+describe("dataApi requests", () => {
+  it("passes an abort signal through submitRow to fetch", async () => {
+    fetchMock.mockImplementation(async () => new Response("{}", { status: 201 }));
+    const signal = new AbortController().signal;
+
+    await submitRow("messages", { name: "Ada" }, "tok", {}, { signal });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/submit/messages"),
+      expect.objectContaining({ signal }),
+    );
   });
 });
