@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 const { createHandler } = await import("./index.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
+const access = await import("../shared/quotes/access.js");
 
 const NOW = new Date("2026-10-10T09:00:00.000Z");
 const draft = {
@@ -276,6 +277,88 @@ describe("quote-admin", () => {
     expect(r.body.link).toMatch(/^https:\/\/oceaniccoder\.dev\/q\/[A-Za-z0-9_-]{43}$/);
     expect(r.body.link).not.toBe(sent.body.link);
     expect(t.repo.quotes.get(id).tokenHash).not.toBe(before);
+  });
+
+  describe("browsers unlocked with a code", () => {
+    const SECRET = "s".repeat(32);
+
+    async function unlockedQuote(t, status = "accepted") {
+      const sent = await sentQuote(t);
+      const id = sent.body.quote.id;
+      await t.repo.update(id, { status, respondedAt: NOW.toISOString() });
+      const quote = await t.repo.get(id);
+      const epoch = await access.currentEpoch(t.locks, quote);
+      const header = access.sessionCookie(SECRET, quote, epoch, NOW.getTime());
+      const req = { headers: { cookie: header.split(";")[0] } };
+      const stillOpen = async () =>
+        access.hasAccess({
+          secret: SECRET,
+          locks: t.locks,
+          req,
+          quote: await t.repo.get(id),
+          nowMs: NOW.getTime(),
+        });
+      expect(await stillOpen()).toBe(true);
+      return { id, stillOpen };
+    }
+
+    it("are locked out by New link (rotate)", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t);
+      expect((await t.call({ action: "rotate", id })).status).toBe(200);
+      expect(await stillOpen()).toBe(false);
+    });
+
+    it("are locked out by revise", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t, "sent");
+      expect((await t.call({ action: "revise", id })).status).toBe(200);
+      expect(await stillOpen()).toBe(false);
+    });
+
+    it("stay unlocked through a payment request's fresh link", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t);
+      const r = await t.call({ action: "requestStage", id, stageId: "balance" });
+      expect(r.status).toBe(200);
+      expect(await stillOpen()).toBe(true);
+    });
+
+    it("stay unlocked through Email again to the same address, not a new one", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t, "sent");
+      expect((await t.call({ action: "emailAgain", id })).status).toBe(200);
+      expect(await stillOpen()).toBe(true);
+      const moved = { action: "emailAgain", id, to: "new@example.com", saveAddress: true };
+      expect((await t.call(moved)).status).toBe(200);
+      expect(await stillOpen()).toBe(false);
+    });
+
+    it("keep the old link when the lockout can't be written", async () => {
+      const t = setup();
+      const sent = await sentQuote(t);
+      const id = sent.body.quote.id;
+      const before = t.repo.quotes.get(id).tokenHash;
+      t.locks.take = async () => {
+        throw new Error("locks down");
+      };
+      expect((await t.call({ action: "rotate", id })).status).toBe(500);
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+    });
+
+    it("are locked out even when the new link can't be written, and the old link still works", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t);
+      const before = t.repo.quotes.get(id).tokenHash;
+      const realUpdate = t.repo.update;
+      t.repo.update = async () => {
+        throw new Error("database down");
+      };
+      expect((await t.call({ action: "rotate", id })).status).toBe(500);
+      t.repo.update = realUpdate;
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+      expect(await stillOpen()).toBe(false);
+    });
   });
 
   describe("emailAgain", () => {

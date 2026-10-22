@@ -475,6 +475,29 @@ function alertView(q, p, stages, kind, problem, base = siteBase()) {
   };
 }
 
+// The access-code email. The code is the only secret in it; no link.
+function accessCodeView(q, code, minutes) {
+  return {
+    clientFirstName: firstName(q.clientName),
+    quoteNumber: q.quoteNumber,
+    code,
+    minutes,
+  };
+}
+
+// The owner's alert when a code locks out after five wrong tries. blocked:
+// it was the last lockout allowed, so no more codes go out on this link.
+function accessLockedView(q, at, blocked = false, base = siteBase()) {
+  return {
+    blocked,
+    clientName: q.clientName,
+    quoteNumber: q.quoteNumber,
+    title: q.title,
+    lockedOn: formatDate(at),
+    adminLink: `${base}/admin/dashboard`,
+  };
+}
+
 module.exports = {
   METHOD_LABELS,
   PROBLEMS,
@@ -496,6 +519,8 @@ module.exports = {
   requestView,
   receiptEmailView,
   alertView,
+  accessCodeView,
+  accessLockedView,
   maintenanceOfferState,
   maintenanceOfferEmailView,
   whatsappLink,

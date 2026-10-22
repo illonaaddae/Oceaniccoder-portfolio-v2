@@ -8,7 +8,9 @@ const {
   multiline,
   shell,
   heading,
+  p,
   card,
+  codeBlock,
   button,
   buttons,
   steps,
@@ -355,7 +357,86 @@ function maintenanceOffer(v) {
   return { subject, html, text };
 }
 
+// The code sent when the quote is opened in a browser that isn't signed in
+// and the link's one-time link code is spent or missing. No link in it, so a
+// forwarded or intercepted copy can't open the quote by itself.
+function accessCode(v) {
+  const subject = `${v.code} is your code for quote ${v.quoteNumber}`;
+  // A plain sentence first, so Gmail's "Copy code" and Apple's one-time-code
+  // autofill find the code.
+  const verification = `Your verification code is ${v.code}.`;
+  const opened = "Someone opened your quote in a new browser. Here's your code:";
+  const ignore =
+    "If it wasn't you, ignore this email: nobody can open the quote without this code.";
+  const html = shell({
+    preview: `${verification} It works for ${v.minutes} minutes.`,
+    meta: { label: "Quote", number: v.quoteNumber },
+    reason: CLIENT_REASON,
+    body:
+      heading({ eyebrow: "Your code", title: "Open your quote", intro: verification }) +
+      p(`Hi ${v.clientFirstName}, ${opened.charAt(0).toLowerCase()}${opened.slice(1)}`) +
+      codeBlock({ label: "Code", code: v.code }) +
+      p(`It works for ${v.minutes} minutes.`) +
+      small(ignore),
+  });
+  const text = [
+    verification,
+    `Hi ${v.clientFirstName},\n${opened}`,
+    v.code,
+    `It works for ${v.minutes} minutes.\n${ignore}`,
+  ].join("\n\n");
+  return { subject, html, text };
+}
+
+// Two cases: one code locked after five wrong tries, or (blocked) the quote's
+// fifteenth wrong code, after which no code is sent or checked until New link
+// or Revise.
+function accessLockedAlert(v) {
+  const subject = v.blocked
+    ? `Codes blocked after 15 wrong tries on ${v.quoteNumber}`
+    : `Code locked after 5 wrong tries on ${v.quoteNumber}`;
+  const what = v.blocked
+    ? `Fifteen wrong codes have been entered for ${v.quoteNumber}.`
+    : `Five wrong codes were entered for ${v.quoteNumber}.`;
+  const effect = v.blocked
+    ? "No more codes will be sent or accepted on this link until you use New link or Revise."
+    : "That code no longer works, and a new one goes only to the client's email.";
+  const advice =
+    "If the client didn't ask for a code, the link may have been shared. Use New link on the quote to lock out every browser, then send the client the new link.";
+  const html = shell({
+    preview: what,
+    meta: { label: "Quote", number: v.quoteNumber },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Quote access",
+        tone: v.blocked ? "danger" : "warn",
+        title: v.blocked ? "Codes are blocked on a quote" : "A quote code was locked",
+        intro: `${what} ${effect}`,
+      }) +
+      card({
+        title: "Quote",
+        rows: [
+          ["Client", v.clientName],
+          ["Quote", v.title],
+          ["Date", v.lockedOn],
+        ],
+      }) +
+      notice({ tone: "warn", text: advice }) +
+      buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
+  });
+  const text = lines(
+    `${what.slice(0, -1)} (${v.title}, ${v.clientName}) on ${v.lockedOn}.`,
+    effect,
+    advice,
+    v.adminLink,
+  );
+  return { subject, html, text };
+}
+
 module.exports = {
+  accessCode,
+  accessLockedAlert,
   maintenanceOffer,
   quoteSent,
   quoteAccepted,

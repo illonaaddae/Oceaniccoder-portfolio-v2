@@ -123,6 +123,13 @@ const CATALOG = [
     render: quote("maintenanceOffer"),
   },
   {
+    id: "accessCode",
+    group: "clients",
+    name: "Quote code",
+    when: "A quote link is opened in a browser that is not signed in",
+    render: quote("accessCode"),
+  },
+  {
     id: "invoiceSent",
     group: "clients",
     name: "Invoice",
@@ -315,6 +322,13 @@ const CATALOG = [
     name: "Quote payment to check",
     when: "A duplicate or mismatched quote payment",
     render: quote("paymentAlertProblem"),
+  },
+  {
+    id: "accessLockedAlert",
+    group: "admin",
+    name: "Quote code locked",
+    when: "Five wrong codes are entered on a quote link",
+    render: quote("accessLockedAlert"),
   },
   {
     id: "invoicePaidAlert",

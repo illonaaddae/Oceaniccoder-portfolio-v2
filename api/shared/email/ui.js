@@ -122,6 +122,18 @@ ${highlight ? `${highlightLabel ? `<div style="font-size:14px;color:${C.ink3}">$
 </td></tr></table>`;
 }
 
+// A one-time code on its own, large and monospaced. Digits stay one text run
+// (spacing is CSS only), and user-select:all makes one tap or click select
+// the whole code in clients that honour it (Apple Mail, iOS Mail and others).
+const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
+
+function codeBlock({ label, code }) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 20px">
+<tr><td align="center" style="padding:20px 22px">
+${label ? `<div style="${LABEL};color:${C.ink3};margin:0 0 10px">${esc(label)}</div>` : ""}<div style="font-family:${MONO};font-size:36px;line-height:1.2;font-weight:700;color:${C.ink};letter-spacing:.25em;padding-left:.25em;-webkit-user-select:all;user-select:all">${esc(code)}</div>
+</td></tr></table>`;
+}
+
 function button({ href, label, variant = "primary" }) {
   const styles =
     variant === "secondary"
@@ -176,6 +188,7 @@ module.exports = {
   heading,
   p,
   card,
+  codeBlock,
   button,
   buttons,
   steps,

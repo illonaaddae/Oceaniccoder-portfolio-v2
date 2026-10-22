@@ -98,4 +98,10 @@ describe("fake locks", () => {
     await l.release("settle:R1");
     expect(await l.take("settle:R1")).toBe(true);
   });
+  it("has reports a held lock without taking it", async () => {
+    const l = createFakeLocks();
+    expect(await l.has("k")).toBe(false);
+    expect(await l.take("k")).toBe(true);
+    expect(await l.has("k")).toBe(true);
+  });
 });

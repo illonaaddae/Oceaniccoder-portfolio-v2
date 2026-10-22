@@ -26,6 +26,8 @@ describe("email catalog", () => {
       "paymentAlert",
       "paymentAlertProblem",
       "maintenanceOffer",
+      "accessCode",
+      "accessLockedAlert",
       "bookingConfirmation",
       "bookingHostNotice",
       "bookingHostNoLink",

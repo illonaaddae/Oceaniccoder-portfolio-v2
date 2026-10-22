@@ -175,17 +175,31 @@ function createFakeRepo({ quotes = [], payments = [], invoices = [] } = {}) {
   };
 }
 
-function createFakeLocks() {
+// `now` stamps each lock's creation time, like Appwrite's $createdAt.
+function createFakeLocks({ now = () => Date.now() } = {}) {
   const held = new Set();
+  const createdAt = new Map();
   return {
     held,
     async take(key) {
       if (held.has(key)) return false;
       held.add(key);
+      createdAt.set(key, new Date(now()).toISOString());
       return true;
     },
     async release(key) {
-      held.delete(key);
+      createdAt.delete(key);
+      return held.delete(key);
+    },
+    async listBefore(beforeIso, cap = 5000) {
+      return [...held]
+        .map((key) => ({ key, createdAt: createdAt.get(key) }))
+        .filter((row) => row.createdAt < beforeIso)
+        .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+        .slice(0, cap);
+    },
+    async has(key) {
+      return held.has(key);
     },
   };
 }

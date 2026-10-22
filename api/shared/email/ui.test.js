@@ -18,6 +18,13 @@ describe("escaping", () => {
 });
 
 describe("blocks", () => {
+  it("renders a code as one selectable, unspaced run of digits", () => {
+    const html = ui.codeBlock({ label: "Your code", code: "004217" });
+    expect(html).toContain(">004217</div>");
+    expect(html).toContain("-webkit-user-select:all;user-select:all");
+    expect(html).toContain("monospace");
+    expect(ui.codeBlock({ code: "<x>" })).not.toContain("<x>");
+  });
   it("escapes every value it is given", () => {
     const html = ui.card({ title: "<t>", highlight: "<h>", rows: [["<l>", "<v>"]] });
     expect(html).not.toMatch(/<t>|<h>|<l>|<v>/);
