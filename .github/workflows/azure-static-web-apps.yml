@@ -41,7 +41,7 @@ jobs:
           VITE_APPWRITE_BUCKET_ID: ${{ secrets.VITE_APPWRITE_BUCKET_ID }}
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
           VITE_ADMIN_PASSWORD_HASH: ${{ secrets.VITE_ADMIN_PASSWORD_HASH }}
-          VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.VITE_PAYSTACK_PUBLIC_KEY }}
+          VITE_PAYSTACK_PUBLIC_KEY: pk_test_8843df1a4267f8d1fa559d20d0b8bab6ad5fc41f # DO NOT MERGE: Paystack test mode for the e2e preview
           VITE_BANK_NAME: ${{ secrets.VITE_BANK_NAME }}
           VITE_BANK_ACCOUNT_NAME: ${{ secrets.VITE_BANK_ACCOUNT_NAME }}
           VITE_BANK_ACCOUNT_NUMBER: ${{ secrets.VITE_BANK_ACCOUNT_NUMBER }}
@@ -50,7 +50,7 @@ jobs:
           VITE_MOMO_NETWORK: ${{ secrets.VITE_MOMO_NETWORK }}
           # Appwrite → Cosmos cutover switch: set the repository variable to "cosmos"
           # and re-run this workflow. Unset (or anything else) keeps Appwrite.
-          VITE_DATA_BACKEND: ${{ vars.VITE_DATA_BACKEND }}
+          VITE_DATA_BACKEND: cosmos # DO NOT MERGE: e2e preview reads Cosmos
           # First-party page views to /api/visit: "true" turns them on. Set it only
           # once the Cosmos `analytics` container exists.
           VITE_ANALYTICS_ENABLED: ${{ vars.VITE_ANALYTICS_ENABLED }}
