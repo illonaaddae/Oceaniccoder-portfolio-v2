@@ -64,8 +64,15 @@ function planSummary(schedule) {
   return schedule.map((s) => `${s.percent}% ${s.label.toLowerCase()}`).join(", ");
 }
 
-function quoteLink(token, base = siteBase()) {
-  return `${base}/q/${token}`;
+// A client link, with the one-time link code in the fragment when there is
+// one: a fragment never reaches a server, a log or a Referer header. The page
+// reads it, signs the browser in and drops it (src/utils/quoteLinkCode.ts).
+function clientLink(base, token, path, linkCode) {
+  return `${base}/q/${token}${path}${linkCode ? `#k=${linkCode}` : ""}`;
+}
+
+function quoteLink(token, base = siteBase(), linkCode = null) {
+  return clientLink(base, token, "", linkCode);
 }
 
 function receiptPath(reference, secret) {
@@ -335,18 +342,21 @@ function receiptView(q, p, stages) {
   };
 }
 
-function invoiceCard(q, stage, token, base) {
+function invoiceCard(q, stage, token, base, linkCode) {
   return {
     invoiceNumber: stage.invoiceNumber,
     label: `${stage.label} (${stage.percent}%)`,
     amount: formatMoney(stage.amountMinor, q.currency),
     dueDate: formatDate(stageDueDate(stage)) || "On receipt",
-    payLink: `${base}/q/${token}/pay/${stage.id}`,
-    invoiceLink: `${base}/q/${token}/invoice/${stage.id}`,
+    payLink: clientLink(base, token, `/pay/${stage.id}`, linkCode),
+    invoiceLink: clientLink(base, token, `/invoice/${stage.id}`, linkCode),
   };
 }
 
-function quoteSentView(q, token, base = siteBase()) {
+// linkCode: the one-time code for the client's own copy of the email, or null.
+// codeByEmail: a copy without one while the gate is on (an extra Email again
+// address), so the email says the link asks for a code.
+function quoteSentView(q, token, base = siteBase(), linkCode = null, codeByEmail = false) {
   return {
     clientFirstName: firstName(q.clientName),
     quoteNumber: q.quoteNumber,
@@ -357,19 +367,21 @@ function quoteSentView(q, token, base = siteBase()) {
     planSummary: planSummary(q.schedule),
     // One stage means paying in full: the emails then drop the deposit wording.
     singleStage: q.schedule.length === 1,
-    link: quoteLink(token, base),
+    link: quoteLink(token, base, linkCode),
+    linkOpens: Boolean(linkCode),
+    codeByEmail: !linkCode && codeByEmail,
   };
 }
 
-function acceptedView(q, token, stages, base = siteBase()) {
+function acceptedView(q, token, stages, base = siteBase(), linkCode = null) {
   return {
     clientFirstName: firstName(q.clientName),
     quoteNumber: q.quoteNumber,
     title: q.title,
     acceptedName: q.acceptedName || q.clientName,
-    invoice: stages.length ? invoiceCard(q, stages[0], token, base) : null,
+    invoice: stages.length ? invoiceCard(q, stages[0], token, base, linkCode) : null,
     singleStage: stages.length === 1,
-    link: quoteLink(token, base),
+    link: quoteLink(token, base, linkCode),
   };
 }
 
@@ -387,13 +399,13 @@ function decisionView(q, decision, base = siteBase()) {
   };
 }
 
-function requestView(q, stage, token, stages, base = siteBase()) {
+function requestView(q, stage, token, stages, base = siteBase(), linkCode = null) {
   const s = M.paymentSummary(stages);
   return {
     clientFirstName: firstName(q.clientName),
     quoteNumber: q.quoteNumber,
     title: q.title,
-    invoice: invoiceCard(q, stage, token, base),
+    invoice: invoiceCard(q, stage, token, base, linkCode),
     paidSoFar: formatMoney(s.paidMinor, q.currency),
     balanceAfter: formatMoney(Math.max(0, s.balanceMinor - stage.amountMinor), q.currency),
   };
@@ -486,7 +498,7 @@ function accessCodeView(q, code, minutes) {
 }
 
 // The owner's alert when a code locks out after five wrong tries. blocked:
-// it was the last lockout allowed, so no more codes go out on this link.
+// the quote's 15th wrong code; no more codes are sent or checked on this link.
 function accessLockedView(q, at, blocked = false, base = siteBase()) {
   return {
     blocked,

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { createHandler } = await import("./index.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
@@ -7,6 +7,15 @@ const M = await import("../shared/quotes/model.js");
 const access = await import("../shared/quotes/access.js");
 
 const NOW = new Date("2026-10-10T09:00:00.000Z");
+const LINK_SECRET = "k".repeat(40);
+
+beforeEach(() => {
+  vi.stubEnv("QUOTE_ACCESS_SECRET", LINK_SECRET);
+  vi.stubEnv("QUOTE_ACCESS_GATE", "");
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 const draft = {
   clientName: "Kofi Mensah",
   clientEmail: "kofi@example.com",
@@ -650,5 +659,121 @@ describe("quote-admin archive and restore", () => {
     await t.call({ action: "archivePayment", id: paymentId });
     const after = await t.call({ action: "get", id });
     expect(after.body.stages).toEqual(before.body.stages);
+  });
+});
+
+describe("quote-admin link codes", () => {
+  // Checks a link code against the quote as stored now, without claiming it.
+  const check = async (t, id, linkCode) =>
+    access.checkLinkCode({
+      secret: LINK_SECRET,
+      locks: t.locks,
+      quote: await t.repo.get(id),
+      linkCode,
+      nowMs: NOW.getTime(),
+    });
+  const accepted = async (t) => {
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    return id;
+  };
+
+  it("send emails a link code for the new link", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const [, , code] = t.notify.quoteSent.mock.calls[0];
+    expect(code).toEqual(expect.any(String));
+    expect(await check(t, sent.body.quote.id, code)).toMatchObject({ ok: true, epoch: 0 });
+    // The link the admin sees has none; it isn't an email.
+    expect(sent.body.link).not.toContain("#");
+  });
+
+  it("refuses to send without the access secret, before anything is written", async () => {
+    const t = setup();
+    const created = await t.call({ action: "create", draft });
+    vi.stubEnv("QUOTE_ACCESS_SECRET", "");
+    const r = await t.call({ action: "send", id: created.body.quote.id });
+    expect(r.status).toBe(503);
+    expect(t.repo.quotes.get(created.body.quote.id).status).toBe("draft");
+    expect(t.notify.quoteSent).not.toHaveBeenCalled();
+  });
+
+  it("sends bare links while the gate is off", async () => {
+    vi.stubEnv("QUOTE_ACCESS_GATE", "off");
+    const t = setup();
+    const sent = await sentQuote(t);
+    expect(t.notify.quoteSent.mock.calls[0][2]).toBeNull();
+    const id = sent.body.quote.id;
+    expect((await t.call({ action: "rotate", id })).body.link).not.toContain("#");
+  });
+
+  it("gives every email its own code, and the code from an older link stops working", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    const first = t.notify.quoteSent.mock.calls[0][2];
+    await t.call({ action: "emailAgain", id });
+    await t.call({ action: "emailAgain", id });
+    const [a, b] = t.notify.quoteEmailAgain.mock.calls.map((c) => c[4]);
+    expect(new Set([first, a, b]).size).toBe(3);
+    expect(await check(t, id, b)).toMatchObject({ ok: true });
+    expect(await check(t, id, a)).toMatchObject({ ok: false });
+  });
+
+  it("Email again gives a code only to the client's address, not to the extra one", async () => {
+    const t = setup();
+    const id = (await sentQuote(t)).body.quote.id;
+    await t.call({ action: "emailAgain", id, to: "other@example.com" });
+    const byAddress = Object.fromEntries(
+      t.notify.quoteEmailAgain.mock.calls.map((c) => [c[3], c[4]]),
+    );
+    expect(byAddress["other@example.com"]).toBeNull();
+    expect(await check(t, id, byAddress["kofi@example.com"])).toMatchObject({ ok: true });
+    // The extra copy says the link asks for a code; the client's own doesn't.
+    const codeByEmail = Object.fromEntries(
+      t.notify.quoteEmailAgain.mock.calls.map((c) => [c[3], c[5]]),
+    );
+    expect(codeByEmail).toEqual({ "kofi@example.com": false, "other@example.com": true });
+  });
+
+  it("Email again with the gate off mentions no code on any copy", async () => {
+    vi.stubEnv("QUOTE_ACCESS_GATE", "off");
+    const t = setup();
+    const id = (await sentQuote(t)).body.quote.id;
+    await t.call({ action: "emailAgain", id, to: "other@example.com" });
+    for (const c of t.notify.quoteEmailAgain.mock.calls) {
+      expect(c[4]).toBeNull();
+      expect(c[5]).toBe(false);
+    }
+  });
+
+  it("Email again to a saved new address gives the code to the new address", async () => {
+    const t = setup();
+    const id = (await sentQuote(t)).body.quote.id;
+    await t.call({ action: "emailAgain", id, to: "new@example.com", saveAddress: true });
+    const byAddress = Object.fromEntries(
+      t.notify.quoteEmailAgain.mock.calls.map((c) => [c[3], c[4]]),
+    );
+    expect(byAddress["kofi@example.com"]).toBeNull();
+    expect(await check(t, id, byAddress["new@example.com"])).toMatchObject({ ok: true });
+  });
+
+  it("a payment request emails a code for its fresh link", async () => {
+    const t = setup();
+    const id = await accepted(t);
+    await t.call({ action: "requestStage", id, stageId: "balance" });
+    const code = t.notify.paymentRequest.mock.calls[0][4];
+    expect(await check(t, id, code)).toMatchObject({ ok: true, epoch: 0 });
+  });
+
+  it("New link returns a bare link and voids every code emailed before it", async () => {
+    const t = setup();
+    const id = await accepted(t);
+    await t.call({ action: "requestStage", id, stageId: "balance" });
+    const emailed = t.notify.paymentRequest.mock.calls[0][4];
+    const r = await t.call({ action: "rotate", id });
+    expect(r.body.link).not.toContain("#");
+    expect(await check(t, id, emailed)).toMatchObject({ ok: false });
   });
 });

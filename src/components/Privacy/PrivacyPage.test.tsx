@@ -45,7 +45,9 @@ describe("PrivacyPage", () => {
   it("states the analytics promises", () => {
     renderPage();
     const visiting = screen.getByRole("region", { name: "When you visit the site" });
-    expect(within(visiting).getByText("We use no cookies.")).toBeInTheDocument();
+    expect(
+      within(visiting).getByText(/We use no tracking or advertising cookies/),
+    ).toBeInTheDocument();
     expect(within(visiting).getByText(/don't store your IP address/)).toBeInTheDocument();
     expect(within(visiting).getByText(/deleted automatically after 90 days/)).toBeInTheDocument();
     expect(
@@ -63,7 +65,7 @@ describe("PrivacyPage", () => {
     for (const name of ["Microsoft Azure", "Appwrite", "Paystack", "Resend", "OpenAI"]) {
       expect(within(processors).getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getByText("Last updated: 13 October 2026")).toBeInTheDocument();
+    expect(screen.getByText("Last updated: 21 October 2026")).toBeInTheDocument();
   });
 
   it("does not claim registration with the Data Protection Commission", () => {
@@ -74,7 +76,13 @@ describe("PrivacyPage", () => {
   // Turnstile only runs when VITE_DATA_BACKEND=cosmos, which production doesn't set.
   it("does not claim a spam check the live site doesn't run", () => {
     renderPage();
-    expect(document.body.textContent).not.toMatch(/turnstile|cloudflare/i);
+    expect(document.body.textContent).not.toMatch(/turnstile/i);
+    // Cloudflare appears once, as the host in front of Paystack's checkout.
+    expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(1);
+    const quotes = screen.getByRole("region", { name: "Quotes and payments" });
+    expect(
+      within(quotes).getByText(/Cloudflare, which\s+protects Paystack's servers/),
+    ).toBeInTheDocument();
   });
 
   it("says form data is stored with Appwrite", () => {
@@ -108,6 +116,32 @@ describe("PrivacyPage", () => {
       within(forms).getByText(/added by us, with the client's permission/),
     ).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/optional photo/i);
+  });
+
+  it("describes the quote sign-in cookie and code, and never says no cookies", () => {
+    renderPage();
+    expect(document.body.textContent).not.toMatch(/no cookies/i);
+    const quotes = screen.getByRole("region", { name: "Quotes and payments" });
+    expect(
+      within(quotes).getByText(/email a 6-digit code to the address on the/),
+    ).toBeInTheDocument();
+    expect(within(quotes).getByText(/signed in to that quote for 30 days/)).toBeInTheDocument();
+    expect(within(quotes).getByText(/revised or its link is replaced/)).toBeInTheDocument();
+    expect(
+      within(quotes).getByText(/wrong codes are kept until the quote is\s+revised/),
+    ).toBeInTheDocument();
+    expect(
+      within(quotes).getByText(/code requests and code entries are deleted within two days/),
+    ).toBeInTheDocument();
+    expect(within(quotes).getByText(/IP address is used in\s+memory/)).toBeInTheDocument();
+    expect(within(quotes).getByText(/random\s+marker, kept for up to 47 days/)).toBeInTheDocument();
+    expect(
+      within(quotes).getByText(/Cloudflare, which\s+protects Paystack's servers/),
+    ).toBeInTheDocument();
+    const visiting = screen.getByRole("region", { name: "When you visit the site" });
+    expect(
+      within(visiting).getByText(/reference to that code in session storage/),
+    ).toBeInTheDocument();
   });
 
   it("sets the document title", async () => {

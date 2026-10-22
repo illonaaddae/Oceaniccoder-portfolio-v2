@@ -157,6 +157,19 @@ describe("quote-maintenance-due", () => {
     expect([...t.locks.held]).toEqual(["settle:REF-1"]);
   });
 
+  it.each([
+    ["no CRON_SECRET", { secret: "" }, {}],
+    ["a wrong key", {}, { key: "wrong" }],
+    ["a GET", {}, { method: "GET" }],
+  ])("never cleans up on %s", async (_name, options, request) => {
+    const t = setup({ quotes: [], ...options });
+    await t.locks.take("qa:try:cid:1");
+    t.locks.listBefore = vi.fn(t.locks.listBefore);
+    expect((await t.call(request)).status).not.toBe(200);
+    expect(t.locks.listBefore).not.toHaveBeenCalled();
+    expect(t.locks.held.has("qa:try:cid:1")).toBe(true);
+  });
+
   it("still answers when the clean-up fails, and logs it", async () => {
     const locks = createFakeLocks();
     locks.listBefore = async () => {

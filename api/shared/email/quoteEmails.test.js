@@ -75,6 +75,39 @@ describe("quote email templates", () => {
     expect(acc.text).not.toMatch(/deposit/i);
   });
 
+  describe("how the quote link opens", () => {
+    const view = { ...SAMPLE_VIEWS.quoteSent.view, linkOpens: false, codeByEmail: false };
+    const OPENS = "This link usually opens straight away.";
+    const ASKS = "This link asks for a short code that we email to Kofi.";
+
+    it("says the link opens straight away when this copy carries a link code", () => {
+      const sent = T.quoteSent({ ...view, linkOpens: true });
+      for (const body of [sent.html, sent.text]) {
+        expect(body).toContain(OPENS);
+        expect(body).toContain("another device");
+        expect(body).not.toContain("asks for a short code");
+      }
+    });
+
+    it("says the link asks for a code sent to the client on a copy without one", () => {
+      const sent = T.quoteSent({ ...view, codeByEmail: true });
+      for (const body of [sent.html, sent.text]) {
+        expect(body).toContain(ASKS);
+        expect(body).not.toContain(OPENS);
+        expect(body).not.toContain("@example");
+      }
+    });
+
+    it("says nothing about codes while the gate is off", () => {
+      const sent = T.quoteSent(view);
+      for (const body of [sent.html, sent.text]) {
+        expect(body).not.toContain(OPENS);
+        expect(body).not.toContain("asks for a short code");
+        expect(body).toContain("Questions? Reply to this email.");
+      }
+    });
+  });
+
   it("keeps the deposit wording for a staged quote", () => {
     const acc = T.quoteAccepted({ ...SAMPLE_VIEWS.quoteAccepted.view, singleStage: false });
     expect(acc.html).toContain("Pay the deposit");
@@ -144,9 +177,7 @@ describe("quote email templates", () => {
       expect(mail.subject).toBe("482915 is your code for quote Q-2026-0007");
       expect(mail.html).toContain("Your verification code is 482915. It works for 10 minutes.");
       expect(mail.html).toContain("Hi Kofi, someone opened your quote in a new browser.");
-      expect(mail.text).toContain(
-        "If it wasn't you, ignore this email: nobody can open the quote without this code.",
-      );
+      expect(mail.text).toContain("If it wasn't you, you can ignore this email.");
     });
 
     it("leads with a plain verification sentence for Gmail's copy chip and autofill", () => {

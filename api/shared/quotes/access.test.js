@@ -495,10 +495,10 @@ describe("pruneAccessLocks (retention)", () => {
     expect([...t.locks.held]).toEqual(["qa:try:fresh:1"]);
   });
 
-  it("keeps used link codes for 45 days plus the clock skew", async () => {
+  it("keeps used link codes for 45 days plus the clock skew plus a day", async () => {
     const t = world();
     await t.locks.take("qa:lk:nonce");
-    t.clock.ms += A.LINK_CODE_TTL_MS + 5 * 60 * 1000 - 1;
+    t.clock.ms += A.LINK_CODE_TTL_MS + 5 * 60 * 1000 + DAY - 1;
     await t.prune();
     expect(t.locks.held.has("qa:lk:nonce")).toBe(true);
     t.clock.ms += 1;
@@ -518,6 +518,34 @@ describe("pruneAccessLocks (retention)", () => {
     await t.prune();
     expect(t.locks.held.has("qa:miss:q1:2:0:1")).toBe(false);
     expect(t.locks.held.has("qa:epoch:q1:2:1")).toBe(true);
+  });
+
+  it("keeps an active lockout's wrong-code count on the current epoch", async () => {
+    const t = world();
+    for (let n = 0; n < A.MAX_MISSES; n += 1) await A.recordMiss(t.locks, QUOTE, 0);
+    expect(await A.sendsBlocked(t.locks, QUOTE, 0)).toBe(true);
+    t.clock.ms += 30 * DAY;
+    expect(await t.prune()).toEqual({ deleted: 0, kept: A.MAX_MISSES, skipped: 0 });
+    expect(await A.sendsBlocked(t.locks, QUOTE, 0)).toBe(true);
+  });
+
+  it("keeps wrong-code counts when the quote lookup fails", async () => {
+    const t = world();
+    await A.recordMiss(t.locks, QUOTE, 0);
+    t.clock.ms += DAY;
+    t.repo.get = async () => {
+      throw new Error("db down");
+    };
+    await expect(t.prune()).rejects.toThrow("db down");
+    expect(t.locks.held.has("qa:miss:q1:2:0:1")).toBe(true);
+  });
+
+  it("keeps a wrong-code row whose key it can't read", async () => {
+    const t = world();
+    await t.locks.take("qa:miss:broken");
+    t.clock.ms += 400 * DAY;
+    expect(await t.prune()).toEqual({ deleted: 0, kept: 1, skipped: 0 });
+    expect(t.locks.held.has("qa:miss:broken")).toBe(true);
   });
 
   it("drops wrong-code counts for an older revision or a deleted quote", async () => {

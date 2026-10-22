@@ -391,14 +391,15 @@ function claimLinkCode(locks, nonce) {
 
 // Retention for the qa:* lock rows (owner decision, 2026-10-21):
 // - qa:send:, qa:try:, qa:used: one day; every window they guard is shorter;
-// - qa:lk: the link-code lifetime plus skew, so a used link code can't be
-//   claimed again while it would still check out;
+// - qa:lk: the link-code lifetime plus skew plus a day, so a used link code
+//   can't be claimed again while it would still check out, even if the lock
+//   store's clock runs behind ours;
 // - qa:miss: until its revision or epoch is superseded (Revise, New link, or
 //   the quote is gone); a live counter is never dropped;
 // - qa:epoch: never; it holds the lockout of every older session.
 const SHORT_LIVED = ["qa:send:", "qa:try:", "qa:used:"];
 const SHORT_RETENTION_MS = DAY_MS;
-const LINK_RETENTION_MS = LINK_CODE_TTL_MS + CLOCK_SKEW_MS;
+const LINK_RETENTION_MS = LINK_CODE_TTL_MS + CLOCK_SKEW_MS + DAY_MS;
 
 // "qa:miss:<quoteId>:<revision>:<epoch>:<n>", read from the right so a quote
 // id can't shift the fields.
@@ -491,6 +492,36 @@ async function hasAccess({ secret, locks, req, quote, nowMs }) {
   return isEpochCurrent(locks, quote, p.e);
 }
 
+const LOCKED = "Enter the code we email you to open this quote.";
+
+/**
+ * The gate on the client endpoints that show or change a quote. Returns how
+ * the request got in: "off" (kill switch), "session" or "admin". Otherwise
+ * throws 401 { locked: true }, which carries nothing from the quote.
+ * isAdmin, when given, runs only without a session, so a client's request
+ * never waits on the admin check.
+ */
+async function requireAccess({ env, logError, locks, req, quote, nowMs, isAdmin }) {
+  if (!gateEnabled(env, logError)) return "off";
+  const secret = accessSecret(env, logError);
+  if (await hasAccess({ secret, locks, req, quote, nowMs })) return "session";
+  if (isAdmin && (await isAdmin())) return "admin";
+  throw new HttpError(401, LOCKED, { locked: true });
+}
+
+/**
+ * The admin check for requireAccess, or null unless the page asked for it
+ * (admin=1, sent only from a ?preview=admin page). requireAdmin is
+ * api/shared/adminAuth.js, passed in so tests can replace it.
+ */
+function adminCheck(requireAdmin, context, req, flag) {
+  if (flag !== "1") return null;
+  return async () => {
+    const auth = await requireAdmin(context, req);
+    return Boolean(auth && auth.user);
+  };
+}
+
 module.exports = {
   CODE_TTL_MS,
   MAX_TRIES,
@@ -498,6 +529,7 @@ module.exports = {
   gateEnabled,
   accessSecret,
   maskEmail,
+  normalEmail,
   currentEpoch,
   bumpEpoch,
   codeFor,
@@ -517,4 +549,6 @@ module.exports = {
   checkLinkCode,
   claimLinkCode,
   pruneAccessLocks,
+  requireAccess,
+  adminCheck,
 };

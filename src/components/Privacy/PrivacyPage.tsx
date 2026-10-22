@@ -21,7 +21,7 @@ import { Helmet } from "react-helmet-async";
  */
 
 const CONTACT_EMAIL = "hello@oceaniccoder.dev";
-const LAST_UPDATED = "13 October 2026";
+const LAST_UPDATED = "21 October 2026";
 const DESCRIPTION =
   "What oceaniccoder.dev collects, why, who processes it, how long it is kept and how to ask for a copy or deletion.";
 
@@ -82,8 +82,10 @@ const PrivacyPage: React.FC = () => (
         </h1>
         <p className="text-lg">
           This page explains what oceaniccoder.dev collects, why, who helps us handle it and what
-          you can ask us to do with it. The short version: no cookies, no advertising trackers, and
-          we only keep what we need to answer you and run the business.
+          you can ask us to do with it. The short version: we set a sign-in cookie for each quote
+          you open; Paystack sets its own cookies only when you open its checkout to pay; there are
+          no tracking or advertising cookies, and we only keep what we need to answer you and run
+          the business.
         </p>
       </header>
 
@@ -116,7 +118,11 @@ const PrivacyPage: React.FC = () => (
 
         <SubHeading>What we don&apos;t do</SubHeading>
         <List>
-          <li>We use no cookies.</li>
+          <li>
+            We use no tracking or advertising cookies. The only cookies we set are the quote sign-in
+            cookies described under &quot;Quotes and payments&quot;. When you pay, Paystack&apos;s
+            checkout sets its own cookies.
+          </li>
           <li>
             We don&apos;t store your IP address or your browser&apos;s full identifying string. Our
             server uses them briefly, in memory only, to make the daily code described below and to
@@ -158,7 +164,9 @@ const PrivacyPage: React.FC = () => (
         <p>
           The site also uses your browser&apos;s local storage for your light or dark theme choice,
           whether you have seen the intro animation or closed a banner, and a cached list of home
-          page images. These stay on your device.
+          page images. When we email you a code to open a quote, the page keeps a temporary
+          reference to that code in session storage until you enter it or close the tab. None of
+          these leave your device except that reference, which is sent back with the code.
         </p>
       </Section>
 
@@ -202,6 +210,17 @@ const PrivacyPage: React.FC = () => (
 
       <Section id="quotes-payments" title="Quotes and payments">
         <p>
+          When you open a quote in a new browser, we email a 6-digit code to the address on the
+          quote. Once you enter it, or open the quote from our email, a sign-in cookie keeps that
+          browser signed in to that quote for 30 days. It is used only for that, and it stops
+          working early if the quote is revised or its link is replaced. Your IP address is used in
+          memory to limit how often codes can be asked for or tried, and is never saved. Records of
+          code requests and code entries are deleted within two days; counts of wrong codes are kept
+          until the quote is revised or its link is replaced. A used sign-in link leaves a random
+          marker, kept for up to 47 days so the link can&apos;t be used twice; it holds nothing
+          about you except when the link was used.
+        </p>
+        <p>
           When you accept a quote, we keep a record of the agreement: the name you type, the time, a
           one-way scrambled (hashed) copy of your IP address, your browser&apos;s identifying string
           and a copy of what you accepted.
@@ -212,6 +231,12 @@ const PrivacyPage: React.FC = () => (
           details. We keep your name, email, the amount and currency, the Paystack reference, the
           payment method (and the mobile money network, if used), the invoice number and the date
           paid. If you pay by bank transfer, no payment provider is involved.
+        </p>
+        <p>
+          Paystack&apos;s checkout loads from Paystack only when you choose to pay, either in a
+          window on our page or on Paystack&apos;s own site. Paystack, and Cloudflare, which
+          protects Paystack&apos;s servers, set their own cookies when it opens; Paystack&apos;s
+          privacy policy covers them.
         </p>
       </Section>
 

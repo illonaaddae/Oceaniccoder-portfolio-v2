@@ -31,6 +31,18 @@ function invoiceBlock(inv) {
   });
 }
 
+// How the quote link opens (api/shared/quotes/access.js). v.linkOpens: this
+// copy carries the one-time link code, so it opens straight away here.
+// v.codeByEmail: it doesn't (an extra Email again address), so the page asks
+// for a code, which goes to the client. Neither: the gate is off; say nothing.
+function accessNote(v) {
+  if (v.linkOpens)
+    return "This link usually opens straight away. If you open it on another device, we'll email you a short code first.";
+  if (v.codeByEmail)
+    return `This link asks for a short code that we email to ${v.clientFirstName}.`;
+  return "";
+}
+
 function quoteSent(v) {
   const updated = v.revision > 1;
   const subject = `${updated ? "Updated quote" : "Your quote"} from OceanicCoder: ${v.title}`;
@@ -59,7 +71,7 @@ function quoteSent(v) {
         "Accept it by typing your name",
         v.singleStage ? "Pay in full to book your slot" : "Pay the deposit to book your slot",
       ]) +
-      small("Questions? Reply to this email."),
+      small([accessNote(v), "Questions? Reply to this email."].filter(Boolean).join("\n\n")),
   });
   const text = lines(
     `Hi ${v.clientFirstName},`,
@@ -68,6 +80,7 @@ function quoteSent(v) {
     `Payment plan: ${v.planSummary}`,
     `Valid until: ${v.validUntil}`,
     `View and accept it here: ${v.link}`,
+    accessNote(v),
     "Questions? Reply to this email.",
   );
   return { subject, html, text };
@@ -366,8 +379,7 @@ function accessCode(v) {
   // autofill find the code.
   const verification = `Your verification code is ${v.code}.`;
   const opened = "Someone opened your quote in a new browser. Here's your code:";
-  const ignore =
-    "If it wasn't you, ignore this email: nobody can open the quote without this code.";
+  const ignore = "If it wasn't you, you can ignore this email.";
   const html = shell({
     preview: `${verification} It works for ${v.minutes} minutes.`,
     meta: { label: "Quote", number: v.quoteNumber },
