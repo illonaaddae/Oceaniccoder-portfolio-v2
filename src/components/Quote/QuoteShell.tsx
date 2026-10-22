@@ -182,10 +182,25 @@ export function QuoteRouteFallback() {
   );
 }
 
-export function QuoteError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function QuoteError({
+  message,
+  onRetry,
+  title = "Something went wrong",
+  headingLevel = 1,
+}: {
+  message: string;
+  onRetry?: () => void;
+  title?: string;
+  /** 2 inside a dialog or page that already has its own h1. */
+  headingLevel?: 1 | 2;
+}) {
+  const Heading = headingLevel === 1 ? "h1" : "h2";
   return (
     <QuoteCard className="text-center">
-      <p className="mb-4" style={{ color: "var(--text-primary)" }}>
+      <Heading className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+        {title}
+      </Heading>
+      <p className="mb-4 [overflow-wrap:anywhere]" style={{ color: "var(--text-primary)" }}>
         {message}
       </p>
       {onRetry && (

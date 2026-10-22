@@ -4,23 +4,61 @@ import type { ClientQuote, PayMethod, PaymentCheckState, ReceiptView } from "@/t
 
 type FetchInit = Parameters<typeof fetch>[1];
 
+/** What the quote access gate adds to an error answer (api/quote-access, the gated endpoints). */
+export interface QuoteAccessDetails {
+  /** The browser has no unlock for this quote. */
+  locked?: boolean;
+  triesLeft?: number;
+  /** Too many wrong codes: no more are sent until the admin issues a new link. */
+  blocked?: boolean;
+  /** The typed code's challenge is spent or stale; ask for a new code. */
+  newCodeNeeded?: boolean;
+  /** The quote has no client email, so no code can be sent. */
+  noEmail?: boolean;
+  /** The kill switch is on: the quote opens without a code. */
+  gateOff?: boolean;
+  retryAfterSeconds?: number;
+}
+
+const flag = (v: unknown) => (v === true ? true : undefined);
+const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+
+function accessDetails(body: Record<string, unknown>): QuoteAccessDetails {
+  return {
+    locked: flag(body.locked),
+    triesLeft: count(body.triesLeft),
+    blocked: flag(body.blocked),
+    newCodeNeeded: flag(body.newCodeNeeded),
+    noEmail: flag(body.noEmail),
+    gateOff: flag(body.gateOff),
+    retryAfterSeconds: count(body.retryAfterSeconds),
+  };
+}
+
 export class QuoteApiError extends Error {
   status: number;
   fields?: Record<string, string>;
   inactive?: boolean;
+  access: QuoteAccessDetails;
   constructor(
     message: string,
     status: number,
     fields?: Record<string, string>,
     inactive?: boolean,
+    access: QuoteAccessDetails = {},
   ) {
     super(message);
     this.name = "QuoteApiError";
     this.status = status;
     this.fields = fields;
     this.inactive = inactive;
+    this.access = access;
   }
 }
+
+/** True for the gate's 401: the page should show the code screen. */
+export const isLockedError = (err: unknown) =>
+  err instanceof QuoteApiError && err.access.locked === true;
 
 async function call<T>(path: string, init?: FetchInit): Promise<T> {
   let res: Response;
@@ -32,7 +70,11 @@ async function call<T>(path: string, init?: FetchInit): Promise<T> {
       0,
     );
   }
-  let body: { error?: string; fields?: Record<string, string>; inactive?: boolean };
+  let body: {
+    error?: string;
+    fields?: Record<string, string>;
+    inactive?: boolean;
+  } & Record<string, unknown>;
   try {
     body = await res.json();
   } catch {
@@ -45,6 +87,7 @@ async function call<T>(path: string, init?: FetchInit): Promise<T> {
       res.status,
       body.fields,
       body.inactive,
+      accessDetails(body),
     );
   return body as T;
 }
@@ -55,11 +98,69 @@ const postJson = (body: unknown): FetchInit => ({
   body: JSON.stringify(body),
 });
 
-export function fetchClientQuote(token: string, preview = false) {
-  return call<{ quote: ClientQuote }>(
-    `/api/quote-view?token=${encodeURIComponent(token)}${preview ? "&preview=1" : ""}`,
-  );
+/**
+ * preview: don't record the client's first view. admin: the dashboard's
+ * Preview link (?preview=admin); the server checks the admin session instead
+ * of the client's unlock, and records nothing.
+ */
+export async function fetchClientQuote(
+  token: string,
+  { preview = false, admin = false }: { preview?: boolean; admin?: boolean } = {},
+) {
+  const query = `token=${encodeURIComponent(token)}${preview || admin ? "&preview=1" : ""}`;
+  if (!admin) return call<{ quote: ClientQuote }>(`/api/quote-view?${query}`);
+  let headers: Record<string, string>;
+  try {
+    headers = await adminHeaders();
+  } catch (err) {
+    // No dashboard session in this browser: the same answer the server gives,
+    // so the page shows its admin card instead of a generic error.
+    throw new QuoteApiError(
+      err instanceof Error ? err.message : "Sign in to the dashboard.",
+      401,
+      undefined,
+      undefined,
+      { locked: true },
+    );
+  }
+  return call<{ quote: ClientQuote }>(`/api/quote-view?${query}&admin=1`, { headers });
 }
+
+/** The dashboard's Preview link for a client link; any "#k=" link code is left off. */
+export const adminPreviewLink = (link: string) => `${link.split("#")[0]}?preview=admin`;
+
+export interface QuoteAccessStatus {
+  locked: boolean;
+  canUnlock?: boolean;
+  blocked?: boolean;
+  /** "p•••••@hotmail.com", or null when the quote has no client email. */
+  maskedEmail?: string | null;
+  gateOff?: boolean;
+}
+
+export interface QuoteCodeSent {
+  challenge: string;
+  maskedEmail: string | null;
+  expiresInSeconds: number;
+  retryAfterSeconds: number;
+}
+
+const quoteAccess = <T>(body: Record<string, unknown>) =>
+  call<T>("/api/quote-access", postJson(body));
+
+export const fetchQuoteAccess = (token: string) =>
+  quoteAccess<QuoteAccessStatus>({ action: "status", token });
+
+/** Signs this browser in with the one-time link code from the email. */
+export const claimQuoteLink = (token: string, linkCode: string) =>
+  quoteAccess<{ ok: true }>({ action: "claim", token, linkCode });
+
+/** Emails a 6-digit code to the client email on the quote. */
+export const sendQuoteCode = (token: string) =>
+  quoteAccess<QuoteCodeSent>({ action: "send", token });
+
+export const verifyQuoteCode = (token: string, challenge: string, code: string) =>
+  quoteAccess<{ ok: true }>({ action: "verify", token, challenge, code });
 
 export function respondToQuote(
   token: string,

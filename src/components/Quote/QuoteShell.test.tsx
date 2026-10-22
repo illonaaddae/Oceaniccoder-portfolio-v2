@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import QuoteShell from "./QuoteShell";
+import QuoteShell, { QuoteError } from "./QuoteShell";
 import { ScopeNotes } from "./ProposalSections";
 import type { ClientQuote } from "@/types/quote";
 
@@ -56,5 +56,14 @@ describe("QuoteShell", () => {
     expect(screen.getByRole("heading", { name: "Not included" })).toBeInTheDocument();
     expect(screen.queryByText("Scope notes")).toBeNull();
     expect(document.querySelector("details")).toBeNull();
+  });
+
+  it("gives QuoteError an h1 by default and an h2 inside a dialog", () => {
+    const { unmount } = render(<QuoteError message="Oops" />);
+    expect(screen.getByRole("heading", { level: 1, name: "Something went wrong" })).toBeTruthy();
+    unmount();
+    render(<QuoteError message="Oops" headingLevel={2} />);
+    expect(screen.getByRole("heading", { level: 2, name: "Something went wrong" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 });

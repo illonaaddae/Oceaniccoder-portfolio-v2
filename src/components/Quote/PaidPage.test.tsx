@@ -92,4 +92,20 @@ describe("PaidPage", () => {
     expect(await screen.findByText(/still waiting for paystack/i)).toBeInTheDocument();
     expect(screen.queryByText(/didn't go through/i)).not.toBeInTheDocument();
   });
+
+  it("on a browser with no unlock, still shows paid and offers to open the quote", async () => {
+    checkStagePayment
+      .mockResolvedValueOnce({ state: "pending", receiptPath: null })
+      .mockResolvedValue({ state: "paid", receiptPath: null });
+    renderAt();
+    expect(await screen.findByText(/confirming/i)).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(await screen.findByText(/payment received/i)).toBeInTheDocument();
+    expect(screen.getByText(/emailed your receipt/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open your quote" })).toHaveAttribute("href", "/q/tok");
+    expect(screen.queryByRole("link", { name: /receipt/i })).toBeNull();
+    expect(checkStagePayment).toHaveBeenCalledTimes(2);
+  });
 });

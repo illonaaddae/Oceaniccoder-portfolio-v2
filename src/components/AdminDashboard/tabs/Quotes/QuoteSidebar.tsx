@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { FaCopy, FaWhatsapp, FaExternalLinkAlt, FaCheck, FaEye } from "react-icons/fa";
-import { quoteAdmin } from "@/services/api/quotes";
+import { adminPreviewLink, quoteAdmin } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import { useConfirm } from "../../ConfirmContext";
 import { CustomSelect } from "@/components/ui/CustomSelect";
@@ -259,7 +259,7 @@ export default function QuoteSidebar({
             style={btnStyle}
             target="_blank"
             rel="noopener noreferrer"
-            href={`${link}?preview=1`}
+            href={adminPreviewLink(link)}
           >
             <FaExternalLinkAlt className="inline mr-1" />
             Preview
