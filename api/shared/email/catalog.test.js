@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 
 const { CATALOG, findEmail } = await import("./catalog.js");
+const { verifyInvoice } = await import("../tokens.js");
 
 describe("email catalog", () => {
   it("lists every email once, each with a group, name and trigger", () => {
@@ -58,6 +59,18 @@ describe("email catalog", () => {
     for (const bad of ["NaN", "undefined", "[object Object]"]) {
       expect(mail.html).not.toContain(bad);
       expect(mail.subject).not.toContain(bad);
+    }
+  });
+
+  it("previews the invoice email with a pay link the real secret does not sign", () => {
+    process.env.RECEIPT_SIGNING_SECRET = "real-secret";
+    try {
+      const { html } = findEmail("invoiceSent").render();
+      const sig = html.match(/\/pay\/INV-2026-0042\?s=([A-Za-z0-9_-]{32})"/);
+      expect(sig).not.toBeNull();
+      expect(verifyInvoice("INV-2026-0042", sig[1], "real-secret")).toBe(false);
+    } finally {
+      delete process.env.RECEIPT_SIGNING_SECRET;
     }
   });
 

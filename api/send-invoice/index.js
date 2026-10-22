@@ -1,6 +1,7 @@
 /* global require, module, Buffer */
 const https = require("https");
 const { requireAdmin } = require("../shared/adminAuth");
+const { invoicePayPath } = require("../shared/invoiceLinks");
 const {
   C,
   esc,
@@ -74,8 +75,9 @@ function notesBlock(notes) {
   return `<div style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;padding:16px 20px;margin:0 0 24px"><div style="${LABEL};color:${C.ink3};margin:0 0 8px">Notes</div><div style="font-size:14px;color:${C.ink2}">${multiline(notes)}</div></div>`;
 }
 
-// Pure: builds the invoice email HTML from the request body fields.
-function renderInvoiceEmail(d, now = new Date()) {
+// Pure: builds the invoice email HTML from the request body fields. The pay
+// link is signed, so it throws when `secret` is missing.
+function renderInvoiceEmail(d, now = new Date(), secret = process.env.RECEIPT_SIGNING_SECRET) {
   const sym = d.currencySymbol || d.currency;
   const money = (n) => `${sym}${Number(n).toFixed(2)}`;
   const items = d.items || [];
@@ -92,7 +94,7 @@ function renderInvoiceEmail(d, now = new Date()) {
   const dueDate = d.dueDate ? formatDate(new Date(d.dueDate)) : null;
   const delivery = d.estimatedDelivery ? formatDate(new Date(d.estimatedDelivery)) : null;
   const amountDue = `${money(d.total)} ${d.currency}`;
-  const payLink = `https://oceaniccoder.dev/pay/${encodeURIComponent(d.invoiceNumber)}`;
+  const payLink = `https://oceaniccoder.dev${invoicePayPath(d.invoiceNumber, secret)}`;
 
   return shell({
     preview: `Invoice ${d.invoiceNumber}: ${amountDue}${dueDate ? `, due ${dueDate}` : ""}`,
@@ -247,6 +249,15 @@ module.exports = async function (context, req) {
       status: 503,
       headers: CORS,
       body: JSON.stringify({ error: "Not configured" }),
+    };
+    return;
+  }
+  // Without the signing secret the email could carry no working pay link.
+  if (!process.env.RECEIPT_SIGNING_SECRET) {
+    context.res = {
+      status: 503,
+      headers: CORS,
+      body: JSON.stringify({ error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set." }),
     };
     return;
   }

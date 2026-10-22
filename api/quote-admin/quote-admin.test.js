@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { createHandler } = await import("./index.js");
+const { verifyInvoice } = await import("../shared/tokens.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
 const access = await import("../shared/quotes/access.js");
@@ -622,6 +623,42 @@ describe("quote-admin archive and restore", () => {
     expect(r.status).toBe(200);
     expect(r.body.payment).toEqual({ id: "p1", archivedAt: null });
     expect(t.repo.payments.get("p1").archivedAt).toBeNull();
+  });
+
+  describe("invoicePayLink", () => {
+    afterEach(() => {
+      delete process.env.RECEIPT_SIGNING_SECRET;
+    });
+
+    it("returns a signed pay path for a one-off invoice", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042" }] });
+      const r = await t.call({ action: "invoicePayLink", id: "inv1" });
+      expect(r.status).toBe(200);
+      const [, number, sig] = r.body.link.match(/^\/pay\/([^?]+)\?s=(.+)$/);
+      expect(number).toBe("INV-2026-0042");
+      expect(verifyInvoice("INV-2026-0042", sig, "test-secret")).toBe(true);
+    });
+
+    it("answers 503 when the signing secret is missing", async () => {
+      const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042" }] });
+      const r = await t.call({ action: "invoicePayLink", id: "inv1" });
+      expect(r.status).toBe(503);
+      expect(r.body.error).toMatch(/RECEIPT_SIGNING_SECRET/);
+    });
+
+    it("answers 409 for an invoice with no number", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup({ invoices: [{ id: "inv1", status: "sent" }] });
+      expect((await t.call({ action: "invoicePayLink", id: "inv1" })).status).toBe(409);
+    });
+
+    it("answers 404 for an unknown invoice and 400 for an unsafe id", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup();
+      expect((await t.call({ action: "invoicePayLink", id: "nope" })).status).toBe(404);
+      expect((await t.call({ action: "invoicePayLink", id: "../x" })).status).toBe(400);
+    });
   });
 
   it("archives and restores a one-off invoice", async () => {

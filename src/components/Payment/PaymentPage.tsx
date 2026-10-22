@@ -251,6 +251,8 @@ const PaymentPage: React.FC = () => {
   const { invoiceNumber } = useParams<{ invoiceNumber: string }>();
   const [searchParams] = useSearchParams();
   const isSuccessParam = searchParams.get("payment") === "success";
+  // The pay link's signature; get-invoice answers 404 without a valid one.
+  const signature = searchParams.get("s");
 
   const [invoice, setInvoice] = useState<PublicInvoice | null>(null);
   const [loading, setLoading] = useState(true);
@@ -286,13 +288,19 @@ const PaymentPage: React.FC = () => {
     const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
     const killTimer = window.setTimeout(() => controller.abort(), 15000);
 
+    const query = new URLSearchParams({ number: invoiceNumber });
+    if (signature) query.set("s", signature);
+
     try {
-      const res = await fetch(
-        apiUrl(`/api/get-invoice?number=${encodeURIComponent(invoiceNumber)}`),
-        { signal: controller.signal },
-      );
+      const res = await fetch(apiUrl(`/api/get-invoice?${query.toString()}`), {
+        signal: controller.signal,
+      });
       const data = (await res.json()) as PublicInvoice & { error?: string };
 
+      if (res.status === 429) {
+        setFetchError("busy");
+        return;
+      }
       if (!res.ok) {
         setFetchError(data.error ?? "Invoice not found.");
         return;
@@ -311,7 +319,7 @@ const PaymentPage: React.FC = () => {
       setLoading(false);
       setSlowWarning(false);
     }
-  }, [invoiceNumber]);
+  }, [invoiceNumber, signature]);
 
   useEffect(() => {
     void doFetch();
@@ -368,6 +376,16 @@ const PaymentPage: React.FC = () => {
                 >
                   Try Again
                 </button>
+              </>
+            ) : fetchError === "busy" ? (
+              <>
+                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Too many requests
+                </h2>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  This page was loaded too many times in a short while. Wait a few minutes, then
+                  reload it.
+                </p>
               </>
             ) : (
               <>

@@ -1,7 +1,13 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 const { renderInvoiceEmail } = await import("./index.js");
+const { verifyInvoice } = await import("../shared/tokens.js");
+
+const SECRET = "test-signing-secret";
 
 const NOW = new Date("2026-10-10T12:00:00.000Z");
 const base = {
@@ -25,6 +31,13 @@ const base = {
 };
 
 describe("renderInvoiceEmail", () => {
+  beforeEach(() => {
+    process.env.RECEIPT_SIGNING_SECRET = SECRET;
+  });
+  afterEach(() => {
+    delete process.env.RECEIPT_SIGNING_SECRET;
+  });
+
   it("derives subtotal and total from the items when they are missing", () => {
     const { subtotal: _s, tax: _t, total: _total, ...rest } = base;
     const html = renderInvoiceEmail({ ...rest, taxRate: 0 }, NOW);
@@ -60,10 +73,18 @@ describe("renderInvoiceEmail", () => {
     expect(html).toContain("Deposit covers design.<br>Balance on launch.");
   });
 
-  it("links to the pay page and the reply address", () => {
+  it("links to the signed pay page and the reply address", () => {
     const html = renderInvoiceEmail(base, NOW);
-    expect(html).toContain('href="https://oceaniccoder.dev/pay/INV-2026-0042"');
+    const sig = html.match(/href="https:\/\/oceaniccoder\.dev\/pay\/INV-2026-0042\?s=([^"]+)"/);
+    expect(sig).not.toBeNull();
+    expect(verifyInvoice("INV-2026-0042", sig[1], SECRET)).toBe(true);
+    expect(html).not.toContain('href="https://oceaniccoder.dev/pay/INV-2026-0042"');
     expect(html).toContain('href="mailto:hello@oceaniccoder.dev"');
+  });
+
+  it("refuses to build the email without a signing secret", () => {
+    delete process.env.RECEIPT_SIGNING_SECRET;
+    expect(() => renderInvoiceEmail(base, NOW)).toThrow(/RECEIPT_SIGNING_SECRET/);
   });
 
   it("leaves out optional parts that were not given", () => {
@@ -108,5 +129,42 @@ describe("renderInvoiceEmail", () => {
     expect(html).not.toContain('INV"/><x');
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("https://oceaniccoder.dev/pay/INV%22%2F%3E%3Cx");
+  });
+});
+
+describe("send-invoice handler configuration", () => {
+  // index.js reads requireAdmin when it loads, so stub it and load a fresh copy.
+  function loadHandler() {
+    const adminAuth = require("../shared/adminAuth.js");
+    const real = adminAuth.requireAdmin;
+    adminAuth.requireAdmin = async () => ({ user: { $id: "admin" } });
+    delete require.cache[require.resolve("./index.js")];
+    const handler = require("./index.js");
+    adminAuth.requireAdmin = real;
+    return handler;
+  }
+
+  const send = async (handler) => {
+    const context = { res: null, log: Object.assign(() => {}, { error: () => {} }) };
+    await handler(context, { method: "POST", headers: {}, body: base });
+    return { status: context.res.status, body: JSON.parse(context.res.body) };
+  };
+
+  afterEach(() => {
+    delete process.env.RESEND_API_KEY;
+    delete process.env.RECEIPT_SIGNING_SECRET;
+  });
+
+  it("names the missing signing secret instead of a generic error", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    expect(await send(loadHandler())).toEqual({
+      status: 503,
+      body: { error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set." },
+    });
+  });
+
+  it("still answers Not configured when the Resend key is missing", async () => {
+    process.env.RECEIPT_SIGNING_SECRET = SECRET;
+    expect(await send(loadHandler())).toEqual({ status: 503, body: { error: "Not configured" } });
   });
 });

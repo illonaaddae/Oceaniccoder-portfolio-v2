@@ -174,7 +174,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
         setError(
           `Invoice ${invoiceNumber} was saved, but the email failed to send ` +
             `(${emailRes.status}: ${body.error ?? "unknown error"}). ` +
-            `The client has NOT been notified. Check Resend, then resend from the invoice.`,
+            `The client has NOT been notified. Fix that, then resend from the invoice.`,
         );
         return;
       }
