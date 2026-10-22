@@ -5,6 +5,16 @@ import { createRequire } from "module";
 // vi.mock does not reach CommonJS require, so the handler takes its
 // dependencies as arguments.
 const require = createRequire(import.meta.url);
+// index.js loads ../shared/media at start, which needs sharp, an api-only
+// package the root install doesn't have. Tests pass storeVisitorImage in, so
+// the real module is never used.
+const mediaPath = require.resolve("../shared/media.js");
+require.cache[mediaPath] = {
+  id: mediaPath,
+  filename: mediaPath,
+  loaded: true,
+  exports: { storeVisitorImage: () => {} },
+};
 const { createHandler } = require("./index.js");
 const { messageAlertEmail } = require("./messageAlert.js");
 
