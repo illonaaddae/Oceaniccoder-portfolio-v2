@@ -59,6 +59,9 @@ describe("fake Cosmos container", () => {
         { name: "@p", value: "Q-2026-" },
       ]),
     ).toEqual([{ n: "Q-2026-0010" }]);
+    expect(
+      await run("SELECT * FROM c WHERE c.sentAt < @t", [{ name: "@t", value: "2026-10-02" }]),
+    ).toEqual([expect.objectContaining({ id: "c" })]);
 
     await expect(run("SELECT * FROM c WHERE c.status = 'accepted'")).rejects.toThrow(/literal/);
     await expect(run("SELECT * FROM c WHERE c.status != @s")).rejects.toThrow(/unsupported/);
