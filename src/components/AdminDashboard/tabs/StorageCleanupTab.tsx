@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useId, useRef } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
 import { Pagination } from "@/components/common/Pagination";
-import { Query } from "appwrite";
-import { databases, DATABASE_ID } from "@/lib/appwrite";
+import { manageList, usesCosmos } from "@/services/api/dataApi";
+import { LIST_ALL_CAP, listAllDocuments } from "@/services/api/listAll";
 import { deleteImage, listMediaFiles } from "@/services/api/storage";
-import { MEDIA_BASE_URL, getOptimizedImageUrl } from "@/utils/imageOptimizer";
-import { getPlatformLogoOverrides, setPlatformLogoUrl } from "@/services/api/settings";
+import { getOptimizedImageUrl } from "@/utils/imageOptimizer";
+import { IMAGES } from "@/utils/imageUrls";
+import {
+  readHeroImages,
+  readPlatformLogoOverrides,
+  setPlatformLogoUrl,
+} from "@/services/api/settings";
 import { applyPlatformLogoOverrides } from "@/utils/platformLogos";
 import { ImageUpload } from "@/components/AdminDashboard/ImageUpload";
 
@@ -25,13 +30,19 @@ interface PlatformEntry {
   currentUrl: string | null;
 }
 
-const DB_COLLECTIONS = [
+// Every field that can hold an uploaded file's URL. `fields` hold URLs (or
+// arrays of them); `textFields` hold prose with URLs inside it. Files are
+// matched by id anywhere in a reference, so prose is kept whole: a URL in
+// any form (relative, scheme-less, upper case) still counts.
+const DB_COLLECTIONS: { id: string; fields: string[]; textFields?: string[] }[] = [
   { id: "projects", fields: ["image", "screenshots"] },
+  { id: "project_videos", fields: ["demoVideoUrl"] },
   { id: "certifications", fields: ["image", "platformIconUrl"] },
   { id: "education", fields: ["universityLogo", "logo"] },
   { id: "about", fields: ["profileImage", "resumeUrl"] },
   { id: "gallery", fields: ["src"] },
-  { id: "blog_posts", fields: ["image"] },
+  // The editor inserts uploaded images into the body as ![Image](url).
+  { id: "blog_posts", fields: ["image"], textFields: ["content"] },
   { id: "journey", fields: ["logo"] },
   { id: "testimonials", fields: ["image"] },
   { id: "skills", fields: ["icon"] },
@@ -53,14 +64,34 @@ const ALL_PLATFORMS = [
 
 // Same files as the defaults in utils/platformLogos.js.
 const HARDCODED_URLS: Record<string, string> = {
-  Codecademy: `${MEDIA_BASE_URL}/69444cf9000034490b06/code-cademy.svg`,
-  Scrimba: `${MEDIA_BASE_URL}/69444cfa002656e07bf5/scrimba.png`,
-  AWS: `${MEDIA_BASE_URL}/6a08dac800096013ea70/pinclipart-com-welders-clipart-1637044.webp`,
-  "Frontend Masters": `${MEDIA_BASE_URL}/69444cf90028bcba5187/frontendmasters.png`,
-  Coursera: `${MEDIA_BASE_URL}/69444cf7002630d6e37f/coursera.png`,
+  Codecademy: IMAGES.codecademy,
+  Scrimba: IMAGES.scrimba,
+  AWS: IMAGES.awsPlatform,
+  "Frontend Masters": IMAGES.frontendMasters,
+  Coursera: IMAGES.coursera,
 };
 
 const PAGE_SIZE = 10;
+
+// Every row of a collection. A partial read would make the files used by the
+// missing rows look orphaned, so hitting the Appwrite cap counts as a failure.
+async function listCollectionRows(collection: string): Promise<Record<string, unknown>[]> {
+  if (usesCosmos) return (await manageList(collection)).documents;
+  const rows = await listAllDocuments<{ $id: string } & Record<string, unknown>>(collection);
+  if (rows.length >= LIST_ALL_CAP) {
+    throw new Error(`more than ${LIST_ALL_CAP - 1} rows, so the scan may be incomplete`);
+  }
+  return rows;
+}
+
+/** Every platform with its logo: the saved override, else the bundled default. */
+function platformsWith(overrides: Record<string, string>): PlatformEntry[] {
+  return ALL_PLATFORMS.map((name) => ({
+    name,
+    // An empty override (a cleared upload) falls back to the bundled file.
+    currentUrl: overrides[name] || HARDCODED_URLS[name] || null,
+  }));
+}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -74,19 +105,29 @@ interface StorageCleanupTabProps {
 
 export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [collectionErrors, setCollectionErrors] = useState<string[]>([]);
-  const [platforms, setPlatforms] = useState<PlatformEntry[]>(
-    ALL_PLATFORMS.map((name) => ({ name, currentUrl: HARDCODED_URLS[name] ?? null })),
-  );
+  // True only while `files` comes from a scan whose reads all returned.
+  const [scanFinished, setScanFinished] = useState(false);
+  // Announced once when a full scan ends. Fixed at that moment, so a delete
+  // afterwards doesn't change it and get announced as a new result.
+  const [scanSummary, setScanSummary] = useState<string | null>(null);
+  // Replacing a logo starts a scan while another may still run. Only the
+  // latest may commit, or an older one could list the new logo as an orphan.
+  const latestScan = useRef(0);
+  const [platforms, setPlatforms] = useState<PlatformEntry[]>(() => platformsWith({}));
   const [replacingLogo, setReplacingLogo] = useState<string | null>(null);
   const [savingLogo, setSavingLogo] = useState<string | null>(null);
   const [orphanPage, setOrphanPage] = useState(0);
   const [inUsePage, setInUsePage] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  // A collection that couldn't be read may still use any file listed as an
+  // orphan, so nothing can be deleted until a scan reads them all.
+  const deleteBlocked = !scanFinished || collectionErrors.length > 0;
+  const deleteOffReasonId = useId();
 
   const card = "glass-card";
   const text = theme === "dark" ? "text-white" : "text-slate-900";
@@ -97,65 +138,105 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
       ? "bg-gray-700/30 border border-white/5"
       : "bg-slate-50 border border-slate-200";
   const iconBox = theme === "dark" ? "bg-gray-600" : "bg-slate-200 text-slate-500";
-  const badge = (orphan: boolean) =>
-    orphan
-      ? "bg-red-500/20 text-red-400 border border-red-500/30"
-      : "bg-green-500/20 text-green-400 border border-green-500/30";
+  // Status colours follow the badge pattern in tailwind.config.cjs: 400 on a
+  // 400/10 tint in dark, 700 on the 100 tint in light (4.5:1 or better).
+  const isDark = theme === "dark";
+  const errorText = isDark ? "text-error-400" : "text-error-700";
+  const successText = isDark ? "text-success-400" : "text-success-700";
+  const errorBox = isDark
+    ? "bg-error-400/10 text-error-400 border border-error-400/30"
+    : "bg-error-100 text-error-700 border border-error-700/30";
+  const successBox = isDark
+    ? "bg-success-400/10 text-success-400 border border-success-400/30"
+    : "bg-success-100 text-success-700 border border-success-700/30";
+  const warningBox = isDark
+    ? "bg-warning-400/10 text-warning-400 border border-warning-400/30"
+    : "bg-warning-100 text-warning-700 border border-warning-700/40";
+  const badge = (orphan: boolean) => (orphan ? errorBox : successBox);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  useEffect(() => {
-    getPlatformLogoOverrides().then((overrides) => {
-      if (Object.keys(overrides).length === 0) return;
-      setPlatforms((prev) =>
-        prev.map((p) => (overrides[p.name] ? { ...p, currentUrl: overrides[p.name] } : p)),
-      );
-    });
-  }, []);
-
-  const collectAllUrls = useCallback(async (): Promise<Set<string>> => {
-    const urls = new Set<string>();
+  // The settings rows are read as part of each scan, not beforehand, so a
+  // file is never judged before every reference to it is known. A failed read
+  // is a scan error like any collection's, which blocks delete. Nothing here
+  // touches state: loadFiles commits the whole scan at once.
+  const collectAllUrls = useCallback(async (): Promise<{
+    urls: Set<string>;
+    logoUrls: string[];
+    errors: string[];
+    overrides: Record<string, string> | null;
+  }> => {
+    // Images the site's own code shows (defaults, fallbacks, bundled data).
+    const urls = new Set<string>(Object.values(IMAGES));
     const errors: string[] = [];
 
-    await Promise.allSettled(
-      DB_COLLECTIONS.map(async ({ id, fields }) => {
-        try {
-          const res = await databases.listDocuments(DATABASE_ID, id, [Query.limit(500)]);
-          for (const doc of res.documents) {
-            for (const field of fields) {
-              const val = doc[field];
-              if (!val) continue;
-              if (Array.isArray(val)) {
-                val.forEach((v: string) => v && urls.add(v));
-              } else {
-                urls.add(String(val));
+    const readSetting = async <T,>(label: string, read: () => Promise<T>): Promise<T | null> => {
+      try {
+        return await read();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`${label}: ${msg}`);
+        return null;
+      }
+    };
+
+    const [overrides, heroImages] = await Promise.all([
+      readSetting("platform logos", readPlatformLogoOverrides),
+      readSetting("hero images", readHeroImages),
+      Promise.allSettled(
+        DB_COLLECTIONS.map(async ({ id, fields, textFields = [] }) => {
+          try {
+            const rows = await listCollectionRows(id);
+            for (const doc of rows) {
+              for (const field of fields) {
+                const val = doc[field];
+                if (!val) continue;
+                if (Array.isArray(val)) {
+                  val.forEach((v: string) => v && urls.add(v));
+                } else {
+                  urls.add(String(val));
+                }
+              }
+              for (const field of textFields) {
+                const text = doc[field];
+                if (typeof text === "string" && text) urls.add(text);
               }
             }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            errors.push(`${id}: ${msg}`);
           }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          errors.push(`${id}: ${msg}`);
-        }
-      }),
-    );
+        }),
+      ),
+    ]);
 
-    setCollectionErrors(errors);
-    platforms.forEach((p) => p.currentUrl && urls.add(p.currentUrl));
-    return urls;
-  }, [platforms]);
+    const logoUrls = platformsWith(overrides ?? {})
+      .map((p) => p.currentUrl)
+      .filter((u): u is string => !!u);
+    logoUrls.forEach((u) => urls.add(u));
+    Object.values(heroImages ?? {}).forEach((u) => u && urls.add(u));
+    return { urls, logoUrls, errors, overrides };
+  }, []);
 
+  // Files, errors and the delete gate change together, and only once every
+  // read has returned. A failed scan leaves no files listed, so a list from
+  // an earlier scan can never sit next to a clean error state.
   const loadFiles = useCallback(async () => {
+    const scanId = ++latestScan.current;
     setLoading(true);
     setError(null);
+    setScanFinished(false);
+    setScanSummary(null);
     try {
-      const [mediaFiles, referencedUrls] = await Promise.all([listMediaFiles(), collectAllUrls()]);
+      const [mediaFiles, scan] = await Promise.all([listMediaFiles(), collectAllUrls()]);
+      if (scanId !== latestScan.current) return;
+      const { urls: referencedUrls, logoUrls: platformLogoUrls } = scan;
 
-      // Precompute collection ids + platform-logo URL list once — O(N+M) vs O(N*M) per-file scan.
+      // Collection ids, for the "used in" label below.
       const collectionIds = DB_COLLECTIONS.map((c) => c.id);
-      const platformLogoUrls = platforms.map((p) => p.currentUrl).filter((u): u is string => !!u);
 
       // Matching is by file id, which migrated files kept, so rows that still
       // hold an Appwrite URL count as using the Blob copy.
@@ -193,14 +274,30 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
 
       mapped.sort((a, b) => (a.isOrphan === b.isOrphan ? 0 : a.isOrphan ? -1 : 1));
       setFiles(mapped);
+      setCollectionErrors(scan.errors);
+      // On a failed read, keep showing the logos already on screen.
+      if (scan.overrides) setPlatforms(platformsWith(scan.overrides));
+      setScanFinished(true);
+      // The warning alert only speaks when it first appears, so a repeat
+      // partial scan is announced here too.
+      const unread = scan.errors.length;
+      const orphanCount = mapped.filter((f) => f.isOrphan).length;
+      setScanSummary(
+        unread > 0
+          ? `Scan finished. ${unread} ${unread === 1 ? "collection" : "collections"} could not be read.`
+          : `Scan finished: ${orphanCount} orphaned ${orphanCount === 1 ? "file" : "files"}`,
+      );
       setOrphanPage(0);
       setInUsePage(0);
     } catch (err) {
+      if (scanId !== latestScan.current) return;
+      setFiles([]);
+      setCollectionErrors([]);
       setError(err instanceof Error ? err.message : "Failed to load storage files");
     } finally {
-      setLoading(false);
+      if (scanId === latestScan.current) setLoading(false);
     }
-  }, [collectAllUrls, platforms]);
+  }, [collectAllUrls]);
 
   useEffect(() => {
     loadFiles();
@@ -208,6 +305,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
   }, []);
 
   const confirmAndDelete = (fileId: string, fileName: string) => {
+    if (deleteBlocked) return;
     setConfirmDelete({ id: fileId, name: fileName });
   };
 
@@ -215,6 +313,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
     if (!confirmDelete) return;
     const { id: fileId, name: fileName } = confirmDelete;
     setConfirmDelete(null);
+    if (deleteBlocked) return;
     setDeleting(fileId);
     try {
       await deleteImage(fileId);
@@ -294,14 +393,15 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         <button
           type="button"
           onClick={() => confirmAndDelete(f.$id, f.name)}
-          disabled={deleting === f.$id}
-          className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-          title="Delete file"
+          disabled={deleting === f.$id || deleteBlocked}
+          aria-label={`Delete ${f.name}`}
+          aria-describedby={deleteBlocked ? deleteOffReasonId : undefined}
+          className={`flex-shrink-0 p-2 rounded-lg ${errorText} hover:bg-error-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {deleting === f.$id ? (
-            <FaSync className="animate-spin w-4 h-4" />
+            <FaSync aria-hidden="true" className="animate-spin w-4 h-4" />
           ) : (
-            <FaTrash className="w-4 h-4" />
+            <FaTrash aria-hidden="true" className="w-4 h-4" />
           )}
         </button>
       )}
@@ -353,38 +453,49 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
         <div className="flex items-center justify-between">
           <div>
             <h2 className={`text-2xl font-bold ${text}`}>Storage Cleanup</h2>
-            <p className={subText}>
-              {files.length} files · {orphans.length} orphaned · {formatBytes(orphanSize)}{" "}
-              reclaimable
+            {/* slate-500 is under 4.5:1 on the light page gradient outside the cards. */}
+            <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+              {loading
+                ? "Scanning storage…"
+                : !scanFinished
+                  ? "No scan results."
+                  : `${files.length} files · ${orphans.length} orphaned · ${formatBytes(orphanSize)} reclaimable`}
             </p>
           </div>
+          {/* aria-disabled, not disabled: disabling the focused button would
+              drop keyboard focus to <body> while the scan runs. */}
           <button
             type="button"
-            onClick={loadFiles}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-link text-white text-sm font-medium hover:bg-brand-accent-strong transition-colors disabled:opacity-50"
+            onClick={() => {
+              if (!loading) loadFiles();
+            }}
+            aria-disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-oceanic-600 text-white text-sm font-medium hover:bg-oceanic-700 transition-colors aria-disabled:opacity-50 aria-disabled:hover:bg-oceanic-600 aria-disabled:cursor-not-allowed"
           >
-            <FaSync className={loading ? "animate-spin" : ""} />
-            {loading ? "Scanning…" : "Refresh"}
+            <FaSync aria-hidden="true" className={loading ? "animate-spin" : ""} />
+            Refresh
           </button>
         </div>
 
         {/* Toast messages */}
         {error && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-sm">
-            <FaExclamationTriangle /> {error}
+          <div
+            role="alert"
+            className={`flex items-center gap-2 p-3 rounded-xl text-sm ${errorBox}`}
+          >
+            <FaExclamationTriangle aria-hidden="true" /> {error}
           </div>
         )}
         {successMsg && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/20 text-green-400 border border-green-500/30 text-sm">
-            <FaCheckCircle /> {successMsg}
+          <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${successBox}`}>
+            <FaCheckCircle aria-hidden="true" /> {successMsg}
           </div>
         )}
         {collectionErrors.length > 0 && (
-          <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs space-y-1">
-            <p className="font-semibold">
-              Warning: some collections could not be scanned (files in these may be incorrectly
-              flagged as orphans):
+          <div role="alert" className={`p-3 rounded-xl text-xs space-y-1 ${warningBox}`}>
+            <p className="text-sm font-semibold">
+              Some collections could not be scanned, so files listed as orphans may still be in use.
+              Deleting is turned off until a scan reads every collection. Refresh to try again.
             </p>
             {collectionErrors.map((e) => (
               <p key={e}>• {e}</p>
@@ -419,9 +530,7 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
                   )}
                   <div>
                     <span className={`font-medium text-sm ${text}`}>{p.name}</span>
-                    {!p.currentUrl && (
-                      <p className="text-xs text-gray-500">No local file: using CDN</p>
-                    )}
+                    {!p.currentUrl && <p className={`text-xs ${sub}`}>No local file: using CDN</p>}
                   </div>
                 </div>
                 {replacingLogo === p.name ? (
@@ -467,19 +576,32 @@ export const StorageCleanupTab: React.FC<StorageCleanupTabProps> = ({ theme }) =
           <h3 className={sectionHeader}>
             Orphaned Files{" "}
             {orphans.length > 0 && (
-              <span className="text-sm font-normal text-red-400 ml-2">
+              <span className={`text-sm font-normal ml-2 ${errorText}`}>
                 ({orphans.length} · {formatBytes(orphanSize)})
               </span>
             )}
           </h3>
-          {loading ? (
-            <p className={subText}>Scanning…</p>
+          {/* Always mounted, so screen readers announce its text when it changes. */}
+          <div role="status">
+            {loading ? (
+              <p className={subText}>Scanning…</p>
+            ) : (
+              scanSummary && <p className="sr-only">{scanSummary}</p>
+            )}
+          </div>
+          {loading ? null : !scanFinished ? (
+            <p className={subText}>The scan did not finish. Refresh to try again.</p>
           ) : orphans.length === 0 ? (
-            <div className="flex items-center gap-2 text-green-400 text-sm">
-              <FaCheckCircle /> No orphaned files. Storage is clean.
+            <div className={`flex items-center gap-2 text-sm ${successText}`}>
+              <FaCheckCircle aria-hidden="true" /> No orphaned files. Storage is clean.
             </div>
           ) : (
             <>
+              {deleteBlocked && (
+                <p id={deleteOffReasonId} className={`${subText} mb-3`}>
+                  Deleting is off because some collections could not be scanned.
+                </p>
+              )}
               <div className="space-y-2">{orphanPage$.map((f) => renderFileRow(f, true))}</div>
               <Pagination
                 page={orphanPage + 1}
