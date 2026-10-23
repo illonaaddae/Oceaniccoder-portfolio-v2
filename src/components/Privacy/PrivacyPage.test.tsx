@@ -62,10 +62,11 @@ describe("PrivacyPage", () => {
     const processors = screen.getByRole("region", {
       name: "Where your data is stored and who processes it",
     });
-    for (const name of ["Microsoft Azure", "Appwrite", "Paystack", "Resend", "OpenAI"]) {
+    for (const name of ["Microsoft Azure", "Cloudflare", "Paystack", "Resend", "OpenAI"]) {
       expect(within(processors).getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getByText("Last updated: 21 October 2026")).toBeInTheDocument();
+    expect(within(processors).queryByText("Appwrite")).not.toBeInTheDocument();
+    expect(screen.getByText("Last updated: 23 October 2026")).toBeInTheDocument();
   });
 
   it("does not claim registration with the Data Protection Commission", () => {
@@ -73,27 +74,60 @@ describe("PrivacyPage", () => {
     expect(document.body.textContent).not.toMatch(/registered/i);
   });
 
-  // Turnstile only runs when VITE_DATA_BACKEND=cosmos, which production doesn't set.
-  it("does not claim a spam check the live site doesn't run", () => {
+  // Every visitor form sends a Turnstile token that /api/submit checks with
+  // Cloudflare, so the notice must say so, and say it only where it happens.
+  it("discloses the Turnstile spam check, what it sends and that the IP isn't saved", () => {
     renderPage();
-    expect(document.body.textContent).not.toMatch(/turnstile/i);
-    // Cloudflare appears once, as the host in front of Paystack's checkout.
-    expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(1);
+    const forms = screen.getByRole("region", { name: "Forms you fill in" });
+    expect(
+      within(forms).getByText(
+        /contact, booking, inquiry, comment and testimonial forms use Cloudflare\s+Turnstile/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(forms).getByText(/sends the result and your IP\s+address to Cloudflare/),
+    ).toBeInTheDocument();
+    expect(within(forms).getByText(/and never saves it/)).toBeInTheDocument();
+    const processors = screen.getByRole("region", {
+      name: "Where your data is stored and who processes it",
+    });
+    expect(within(processors).getByText(/runs the spam check/)).toBeInTheDocument();
+    // Pinned counts: Cloudflare twice in the forms section, once in front of
+    // Paystack's checkout, and twice in the processor section (the list and
+    // the transfers). A new mention needs a matching change in the code.
+    expect(document.body.textContent?.match(/turnstile/gi)).toHaveLength(2);
+    expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(5);
     const quotes = screen.getByRole("region", { name: "Quotes and payments" });
     expect(
       within(quotes).getByText(/Cloudflare, which\s+protects Paystack's servers/),
     ).toBeInTheDocument();
   });
 
-  it("says form data is stored with Appwrite", () => {
+  it("says data is stored with Azure in Central US and names the transfer countries", () => {
     renderPage();
     const processors = screen.getByRole("region", {
       name: "Where your data is stored and who processes it",
     });
     expect(
-      within(processors).getByText(/stored with Appwrite and Microsoft Azure/),
+      within(processors).getByText(/stored with Microsoft Azure in its Central US region/),
     ).toBeInTheDocument();
     expect(within(processors).getByText(/through the site's forms/)).toBeInTheDocument();
+    expect(within(processors).getByText(/Appwrite in Frankfurt,\s+Germany/)).toBeInTheDocument();
+    expect(
+      within(processors).getByText(/Azure, Resend and Cloudflare\s+handle it in the United States/),
+    ).toBeInTheDocument();
+  });
+
+  it("says contact messages are emailed to us through Resend, with nothing sent back", () => {
+    renderPage();
+    const forms = screen.getByRole("region", { name: "Forms you fill in" });
+    expect(within(forms).getByText(/email them to ourselves through\s+Resend/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/web3forms/i);
+    const email = screen.getByRole("region", { name: "Emails and text messages" });
+    expect(
+      within(email).getByText(/alerts of new messages we send to ourselves/),
+    ).toBeInTheDocument();
+    expect(within(email).getByText(/don't track whether you open our emails/)).toBeInTheDocument();
   });
 
   it("promises commenters' emails stay private, without a hedge", () => {
@@ -105,17 +139,11 @@ describe("PrivacyPage", () => {
     expect(document.body.textContent).not.toMatch(/leave it blank/i);
   });
 
-  // The visitor testimonial form is hidden until the Azure cutover.
-  it("says testimonials are added by us, not collected through a form", () => {
+  it("lists the testimonial form's fields and that submissions wait for approval", () => {
     renderPage();
     const forms = screen.getByRole("region", { name: "Forms you fill in" });
-    expect(
-      within(forms).getByText(/isn't collecting testimonials through a form right now/),
-    ).toBeInTheDocument();
-    expect(
-      within(forms).getByText(/added by us, with the client's permission/),
-    ).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/optional photo/i);
+    expect(within(forms).getByText(/rating and an optional photo/)).toBeInTheDocument();
+    expect(within(forms).getByText(/stay off the site until we approve them/)).toBeInTheDocument();
   });
 
   it("describes the quote sign-in cookie and code, and never says no cookies", () => {
