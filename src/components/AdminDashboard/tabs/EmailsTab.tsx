@@ -60,6 +60,7 @@ const ICONS: Record<string, IconType> = {
   newsletterWelcome: FaUserPlus,
   newsletterIssue: FaNewspaper,
   inquiryReceivedAlert: FaInbox,
+  messageReceivedAlert: FaEnvelopeOpenText,
   bookingHostNotice: FaCalendarPlus,
   bookingHostNoLink: FaCalendarTimes,
   quoteDecisionAlert: FaCheckCircle,

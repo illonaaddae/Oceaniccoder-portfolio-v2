@@ -8,11 +8,29 @@
 // (tokens are single-use), and the row is written only after both pass. What
 // each form may send, and what the server sets itself, is in
 // api/shared/submissions.js.
+//
+// A saved contact message also emails the admin (RESEND_TO_EMAIL). The email
+// goes only after the row is saved, and a failed send is logged, never
+// returned: the visitor's message is already stored.
+//
+// Turnstile can be solved by paid captcha farms, and the alert shares its
+// Resend key and quota with the payment emails, so alerts are capped per
+// instance: ALERTS_PER_IP an hour per client IP, then ALERTS_PER_DAY in total.
+// Over a cap the row is still saved (201) and only the email is skipped,
+// logged once an hour per cap so a flood can't fill the logs either.
 
 const { getDatabase, newDocument, fromCosmos } = require("../shared/cosmos");
 const { Invalid, validateSubmission } = require("../shared/submissions");
 const { verifyTurnstile, clientIp } = require("../shared/turnstile");
 const { storeVisitorImage } = require("../shared/media");
+const { sendEmail } = require("../shared/email/send");
+const { createRateLimiter } = require("../shared/rateLimit");
+const { messageAlertEmail, isSafeReplyTo } = require("./messageAlert");
+
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+const ALERTS_PER_IP = 3;
+const ALERTS_PER_DAY = 50;
 
 const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store" };
 
@@ -60,49 +78,118 @@ async function checkAgainstData(db, collection, doc) {
   return null;
 }
 
-module.exports = async function (context, req) {
-  const collection = context.bindingData && context.bindingData.collection;
-  const { turnstileToken, imageData, ...fields } = req.body || {};
-
-  let doc;
+/** Emails the admin about a saved message. Logs a failure; never throws. */
+async function alertAdmin(context, row, sendEmail) {
+  let error;
   try {
-    doc = validateSubmission(collection, fields);
+    const result = await sendEmail({
+      to: process.env.RESEND_TO_EMAIL,
+      // Left out when unsafe, so sendEmail falls back to its own address.
+      ...(isSafeReplyTo(row.email) ? { replyTo: row.email } : {}),
+      ...messageAlertEmail(row),
+    });
+    if (!result.ok) error = result.error;
   } catch (err) {
-    if (err instanceof Invalid) {
-      reply(context, err.message === "Unknown form" ? 404 : 400, { error: err.message });
+    error = err.message;
+  }
+  if (error) context.log.error(`submit/messages: alert email for ${row.$id} failed:`, error);
+}
+
+/** Decides whether a saved message may email the admin, and logs the first skip per cap. */
+function createAlertBudget(now) {
+  const allowIp = createRateLimiter({ limit: ALERTS_PER_IP, windowMs: HOUR_MS });
+  const allowDay = createRateLimiter({ limit: ALERTS_PER_DAY, windowMs: DAY_MS, maxKeys: 1 });
+  const allowSkipLog = createRateLimiter({ limit: 1, windowMs: HOUR_MS, maxKeys: 2 });
+
+  return function mayAlert(context, ip) {
+    const nowMs = now();
+    // Per-IP first, so one source can't use up the daily budget on its own.
+    // Requests without a forwarded IP share one bucket rather than going unlimited.
+    let cap = null;
+    if (!allowIp(ip || "unknown", 1, nowMs)) cap = `${ALERTS_PER_IP} an hour from one IP`;
+    else if (!allowDay("all", 1, nowMs)) cap = `${ALERTS_PER_DAY} a day`;
+    if (!cap) return true;
+    if (allowSkipLog(cap, 1, nowMs)) {
+      context.log.warn(
+        `submit/messages: alert email cap of ${cap} reached; saving without emailing`,
+      );
+    }
+    return false;
+  };
+}
+
+function createHandler({
+  getDatabase,
+  verifyTurnstile,
+  storeVisitorImage,
+  sendEmail,
+  now = Date.now,
+}) {
+  const mayAlert = createAlertBudget(now);
+
+  return async function (context, req) {
+    const collection = context.bindingData && context.bindingData.collection;
+    const { turnstileToken, imageData, ...fields } = req.body || {};
+
+    let doc;
+    try {
+      doc = validateSubmission(collection, fields);
+    } catch (err) {
+      if (err instanceof Invalid) {
+        reply(context, err.message === "Unknown form" ? 404 : 400, { error: err.message });
+        return;
+      }
+      throw err;
+    }
+    if (imageData !== undefined && collection !== "testimonials") {
+      reply(context, 400, { error: "Unexpected field: imageData" });
       return;
     }
-    throw err;
-  }
-  if (imageData !== undefined && collection !== "testimonials") {
-    reply(context, 400, { error: "Unexpected field: imageData" });
-    return;
-  }
 
-  const spam = await verifyTurnstile(turnstileToken, clientIp(req));
-  if (!spam.ok) {
-    reply(context, spam.status, { error: spam.error });
-    return;
-  }
-
-  try {
-    const db = getDatabase();
-    const conflict = await checkAgainstData(db, collection, doc);
-    if (conflict) {
-      reply(context, conflict[0], { error: conflict[1] });
+    const ip = clientIp(req);
+    const spam = await verifyTurnstile(turnstileToken, ip);
+    if (!spam.ok) {
+      reply(context, spam.status, { error: spam.error });
       return;
     }
 
-    if (imageData) doc.image = await storeVisitorImage(imageData);
+    let saved;
+    try {
+      const db = getDatabase();
+      const conflict = await checkAgainstData(db, collection, doc);
+      if (conflict) {
+        reply(context, conflict[0], { error: conflict[1] });
+        return;
+      }
 
-    const { resource } = await db.container(collection).items.create(newDocument(doc));
-    reply(context, 201, fromCosmos(resource));
-  } catch (err) {
-    if (err.status === 400) {
-      reply(context, 400, { error: err.message });
+      if (imageData) {
+        try {
+          doc.image = await storeVisitorImage(imageData);
+        } catch (err) {
+          // A 400 here is written for the visitor ("The photo is too large").
+          // Anything else, Cosmos errors included, is logged below and never shown.
+          if (err.status === 400) {
+            reply(context, 400, { error: err.message });
+            return;
+          }
+          throw err;
+        }
+      }
+
+      const { resource } = await db.container(collection).items.create(newDocument(doc));
+      saved = fromCosmos(resource);
+    } catch (err) {
+      context.log.error(`submit/${collection} failed:`, err.message);
+      reply(context, 500, { error: "Couldn't save that. Please try again." });
       return;
     }
-    context.log.error(`submit/${collection} failed:`, err.message);
-    reply(context, 500, { error: "Couldn't save that. Please try again." });
-  }
-};
+
+    reply(context, 201, saved);
+    if (collection === "messages" && mayAlert(context, ip)) {
+      await alertAdmin(context, saved, sendEmail);
+    }
+  };
+}
+
+module.exports = createHandler({ getDatabase, verifyTurnstile, storeVisitorImage, sendEmail });
+module.exports.createHandler = createHandler;
