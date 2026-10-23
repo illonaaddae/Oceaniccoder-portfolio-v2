@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getPayments, subscribeToPayments, type Payment } from "@/services/api/payments";
+import { getPayments, type Payment } from "@/services/api/payments";
 
 export const POLL_MS = 15_000;
-export const REALTIME_DEBOUNCE_MS = 500;
 
 export interface PaymentsFeed {
   payments: Payment[];
@@ -25,10 +24,8 @@ const message = (e: unknown) =>
 /**
  * Loads the payments list and keeps it fresh while the tab is open.
  *
- * Realtime events trigger a debounced refetch (a webhook settle writes several
- * fields in a row). Realtime can also fail without any error, so the list is
- * refetched every POLL_MS while the page is visible, and at once when it
- * becomes visible again.
+ * Webhook payments are written on the server, so the list is refetched every
+ * POLL_MS while the page is visible, and at once when it becomes visible again.
  */
 export function usePaymentsFeed(): PaymentsFeed {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -91,23 +88,6 @@ export function usePaymentsFeed(): PaymentsFeed {
     void load(false);
     return () => {
       mounted.current = false;
-    };
-  }, [load]);
-
-  useEffect(() => {
-    let debounce: ReturnType<typeof setTimeout> | undefined;
-    let unsubscribe: (() => void) | undefined;
-    try {
-      unsubscribe = subscribeToPayments(() => {
-        clearTimeout(debounce);
-        debounce = setTimeout(() => void load(true), REALTIME_DEBOUNCE_MS);
-      });
-    } catch {
-      // Polling below still keeps the list fresh.
-    }
-    return () => {
-      clearTimeout(debounce);
-      unsubscribe?.();
     };
   }, [load]);
 

@@ -2,17 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
 const getPayments = vi.fn();
-let realtime: (() => void) | null = null;
-const unsubscribe = vi.fn();
 vi.mock("@/services/api/payments", () => ({
   getPayments: () => getPayments(),
-  subscribeToPayments: (cb: () => void) => {
-    realtime = cb;
-    return unsubscribe;
-  },
 }));
 
-import { POLL_MS, REALTIME_DEBOUNCE_MS, usePaymentsFeed } from "./usePaymentsFeed";
+import { POLL_MS, usePaymentsFeed } from "./usePaymentsFeed";
 
 let visibility: "visible" | "hidden" = "visible";
 
@@ -23,8 +17,6 @@ beforeEach(() => {
   vi.useFakeTimers();
   getPayments.mockReset();
   getPayments.mockResolvedValue([]);
-  unsubscribe.mockReset();
-  realtime = null;
   visibility = "visible";
   vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
 });
@@ -43,20 +35,6 @@ describe("usePaymentsFeed", () => {
     expect(result.current.payments).toEqual([{ $id: "p1" }]);
     expect(result.current.loading).toBe(false);
     expect(result.current.updatedAt).toBeInstanceOf(Date);
-  });
-
-  it("debounces a burst of realtime events into one refetch", async () => {
-    renderHook(() => usePaymentsFeed());
-    await flush();
-    act(() => {
-      realtime?.();
-      realtime?.();
-      realtime?.();
-    });
-    await act(async () => {
-      vi.advanceTimersByTime(REALTIME_DEBOUNCE_MS);
-    });
-    expect(getPayments).toHaveBeenCalledTimes(2);
   });
 
   it("polls while visible, pauses while hidden and refetches on return", async () => {
@@ -141,9 +119,8 @@ describe("usePaymentsFeed", () => {
     getPayments.mockImplementationOnce(async () => {
       throw new Error("Network down");
     });
-    act(() => realtime?.());
     await act(async () => {
-      vi.advanceTimersByTime(REALTIME_DEBOUNCE_MS);
+      vi.advanceTimersByTime(POLL_MS);
     });
     expect(result.current.error).toBe("Network down");
     expect(result.current.stale).toBe(false);
@@ -153,11 +130,10 @@ describe("usePaymentsFeed", () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it("stops polling and unsubscribes on unmount", async () => {
+  it("stops polling on unmount", async () => {
     const { unmount } = renderHook(() => usePaymentsFeed());
     await flush();
     unmount();
-    expect(unsubscribe).toHaveBeenCalledTimes(1);
     await act(async () => {
       vi.advanceTimersByTime(POLL_MS * 2);
     });
