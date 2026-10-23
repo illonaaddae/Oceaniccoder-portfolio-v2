@@ -18,30 +18,6 @@ export const account = new Account(client);
 export const DATABASE_ID = APPWRITE_DATABASE_ID;
 export const STORAGE_BUCKET_ID = APPWRITE_STORAGE_BUCKET_ID;
 
-// Collection IDs
-export const COLLECTIONS = {
-  PROJECTS: "projects",
-  CERTIFICATIONS: "certifications",
-  EDUCATION: "education",
-  GALLERY: "gallery",
-  BLOG_POSTS: "blog_posts",
-  BLOG_REACTIONS: "blog_reactions",
-  BLOG_VIEWS: "blog_views",
-  COMMENTS: "comments",
-  JOURNEY: "journey",
-  MESSAGES: "messages",
-  SKILLS: "skills",
-  SETTINGS: "settings",
-  ABOUT: "about",
-  TESTIMONIALS: "testimonials",
-  SITE_VIEWS: "site_views",
-  BOOKINGS: "bookings",
-  PROJECT_INQUIRIES: "project_inquiries",
-  INVOICES: "invoices",
-  EXPENSES: "expenses",
-  PAYMENTS: "payments",
-  PROJECT_VIDEOS: "project_videos",
-  PROJECT_CASE_STUDIES: "project_case_studies",
-} as const;
+export { COLLECTIONS } from "../services/api/collections";
 
 export default client;

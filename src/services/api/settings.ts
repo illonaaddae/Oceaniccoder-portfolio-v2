@@ -1,48 +1,20 @@
-import { Permission, Role } from "appwrite";
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { COLLECTIONS } from "./collections";
 import type { Settings } from "../../types";
-import { listRows, manageCreate, manageUpdate, usesCosmos } from "./dataApi";
-
-/**
- * Settings the public site reads. The collection itself is admin-read only
- * (it also holds private rows), with document security on, so each public row
- * carries its own read("any"). Without it, visitors silently get the bundled
- * defaults and only a signed-in admin sees the dashboard values.
- */
-const PUBLIC_SETTING_KEYS = new Set(["platform_logos", "hero_roles", "hero_images"]);
+import { listRows, manageCreate, manageUpdate } from "./dataApi";
 
 export async function getSetting(key: string): Promise<Settings | null> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.SETTINGS, { where: { key } })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.SETTINGS, [Query.equal("key", key)]);
-  if (response.documents.length > 0) {
-    return response.documents[0] as unknown as Settings;
-  }
-  return null;
+  const response = await listRows<Settings>(COLLECTIONS.SETTINGS, { where: { key } });
+  return response.documents[0] ?? null;
 }
 
+/**
+ * Creates or updates a setting. Which keys visitors can read is decided on the
+ * server (MIGRATED_SETTINGS_KEYS in api/shared/cosmos.js), not per row.
+ */
 export async function setSetting(key: string, value: string): Promise<Settings> {
   const existing = await getSetting(key);
-
-  if (existing) {
-    return (usesCosmos
-      ? manageUpdate(COLLECTIONS.SETTINGS, existing.$id, {
-          value,
-        })
-      : databases.updateDocument(DATABASE_ID, COLLECTIONS.SETTINGS, existing.$id, {
-          value,
-        })) as unknown as Settings;
-  }
-
-  return (usesCosmos
-    ? manageCreate(COLLECTIONS.SETTINGS, { key, value })
-    : databases.createDocument(
-        DATABASE_ID,
-        COLLECTIONS.SETTINGS,
-        ID.unique(),
-        { key, value },
-        PUBLIC_SETTING_KEYS.has(key) ? [Permission.read(Role.any())] : undefined,
-      )) as unknown as Settings;
+  if (existing) return manageUpdate<Settings>(COLLECTIONS.SETTINGS, existing.$id, { value });
+  return manageCreate<Settings>(COLLECTIONS.SETTINGS, { key, value });
 }
 
 const PLATFORM_LOGOS_KEY = "platform_logos";

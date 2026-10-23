@@ -1,6 +1,6 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { COLLECTIONS } from "./collections";
 import type { Project } from "../../types";
-import { getRow, listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
+import { getRow, listRows, manageCreate, manageDelete, manageUpdate } from "./dataApi";
 import { getProjectVideoMap, setProjectVideo, deleteProjectVideo } from "./projectVideos";
 import {
   getProjectCaseStudyMap,
@@ -62,71 +62,30 @@ async function joinSideCollections(projects: Project[]): Promise<Project[]> {
 }
 
 export async function getProjects(): Promise<Project[]> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.PROJECTS, { orderBy: "$createdAt", dir: "desc" })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECTS, [
-        Query.orderDesc("$createdAt"),
-      ]);
+  const response = await listRows(COLLECTIONS.PROJECTS, { orderBy: "$createdAt", dir: "desc" });
   const projects = response.documents as unknown as Project[];
   return joinSideCollections(projects);
 }
 
 export async function getFeaturedProjects(): Promise<Project[]> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.PROJECTS, { where: { featured: true } })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECTS, [
-        Query.equal("featured", true),
-      ]);
+  const response = await listRows(COLLECTIONS.PROJECTS, { where: { featured: true } });
   const projects = response.documents as unknown as Project[];
   return joinSideCollections(projects);
 }
 
 export async function getProjectById(projectId: string): Promise<Project> {
-  const doc = (usesCosmos
-    ? await getRow(COLLECTIONS.PROJECTS, projectId)
-    : await databases.getDocument(
-        DATABASE_ID,
-        COLLECTIONS.PROJECTS,
-        projectId,
-      )) as unknown as Project;
+  const doc = await getRow<Project>(COLLECTIONS.PROJECTS, projectId);
   const joined = await joinSideCollections([doc]);
   return joined[0];
-}
-
-/**
- * Appwrite rejects a whole document when it carries an attribute the collection
- * does not have, and the raw message says only which key was unknown. This
- * turns that into something actionable, because the fix is a migration script
- * rather than anything the person saving can do in the dashboard.
- */
-function explainUnknownAttribute(error: unknown): never {
-  const message = error instanceof Error ? error.message : String(error);
-  const match = /Unknown attribute: "?([\w]+)"?/i.exec(message);
-  if (match) {
-    throw new Error(
-      `The projects collection has no "${match[1]}" attribute yet, so this project cannot be saved. ` +
-        `Run: APPWRITE_API_KEY=... node scripts/add-case-study-attributes.mjs --apply`,
-    );
-  }
-  throw error instanceof Error ? error : new Error(message);
 }
 
 export async function createProject(
   project: Omit<Project, "$id" | "$createdAt">,
 ): Promise<Project> {
-  let result: Project;
-  try {
-    result = (await (usesCosmos
-      ? manageCreate(COLLECTIONS.PROJECTS, stripUnknownAttrs(project as Record<string, unknown>))
-      : databases.createDocument(
-          DATABASE_ID,
-          COLLECTIONS.PROJECTS,
-          ID.unique(),
-          stripUnknownAttrs(project as Record<string, unknown>),
-        ))) as unknown as Project;
-  } catch (error) {
-    explainUnknownAttribute(error);
-  }
+  const result = await manageCreate<Project>(
+    COLLECTIONS.PROJECTS,
+    stripUnknownAttrs(project as Record<string, unknown>),
+  );
 
   // Write demoVideoUrl to side collection if provided.
   if (project.demoVideoUrl) {
@@ -155,23 +114,11 @@ export async function updateProject(
   projectId: string,
   project: Partial<Omit<Project, "$id" | "$createdAt">>,
 ): Promise<Project> {
-  let result: Project;
-  try {
-    result = (await (usesCosmos
-      ? manageUpdate(
-          COLLECTIONS.PROJECTS,
-          projectId,
-          stripUnknownAttrs(project as Record<string, unknown>),
-        )
-      : databases.updateDocument(
-          DATABASE_ID,
-          COLLECTIONS.PROJECTS,
-          projectId,
-          stripUnknownAttrs(project as Record<string, unknown>),
-        ))) as unknown as Project;
-  } catch (error) {
-    explainUnknownAttribute(error);
-  }
+  const result = await manageUpdate<Project>(
+    COLLECTIONS.PROJECTS,
+    projectId,
+    stripUnknownAttrs(project as Record<string, unknown>),
+  );
 
   // demoVideoUrl is intentional control: undefined means "leave alone",
   // empty string means "delete existing video row", non-empty means "upsert".
@@ -214,7 +161,5 @@ export async function deleteProject(projectId: string): Promise<void> {
   } catch (err) {
     console.error("Failed to cascade delete project case study:", err);
   }
-  await (usesCosmos
-    ? manageDelete(COLLECTIONS.PROJECTS, projectId)
-    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECTS, projectId));
+  await manageDelete(COLLECTIONS.PROJECTS, projectId);
 }
