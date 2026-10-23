@@ -1,14 +1,12 @@
 import React from "react";
 import { FaLock } from "react-icons/fa";
-import type { LoginTheme } from "./useAdminLogin";
+import type { LoginTheme } from "./loginTheme";
 
 interface LoginFooterProps {
   theme: LoginTheme;
-  /** False with GitHub sign-in, which has no password. */
-  passwordProtected: boolean;
 }
 
-const LoginFooter: React.FC<LoginFooterProps> = ({ theme, passwordProtected }) => {
+const LoginFooter: React.FC<LoginFooterProps> = ({ theme }) => {
   const dk = theme === "dark";
   return (
     <div
@@ -22,9 +20,7 @@ const LoginFooter: React.FC<LoginFooterProps> = ({ theme, passwordProtected }) =
         }`}
       >
         <FaLock className="w-3 h-3" />
-        {passwordProtected
-          ? "This dashboard is password protected. Only you should have access."
-          : "This dashboard is for the site admin only."}
+        This dashboard is for the site admin only.
       </p>
     </div>
   );

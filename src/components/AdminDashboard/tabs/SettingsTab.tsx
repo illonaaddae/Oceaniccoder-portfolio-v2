@@ -1,7 +1,5 @@
 import React from "react";
-import { ChangePasswordCard } from "./Settings/ChangePasswordCard";
 import { ComingSoonCard } from "./Settings/ComingSoonCard";
-import { usesCosmos } from "@/services/api/dataApi";
 
 interface SettingsTabProps {
   theme: "light" | "dark";
@@ -27,14 +25,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ theme }) => {
         </p>
       </div>
 
-      {usesCosmos ? (
-        // Signed in through GitHub: the password lives there.
-        <p className={`text-sm ${theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"}`}>
-          You sign in with GitHub. Change your password and two-factor settings on GitHub.
-        </p>
-      ) : (
-        <ChangePasswordCard theme={theme} />
-      )}
+      {/* Signed in through GitHub: the password lives there. */}
+      <p className={`text-sm ${theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"}`}>
+        You sign in with GitHub. Change your password and two-factor settings on GitHub.
+      </p>
       <ComingSoonCard theme={theme} />
     </div>
   );

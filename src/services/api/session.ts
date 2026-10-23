@@ -1,5 +1,5 @@
 /**
- * Static Web Apps sign-in for the admin (used once VITE_DATA_BACKEND=cosmos).
+ * Static Web Apps sign-in for the admin.
  * One provider, GitHub, registered in public/staticwebapp.config.json. The admin role is
  * assigned on the server by /api/get-roles, from the SWA user ids listed in
  * ADMIN_USER_IDS; the browser only reads it.

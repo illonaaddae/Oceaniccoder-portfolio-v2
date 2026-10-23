@@ -2,17 +2,16 @@ import React from "react";
 import { Route } from "react-router-dom";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AdminLogin from "@/components/AdminLogin";
-import { AdminDashboard, AdminPasswordReset } from "./lazyComponents";
+import { AdminDashboard } from "./lazyComponents";
 
 const Fallback = () => <LoadingSpinner />;
 
 interface AdminRoutesProps {
   isAdminLoggedIn: boolean;
-  onAdminLogin: (password: string) => void;
   onAdminLogout: () => void;
 }
 
-const adminRoutes = ({ isAdminLoggedIn, onAdminLogin, onAdminLogout }: AdminRoutesProps) => (
+const adminRoutes = ({ isAdminLoggedIn, onAdminLogout }: AdminRoutesProps) => (
   <>
     <Route
       path="/admin/dashboard"
@@ -22,7 +21,7 @@ const adminRoutes = ({ isAdminLoggedIn, onAdminLogin, onAdminLogout }: AdminRout
             <AdminDashboard onLogout={onAdminLogout} isReadOnly={false} />
           </React.Suspense>
         ) : (
-          <AdminLogin onLogin={onAdminLogin} />
+          <AdminLogin />
         )
       }
     />
@@ -31,14 +30,6 @@ const adminRoutes = ({ isAdminLoggedIn, onAdminLogin, onAdminLogout }: AdminRout
       element={
         <React.Suspense fallback={<Fallback />}>
           <AdminDashboard isReadOnly={true} />
-        </React.Suspense>
-      }
-    />
-    <Route
-      path="/admin/reset-password"
-      element={
-        <React.Suspense fallback={<Fallback />}>
-          <AdminPasswordReset />
         </React.Suspense>
       }
     />

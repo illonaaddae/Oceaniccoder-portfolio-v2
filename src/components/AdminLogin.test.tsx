@@ -10,78 +10,51 @@ type SwaUser = {
   userRoles: string[];
 };
 
-const mode = vi.hoisted(() => ({ usesCosmos: false, user: null as SwaUser | null }));
-
-vi.mock("@/services/api/dataApi", () => ({
-  get usesCosmos() {
-    return mode.usesCosmos;
-  },
-}));
+const mode = vi.hoisted(() => ({ user: null as SwaUser | null }));
 
 vi.mock("@/services/api/session", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/api/session")>()),
   getSwaUser: vi.fn(async () => mode.user),
 }));
 
-vi.mock("@/services/api", () => ({ requestPasswordRecovery: vi.fn() }));
-
 const githubLink = () => screen.queryByRole("link", { name: /sign in with github/i });
 
 describe("AdminLogin", () => {
   beforeEach(() => {
-    mode.usesCosmos = false;
     mode.user = null;
     vi.mocked(getSwaUser).mockClear();
   });
 
-  test("keeps the password form while the site runs on Appwrite", () => {
-    render(<AdminLogin onLogin={vi.fn()} />);
-
-    expect(screen.getByPlaceholderText("Enter password...")).toBeInTheDocument();
-    expect(githubLink()).not.toBeInTheDocument();
-  });
-
-  test("shows only GitHub sign-in on Cosmos", async () => {
-    mode.usesCosmos = true;
-    render(<AdminLogin onLogin={vi.fn()} />);
+  test("offers only GitHub sign-in, with no password field", async () => {
+    render(<AdminLogin />);
 
     expect(githubLink()).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Enter password...")).not.toBeInTheDocument();
-  });
-
-  test("says the dashboard is password protected only when it has a password", () => {
-    const { unmount } = render(<AdminLogin onLogin={vi.fn()} />);
-    expect(screen.getByText(/password protected/)).toBeInTheDocument();
-    unmount();
-
-    mode.usesCosmos = true;
-    render(<AdminLogin onLogin={vi.fn()} />);
     expect(screen.queryByText(/password protected/)).not.toBeInTheDocument();
     expect(screen.getByText("This dashboard is for the site admin only.")).toBeInTheDocument();
+    await act(() => vi.mocked(getSwaUser).mock.results[0].value);
   });
 
-  test("shows a signed-in non-admin their id on Cosmos", async () => {
-    mode.usesCosmos = true;
+  test("shows a signed-in non-admin their id", async () => {
     mode.user = {
       identityProvider: "github",
       userId: "abc123",
       userDetails: "someone",
       userRoles: [],
     };
-    render(<AdminLogin onLogin={vi.fn()} />);
+    render(<AdminLogin />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Your sign-in id is abc123");
   });
 
   test("shows no id message to the admin", async () => {
-    mode.usesCosmos = true;
     mode.user = {
       identityProvider: "github",
       userId: "abc123",
       userDetails: "admin",
       userRoles: ["anonymous", "authenticated", "admin"],
     };
-    render(<AdminLogin onLogin={vi.fn()} />);
+    render(<AdminLogin />);
 
     // Let the session lookup settle before checking nothing was shown.
     await act(() => vi.mocked(getSwaUser).mock.results[0].value);

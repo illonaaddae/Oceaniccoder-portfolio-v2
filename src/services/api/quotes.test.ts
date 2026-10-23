@@ -3,10 +3,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 vi.mock("./adminHeaders", () => ({
   adminHeaders: vi
     .fn()
-    .mockResolvedValue({ "Content-Type": "application/json", Authorization: "Bearer jwt" }),
+    .mockResolvedValue({ "Content-Type": "application/json", "x-test": "admin" }),
 }));
 
-import { adminHeaders } from "./adminHeaders";
 import {
   adminPreviewLink,
   fetchClientQuote,
@@ -63,7 +62,7 @@ describe("quote services", () => {
       .calls[0];
     expect(url).toBe("/api/quote-admin");
     expect(JSON.parse(init.body as string)).toEqual({ action: "list" });
-    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer jwt");
+    expect((init.headers as Record<string, string>)["x-test"]).toBe("admin");
   });
 
   it("passes field errors through", async () => {
@@ -123,17 +122,7 @@ describe("quote services", () => {
     const [url, init] = (fetch as unknown as { mock: { calls: [string, FetchInit][] } }).mock
       .calls[0];
     expect(url).toBe("/api/quote-view?token=tok&preview=1&admin=1");
-    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer jwt");
-  });
-
-  it("answers locked, without asking the server, when the admin preview has no session", async () => {
-    vi.mocked(adminHeaders).mockRejectedValueOnce(
-      new Error("Your admin session has expired. Sign in again and retry."),
-    );
-    vi.stubGlobal("fetch", vi.fn());
-    const err = await fetchClientQuote("tok", { admin: true }).catch((e) => e);
-    expect(isLockedError(err)).toBe(true);
-    expect(fetch).not.toHaveBeenCalled();
+    expect((init.headers as Record<string, string>)["x-test"]).toBe("admin");
   });
 
   it("builds the admin preview link without the link code", () => {

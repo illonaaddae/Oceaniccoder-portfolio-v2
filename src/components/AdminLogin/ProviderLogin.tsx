@@ -9,8 +9,7 @@ interface ProviderLoginProps {
 }
 
 /**
- * Admin sign-in through Static Web Apps (used with VITE_DATA_BACKEND=cosmos):
- * GitHub only. Whether the account is the admin is decided on the
+ * Admin sign-in through Static Web Apps: GitHub only. Whether the account is the admin is decided on the
  * server (/api/get-roles).
  */
 const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
