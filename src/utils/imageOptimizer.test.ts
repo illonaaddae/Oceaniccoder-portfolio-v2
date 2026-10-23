@@ -14,7 +14,6 @@ import {
   getMediaVariantUrl,
   isMediaImageUrl,
   isOptimizableImageUrl,
-  IMAGE_SIZES,
   MEDIA_BASE_URL,
 } from "./imageOptimizer";
 
@@ -82,79 +81,27 @@ describe("getOptimizedImageUrl", () => {
     expect(getOptimizedImageUrl("", 400)).toBe("");
   });
 
-  it("builds preview URL with width param for Appwrite URL", () => {
-    const result = getOptimizedImageUrl(APPWRITE_VIEW_URL, 400);
-    expect(result).toContain("/storage/buckets/");
-    expect(result).toContain("/files/file-id-xyz/preview");
-    expect(result).toContain("width=400");
-  });
-
-  it("includes both width and height when provided", () => {
-    const result = getOptimizedImageUrl(APPWRITE_VIEW_URL, 400, 300);
-    expect(result).toContain("width=400");
-    expect(result).toContain("height=300");
-  });
-
-  it("includes default quality of 80", () => {
-    const result = getOptimizedImageUrl(APPWRITE_VIEW_URL, 400);
-    expect(result).toContain("quality=80");
-  });
-
-  it("uses custom quality when provided", () => {
-    const result = getOptimizedImageUrl(APPWRITE_VIEW_URL, 400, 300, 50);
-    expect(result).toContain("quality=50");
-  });
-
-  it("always includes project param", () => {
-    const result = getOptimizedImageUrl(APPWRITE_VIEW_URL, 400);
-    expect(result).toContain("project=");
-  });
-
-  it("omits width param if not provided", () => {
-    const result = getOptimizedImageUrl(APPWRITE_VIEW_URL);
-    expect(result).not.toContain("width=");
-  });
-
-  it("omits height param if not provided", () => {
-    const result = getOptimizedImageUrl(APPWRITE_VIEW_URL, 400);
-    expect(result).not.toContain("height=");
+  it("leaves an Appwrite URL as it is: nothing resizes it after the cutover", () => {
+    expect(getOptimizedImageUrl(APPWRITE_VIEW_URL, 400, 300)).toBe(APPWRITE_VIEW_URL);
   });
 });
 
 describe("getResponsiveImageUrls", () => {
-  it("returns all five size variants plus original", () => {
-    const urls = getResponsiveImageUrls(APPWRITE_VIEW_URL);
-    expect(urls).toHaveProperty("thumbnail");
-    expect(urls).toHaveProperty("card");
-    expect(urls).toHaveProperty("blog");
-    expect(urls).toHaveProperty("hero");
-    expect(urls).toHaveProperty("full");
-    expect(urls.original).toBe(APPWRITE_VIEW_URL);
-  });
+  const PNG = `${MEDIA_BASE_URL}/69444cfb0020fb902f77/portfolio-v2-jpg.png`;
 
-  it("encodes the correct widths per variant", () => {
-    const urls = getResponsiveImageUrls(APPWRITE_VIEW_URL);
-    expect(urls.thumbnail).toContain(`width=${IMAGE_SIZES.thumbnail.width}`);
-    expect(urls.hero).toContain(`width=${IMAGE_SIZES.hero.width}`);
+  it("returns all five size variants plus original", () => {
+    const urls = getResponsiveImageUrls(PNG);
+    expect(urls.thumbnail).toMatch(/\/w480\.webp$/);
+    expect(urls.hero).toMatch(/\/w1600\.webp$/);
+    expect(urls.full).toMatch(/\/w1600\.webp$/);
+    expect(urls.original).toBe(PNG);
   });
 });
 
 describe("generateSrcSet", () => {
-  it("returns empty string for non-Appwrite URLs", () => {
+  it("returns empty string for URLs that are not Blob images", () => {
     expect(generateSrcSet(EXTERNAL_URL)).toBe("");
-  });
-
-  it("generates comma-separated set with width descriptors", () => {
-    const result = generateSrcSet(APPWRITE_VIEW_URL, [320, 640]);
-    expect(result).toContain("320w");
-    expect(result).toContain("640w");
-    expect(result.split(", ")).toHaveLength(2);
-  });
-
-  it("uses default sizes when none provided", () => {
-    const result = generateSrcSet(APPWRITE_VIEW_URL);
-    expect(result).toContain("320w");
-    expect(result).toContain("1920w");
+    expect(generateSrcSet(APPWRITE_VIEW_URL)).toBe("");
   });
 });
 
@@ -165,22 +112,6 @@ describe("getImageForContext", () => {
 
   it("returns external URL unchanged", () => {
     expect(getImageForContext(EXTERNAL_URL, "card")).toBe(EXTERNAL_URL);
-  });
-
-  it("defaults to 'card' size", () => {
-    const result = getImageForContext(APPWRITE_VIEW_URL);
-    expect(result).toContain(`width=${IMAGE_SIZES.card.width}`);
-    expect(result).toContain(`height=${IMAGE_SIZES.card.height}`);
-  });
-
-  it("uses thumbnail size when requested", () => {
-    const result = getImageForContext(APPWRITE_VIEW_URL, "thumbnail");
-    expect(result).toContain(`width=${IMAGE_SIZES.thumbnail.width}`);
-  });
-
-  it("uses hero size when requested", () => {
-    const result = getImageForContext(APPWRITE_VIEW_URL, "hero");
-    expect(result).toContain(`width=${IMAGE_SIZES.hero.width}`);
   });
 });
 
@@ -234,8 +165,8 @@ describe("Azure Blob media URLs", () => {
     expect(getFileIdFromUrl(MP4)).toBe("6abebedf0001d5085076");
   });
 
-  it("treats both Appwrite and Blob images as optimizable", () => {
-    expect(isOptimizableImageUrl(APPWRITE_VIEW_URL)).toBe(true);
+  it("treats only Blob raster images as optimizable", () => {
+    expect(isOptimizableImageUrl(APPWRITE_VIEW_URL)).toBe(false);
     expect(isOptimizableImageUrl(PNG)).toBe(true);
     expect(isOptimizableImageUrl(SVG)).toBe(false);
   });
