@@ -1,40 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { FaMoon, FaSun } from "react-icons/fa";
-import { useAdminLogin } from "./AdminLogin/useAdminLogin";
+import useTheme from "@/hooks/useTheme";
 import LoginHeader from "./AdminLogin/LoginHeader";
-import LoginForm from "./AdminLogin/LoginForm";
 import LoginFooter from "./AdminLogin/LoginFooter";
 import ProviderLogin from "./AdminLogin/ProviderLogin";
-import { usesCosmos } from "@/services/api/dataApi";
+import type { LoginTheme } from "./AdminLogin/loginTheme";
 import { getSwaUser } from "@/services/api/session";
 
-interface AdminLoginProps {
-  onLogin: (password: string) => void;
-}
-
-const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
-  const {
-    password,
-    setPassword,
-    error,
-    setError,
-    info,
-    isLoading,
-    recovering,
-    showPassword,
-    setShowPassword,
-    theme,
-    toggleTheme,
-    adminEmail,
-    handleSubmit,
-    handleForgotPassword,
-  } = useAdminLogin(onLogin);
+const AdminLogin: React.FC = () => {
+  const { theme: rawTheme, toggleTheme } = useTheme();
+  const theme: LoginTheme = rawTheme === "light" || rawTheme === "dark" ? rawTheme : "dark";
 
   // Signed in through Static Web Apps but without the admin role: show the
   // user their id, which is what ADMIN_USER_IDS needs.
   const [signedInId, setSignedInId] = useState<string | null>(null);
   useEffect(() => {
-    if (!usesCosmos) return;
     getSwaUser().then((user) =>
       setSignedInId(user && !user.userRoles.includes("admin") ? user.userId : null),
     );
@@ -62,26 +42,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
       <div className="w-full max-w-md">
         <LoginHeader theme={theme} />
-        {usesCosmos ? (
-          <ProviderLogin theme={theme} signedInId={signedInId} />
-        ) : (
-          <LoginForm
-            theme={theme}
-            password={password}
-            setPassword={setPassword}
-            error={error}
-            setError={setError}
-            info={info}
-            isLoading={isLoading}
-            recovering={recovering}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            adminEmail={adminEmail}
-            handleSubmit={handleSubmit}
-            handleForgotPassword={handleForgotPassword}
-          />
-        )}
-        <LoginFooter theme={theme} passwordProtected={!usesCosmos} />
+        <ProviderLogin theme={theme} signedInId={signedInId} />
+        <LoginFooter theme={theme} />
       </div>
     </div>
   );

@@ -7,8 +7,8 @@
 //   3. /api/media/complete checks type and size and, for images, writes the
 //      resized WebP copies the site actually serves (see utils/imageOptimizer).
 //
-// Every call carries a short-lived Appwrite JWT, which the function checks
-// against the admin account.
+// Every call goes as the signed-in admin (the Static Web Apps session), which
+// the function checks.
 import { adminHeaders } from "./adminHeaders";
 import { apiUrl } from "@/utils/apiUrl";
 import { getFileIdFromUrl as getMediaFileId } from "@/utils/imageOptimizer";

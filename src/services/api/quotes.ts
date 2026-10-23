@@ -109,21 +109,9 @@ export async function fetchClientQuote(
 ) {
   const query = `token=${encodeURIComponent(token)}${preview || admin ? "&preview=1" : ""}`;
   if (!admin) return call<{ quote: ClientQuote }>(`/api/quote-view?${query}`);
-  let headers: Record<string, string>;
-  try {
-    headers = await adminHeaders();
-  } catch (err) {
-    // No dashboard session in this browser: the same answer the server gives,
-    // so the page shows its admin card instead of a generic error.
-    throw new QuoteApiError(
-      err instanceof Error ? err.message : "Sign in to the dashboard.",
-      401,
-      undefined,
-      undefined,
-      { locked: true },
-    );
-  }
-  return call<{ quote: ClientQuote }>(`/api/quote-view?${query}&admin=1`, { headers });
+  return call<{ quote: ClientQuote }>(`/api/quote-view?${query}&admin=1`, {
+    headers: await adminHeaders(),
+  });
 }
 
 /** The dashboard's Preview link for a client link; any "#k=" link code is left off. */
