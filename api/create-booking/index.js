@@ -15,6 +15,10 @@ const {
   divider,
   small,
 } = require("../shared/email/ui");
+const cosmos = require("../shared/cosmos");
+const { dataBackend } = require("../shared/backend");
+const { errorReason } = require("../shared/errors");
+const { withDeadline } = require("../shared/deadline");
 
 const MEETING_DURATIONS = { discovery: 30, project: 60, mentorship: 45, general: 30 };
 const MEETING_LABELS = {
@@ -214,6 +218,32 @@ async function isSlotTaken(date, time) {
   return (data.total ?? 0) > 0;
 }
 
+// The browser gives up after 10 s. Bounding the check well inside that leaves
+// time for the owner alert, which a hung query would never reach.
+const SLOT_CHECK_TIMEOUT_MS = 5000;
+
+// Same match as the bookings check in /api/submit, which guards the row write.
+async function isSlotTakenInCosmos(date, time) {
+  const { resources } = await withDeadline(SLOT_CHECK_TIMEOUT_MS, (abortSignal) =>
+    cosmos
+      .getDatabase()
+      .container("bookings")
+      .items.query(
+        {
+          query:
+            "SELECT TOP 1 c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
+          parameters: [
+            { name: "@date", value: date },
+            { name: "@time", value: time },
+          ],
+        },
+        { abortSignal },
+      )
+      .fetchAll(),
+  );
+  return resources.length > 0;
+}
+
 const CLIENT_REASON = "OceanicCoder · Web and app development";
 const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
 
@@ -248,8 +278,14 @@ function hostNotificationHtml({
   joinLink,
   calendarEventLink,
   failureReason,
+  alert,
 }) {
   const when = `${preferredDate} at ${preferredTime}`;
+  // `alert` replaces the default no-link notice for other failures.
+  const actionNeeded = Boolean(alert || failureReason);
+  const noticeText =
+    alert?.notice ??
+    `No meeting link was created\n${failureReason}\nSend this booker a link by hand, then check the Google credentials in Azure configuration.`;
   const links = [
     joinLink ? button({ href: joinLink, label: `Join ${platform} meeting` }) : "",
     calendarEventLink
@@ -257,26 +293,23 @@ function hostNotificationHtml({
       : "",
   ].filter(Boolean);
   return shell({
-    preview: failureReason
-      ? `No meeting link was created for ${name} on ${when}`
-      : `${name} booked a ${label} on ${when}`,
+    preview: alert
+      ? alert.subject
+      : failureReason
+        ? `No meeting link was created for ${name} on ${when}`
+        : `${name} booked a ${label} on ${when}`,
     meta: { label: "Booking", number: preferredDate },
     reason: ADMIN_REASON,
     body:
       heading({
-        eyebrow: failureReason ? "Action needed" : "New booking",
-        tone: failureReason ? "danger" : "info",
+        eyebrow: actionNeeded ? "Action needed" : "New booking",
+        tone: actionNeeded ? "danger" : "info",
         title: `${label} with ${name}`,
       }) +
       // A booking with no meeting link is not obviously broken from the outside:
       // the visitor is told a link is coming within 24 hours, and nothing says
       // why one was never made. Say it here, where it will actually be read.
-      (failureReason
-        ? notice({
-            tone: "danger",
-            text: `No meeting link was created\n${failureReason}\nSend this booker a link by hand, then check the Google credentials in Azure configuration.`,
-          })
-        : "") +
+      (actionNeeded ? notice({ tone: "danger", text: noticeText }) : "") +
       card({
         title: "Booking details",
         highlightLabel: "Date & time",
@@ -360,6 +393,7 @@ async function sendNotificationEmail(
     zoomLink,
     calendarEventLink,
     failureReason,
+    alert,
   },
 ) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -393,6 +427,7 @@ async function sendNotificationEmail(
     joinLink,
     calendarEventLink,
     failureReason,
+    alert,
   });
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
@@ -405,9 +440,11 @@ async function sendNotificationEmail(
     {
       from: `OceanicCoder Bookings <${fromEmail}>`,
       to: [toEmail],
-      subject: failureReason
-        ? `Action needed: booking with ${name} on ${preferredDate} has no meeting link`
-        : `New Booking: ${label} with ${name} on ${preferredDate} at ${preferredTime}`,
+      subject: alert
+        ? alert.subject
+        : failureReason
+          ? `Action needed: booking with ${name} on ${preferredDate} has no meeting link`
+          : `New Booking: ${label} with ${name} on ${preferredDate} at ${preferredTime}`,
       html,
     },
   );
@@ -536,22 +573,62 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Server-side double-booking guard
-  try {
-    const taken = await isSlotTaken(preferredDate, preferredTime);
-    if (taken) {
+  // Server-side double-booking guard. The Appwrite check fails open. The
+  // Cosmos check fails closed: this function sends the calendar invite and
+  // the confirmation emails before the browser saves the row, so carrying on
+  // after a failed read could confirm a slot someone else holds. On a 503 the
+  // browser still saves through /api/submit, which checks the slot again, so
+  // the booking is kept; only its invite and emails are skipped.
+  let taken = false;
+  if (dataBackend() === "cosmos") {
+    try {
+      taken = await isSlotTakenInCosmos(preferredDate, preferredTime);
+    } catch (err) {
+      const reason = errorReason(err);
+      context.log.error("Slot check failed:", reason);
+      // The booking may still save through /api/submit, but with no invite or
+      // confirmation, so tell the owner, who can send both by hand.
+      await sendNotificationEmail(context, {
+        name,
+        email,
+        phone,
+        meetingType,
+        preferredDate,
+        preferredTime,
+        timezone,
+        message,
+        meetLink: null,
+        zoomLink: null,
+        calendarEventLink: null,
+        alert: {
+          subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} got no invite or confirmation`,
+          notice: `No invite or confirmation was sent\nThe server couldn't check whether ${preferredTime} on ${preferredDate} was free (${reason}), so it sent no calendar invite and no confirmation email.\nIf the booking saved, it is under Bookings in the dashboard. Check the slot is still free, then send the invite and confirmation by hand.`,
+        },
+      }).catch((e) => context.log.error("Notification error:", e.message));
       context.res = {
-        status: 409,
+        status: 503,
         headers: CORS,
-        body: JSON.stringify({
-          error: "slot_taken",
-          message: `${preferredTime} on ${preferredDate} is already booked. Please choose a different time.`,
-        }),
+        body: JSON.stringify({ error: "slot_check_failed" }),
       };
       return;
     }
-  } catch (err) {
-    context.log.warn("Slot check failed (non-fatal):", err.message);
+  } else {
+    try {
+      taken = await isSlotTaken(preferredDate, preferredTime);
+    } catch (err) {
+      context.log.warn("Slot check failed (non-fatal):", err.message);
+    }
+  }
+  if (taken) {
+    context.res = {
+      status: 409,
+      headers: CORS,
+      body: JSON.stringify({
+        error: "slot_taken",
+        message: `${preferredTime} on ${preferredDate} is already booked. Please choose a different time.`,
+      }),
+    };
+    return;
   }
 
   // ── Zoom path ────────────────────────────────────────────────────────────────

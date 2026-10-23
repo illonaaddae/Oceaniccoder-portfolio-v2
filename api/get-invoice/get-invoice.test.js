@@ -7,6 +7,8 @@ const require = createRequire(import.meta.url);
 const sdk = require("node-appwrite");
 const { signInvoice } = require("../shared/tokens.js");
 const { UNSIGNED_LINKS_ACCEPTED_UNTIL } = require("../shared/invoiceLinks.js");
+const cosmos = require("../shared/cosmos.js");
+const { createFakeCosmos } = require("../shared/fakeCosmos.js");
 const handler = require("./index.js");
 
 const SECRET = "test-signing-secret";
@@ -193,5 +195,149 @@ describe("get-invoice", () => {
       vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
       expect(await run("INV-2026-0042", "A".repeat(32))).toEqual(notFound);
     });
+  });
+});
+
+describe("get-invoice on Cosmos", () => {
+  let invoices;
+  beforeEach(() => {
+    process.env.DATA_BACKEND = "cosmos";
+    const db = createFakeCosmos();
+    invoices = db.container("invoices");
+    vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.DATA_BACKEND;
+  });
+
+  it("finds the invoice by number and returns only the public fields", async () => {
+    invoices.seed({ id: "inv-other", invoiceNumber: "INV-2026-0001", total: 1, status: "paid" });
+    invoices.seed({
+      id: "inv1",
+      invoiceNumber: "INV-2026-0042",
+      clientName: "Ama Owusu",
+      clientEmail: "ama@example.com",
+      clientPhone: "+233 20 000 0000",
+      total: 500,
+      currency: "GHS",
+      status: "sent",
+      dueDate: "2026-11-01",
+      archivedAt: "2026-10-11T00:00:00.000Z",
+    });
+
+    const r = await run("INV-2026-0042");
+
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({
+      invoiceNumber: "INV-2026-0042",
+      clientName: "Ama Owusu",
+      clientEmail: "ama@example.com",
+      total: 500,
+      currency: "GHS",
+      status: "sent",
+      dueDate: "2026-11-01",
+      estimatedDelivery: null,
+    });
+  });
+
+  it("needs no Appwrite key and never calls Appwrite", async () => {
+    const appwrite = vi.spyOn(sdk.Databases.prototype, "listDocuments");
+    invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
+
+    expect((await run("INV-2026-0042")).status).toBe(200);
+    expect(appwrite).not.toHaveBeenCalled();
+  });
+
+  it("passes the number as a query parameter, not in the SQL", async () => {
+    await run("INV-1' OR 1=1 --");
+    expect(invoices.queries).toEqual([
+      {
+        query: "SELECT TOP 1 * FROM c WHERE c.invoiceNumber = @number",
+        parameters: [{ name: "@number", value: "INV-1' OR 1=1 --" }],
+      },
+    ]);
+  });
+
+  it("returns 404 when no invoice has that number", async () => {
+    invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
+    expect(await run("INV-NOPE")).toEqual({ status: 404, body: { error: NOT_VALID } });
+  });
+
+  it("refuses a bad signature before reading Cosmos", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL });
+    invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
+    expect(await run("INV-2026-0042", undefined)).toEqual({
+      status: 404,
+      body: { error: NOT_VALID },
+    });
+    expect(await run("INV-2026-0042", "A".repeat(32))).toEqual({
+      status: 404,
+      body: { error: NOT_VALID },
+    });
+    expect(invoices.queries).toEqual([]);
+  });
+
+  // Cosmos rows carry createdAt where Appwrite rows carry $createdAt.
+  it("applies the unsigned-link grace period to the Cosmos createdAt", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
+    const row = { invoiceNumber: "INV-2026-0042", total: 500, status: "sent" };
+    invoices.seed({ ...row, id: "old", createdAt: "2026-10-01T09:00:00.000Z" });
+    expect((await run("INV-2026-0042", undefined)).status).toBe(200);
+
+    invoices.docs.clear();
+    invoices.seed({ ...row, id: "new", createdAt: "2026-10-28T00:00:00.000Z" });
+    expect(await run("INV-2026-0042", undefined)).toEqual({
+      status: 404,
+      body: { error: NOT_VALID },
+    });
+    expect((await run("INV-2026-0042")).status).toBe(200);
+  });
+
+  it("returns 500 without details when Cosmos fails", async () => {
+    vi.spyOn(invoices.items, "query").mockImplementation(() => {
+      throw new Error("Request rate is large");
+    });
+    const r = await run("INV-2026-0042");
+    expect(r).toEqual({ status: 500, body: { error: "Internal error" } });
+  });
+
+  it("answers 500 after 5 s and cancels the read when Cosmos never replies", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      vi.spyOn(invoices.items, "query").mockImplementation(() => ({
+        fetchAll: () => new Promise(() => {}),
+      }));
+      const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
+      const done = handler(context, {
+        method: "GET",
+        headers: { "x-forwarded-for": "192.0.2.10" },
+        query: { number: "INV-2026-0042", s: sign("INV-2026-0042") },
+      });
+      await vi.advanceTimersByTimeAsync(5000);
+      await done;
+
+      expect(context.res.status).toBe(500);
+      expect(JSON.parse(context.res.body)).toEqual({ error: "Internal error" });
+      expect(vi.mocked(invoices.items.query).mock.calls[0][1].abortSignal.aborted).toBe(true);
+      expect(context.log.error).toHaveBeenCalledWith("get-invoice error:", "timed out");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // @azure/cosmos reports a refused connection with an empty message.
+  it("logs the error code when the Cosmos error has no message", async () => {
+    vi.spyOn(invoices.items, "query").mockImplementation(() => {
+      throw Object.assign(new Error(""), { name: "RestError", code: "ECONNREFUSED" });
+    });
+    const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
+    await handler(context, {
+      method: "GET",
+      headers: { "x-forwarded-for": "192.0.2.11" },
+      query: { number: "INV-2026-0042", s: sign("INV-2026-0042") },
+    });
+    expect(context.res.status).toBe(500);
+    expect(context.log.error).toHaveBeenCalledWith("get-invoice error:", "ECONNREFUSED");
   });
 });

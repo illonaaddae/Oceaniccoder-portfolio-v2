@@ -1,10 +1,16 @@
+/* global require, module */
 // GET /api/get-invoice?number=INV-123456&s=<signature>
 // Fetches an invoice for its pay page. Needs the signature from the emailed or
 // admin pay link; until 2026-11-21 an unsigned link still opens an old unpaid
 // invoice (api/shared/invoiceLinks.js).
-// Uses APPWRITE_API_KEY env var — set this in Azure Portal > Configuration.
+// DATA_BACKEND picks the store (see ../shared/backend.js). The Appwrite path
+// uses APPWRITE_API_KEY — set this in Azure Portal > Configuration.
 
 const sdk = require("node-appwrite");
+const cosmos = require("../shared/cosmos");
+const { dataBackend } = require("../shared/backend");
+const { errorReason } = require("../shared/errors");
+const { withDeadline } = require("../shared/deadline");
 
 const { canOpenInvoice, hasSignature, unsignedGraceCovers } = require("../shared/invoiceLinks");
 const { createRateLimiter } = require("../shared/rateLimit");
@@ -35,6 +41,38 @@ const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const PROJECT_ID = "6943431e00253c8f9883";
 const DATABASE_ID = "6943493400018e7c314c";
 const COLLECTION_ID = "invoices";
+
+async function findInAppwrite(apiKey, number) {
+  const client = new sdk.Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID).setKey(apiKey);
+
+  const db = new sdk.Databases(client);
+
+  const result = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+    sdk.Query.equal("invoiceNumber", [number]),
+  ]);
+  return (result.documents && result.documents[0]) || null;
+}
+
+// Answer the pay page with an error rather than leave it waiting on a
+// Cosmos endpoint that accepted the connection and never replied.
+const READ_TIMEOUT_MS = 5000;
+
+async function findInCosmos(number) {
+  const { resources } = await withDeadline(READ_TIMEOUT_MS, (abortSignal) =>
+    cosmos
+      .getDatabase()
+      .container(COLLECTION_ID)
+      .items.query(
+        {
+          query: "SELECT TOP 1 * FROM c WHERE c.invoiceNumber = @number",
+          parameters: [{ name: "@number", value: number }],
+        },
+        { abortSignal },
+      )
+      .fetchAll(),
+  );
+  return resources[0] || null;
+}
 
 module.exports = async function (context, req) {
   if (req.method === "OPTIONS") {
@@ -69,8 +107,9 @@ module.exports = async function (context, req) {
     return;
   }
 
+  const onCosmos = dataBackend() === "cosmos";
   const apiKey = process.env.APPWRITE_API_KEY;
-  if (!apiKey) {
+  if (!onCosmos && !apiKey) {
     context.res = {
       status: 503,
       headers: CORS,
@@ -80,20 +119,12 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const client = new sdk.Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID).setKey(apiKey);
+    const doc = onCosmos ? await findInCosmos(number) : await findInAppwrite(apiKey, number);
 
-    const db = new sdk.Databases(client);
-
-    const result = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
-      sdk.Query.equal("invoiceNumber", [number]),
-    ]);
-
-    if (!result.documents || result.documents.length === 0) {
+    if (!doc) {
       context.res = { status: 404, headers: CORS, body: NOT_FOUND };
       return;
     }
-
-    const doc = result.documents[0];
 
     // The check above let an unsigned link through on the date alone.
     if (!hasSignature(req.query.s) && !unsignedGraceCovers(doc)) {
@@ -119,7 +150,7 @@ module.exports = async function (context, req) {
       body: JSON.stringify(safe),
     };
   } catch (err) {
-    context.log.error("get-invoice error:", err.message);
+    context.log.error("get-invoice error:", errorReason(err));
     context.res = {
       status: 500,
       headers: CORS,

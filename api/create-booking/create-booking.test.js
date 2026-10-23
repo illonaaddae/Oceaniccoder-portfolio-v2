@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import https from "https";
 import querystring from "querystring";
+import { createRequire } from "module";
 
 // ── Spy on built-in modules ───────────────────────────────────────────────────
 // vi.mock() doesn't intercept CJS require() calls reliably in Node environment.
@@ -12,6 +13,11 @@ vi.spyOn(querystring, "stringify").mockImplementation((o) => new URLSearchParams
 
 // Import handler once at module level (no resetModules — would break spies).
 const { default: handler } = await import("./index.js");
+
+// The same CommonJS instances index.js requires, so a spy on getDatabase reaches it.
+const require = createRequire(import.meta.url);
+const cosmos = require("../shared/cosmos.js");
+const { createFakeCosmos } = require("../shared/fakeCosmos.js");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -328,5 +334,185 @@ describe("create-booking Azure Function", () => {
 
     delete process.env.RESEND_API_KEY;
     delete process.env.RESEND_TO_EMAIL;
+  });
+});
+
+describe("create-booking slot check on Cosmos", () => {
+  let bookings;
+  beforeEach(() => {
+    process.env.DATA_BACKEND = "cosmos";
+    const db = createFakeCosmos();
+    bookings = db.container("bookings");
+    vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
+  });
+  afterEach(() => {
+    vi.mocked(cosmos.getDatabase).mockRestore();
+    delete process.env.DATA_BACKEND;
+  });
+
+  const setGoogleEnv = () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "fake-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+  };
+
+  it("returns 409 before any invite or email when the slot is booked", async () => {
+    setGoogleEnv();
+    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "09:00 AM" });
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(409);
+    expect(JSON.parse(ctx.res.body).error).toBe("slot_taken");
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it("proceeds when only other times or dates are booked, without asking Appwrite", async () => {
+    process.env.APPWRITE_API_KEY = "test-api-key";
+    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "10:00 AM" });
+    bookings.seed({ id: "b2", preferredDate: "2099-06-16", preferredTime: "09:00 AM" });
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(200);
+    expect(JSON.parse(ctx.res.body).success).toBe(true);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it("queries with parameters, not values in the SQL", async () => {
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(bookings.queries).toEqual([
+      {
+        query: "SELECT TOP 1 c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
+        parameters: [
+          { name: "@date", value: "2099-06-15" },
+          { name: "@time", value: "09:00 AM" },
+        ],
+      },
+    ]);
+  });
+
+  // Fails closed: an invite and a confirmation email for a slot that may be
+  // taken are worse than a booking saved (by /api/submit) without them.
+  it("answers 503 and sends no invite or email when the check fails", async () => {
+    setGoogleEnv();
+    vi.spyOn(bookings.items, "query").mockImplementation(() => {
+      throw new Error("Request rate is large");
+    });
+
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: validBody, query: {} });
+
+    expect(ctx.res.status).toBe(503);
+    expect(JSON.parse(ctx.res.body).error).toBe("slot_check_failed");
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "Request rate is large");
+  });
+
+  describe("owner alert when the check fails", () => {
+    beforeEach(() => {
+      setGoogleEnv();
+      process.env.RESEND_API_KEY = "resend-key";
+      process.env.RESEND_TO_EMAIL = "host@example.com";
+      vi.spyOn(bookings.items, "query").mockImplementation(() => {
+        throw Object.assign(new Error("getaddrinfo ENOTFOUND oceaniccoder-db"), {
+          code: "ENOTFOUND",
+        });
+      });
+    });
+    afterEach(() => {
+      delete process.env.RESEND_API_KEY;
+      delete process.env.RESEND_TO_EMAIL;
+    });
+
+    const run = async () => {
+      const ctx = { res: null, log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } };
+      await handler(ctx, { method: "POST", body: validBody, query: {} });
+      return ctx;
+    };
+
+    it("emails the owner the date and time, and sends no invite or confirmation", async () => {
+      stubHttps(200, { id: "email-alert" });
+
+      const ctx = await run();
+
+      expect(ctx.res.status).toBe(503);
+      expect(JSON.parse(ctx.res.body)).toEqual({ error: "slot_check_failed" });
+      // One request in all: the alert. No OAuth, no calendar insert, no booker email.
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
+      const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+      expect(sent.to).toEqual(["host@example.com"]);
+      expect(sent.subject).toBe(
+        "Action needed: booking with Ada Lovelace on 2099-06-15 at 09:00 AM got no invite or confirmation",
+      );
+      expect(sent.html).toContain("No invite or confirmation was sent");
+      expect(sent.html).toContain("09:00 AM on 2099-06-15");
+      expect(sent.html).toContain("send the invite and confirmation by hand");
+      expect(sent.html).not.toContain("Google credentials");
+    });
+
+    // @azure/cosmos reports a refused connection with an empty message.
+    it("names the error code when the Cosmos error has no message", async () => {
+      vi.mocked(bookings.items.query).mockImplementation(() => {
+        throw Object.assign(new Error(""), { name: "RestError", code: "ECONNREFUSED" });
+      });
+      stubHttps(200, { id: "email-alert" });
+
+      const ctx = await run();
+
+      expect(ctx.res.status).toBe(503);
+      expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "ECONNREFUSED");
+      const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+      expect(sent.html).toContain("was free (ECONNREFUSED)");
+    });
+
+    // QA repro: Cosmos accepted the connection and never answered, so the
+    // function hung past the browser's 10 s abort and never sent the alert.
+    it("gives up after 5 s, cancels the query and alerts the owner that it timed out", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        vi.mocked(bookings.items.query).mockImplementation(() => ({
+          fetchAll: () => new Promise(() => {}),
+        }));
+        stubHttps(200, { id: "email-alert" });
+
+        const ctx = { res: null, log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } };
+        const done = handler(ctx, { method: "POST", body: validBody, query: {} });
+        await vi.advanceTimersByTimeAsync(4999);
+        expect(ctx.res).toBeNull();
+        await vi.advanceTimersByTimeAsync(1);
+        await done;
+
+        expect(ctx.res.status).toBe(503);
+        expect(JSON.parse(ctx.res.body)).toEqual({ error: "slot_check_failed" });
+        const { abortSignal } = vi.mocked(bookings.items.query).mock.calls[0][1];
+        expect(abortSignal.aborted).toBe(true);
+        expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "timed out");
+        expect(mockRequest).toHaveBeenCalledTimes(1);
+        expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
+        const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+        expect(sent.html).toContain("was free (timed out)");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("still answers 503 when the alert itself can't be sent", async () => {
+      mockRequest.mockImplementationOnce(() => {
+        throw new Error("socket hang up");
+      });
+
+      const ctx = await run();
+
+      expect(ctx.res.status).toBe(503);
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      expect(ctx.log.error).toHaveBeenCalledWith("Notification error:", "socket hang up");
+    });
   });
 });
