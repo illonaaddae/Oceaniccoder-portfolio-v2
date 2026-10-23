@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { GalleryImage } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
 
 export async function getGallery(): Promise<GalleryImage[]> {
   const response = usesCosmos
@@ -13,26 +13,32 @@ export async function getGallery(): Promise<GalleryImage[]> {
 }
 
 export async function createGalleryImage(image: Omit<GalleryImage, "$id">): Promise<GalleryImage> {
-  return databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.GALLERY,
-    ID.unique(),
-    image as Record<string, unknown>,
-  ) as unknown as GalleryImage;
+  return (usesCosmos
+    ? manageCreate(COLLECTIONS.GALLERY, image as Record<string, unknown>)
+    : databases.createDocument(
+        DATABASE_ID,
+        COLLECTIONS.GALLERY,
+        ID.unique(),
+        image as Record<string, unknown>,
+      )) as unknown as GalleryImage;
 }
 
 export async function updateGalleryImage(
   imageId: string,
   image: Partial<Omit<GalleryImage, "$id">>,
 ): Promise<GalleryImage> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.GALLERY,
-    imageId,
-    image as Record<string, unknown>,
-  ) as unknown as GalleryImage;
+  return (usesCosmos
+    ? manageUpdate(COLLECTIONS.GALLERY, imageId, image as Record<string, unknown>)
+    : databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.GALLERY,
+        imageId,
+        image as Record<string, unknown>,
+      )) as unknown as GalleryImage;
 }
 
 export async function deleteGalleryImage(imageId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.GALLERY, imageId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.GALLERY, imageId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.GALLERY, imageId));
 }

@@ -1,5 +1,13 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { getJson, submitRow, usesCosmos } from "./dataApi";
+import {
+  getJson,
+  manageDelete,
+  manageList,
+  manageUpdate,
+  readsAsAdmin,
+  submitRow,
+  usesCosmos,
+} from "./dataApi";
 import { listAllDocuments } from "./listAll";
 
 export interface Booking {
@@ -35,6 +43,16 @@ export async function createBooking(
 
 /** Every booking, newest first (the old 200-row limit dropped older ones). */
 export async function getBookings(): Promise<Booking[]> {
+  if (usesCosmos) {
+    // Private rows (contact details): /dashboard shows none, as the Appwrite
+    // build does when the collection refuses an anonymous read.
+    if (!readsAsAdmin()) return [];
+    const response = await manageList<Booking>(COLLECTIONS.BOOKINGS, {
+      orderBy: "$createdAt",
+      dir: "desc",
+    });
+    return response.documents;
+  }
   return listAllDocuments<Booking & { $id: string }>(COLLECTIONS.BOOKINGS);
 }
 
@@ -68,9 +86,13 @@ export async function updateBookingStatus(
   id: string,
   status: "confirmed" | "cancelled" | "pending",
 ): Promise<void> {
-  await databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status });
+  await (usesCosmos
+    ? manageUpdate(COLLECTIONS.BOOKINGS, id, { status })
+    : databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status }));
 }
 
 export async function deleteBooking(id: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.BOOKINGS, id)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id));
 }

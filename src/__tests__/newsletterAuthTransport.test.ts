@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createRequire } from "node:module";
 
-// Azure Function helper (CommonJS); vitest only collects tests from src/.
+// Azure Function helpers (CommonJS).
 const require = createRequire(import.meta.url);
-const { readJwtCandidates, describeTransports } = require("../../api/send-newsletter/index.js");
+const { readJwtCandidates } = require("../../api/shared/adminAuth.js");
+const { describeTransports } = require("../../api/send-newsletter/index.js");
 
 const OURS = "appwrite.jwt.value";
 const AZURE = "azure.principal.token";

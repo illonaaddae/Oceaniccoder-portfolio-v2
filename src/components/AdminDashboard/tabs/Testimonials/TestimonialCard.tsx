@@ -1,5 +1,5 @@
-import React from "react";
-import { FaUser, FaEdit, FaTrash } from "react-icons/fa";
+import React, { useRef } from "react";
+import { FaUser, FaEdit, FaTrash, FaCheck } from "react-icons/fa";
 import type { Testimonial } from "@/types";
 import { StarRating } from "./StarRating";
 import { useConfirm } from "../../ConfirmContext";
@@ -10,6 +10,8 @@ interface TestimonialCardProps {
   isReadOnly: boolean;
   onEdit?: (t: Testimonial) => void;
   onDelete: (id: string) => void;
+  /** Publishes a visitor submission that is waiting for approval. */
+  onApprove?: (id: string) => void;
 }
 
 export const TestimonialCard: React.FC<TestimonialCardProps> = ({
@@ -18,8 +20,11 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
   isReadOnly,
   onEdit,
   onDelete,
+  onApprove,
 }) => {
+  const pending = testimonial.approved === false;
   const confirm = useConfirm();
+  const editRef = useRef<HTMLButtonElement>(null);
   return (
     <div className="glass-card card-hover p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -46,10 +51,27 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
                 className={`font-bold text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}
               >
                 {testimonial.name}
+                {pending && (
+                  <>
+                    {" "}
+                    <span
+                      className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                        theme === "dark"
+                          ? "bg-warning-400/10 text-warning-400 border border-warning-400/30"
+                          : "bg-warning-100 text-warning-700"
+                      }`}
+                    >
+                      Pending approval
+                    </span>
+                  </>
+                )}
                 {testimonial.featured && (
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-oceanic-500/20 text-brand-link dark:text-oceanic-300 rounded-full">
-                    Featured
-                  </span>
+                  <>
+                    {" "}
+                    <span className="ml-2 px-2 py-0.5 text-xs bg-oceanic-500/20 text-brand-link dark:text-oceanic-300 rounded-full">
+                      Featured
+                    </span>
+                  </>
                 )}
               </h3>
               <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -73,7 +95,26 @@ export const TestimonialCard: React.FC<TestimonialCardProps> = ({
           {/* Actions */}
           {!isReadOnly && (
             <div className="flex gap-2">
+              {pending && onApprove && (
+                <button
+                  onClick={() => {
+                    onApprove(testimonial.$id);
+                    // The Approve button goes once the card is approved; keep
+                    // keyboard focus on this card rather than dropping to <body>.
+                    editRef.current?.focus();
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    theme === "dark"
+                      ? "bg-success-400/10 text-success-400 border border-success-400/30 hover:bg-success-400/20"
+                      : "bg-success-100 text-success-700 hover:bg-success-100/70"
+                  }`}
+                >
+                  <FaCheck className="w-3 h-3" />
+                  Approve
+                </button>
+              )}
               <button
+                ref={editRef}
                 onClick={() => onEdit?.(testimonial)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   theme === "dark"

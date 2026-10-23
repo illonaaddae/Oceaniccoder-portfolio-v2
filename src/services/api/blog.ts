@@ -1,6 +1,6 @@
 import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
 import type { BlogPost } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
 
 export async function getBlogPosts(): Promise<BlogPost[]> {
   const response = usesCosmos
@@ -36,12 +36,9 @@ export async function createBlogPost(post: Omit<BlogPost, "$id">): Promise<BlogP
   if (post.featured !== undefined) cleanedData.featured = post.featured;
   if (post.published !== undefined) cleanedData.published = post.published;
 
-  const result = await databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.BLOG_POSTS,
-    ID.unique(),
-    cleanedData,
-  );
+  const result = await (usesCosmos
+    ? manageCreate(COLLECTIONS.BLOG_POSTS, cleanedData)
+    : databases.createDocument(DATABASE_ID, COLLECTIONS.BLOG_POSTS, ID.unique(), cleanedData));
   return result as unknown as BlogPost;
 }
 
@@ -63,15 +60,14 @@ export async function updateBlogPost(
   if (post.featured !== undefined) cleanedData.featured = post.featured;
   if (post.published !== undefined) cleanedData.published = post.published;
 
-  const result = await databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.BLOG_POSTS,
-    postId,
-    cleanedData,
-  );
+  const result = await (usesCosmos
+    ? manageUpdate(COLLECTIONS.BLOG_POSTS, postId, cleanedData)
+    : databases.updateDocument(DATABASE_ID, COLLECTIONS.BLOG_POSTS, postId, cleanedData));
   return result as unknown as BlogPost;
 }
 
 export async function deleteBlogPost(postId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BLOG_POSTS, postId);
+  await (usesCosmos
+    ? manageDelete(COLLECTIONS.BLOG_POSTS, postId)
+    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.BLOG_POSTS, postId));
 }
