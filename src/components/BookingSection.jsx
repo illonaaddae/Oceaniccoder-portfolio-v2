@@ -91,6 +91,9 @@ const INITIAL_FORM = {
   preferredPlatform: "google",
 };
 
+// The token normally arrives in a few seconds; past this, say what to do.
+const SPAM_CHECK_SLOW_MS = 15000;
+
 const getTodayMin = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -103,6 +106,11 @@ export default function BookingSection() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const turnstile = useTurnstile();
+  // The widget mounts with step 3 and its token arrives a few seconds later.
+  // Confirm stays off until then: /api/create-booking sends the calendar invite
+  // before the row is saved, and the save is refused without a token.
+  const waitingForSpamCheck = turnstile.active && !turnstile.token;
+  const [spamCheckSlow, setSpamCheckSlow] = useState(false);
   const sectionTopRef = useRef(null);
   const [bookingRef, setBookingRef] = useState("");
   const [meetLink, setMeetLink] = useState("");
@@ -136,6 +144,15 @@ export default function BookingSection() {
       .then((booked) => setAppwriteBookedSlots(booked))
       .catch(() => {});
   }, [form.preferredDate, form.timezone]);
+
+  useEffect(() => {
+    if (step !== 3 || !waitingForSpamCheck) return undefined;
+    const timer = setTimeout(() => setSpamCheckSlow(true), SPAM_CHECK_SLOW_MS);
+    return () => {
+      clearTimeout(timer);
+      setSpamCheckSlow(false);
+    };
+  }, [step, waitingForSpamCheck]);
 
   // iOS Safari keeps the keyboard open on the first tap of a button, consuming it.
   // Blurring on touchStart forces the keyboard to dismiss so the click fires immediately.
@@ -792,10 +809,23 @@ export default function BookingSection() {
                         )}
 
                         <TurnstileSlot turnstile={turnstile} />
+                        {turnstile.active && (
+                          <p
+                            role="status"
+                            className="text-sm"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {waitingForSpamCheck && !turnstile.error
+                              ? spamCheckSlow
+                                ? "The spam check is taking longer than usual. If a checkbox appears above, tick it; otherwise reload the page or email hello@oceaniccoder.dev."
+                                : "Running a quick spam check. Confirm Booking unlocks in a moment."
+                              : ""}
+                          </p>
+                        )}
                         <button
                           onTouchStart={blurActive}
                           onClick={handleSubmit}
-                          disabled={submitting}
+                          disabled={submitting || waitingForSpamCheck}
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
                           style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                         >
