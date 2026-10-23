@@ -272,17 +272,18 @@ const PrivacyPage: React.FC = () => (
 
       <Section id="processors" title="Where your data is stored and who processes it">
         <p>
-          Your data is stored with Microsoft Azure in its Central US region, in the United States.
-          What you send through the site&apos;s forms (messages, bookings, inquiries, comments and
-          testimonials), blog read and reaction counts, quotes, invoices, payment records and
-          page-view records are kept in Azure Cosmos DB; the site&apos;s images and uploaded photos
-          are kept in Azure Blob Storage. This data used to be stored with Appwrite in Frankfurt,
-          Germany; we delete that copy once the move to Azure is complete.
+          Your data is stored with Microsoft Azure. What you send through the site&apos;s forms
+          (messages, bookings, inquiries, comments and testimonials), blog read and reaction counts,
+          quotes, invoices, payment records and page-view records are kept in Azure Cosmos DB in its
+          Central US region, in the United States. The site&apos;s images and uploaded photos are
+          kept in Azure Blob Storage in its West Europe region, in the Netherlands. This data used
+          to be stored with Appwrite in Frankfurt, Germany; we delete that copy once the move to
+          Azure is complete.
         </p>
         <List>
           <li>
             <strong className="text-[var(--text-primary)]">Microsoft Azure</strong> hosts the site
-            and our server code, and stores the data described above.
+            and our server code in its Central US region, and stores the data described above.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Cloudflare</strong> runs the spam check
@@ -318,8 +319,8 @@ const PrivacyPage: React.FC = () => (
           </li>
         </List>
         <p>
-          Some of these providers handle data outside Ghana. Microsoft Azure, Resend and Cloudflare
-          handle it in the United States.
+          Some of these providers handle data outside Ghana: Microsoft Azure in the United States
+          and the Netherlands, and Resend and Cloudflare in the United States.
         </p>
       </Section>
 

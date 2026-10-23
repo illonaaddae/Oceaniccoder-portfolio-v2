@@ -103,18 +103,27 @@ describe("PrivacyPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("says data is stored with Azure in Central US and names the transfer countries", () => {
+  it("says where Azure stores each kind of data and names the transfer countries", () => {
     renderPage();
     const processors = screen.getByRole("region", {
       name: "Where your data is stored and who processes it",
     });
     expect(
-      within(processors).getByText(/stored with Microsoft Azure in its Central US region/),
+      within(processors).getByText(
+        /payment records and page-view records are kept in Azure Cosmos DB in\s+its Central US region, in the United States/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(processors).getByText(
+        /uploaded photos\s+are kept in Azure Blob Storage in its West Europe region, in the Netherlands/,
+      ),
     ).toBeInTheDocument();
     expect(within(processors).getByText(/through the site's forms/)).toBeInTheDocument();
     expect(within(processors).getByText(/Appwrite in Frankfurt,\s+Germany/)).toBeInTheDocument();
     expect(
-      within(processors).getByText(/Azure, Resend and Cloudflare\s+handle it in the United States/),
+      within(processors).getByText(
+        /Microsoft Azure in the United States\s+and the Netherlands, and Resend and Cloudflare in the United States/,
+      ),
     ).toBeInTheDocument();
   });
 
