@@ -43,9 +43,12 @@ async function load(svc, id) {
   return quote;
 }
 
-// Appwrite document ids. node-appwrite puts the id into the URL path without
+// Row ids from either backend: Appwrite ids (at most 36 characters) and Cosmos
+// ids, which include the 67-character payment ids derived from a Paystack
+// reference (paymentIdFor). node-appwrite puts the id into the URL path without
 // encoding it, so anything else ("../", "?", "/") is refused before the call.
-const ROW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,35}$/;
+// 128 stays well inside Cosmos's 255-character id limit.
+const ROW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 function rowId(id) {
   if (typeof id !== "string" || !ROW_ID.test(id)) throw new HttpError(400, "Invalid id.");

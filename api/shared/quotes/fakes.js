@@ -4,6 +4,8 @@
 // same amountMinor fill, and the same numbering and ordering.
 
 const { quoteNumber } = require("./model");
+const { createCosmosLocks } = require("../locks");
+const { createFakeCosmos } = require("../fakeCosmos");
 
 const JSON_DEFAULTS = {
   items: [],
@@ -204,4 +206,13 @@ function createFakeLocks({ now = () => Date.now() } = {}) {
   };
 }
 
-module.exports = { createFakeRepo, createFakeLocks };
+// The real Cosmos locks over the in-memory Cosmos fake, with the same `held`
+// view as createFakeLocks, so a test written against one runs on the other.
+function createFakeCosmosLocks({ now = () => Date.now() } = {}) {
+  const db = createFakeCosmos();
+  return Object.defineProperty(createCosmosLocks(db, { now }), "held", {
+    get: () => new Set([...db.container("locks").docs.values()].map((doc) => doc.key)),
+  });
+}
+
+module.exports = { createFakeRepo, createFakeLocks, createFakeCosmosLocks };

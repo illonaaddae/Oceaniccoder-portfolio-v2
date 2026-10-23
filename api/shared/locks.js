@@ -6,7 +6,8 @@
 // the process crashes between take() and release(), the lock is stranded. A
 // stranded stage lock also blocks manual recording of that stage. Recovery is
 // deleting the lock row in the Appwrite console (locks table, id = "s_" plus a
-// sha256 prefix of the key).
+// sha256 prefix of the key), or in the Cosmos `locks` container once
+// DATA_BACKEND=cosmos. Both use the same id, so imported locks keep holding.
 
 const { sdk, DATABASE_ID } = require("./appwrite");
 const { lockId } = require("./tokens");
@@ -70,4 +71,70 @@ function createLocks(db) {
   };
 }
 
-module.exports = { createLocks };
+// The same locks on Cosmos. The container is partitioned by id, and an id
+// that exists already fails the create with 409, as in Appwrite.
+//
+// The quote access rules (5 tries, single-use codes, epochs) need a create to
+// conflict with every earlier create and a read to see the caller's own
+// writes. That holds on Session or Strong consistency, with one client per
+// process (getDatabase() in cosmos.js) so the session token is reused. The
+// account must not be set to Eventual or Consistent Prefix.
+//
+// `now` stamps createdAt, which listBefore reads; tests pass a clock.
+function createCosmosLocks(db, { now = () => Date.now() } = {}) {
+  const container = db.container(LOCKS);
+  return {
+    async take(key) {
+      try {
+        await container.items.create({
+          id: lockId(key),
+          key: key.slice(0, 200),
+          createdAt: new Date(now()).toISOString(),
+        });
+        return true;
+      } catch (err) {
+        if (err && err.code === 409) return false;
+        throw err;
+      }
+    },
+    // True when this call deleted the row, false when it was already gone.
+    async release(key) {
+      const id = lockId(key);
+      try {
+        await container.item(id, id).delete();
+        return true;
+      } catch (err) {
+        if (err && err.code === 404) return false;
+        throw err;
+      }
+    },
+    // As listBefore above. Imported rows carry Appwrite's $createdAt as
+    // createdAt (toCosmos), so they age out on the same clock.
+    async listBefore(beforeIso, cap = 5000) {
+      const top = Math.floor(cap);
+      if (!(top >= 1)) return [];
+      const { resources } = await container.items
+        .query({
+          query: `SELECT TOP ${top} * FROM c WHERE c.createdAt < @before ORDER BY c.createdAt ASC`,
+          parameters: [{ name: "@before", value: beforeIso }],
+        })
+        .fetchAll();
+      return resources.map((d) => ({ key: d.key, createdAt: d.createdAt }));
+    },
+    // Read-only, as has() above. The SDK resolves any 404 as
+    // { resource: undefined } and throws for anything else. A 404 with
+    // substatus 1002 (read session not available) is a lagging replica, not
+    // a missing lock: answering "absent" would let a revoked session or a
+    // locked-out quote through, so it throws instead.
+    async has(key) {
+      const id = lockId(key);
+      const { resource, substatus } = await container.item(id, id).read();
+      if (resource === undefined && substatus === 1002) {
+        throw new Error("Lock read failed: Cosmos read session not available (404/1002)");
+      }
+      return resource !== undefined;
+    },
+  };
+}
+
+module.exports = { createLocks, createCosmosLocks };
