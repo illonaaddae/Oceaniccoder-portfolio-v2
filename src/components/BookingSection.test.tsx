@@ -63,7 +63,14 @@ vi.mock("@/hooks/useTurnstile", async () => {
     useTurnstile: () => {
       const [token, setToken] = useState<string | null>(null);
       turnstileMock.deliverToken = setToken;
-      return { active: turnstileMock.active, ref: () => {}, token, error: null, reset: vi.fn() };
+      return {
+        active: turnstileMock.active,
+        ref: () => {},
+        token,
+        error: null,
+        // Tokens are single-use: the real hook clears it on reset.
+        reset: () => setToken(null),
+      };
     },
   };
 });
@@ -268,12 +275,18 @@ describe("BookingSection — submit flow", () => {
     // No token yet: a click here used to create the calendar event, then fail
     // to save because /api/submit needs the token.
     expect(button(/confirm booking/i)).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent(/spam check/i);
+    expect(button(/confirm booking/i)).toHaveAccessibleDescription(/running a quick spam check/i);
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/running a quick spam check/i),
+    );
     fireEvent.click(button(/confirm booking/i));
     expect(global.fetch).not.toHaveBeenCalledWith("/api/create-booking", expect.anything());
 
     act(() => turnstileMock.deliverToken?.("token-1"));
     await waitFor(() => expect(button(/confirm booking/i)).not.toBeDisabled());
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/you can confirm your booking/i),
+    );
     fireEvent.click(button(/confirm booking/i));
 
     await waitFor(() => expect(screen.getByText("Booking Received!")).toBeInTheDocument());
