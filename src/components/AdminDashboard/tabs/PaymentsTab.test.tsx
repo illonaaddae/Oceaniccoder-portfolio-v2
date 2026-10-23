@@ -8,7 +8,6 @@ const quoteAdmin = vi.fn();
 const confirm = vi.fn();
 vi.mock("@/services/api/payments", () => ({
   getPayments: () => getPayments(),
-  subscribeToPayments: () => () => {},
 }));
 vi.mock("@/services/api/quotes", () => ({
   quoteAdmin: (...a: unknown[]) => quoteAdmin(...a),
