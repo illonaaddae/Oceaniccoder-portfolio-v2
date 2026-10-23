@@ -2,13 +2,24 @@
 // Cosmos-specific behaviour of the quote repo. The behaviour it shares with
 // repo.js and fakes.js is in contract.test.js.
 import { describe, it, expect, vi } from "vitest";
+import { createRequire } from "module";
 
-const { createCosmosQuoteRepo, paymentIdFor } = await import("./repo.cosmos.js");
+const { createCosmosQuoteRepo } = await import("./repo.cosmos.js");
+const { paymentIdFor } = await import("../tokens.js");
 const { createCosmosLocks } = await import("../locks.js");
 const { createFakeCosmos } = await import("../fakeCosmos.js");
 const { lockId } = await import("../tokens.js");
 
 const SYSTEM_FIELDS = ["_rid", "_self", "_etag", "_attachments", "_ts"];
+
+describe("paymentIdFor", () => {
+  // Through Node's require, as repo.cosmos.js loads tokens.js: import() goes
+  // through Vite and would give a second copy of the module.
+  it("is still exported here, as the same function as tokens.paymentIdFor", () => {
+    const require = createRequire(import.meta.url);
+    expect(require("./repo.cosmos.js").paymentIdFor).toBe(require("../tokens.js").paymentIdFor);
+  });
+});
 
 function setup() {
   const db = createFakeCosmos();
