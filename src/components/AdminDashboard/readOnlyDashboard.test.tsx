@@ -1,12 +1,22 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  type Mock,
+} from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 // The public /dashboard has no admin session, and messages, bookings,
 // inquiries and comments hold visitors' contact details. In a Cosmos build it
 // must not ask /api/manage for them (the Appwrite build shows them empty too).
 
-type FetchArgs = Parameters<typeof fetch>;
-let fetchMock: ReturnType<typeof vi.fn<FetchArgs, Promise<Response>>>;
+type FetchFn = (...args: Parameters<typeof fetch>) => Promise<Response>;
+let fetchMock: Mock<FetchFn>;
 const urls = () => fetchMock.mock.calls.map(([url]) => String(url));
 const requested = (prefix: string) => urls().some((url) => url.startsWith(prefix));
 const manageCalls = () => urls().filter((url) => url.startsWith("/api/manage"));
@@ -34,7 +44,7 @@ describe("dashboard reads in a Cosmos build", () => {
   };
 
   beforeEach(() => {
-    fetchMock = vi.fn<FetchArgs, Promise<Response>>(
+    fetchMock = vi.fn<FetchFn>(
       async () =>
         new Response(JSON.stringify({ total: 0, documents: [] }), {
           status: 200,
