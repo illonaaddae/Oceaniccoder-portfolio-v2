@@ -4,12 +4,6 @@ import { useContactForm } from "./useContactForm";
 import FormFields from "./FormFields";
 import ResponseTimeNote from "./ResponseTimeNote";
 import TurnstileSlot from "../TurnstileSlot";
-import { usesCosmos } from "../../services/api/dataApi";
-
-// The site renders only with JavaScript, and handleSubmit always prevents the
-// native post, so the action is never followed. It is kept on Appwrite to leave
-// that build unchanged, and dropped with Cosmos so no path leads to Web3Forms.
-const WEB3FORMS_TARGET = { action: "https://api.web3forms.com/submit", method: "POST" };
 
 const ContactForm = () => {
   const { formData, status, responseMessage, handleInputChange, handleSubmit, turnstile } =
@@ -19,7 +13,7 @@ const ContactForm = () => {
     <div className="glass-card p-8">
       <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Send a Message</h3>
 
-      <form {...(usesCosmos ? {} : WEB3FORMS_TARGET)} className="space-y-6" onSubmit={handleSubmit}>
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <FormFields formData={formData} handleInputChange={handleInputChange} />
 
         {/* Show inline status messages (success / error) */}

@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usesCosmos } from "@/services/api/dataApi";
 
 /**
  * Cloudflare Turnstile for visitor forms. Put `ref` on an empty <div> near the
  * submit button and send `token` with the submission; /api/submit checks it.
  * Tokens are single-use, so call `reset()` after a submit that fails.
  *
- * Inactive (no script, `active` false) while the site still writes to
- * Appwrite. Uses Cloudflare's always-pass test key in local development.
+ * Uses Cloudflare's always-pass test key in local development.
  */
 
 interface TurnstileApi {
@@ -47,7 +45,10 @@ function loadTurnstile(): Promise<TurnstileApi> {
 }
 
 export interface Turnstile {
-  /** False while the site still writes to Appwrite; forms skip the check. */
+  /**
+   * Always true now that every visitor form goes through /api/submit. Kept
+   * because the booking form still reads it.
+   */
   active: boolean;
   ref: (el: HTMLDivElement | null) => void;
   token: string | null;
@@ -57,14 +58,13 @@ export interface Turnstile {
 }
 
 export function useTurnstile(): Turnstile {
-  const active = usesCosmos;
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const widgetId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!active || !element) return undefined;
+    if (!element) return undefined;
     if (!SITE_KEY) {
       setError("Spam protection isn't configured.");
       return undefined;
@@ -93,12 +93,12 @@ export function useTurnstile(): Turnstile {
       if (widgetId.current && window.turnstile) window.turnstile.remove(widgetId.current);
       widgetId.current = null;
     };
-  }, [active, element]);
+  }, [element]);
 
   const reset = useCallback(() => {
     setToken(null);
     if (widgetId.current && window.turnstile) window.turnstile.reset(widgetId.current);
   }, []);
 
-  return { active, ref: setElement, token, error, reset };
+  return { active: true, ref: setElement, token, error, reset };
 }

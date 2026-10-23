@@ -3,17 +3,10 @@ import { describe, test, expect, vi, beforeEach } from "vitest";
 import type { Testimonial } from "../types";
 import TestimonialsSection from "./TestimonialsSection";
 
-const mode = vi.hoisted(() => ({ usesCosmos: false, testimonials: [] as Testimonial[] }));
-
-vi.mock("@/services/api/dataApi", () => ({
-  get usesCosmos() {
-    return mode.usesCosmos;
-  },
-}));
+const mode = vi.hoisted(() => ({ testimonials: [] as Testimonial[] }));
 
 vi.mock("@/services/api", () => ({
   createTestimonial: vi.fn(),
-  uploadImage: vi.fn(),
 }));
 
 vi.mock("@/hooks/useTurnstile", () => ({
@@ -44,36 +37,20 @@ const shareButton = () => screen.queryByRole("button", { name: /share your exper
 
 describe("TestimonialsSection", () => {
   beforeEach(() => {
-    mode.usesCosmos = false;
     mode.testimonials = [];
   });
 
-  test("hides the share button in Appwrite mode but still shows testimonials", () => {
+  test("shows the testimonials with a share button that opens the form", () => {
     mode.testimonials = [TESTIMONIAL];
     render(<TestimonialsSection />);
 
     expect(screen.getByText("Great work.", { exact: false })).toBeInTheDocument();
-    expect(shareButton()).not.toBeInTheDocument();
-  });
-
-  test("renders nothing in Appwrite mode when there are no testimonials", () => {
-    const { container } = render(<TestimonialsSection />);
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  test("shows the share button and opens the form in Cosmos mode", () => {
-    mode.usesCosmos = true;
-    mode.testimonials = [TESTIMONIAL];
-    render(<TestimonialsSection />);
-
     fireEvent.click(shareButton() as HTMLElement);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  test("invites the first testimonial in Cosmos mode when there are none", () => {
-    mode.usesCosmos = true;
+  test("invites the first testimonial when there are none", () => {
     render(<TestimonialsSection />);
 
     expect(screen.getByText(/be the first to share/i)).toBeInTheDocument();
