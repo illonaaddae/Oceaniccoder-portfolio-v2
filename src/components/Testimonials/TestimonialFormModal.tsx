@@ -15,7 +15,6 @@ interface TestimonialFormModalProps {
   onBackdropClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   submitting: boolean;
   submitSuccess: boolean;
-  uploadingImage: boolean;
   imagePreview: string | null;
   setImagePreview: React.Dispatch<React.SetStateAction<string | null>>;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -34,7 +33,6 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
   onBackdropClick,
   submitting,
   submitSuccess,
-  uploadingImage,
   imagePreview,
   turnstile,
   submitError,
@@ -76,7 +74,6 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             onSubmit={onSubmit}
             onImageUpload={onImageUpload}
             submitting={submitting}
-            uploadingImage={uploadingImage}
             imagePreview={imagePreview}
             setImagePreview={setImagePreview}
             fileInputRef={fileInputRef}

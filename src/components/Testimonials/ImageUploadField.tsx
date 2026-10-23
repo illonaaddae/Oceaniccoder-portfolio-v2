@@ -7,7 +7,6 @@ interface ImageUploadFieldProps {
   setFormData: React.Dispatch<React.SetStateAction<TestimonialFormData>>;
   imagePreview: string | null;
   setImagePreview: React.Dispatch<React.SetStateAction<string | null>>;
-  uploadingImage: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   inputId: string;
@@ -18,7 +17,6 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   setFormData,
   imagePreview,
   setImagePreview,
-  uploadingImage,
   fileInputRef,
   onImageUpload,
   inputId,
@@ -61,25 +59,12 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         />
         <label
           htmlFor={inputId}
-          className={`flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all touch-manipulation ${
-            uploadingImage
-              ? "border-oceanic-500 bg-oceanic-500/10"
-              : "border-[var(--glass-border)] hover:border-oceanic-500 hover:bg-[var(--glass-border)]/50"
-          }`}
+          className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all touch-manipulation border-[var(--glass-border)] hover:border-oceanic-500 hover:bg-[var(--glass-border)]/50"
         >
-          {uploadingImage ? (
-            <>
-              <div className="w-5 h-5 border-2 border-oceanic-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-oceanic-500 text-sm">Uploading...</span>
-            </>
-          ) : (
-            <>
-              <FaCloudUploadAlt className="text-[var(--text-secondary)]" />
-              <span className="text-[var(--text-secondary)] text-sm">
-                {imagePreview || formData.image ? "Change Image" : "Upload Photo"}
-              </span>
-            </>
-          )}
+          <FaCloudUploadAlt className="text-[var(--text-secondary)]" />
+          <span className="text-[var(--text-secondary)] text-sm">
+            {imagePreview || formData.image ? "Change Image" : "Upload Photo"}
+          </span>
         </label>
         <div className="flex items-center gap-2 mt-2">
           <span className="text-xs text-[var(--text-accent)]">or paste URL:</span>
