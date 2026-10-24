@@ -320,9 +320,8 @@ export default function EmailsTab(_props: { theme: string }) {
                 </span>
               </p>
               <p
-                className="mt-0.5 text-xs truncate"
+                className="mt-0.5 text-xs [overflow-wrap:anywhere]"
                 style={{ color: "var(--text-secondary)" }}
-                title={`From OceanicCoder <${from || "…"}>${current ? ` · ${current.when}` : ""}`}
               >
                 From OceanicCoder &lt;{from || "…"}&gt;
                 {current ? ` · ${current.when}` : ""}

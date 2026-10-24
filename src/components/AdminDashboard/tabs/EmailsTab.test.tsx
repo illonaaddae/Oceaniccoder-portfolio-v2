@@ -118,6 +118,10 @@ describe("EmailsTab", () => {
       act(() => report(320));
       expect(frame.style.transform).toBe("scale(0.5)");
       expect(frame.style.width).toBe("640px");
+      // Scaled down, the frame is twice as tall so the visible box stays full,
+      // and the wrapper clips what the transform leaves outside it.
+      expect(frame.style.height).toBe("200%");
+      expect(frame.parentElement?.className).toContain("overflow-hidden");
       act(() => report(800));
       expect(frame.style.transform).toBe("");
       act(() => report(320));
