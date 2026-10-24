@@ -11,36 +11,28 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("createServices backend choice", () => {
-  it("uses Appwrite when DATA_BACKEND is unset", () => {
-    vi.stubEnv("DATA_BACKEND", "");
-    vi.stubEnv("APPWRITE_API_KEY", "");
-    expect(() => createServices()).toThrow("APPWRITE_API_KEY is not configured");
+describe("createServices backend", () => {
+  // DATA_BACKEND no longer picks the quote store: unset used to mean Appwrite.
+  // Missing Cosmos settings fail in createClient, before any request is sent.
+  it.each([
+    ["unset", ""],
+    ["appwrite", "appwrite"],
+    ["anything else", "mongo"],
+  ])("uses Cosmos when DATA_BACKEND is %s", (_label, value) => {
+    vi.stubEnv("DATA_BACKEND", value);
+    // A configured Appwrite must still be ignored: on the old code this key let
+    // the Appwrite stores build, so the test failed for the right reason.
     vi.stubEnv("APPWRITE_API_KEY", "test-key");
-    expect(createServices()).toMatchObject({
-      repo: expect.objectContaining({ get: expect.any(Function) }),
-      locks: expect.objectContaining({ take: expect.any(Function) }),
-    });
-  });
-
-  it("uses Cosmos when DATA_BACKEND=cosmos", () => {
-    vi.stubEnv("DATA_BACKEND", "cosmos");
     vi.stubEnv("COSMOS_ENDPOINT", "");
     vi.stubEnv("COSMOS_KEY", "");
-    vi.stubEnv("APPWRITE_API_KEY", "test-key");
     expect(() => createServices()).toThrow("COSMOS_ENDPOINT and COSMOS_KEY must be set");
-  });
-
-  it("refuses an unknown DATA_BACKEND", () => {
-    vi.stubEnv("DATA_BACKEND", "mongo");
-    expect(() => createServices()).toThrow(/DATA_BACKEND must be/);
   });
 });
 
 describe("WRITE_HOLD", () => {
   it("makes createServices throw a 503 before touching any database", () => {
     vi.stubEnv("WRITE_HOLD", "1");
-    vi.stubEnv("APPWRITE_API_KEY", "");
+    vi.stubEnv("COSMOS_ENDPOINT", "");
     expect(() => createServices()).toThrow(/paused for maintenance/);
     expect(() => createServices()).toThrow(expect.objectContaining({ status: 503 }));
   });
@@ -65,7 +57,6 @@ describe("WRITE_HOLD", () => {
 
   it("makes createServices throw on an unrecognised value", () => {
     vi.stubEnv("WRITE_HOLD", "true");
-    vi.stubEnv("APPWRITE_API_KEY", "test-key");
     expect(() => createServices()).toThrow(/WRITE_HOLD must be/);
   });
 

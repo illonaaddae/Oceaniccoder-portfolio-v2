@@ -1,6 +1,6 @@
 // @vitest-environment node
 // Cosmos-specific behaviour of the quote repo. The behaviour it shares with
-// repo.js and fakes.js is in contract.test.js.
+// fakes.js is in contract.test.js.
 import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "module";
 

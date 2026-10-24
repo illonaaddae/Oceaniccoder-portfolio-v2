@@ -524,9 +524,8 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Checked before the quote branch too: the quote service reads the same
-  // setting and would only throw, so a quote charge would fail without an
-  // alert.
+  // Checked before the quote branch too, on purpose: an invalid DATA_BACKEND
+  // stops the whole webhook with an alert rather than handling some charges.
   let backend;
   try {
     backend = dataBackend();

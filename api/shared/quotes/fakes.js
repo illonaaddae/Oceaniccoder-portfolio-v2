@@ -1,7 +1,7 @@
 // In-memory stand-ins for the quote repo and locks, used by function tests.
-// They mirror repo.js and locks.js: same method names and return shapes, the
-// same defaults for missing JSON fields, the same 404 on a missing id, the
-// same amountMinor fill, and the same numbering and ordering.
+// They mirror repo.cosmos.js and locks.js: same method names and return
+// shapes, the same defaults for missing JSON fields, the same 404 on a missing
+// id, the same amountMinor fill, and the same numbering and ordering.
 
 const { quoteNumber } = require("./model");
 const { createCosmosLocks } = require("../locks");
@@ -25,7 +25,7 @@ function notFound() {
   return Object.assign(new Error("Document not found"), { code: 404 });
 }
 
-// Same rules as repo.js toDoc: drop id fields and $-prefixed keys.
+// Same rule as repo.cosmos.js cleanPatch: drop id fields and $-prefixed keys.
 function cleanPatch(patch) {
   const out = {};
   for (const [key, value] of Object.entries(patch || {})) {
@@ -35,7 +35,7 @@ function cleanPatch(patch) {
   return out;
 }
 
-// Same defaults as repo.js toQuote, applied on every read.
+// Same defaults as repo.cosmos.js toQuote, applied on every read.
 function toQuote(doc) {
   if (!doc) return null;
   const q = clone(doc);
@@ -45,7 +45,7 @@ function toQuote(doc) {
   return q;
 }
 
-// Same rule as repo.js toPayment.
+// Same rule as repo.cosmos.js toPayment.
 function toPayment(doc) {
   if (!doc) return null;
   const p = clone(doc);
@@ -83,7 +83,7 @@ function createFakeRepo({ quotes = [], payments = [], invoices = [] } = {}) {
     return max + 1;
   }
 
-  // Insertion order stands in for Appwrite's $createdAt desc order.
+  // Insertion order stands in for newest-first by createdAt.
   const newestFirst = (map) => [...map.values()].reverse();
 
   return {
@@ -111,7 +111,7 @@ function createFakeRepo({ quotes = [], payments = [], invoices = [] } = {}) {
       q.set(id, doc);
       return toQuote(doc);
     },
-    // Same filter as repo.js: accepted, offer not sent yet.
+    // Same filter as repo.cosmos.js: accepted, offer not sent yet.
     async listMaintenanceCandidates() {
       return newestFirst(q)
         .filter((x) => x.status === "accepted" && !x.maintenanceOfferSentAt)
@@ -134,7 +134,7 @@ function createFakeRepo({ quotes = [], payments = [], invoices = [] } = {}) {
         .filter((x) => x.kind === "quote")
         .map(toPayment);
     },
-    // Like Appwrite, Query.equal with an undefined value is rejected.
+    // Like repo.cosmos.js, a missing invoice number is rejected with a 400.
     async listInvoicePayments(invoiceNumber) {
       if (invoiceNumber === undefined || invoiceNumber === null)
         throw Object.assign(new Error("Invalid query: Value must not be empty"), { code: 400 });
@@ -177,7 +177,7 @@ function createFakeRepo({ quotes = [], payments = [], invoices = [] } = {}) {
   };
 }
 
-// `now` stamps each lock's creation time, like Appwrite's $createdAt.
+// `now` stamps each lock's creation time, like createdAt in locks.js.
 function createFakeLocks({ now = () => Date.now() } = {}) {
   const held = new Set();
   const createdAt = new Map();

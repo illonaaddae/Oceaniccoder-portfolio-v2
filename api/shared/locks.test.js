@@ -1,46 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 
-const { createLocks, createCosmosLocks } = await import("./locks.js");
+const { createCosmosLocks } = await import("./locks.js");
 const { createFakeCosmos } = await import("./fakeCosmos.js");
 const { createFakeLocks } = await import("./quotes/fakes.js");
 const { lockId } = await import("./tokens.js");
 
-// Enough of node-appwrite's Databases for createLocks: ids conflict with 409,
-// missing rows are 404, and listDocuments reads the JSON queries node-appwrite
-// builds (lessThan, orderAsc on $createdAt, limit, cursorAfter).
-function createFakeAppwriteLocksDb(now) {
-  const rows = new Map();
-  const appwriteError = (code) => Object.assign(new Error(`appwrite ${code}`), { code });
-  return {
-    async createDocument(_db, _table, id, data) {
-      if (rows.has(id)) throw appwriteError(409);
-      rows.set(id, { $id: id, $createdAt: new Date(now()).toISOString(), ...data });
-      return rows.get(id);
-    },
-    async deleteDocument(_db, _table, id) {
-      if (!rows.delete(id)) throw appwriteError(404);
-    },
-    async getDocument(_db, _table, id) {
-      if (!rows.has(id)) throw appwriteError(404);
-      return rows.get(id);
-    },
-    async listDocuments(_db, _table, queries) {
-      const q = Object.fromEntries(
-        queries.map((text) => JSON.parse(text)).map((x) => [x.method, x]),
-      );
-      let docs = [...rows.values()]
-        .filter((d) => d.$createdAt < q.lessThan.values[0])
-        .sort((a, b) => (a.$createdAt < b.$createdAt ? -1 : 1));
-      if (q.cursorAfter)
-        docs = docs.slice(docs.findIndex((d) => d.$id === q.cursorAfter.values[0]) + 1);
-      return { documents: docs.slice(0, q.limit.values[0]) };
-    },
-  };
-}
-
 const BACKENDS = [
-  ["Appwrite", (now) => createLocks(createFakeAppwriteLocksDb(now))],
   ["the in-memory fake", (now) => createFakeLocks({ now })],
   ["Cosmos", (now) => createCosmosLocks(createFakeCosmos(), { now })],
 ];
