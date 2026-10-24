@@ -122,7 +122,7 @@ describe("Gmail dark mode and phone widths", () => {
   it("keeps an amount on one line with the currency as a small prefix", () => {
     const html = ui.card({ title: "T", highlight: "GHS 5,100.00" });
     expect(html).toContain("white-space:nowrap");
-    expect(html).toContain('letter-spacing:.04em">GHS</span>&nbsp;5,100.00');
+    expect(html).toContain('letter-spacing:.03em">GHS</span>&nbsp;5,100.00');
     expect(ui.card({ title: "T", highlight: "Thursday, 15 October" })).toContain(
       ">Thursday, 15 October<",
     );
@@ -136,5 +136,23 @@ describe("Gmail dark mode and phone widths", () => {
     });
     expect(html).toContain('<td width="100%"');
     expect(html).toContain("white-space:nowrap;text-align:right");
+  });
+});
+
+describe("Gmail colour flip", () => {
+  it("gives tinted header text its opposite colour in Gmail only, so it shows true", () => {
+    const html = ui.card({
+      title: "Receipt",
+      status: { label: "Paid", tone: "ok" },
+      highlight: "GHS 1.00",
+    });
+    expect(html).toContain('class="oc-stamp-ok"');
+    expect(html).toContain('class="oc-on-ocean"');
+    const shell = ui.shell({ preview: "", body: "", reason: "" });
+    expect(shell).toContain("u + .body .oc-stamp-ok{color:#ef86c9!important");
+    expect(shell).toContain("u + .body .oc-stamp-warn{color:#4d76fc!important");
+    expect(ui.card({ title: "T", status: { label: "X", tone: "nope" } })).toContain(
+      'class="oc-stamp-info"',
+    );
   });
 });
