@@ -42,20 +42,13 @@ function App() {
   useEffect(() => {
     hasAdminSession().then((hasSession) => {
       setIsAdminLoggedIn(hasSession);
-      if (hasSession) {
-        // The owner's browser: never count its page views.
-        optOutOfTracking();
-      } else {
-        localStorage.removeItem("adminAuth");
-        localStorage.removeItem("adminHash"); // clean up stale legacy key
-      }
+      // The owner's browser: never count its page views.
+      if (hasSession) optOutOfTracking();
     });
   }, []);
 
   const handleAdminLogout = useCallback(() => {
     logoutAdmin();
-    localStorage.removeItem("adminAuth");
-    localStorage.removeItem("adminHash");
     setIsAdminLoggedIn(false);
   }, []);
 

@@ -35,6 +35,15 @@ describe("AdminLogin", () => {
     await act(() => vi.mocked(getSwaUser).mock.results[0].value);
   });
 
+  test("names the theme toggle for screen readers", async () => {
+    render(<AdminLogin />);
+
+    expect(
+      screen.getByRole("button", { name: /^switch to (light|dark) theme$/i }),
+    ).toBeInTheDocument();
+    await act(() => vi.mocked(getSwaUser).mock.results[0].value);
+  });
+
   test("shows a signed-in non-admin their id", async () => {
     mode.user = {
       identityProvider: "github",
