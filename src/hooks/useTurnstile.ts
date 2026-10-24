@@ -45,11 +45,6 @@ function loadTurnstile(): Promise<TurnstileApi> {
 }
 
 export interface Turnstile {
-  /**
-   * Always true now that every visitor form goes through /api/submit. Kept
-   * because the booking form still reads it.
-   */
-  active: boolean;
   ref: (el: HTMLDivElement | null) => void;
   token: string | null;
   /** Set when the widget can't load or the challenge fails. */
@@ -100,5 +95,5 @@ export function useTurnstile(): Turnstile {
     if (widgetId.current && window.turnstile) window.turnstile.reset(widgetId.current);
   }, []);
 
-  return { active: true, ref: setElement, token, error, reset };
+  return { ref: setElement, token, error, reset };
 }

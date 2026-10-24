@@ -50,21 +50,20 @@ vi.mock("../utils/apiUrl", () => ({
   apiUrl: (path: string) => path,
 }));
 
-// The real hook is inactive in tests (no VITE_DATA_BACKEND). This stand-in
-// lets a test switch the spam check on and deliver the token when it chooses,
-// the way Cloudflare does a few seconds after the widget mounts.
+// Stands in for Cloudflare. Most tests start with the token already there; a
+// test that sets `initialToken` to null delivers it when it chooses, the way
+// Cloudflare does a few seconds after the widget mounts.
 const turnstileMock = vi.hoisted(() => ({
-  active: false,
+  initialToken: "token-0" as string | null,
   deliverToken: null as ((token: string) => void) | null,
 }));
 vi.mock("@/hooks/useTurnstile", async () => {
   const { useState } = await import("react");
   return {
     useTurnstile: () => {
-      const [token, setToken] = useState<string | null>(null);
+      const [token, setToken] = useState<string | null>(turnstileMock.initialToken);
       turnstileMock.deliverToken = setToken;
       return {
-        active: turnstileMock.active,
         ref: () => {},
         token,
         error: null,
@@ -84,7 +83,7 @@ const mockGetBookedTimes = getBookedTimesForDate as ReturnType<typeof vi.fn>;
 beforeEach(() => {
   // clearAllMocks preserves implementations; restoreAllMocks would reset vi.fn() to undefined.
   vi.clearAllMocks();
-  turnstileMock.active = false;
+  turnstileMock.initialToken = "token-0";
   mockCreateBooking.mockResolvedValue({ $id: "abcdef12345678" });
   mockGetBookedTimes.mockResolvedValue(new Set());
   global.fetch = vi.fn().mockResolvedValue({
@@ -267,7 +266,7 @@ describe("BookingSection — submit flow", () => {
   });
 
   test("waits for the spam-check token before Confirm can create the calendar event", async () => {
-    turnstileMock.active = true;
+    turnstileMock.initialToken = null;
     render(<BookingSection />);
     await advanceToStep2();
     await advanceToStep3();
@@ -294,7 +293,7 @@ describe("BookingSection — submit flow", () => {
   });
 
   test("says what to do when the spam-check token is slow to arrive", async () => {
-    turnstileMock.active = true;
+    turnstileMock.initialToken = null;
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       render(<BookingSection />);
