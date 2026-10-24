@@ -288,7 +288,7 @@ describe("create-booking Azure Function", () => {
   });
 });
 
-// No backend setting is set in these tests: the slot check always reads Cosmos.
+// The slot check reads the fake Cosmos `bookings` container from the top-level beforeEach.
 describe("create-booking slot check on Cosmos", () => {
   const setGoogleEnv = () => {
     process.env.GOOGLE_CLIENT_ID = "fake-client";

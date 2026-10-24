@@ -112,7 +112,7 @@ async function main() {
     }
   }
   console.log(`
-To replay one, with DATA_BACKEND=cosmos live and WRITE_HOLD unset:
+To replay one, with WRITE_HOLD unset:
   1. Paystack dashboard > Transactions, search the reference and open it.
   2. Resend its webhook from the transaction page. Paystack also retries on
      its own (every 3 min x4, then hourly for 72 h in live mode).

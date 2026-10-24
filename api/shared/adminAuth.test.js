@@ -1,4 +1,5 @@
 // @vitest-environment node
+import https from "node:https";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const { requireAdmin } = await import("./adminAuth.js");
@@ -110,7 +111,17 @@ describe("requireAdmin refusals", () => {
       headers: { "x-appwrite-jwt": "eyJ.fake.jwt", authorization: "Bearer eyJ.fake.jwt" },
       body: { jwt: "eyJ.fake.jwt" },
     };
-    expect(await requireAdmin(context, req)).toMatchObject({ status: 401 });
+    // Nothing may try the token anywhere: no outbound request of any kind.
+    const httpsRequest = vi.spyOn(https, "request");
+    const fetchCall = vi.spyOn(globalThis, "fetch");
+    try {
+      expect(await requireAdmin(context, req)).toMatchObject({ status: 401 });
+      expect(httpsRequest).not.toHaveBeenCalled();
+      expect(fetchCall).not.toHaveBeenCalled();
+    } finally {
+      httpsRequest.mockRestore();
+      fetchCall.mockRestore();
+    }
   });
 
   it("answers 500 only when no admin is configured at all", async () => {
