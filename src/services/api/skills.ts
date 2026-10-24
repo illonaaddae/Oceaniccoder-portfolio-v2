@@ -1,42 +1,23 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { COLLECTIONS } from "./collections";
 import type { Skill } from "../../types";
-import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate } from "./dataApi";
 
 export async function getSkills(): Promise<Skill[]> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.SKILLS, { limit: 200 })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.SKILLS, [Query.limit(200)]);
+  const response = await listRows(COLLECTIONS.SKILLS, { limit: 200 });
   return response.documents as unknown as Skill[];
 }
 
 export async function createSkill(skill: Omit<Skill, "$id" | "$createdAt">): Promise<Skill> {
-  const result = await (usesCosmos
-    ? manageCreate(COLLECTIONS.SKILLS, skill as Record<string, unknown>)
-    : databases.createDocument(
-        DATABASE_ID,
-        COLLECTIONS.SKILLS,
-        ID.unique(),
-        skill as Record<string, unknown>,
-      ));
-  return result as unknown as Skill;
+  return manageCreate<Skill>(COLLECTIONS.SKILLS, skill);
 }
 
 export async function updateSkill(
   skillId: string,
   skill: Partial<Omit<Skill, "$id" | "$createdAt">>,
 ): Promise<Skill> {
-  return (usesCosmos
-    ? manageUpdate(COLLECTIONS.SKILLS, skillId, skill as Record<string, unknown>)
-    : databases.updateDocument(
-        DATABASE_ID,
-        COLLECTIONS.SKILLS,
-        skillId,
-        skill as Record<string, unknown>,
-      )) as unknown as Skill;
+  return manageUpdate<Skill>(COLLECTIONS.SKILLS, skillId, skill);
 }
 
 export async function deleteSkill(skillId: string): Promise<void> {
-  await (usesCosmos
-    ? manageDelete(COLLECTIONS.SKILLS, skillId)
-    : databases.deleteDocument(DATABASE_ID, COLLECTIONS.SKILLS, skillId));
+  await manageDelete(COLLECTIONS.SKILLS, skillId);
 }
