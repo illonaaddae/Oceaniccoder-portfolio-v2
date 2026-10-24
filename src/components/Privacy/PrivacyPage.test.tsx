@@ -96,9 +96,10 @@ describe("PrivacyPage", () => {
       name: "Where your data is stored and who processes it",
     });
     expect(within(processors).getByText(/runs the spam check/)).toBeInTheDocument();
-    // Pinned counts: Cloudflare twice in the forms section, once in front of
-    // Paystack's checkout, and twice in the processor section (the list and
-    // the transfers). A new mention needs a matching change in the code.
+    // Pinned counts. Turnstile: twice in the forms section, once in the
+    // processor list. Cloudflare: three times in the forms section, once in
+    // front of Paystack's checkout, and twice in the processor section (the
+    // list and the transfers). A new mention needs a matching change in the code.
     expect(document.body.textContent?.match(/turnstile/gi)).toHaveLength(3);
     expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(6);
     const quotes = screen.getByRole("region", { name: "Quotes and payments" });
