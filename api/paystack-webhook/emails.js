@@ -223,7 +223,7 @@ function recordedConflictEmail(reason, detail) {
   });
 }
 
-// For an invalid DATA_BACKEND or WRITE_HOLD, which fails every delivery
+// For an invalid WRITE_HOLD, which fails every delivery
 // until the setting is fixed. Charges whose retries run out before then are
 // not delivered again and must be recorded by hand. `mode` is the mode of
 // the secret key, as no single charge decides it.

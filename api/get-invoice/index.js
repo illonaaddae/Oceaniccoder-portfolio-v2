@@ -2,13 +2,9 @@
 // GET /api/get-invoice?number=INV-123456&s=<signature>
 // Fetches an invoice for its pay page. Needs the signature from the emailed or
 // admin pay link; until 2026-11-21 an unsigned link still opens an old unpaid
-// invoice (api/shared/invoiceLinks.js).
-// DATA_BACKEND picks the store (see ../shared/backend.js). The Appwrite path
-// uses APPWRITE_API_KEY — set this in Azure Portal > Configuration.
+// invoice (api/shared/invoiceLinks.js). Reads the invoice from Cosmos DB.
 
-const sdk = require("node-appwrite");
 const cosmos = require("../shared/cosmos");
-const { dataBackend } = require("../shared/backend");
 const { errorReason } = require("../shared/errors");
 const { withDeadline } = require("../shared/deadline");
 
@@ -37,21 +33,7 @@ const NOT_FOUND = JSON.stringify({
 // anyone trying invoice numbers in bulk.
 const allowFromIp = createRateLimiter({ limit: 30, windowMs: 10 * 60 * 1000 });
 
-const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
-const PROJECT_ID = "6943431e00253c8f9883";
-const DATABASE_ID = "6943493400018e7c314c";
 const COLLECTION_ID = "invoices";
-
-async function findInAppwrite(apiKey, number) {
-  const client = new sdk.Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID).setKey(apiKey);
-
-  const db = new sdk.Databases(client);
-
-  const result = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
-    sdk.Query.equal("invoiceNumber", [number]),
-  ]);
-  return (result.documents && result.documents[0]) || null;
-}
 
 // Answer the pay page with an error rather than leave it waiting on a
 // Cosmos endpoint that accepted the connection and never replied.
@@ -107,19 +89,8 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const onCosmos = dataBackend() === "cosmos";
-  const apiKey = process.env.APPWRITE_API_KEY;
-  if (!onCosmos && !apiKey) {
-    context.res = {
-      status: 503,
-      headers: CORS,
-      body: JSON.stringify({ error: "Server not configured" }),
-    };
-    return;
-  }
-
   try {
-    const doc = onCosmos ? await findInCosmos(number) : await findInAppwrite(apiKey, number);
+    const doc = await findInCosmos(number);
 
     if (!doc) {
       context.res = { status: 404, headers: CORS, body: NOT_FOUND };

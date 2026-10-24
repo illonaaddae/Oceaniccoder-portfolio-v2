@@ -14,7 +14,7 @@ const TOLERANCE = 0.01;
  * @param {object} args
  * @param {number} args.amountPaid  amount in the base unit (not pesewas)
  * @param {string} args.currency    currency Paystack reported
- * @param {object} args.invoice     the Appwrite invoice document
+ * @param {object} args.invoice     the invoice row
  */
 function evaluateSettlement({ amountPaid, currency, invoice }) {
   const expected = Number(invoice?.total);

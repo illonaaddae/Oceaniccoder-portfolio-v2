@@ -1,22 +1,20 @@
 /* global require, module, Buffer */
 // POST /api/paystack-webhook
 // Handles Paystack payment webhook events.
-// Verifies signature using PAYSTACK_SECRET_KEY, updates invoice status in Appwrite
-// (or Cosmos when DATA_BACKEND=cosmos, see invoiceCharge.js), and sends
-// confirmation emails via Resend.
+// Verifies signature using PAYSTACK_SECRET_KEY, records the payment against
+// its invoice in Cosmos DB (see invoiceCharge.js), and sends confirmation
+// emails via Resend.
 // Answers 200 for anything a retry would not fix. Answers 500 for a failure a
-// retry can finish (quote payments, the Cosmos invoice branch) or one that
-// fixing a setting will (an invalid DATA_BACKEND or WRITE_HOLD), and 503
-// while WRITE_HOLD is on, because Paystack retries any non-2xx.
+// retry can finish (quote and invoice payments) or one that fixing a setting
+// will (an invalid WRITE_HOLD), and 503 while WRITE_HOLD is on, because
+// Paystack retries any non-2xx.
 
 const crypto = require("crypto");
 const https = require("https");
-const sdk = require("node-appwrite");
-const { evaluateSettlement } = require("./settlement");
 const { money } = require("../shared/email/ui");
 const quoteService = require("../shared/quotes/service");
 const cosmos = require("../shared/cosmos");
-const { dataBackend, writeHold } = require("../shared/backend");
+const { writeHold } = require("../shared/backend");
 const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
 const { createCosmosLocks } = require("../shared/locks");
 const {
@@ -35,16 +33,9 @@ const {
   recordedConflictEmail,
   webhookEscalationEmail,
   invalidSettingEmail,
-  recordFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
 } = require("./emails");
-
-const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
-const PROJECT_ID = "6943431e00253c8f9883";
-const DATABASE_ID = "6943493400018e7c314c";
-const COLLECTION_ID = "invoices";
-const PAYMENTS_COLLECTION_ID = "payments";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -53,7 +44,7 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
-// A hung Resend request must not hold a run open: the Cosmos branch claims
+// A hung Resend request must not hold a run open: the invoice branch claims
 // the emails for NOTIFY_CLAIM_MS (2 minutes), and a run must finish well
 // inside that.
 const EMAIL_TIMEOUT_MS = 10 * 1000;
@@ -73,7 +64,7 @@ function chargeTime(data) {
 const SIGNATURE_FORMAT = /^[0-9a-f]{128}$/i;
 
 // Alerts this process has mailed, or is mailing, where Cosmos cannot keep
-// track: an invalid DATA_BACKEND (it fails every delivery the same way until
+// track: an invalid WRITE_HOLD (it fails every delivery the same way until
 // someone fixes the setting) and a reference whose claim could not be
 // recorded. Added before the send so concurrent invocations mail once;
 // removed if the send fails, so a later attempt mails.
@@ -249,7 +240,7 @@ async function sendPaymentEmails(
 }
 
 /**
- * Tells the admin about a retryable failure on the Cosmos invoice branch:
+ * Tells the admin about a retryable failure on the invoice branch:
  * one email per reference, claimed through the alert lock, and one
  * escalation (live mode only) if the same payment still fails a day after
  * that. When Cosmos cannot record the claim, the alert is claimed in this
@@ -367,7 +358,7 @@ module.exports = async function (context, req) {
 
   /**
    * Abandon processing, but tell someone first, and answer 200 because a
-   * retry would not help. Retryable failures (the Cosmos branch) answer 500
+   * retry would not help. Retryable failures (the invoice branch) answer 500
    * and send webhookRetryEmail instead.
    *
    * The failure paths here used to leave only a log line. The result was a
@@ -486,8 +477,8 @@ module.exports = async function (context, req) {
   // The data is being moved between databases. Paystack retries any non-2xx,
   // so nothing is lost: the charge is recorded once the hold is lifted. Checked
   // after the signature so a misconfigured key still raises its alert now.
-  // An invalid value throws; it is refused like an invalid DATA_BACKEND, with
-  // one alert, before anything is processed.
+  // An invalid value throws; it is refused with one alert, before anything is
+  // processed.
   let held;
   try {
     held = writeHold();
@@ -524,16 +515,6 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Checked before the quote branch too, on purpose: an invalid DATA_BACKEND
-  // stops the whole webhook with an alert rather than handling some charges.
-  let backend;
-  try {
-    backend = dataBackend();
-  } catch (err) {
-    await refuseInvalidSetting("DATA_BACKEND", err);
-    return;
-  }
-
   // The reference keys the quote settle locks and the Cosmos rows and holds
   // the invoice number, so it is read as a string; anything else counts as
   // no reference.
@@ -552,8 +533,7 @@ module.exports = async function (context, req) {
   // the quote service, which re-fetches the transaction from Paystack rather
   // than trusting this payload, and uses lock documents so the webhook, the
   // return page and polling record each payment exactly once. A transient
-  // failure answers 500 so Paystack retries, as on the Cosmos invoice path
-  // (the Appwrite invoice path answers 200).
+  // failure answers 500 so Paystack retries, as on the invoice path.
   if (metadata.kind === "quote") {
     if (!reference) {
       await bail("quote payment has no Paystack reference");
@@ -595,253 +575,97 @@ module.exports = async function (context, req) {
   const amountPaid = (data.amount || 0) / 100; // convert from pesewas back to base unit
   const currency = data.currency || "GHS";
 
-  if (backend === "cosmos") {
-    // The Cosmos rows are keyed by reference; Paystack always sends one.
-    if (!reference) {
-      await bail("payment has no Paystack reference", `invoice ${invoiceNumber}`);
+  // The Cosmos rows are keyed by reference; Paystack always sends one.
+  if (!reference) {
+    await bail("payment has no Paystack reference", `invoice ${invoiceNumber}`);
+    return;
+  }
+  let store;
+  try {
+    store = createCosmosInvoiceStore(cosmos.getDatabase());
+    const { outcome, recorded } = await recordInvoiceCharge({
+      store,
+      charge: {
+        reference,
+        invoiceNumber,
+        amountPaid,
+        currency,
+        method: paymentMethod(data.channel),
+      },
+      sendEmails: (payment) =>
+        sendPaymentEmails(payment, { resendKey, fromEmail, adminEmail, log: context.log }),
+      log: context.log,
+    });
+    if (outcome === "no-invoice") {
+      await bail(
+        "no invoice matches this payment",
+        `looked for invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
+      );
       return;
     }
-    let store;
-    try {
-      store = createCosmosInvoiceStore(cosmos.getDatabase());
-      const { outcome, recorded } = await recordInvoiceCharge({
-        store,
-        charge: {
-          reference,
-          invoiceNumber,
-          amountPaid,
-          currency,
-          method: paymentMethod(data.channel),
-        },
-        sendEmails: (payment) =>
-          sendPaymentEmails(payment, { resendKey, fromEmail, adminEmail, log: context.log }),
-        log: context.log,
-      });
-      if (outcome === "no-invoice") {
-        await bail(
-          "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
+    if (outcome === "ambiguous-invoice") {
+      await bail(
+        "more than one invoice has this number, so none was marked",
+        `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
+      );
+      return;
+    }
+    if (outcome === "conflict" && recorded) {
+      const reason = "the invoice this payment was applied to was renumbered or deleted";
+      const detail = `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`;
+      context.log.error(`paystack-webhook: ${reason} — ${detail}`);
+      if (resendKey && adminEmail) {
+        await sendEmail(
+          resendKey,
+          fromEmail,
+          adminEmail,
+          `Action needed: receipt not sent for a recorded payment on invoice ${invoiceNumber}`,
+          recordedConflictEmail(reason, detail),
+          context.log,
         );
-        return;
-      }
-      if (outcome === "ambiguous-invoice") {
-        await bail(
-          "more than one invoice has this number, so none was marked",
-          `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
-        );
-        return;
-      }
-      if (outcome === "conflict" && recorded) {
-        const reason = "the invoice this payment was applied to was renumbered or deleted";
-        const detail = `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`;
-        context.log.error(`paystack-webhook: ${reason} — ${detail}`);
-        if (resendKey && adminEmail) {
-          await sendEmail(
-            resendKey,
-            fromEmail,
-            adminEmail,
-            `Action needed: receipt not sent for a recorded payment on invoice ${invoiceNumber}`,
-            recordedConflictEmail(reason, detail),
-            context.log,
-          );
-        }
-        ok();
-        return;
-      }
-      if (outcome === "conflict") {
-        await bail(
-          "the payments row for this reference belongs to another charge or was edited by hand, or its invoice was renumbered or deleted, so nothing was changed",
-          `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
-        );
-        return;
-      }
-      // Another delivery is mid-way through the emails; the retry finds them
-      // sent.
-      if (outcome === "busy") {
-        retry();
-        return;
       }
       ok();
-    } catch (err) {
-      // Every step is recorded on the payments row, so the retry resumes here.
-      const reason =
-        typeof err?.code === "number"
-          ? `Cosmos rejected the update (status ${err.code})`
-          : "the payment could not be recorded";
-      const detail = `${err.message} (invoice ${invoiceNumber}, reference ${reference})`;
-      context.log.error(`paystack-webhook: ${reason}; Paystack will retry — ${detail}`);
-      // Claim only when an email can go: a claim with no email would use up
-      // the one alert for this reference.
-      if (resendKey && adminEmail) {
-        const alerted = await alertRetryableFailure({
-          store,
-          reference,
-          invoiceNumber,
-          recorded: Boolean(err?.paymentRecorded),
-          reason,
-          detail,
-          retryWindow: { mode: data.domain, chargedAt: chargeTime(data) },
-          mail: (subject, html) =>
-            sendEmail(resendKey, fromEmail, adminEmail, subject, html, context.log),
-          log: context.log,
-        });
-        if (alerted)
-          context.log.info(`paystack-webhook: sent the ${alerted} alert for ${reference}`);
-      }
-      retry();
-    }
-    return;
-  }
-
-  const apiKey = process.env.APPWRITE_API_KEY;
-
-  // Update invoice status in Appwrite
-  if (apiKey) {
-    try {
-      const client = new sdk.Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID).setKey(apiKey);
-
-      const db = new sdk.Databases(client);
-
-      // Paystack retries a webhook whenever it does not get a 2xx, and can
-      // deliver the same event more than once regardless. Without this, a
-      // retry wrote a second payments row and mailed the client a second
-      // "payment received" confirmation.
-      if (reference) {
-        const seen = await db.listDocuments(DATABASE_ID, PAYMENTS_COLLECTION_ID, [
-          sdk.Query.equal("paystackReference", [reference]),
-        ]);
-        if (seen.documents && seen.documents.length > 0) {
-          context.log.info(
-            `paystack-webhook: reference ${reference} already recorded — ignoring duplicate delivery`,
-          );
-          ok();
-          return;
-        }
-      }
-
-      const result = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
-        sdk.Query.equal("invoiceNumber", [invoiceNumber]),
-      ]);
-
-      if (result.documents && result.documents.length > 0) {
-        const doc = result.documents[0];
-
-        const clientName = doc.clientName || "Client";
-        const clientEmail = doc.clientEmail;
-
-        /*
-         * Verify what was actually paid before closing the invoice.
-         *
-         * The charge amount is set in the browser — the payment components
-         * hand Paystack Inline `invoice.total * 100` — so it is caller-
-         * controlled and cannot be trusted here. This function previously set
-         * status "paid" on any successful charge for a matching invoice
-         * number, which meant a ~1 unit payment closed an invoice of any size
-         * and sent the client a confirmation saying so.
-         *
-         * A shortfall is still recorded (the money did arrive) but leaves the
-         * invoice open and raises an alert instead.
-         */
-        const settlement = evaluateSettlement({ amountPaid, currency, invoice: doc });
-        const { settles, currencyMismatch, knownTotal, expected, invoiceCurrency, paidCurrency } =
-          settlement;
-
-        if (!knownTotal) {
-          context.log.warn(
-            `paystack-webhook: invoice ${invoiceNumber} has no usable total (${doc.total}) — recording the payment without verifying it`,
-          );
-        }
-
-        // An invoice the admin archived can still be paid from its /pay/ link.
-        // Any money received against it (a part-payment too) must not be
-        // hidden, so un-archive it. archivedAt is only sent when set, so a
-        // database without the column still records the payment. This
-        // best-effort write never blocks the payment record below.
-        const unarchive = async () => {
-          try {
-            await db.updateDocument(DATABASE_ID, COLLECTION_ID, doc.$id, { archivedAt: null });
-          } catch (err) {
-            context.log.error(
-              `paystack-webhook: could not un-archive invoice ${invoiceNumber}: ${err.message}`,
-            );
-          }
-        };
-        if (settles) {
-          const written = await db.updateDocument(DATABASE_ID, COLLECTION_ID, doc.$id, {
-            status: "paid",
-            ...(doc.archivedAt ? { archivedAt: null } : {}),
-          });
-          context.log.info(`paystack-webhook: invoice ${invoiceNumber} marked as paid`);
-          // Still archived as written: the admin archived it between our read
-          // and our write.
-          if (written && written.archivedAt) await unarchive();
-        } else {
-          context.log.error(
-            `paystack-webhook: invoice ${invoiceNumber} NOT marked paid — ` +
-              (currencyMismatch
-                ? `paid in ${paidCurrency} but invoiced in ${invoiceCurrency}`
-                : `paid ${money(amountPaid, currency)} against a total of ${money(expected, currency)}`),
-          );
-          if (doc.archivedAt) await unarchive();
-        }
-
-        // Create payment record (audit log)
-        try {
-          await db.createDocument(DATABASE_ID, PAYMENTS_COLLECTION_ID, sdk.ID.unique(), {
-            invoiceNumber,
-            clientName,
-            clientEmail: clientEmail || "",
-            amount: amountPaid,
-            currency,
-            method: paymentMethod(data.channel),
-            paystackReference: reference,
-            paidAt: new Date().toISOString(),
-            status: "success",
-          });
-          context.log.info(`paystack-webhook: payment record created for ${invoiceNumber}`);
-        } catch (pErr) {
-          context.log.error("paystack-webhook: failed to create payment record:", pErr.message);
-          // A swallowed failure here leaves the invoice paid with no audit-log row, so the
-          // Payments tab under-reports revenue with no visible sign. Alert the admin.
-          if (resendKey && adminEmail) {
-            await sendEmail(
-              resendKey,
-              fromEmail,
-              adminEmail,
-              `Action needed: payment record failed for invoice ${invoiceNumber}`,
-              recordFailedEmail({
-                invoiceNumber,
-                error: pErr.message,
-                amount: money(amountPaid, currency),
-                reference: reference || "n/a",
-              }),
-              context.log,
-            );
-          }
-        }
-
-        await sendPaymentEmails(
-          { invoiceNumber, clientName, clientEmail, amountPaid, currency, reference, settlement },
-          { resendKey, fromEmail, adminEmail, log: context.log },
-        );
-      } else {
-        await bail(
-          "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference || "none"}`,
-        );
-        return;
-      }
-    } catch (err) {
-      await bail("Appwrite rejected the update", `${err.message} (invoice ${invoiceNumber})`);
       return;
     }
-  } else {
-    await bail(
-      "APPWRITE_API_KEY is not set in Azure configuration",
-      `invoice ${invoiceNumber} was paid (${money(amountPaid, currency)}) but could not be marked paid or recorded`,
-    );
-    return;
+    if (outcome === "conflict") {
+      await bail(
+        "the payments row for this reference belongs to another charge or was edited by hand, or its invoice was renumbered or deleted, so nothing was changed",
+        `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
+      );
+      return;
+    }
+    // Another delivery is mid-way through the emails; the retry finds them
+    // sent.
+    if (outcome === "busy") {
+      retry();
+      return;
+    }
+    ok();
+  } catch (err) {
+    // Every step is recorded on the payments row, so the retry resumes here.
+    const reason =
+      typeof err?.code === "number"
+        ? `Cosmos rejected the update (status ${err.code})`
+        : "the payment could not be recorded";
+    const detail = `${err.message} (invoice ${invoiceNumber}, reference ${reference})`;
+    context.log.error(`paystack-webhook: ${reason}; Paystack will retry — ${detail}`);
+    // Claim only when an email can go: a claim with no email would use up
+    // the one alert for this reference.
+    if (resendKey && adminEmail) {
+      const alerted = await alertRetryableFailure({
+        store,
+        reference,
+        invoiceNumber,
+        recorded: Boolean(err?.paymentRecorded),
+        reason,
+        detail,
+        retryWindow: { mode: data.domain, chargedAt: chargeTime(data) },
+        mail: (subject, html) =>
+          sendEmail(resendKey, fromEmail, adminEmail, subject, html, context.log),
+        log: context.log,
+      });
+      if (alerted) context.log.info(`paystack-webhook: sent the ${alerted} alert for ${reference}`);
+    }
+    retry();
   }
-
-  ok();
 };

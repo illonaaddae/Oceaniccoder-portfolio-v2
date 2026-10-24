@@ -1,7 +1,6 @@
 // The invoice, payment and alert lock rows the Paystack webhook reads and
-// writes on Cosmos DB (DATA_BACKEND=cosmos). Kept to what
-// paystack-webhook/invoiceCharge.js needs, so that flow can be tested
-// against shared/fakeCosmos.js.
+// writes on Cosmos DB. Kept to what paystack-webhook/invoiceCharge.js
+// needs, so that flow can be tested against shared/fakeCosmos.js.
 //
 // Every container is partitioned by id. Updates read the row, ask the caller
 // what to change given what is stored now, and replace with an IfMatch etag,

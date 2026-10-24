@@ -1,9 +1,8 @@
-// Records a Paystack charge against an invoice on Cosmos DB
-// (DATA_BACKEND=cosmos). Same outcome as the Appwrite branch in index.js:
-// the payments row, the invoice marked paid (or only un-archived when the
-// money does not settle it) and the same emails. The difference is that
-// every step is written down on the payments row, so a crash or a second
-// delivery of the same event finishes the work instead of repeating it:
+// Records a Paystack charge against an invoice on Cosmos DB: the payments
+// row, the invoice marked paid (or only un-archived when the money does not
+// settle it) and the emails. Every step is written down on the payments row,
+// so a crash or a second delivery of the same event finishes the work
+// instead of repeating it:
 //
 //   1. A row for the reference under an older (Appwrite) id: already
 //      recorded before the cutover, so stop. So is a row at our id that
@@ -13,9 +12,9 @@
 //   2. Find the invoice: by number for a new charge (exactly one; several
 //      with the number stop here), by the row's invoiceId for a resumed one,
 //      which stops if that invoice is gone or renumbered.
-//      settle() decides paid or left open: evaluateSettlement as on
-//      Appwrite, except that an invoice without a currency is in GHS and
-//      one without a usable total stays open.
+//      settle() decides paid or left open: evaluateSettlement, except
+//      that an invoice without a currency is in GHS and one without a
+//      usable total stays open.
 //   3. Create the row at paymentIdFor(reference) with invoiceApplied false,
 //      the invoiceId and the settlement (settles, expected, invoiceCurrency).
 //      A 409 means another delivery created it first; carry on from it. From
@@ -99,9 +98,9 @@ function invoiceChange(settles) {
   };
 }
 
-// evaluateSettlement as on Appwrite, with two stricter rules for Cosmos: an
-// invoice without a currency is in cedis (not whatever was paid), and one
-// without a usable total stays open, because nothing can be checked.
+// evaluateSettlement with two stricter rules: an invoice without a currency
+// is in cedis (not whatever was paid), and one without a usable total stays
+// open, because nothing can be checked.
 function settle({ amountPaid, currency, invoice }) {
   const settlement = evaluateSettlement({
     amountPaid,
