@@ -78,8 +78,44 @@ function letterhead(meta) {
 </tr></table>`;
 }
 
+// Dark mode for the clients that honour it (Apple Mail, iOS Mail, Outlook for
+// Mac). Every colour lives inline, so the rules match the palette values in
+// those inline styles rather than classes; templates need no changes. Gmail
+// ignores this block and applies its own inversion.
+const DARK = {
+  page: "#000b21",
+  sheet: "#0b1730",
+  footer: "#07122a",
+  line: "#22324d",
+  ink: "#e8eef5",
+  ink2: "#c7d2de",
+  ink3: "#9fb0c3",
+  link: "#5fd0e6",
+  button: "#26a9c5",
+};
+const DARK_CSS = `<style>:root{color-scheme:light dark;supported-color-schemes:light dark}
+@media (prefers-color-scheme:dark){
+body,[style*="background:${C.bg}"]{background:${DARK.page}!important}
+[style*="background:#ffffff"]{background:${DARK.sheet}!important}
+[style*="background:${C.footer}"]{background:${DARK.footer}!important}
+[style*="${C.line}"]{border-color:${DARK.line}!important}
+[style*="color:${C.ink}"]{color:${DARK.ink}!important}
+[style*="color:${C.ink2}"]{color:${DARK.ink2}!important}
+[style*="color:${C.ink3}"]{color:${DARK.ink3}!important}
+[style*="color:${C.tealDark}"]{color:${DARK.link}!important}
+[style*="background:${C.tealDark}"]{background:${DARK.button}!important;border-color:${DARK.button}!important;color:${DARK.page}!important}
+[style*="color:${C.ok}"]{color:#4ade80!important}
+[style*="color:${C.warn}"]{color:#fbbf24!important}
+[style*="color:${C.info}"]{color:#67e8f9!important}
+[style*="color:${C.danger}"]{color:#f87171!important}
+[style*="background:${C.okBg}"]{background:#0c2a1a!important}
+[style*="background:${C.warnBg}"]{background:#2d2008!important}
+[style*="background:${C.infoBg}"]{background:#082a33!important}
+[style*="background:${C.dangerBg}"]{background:#2e0f12!important}
+}</style>`;
+
 function shell({ preview, body, reason, meta }) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">${FONT_LINK}<title>OceanicCoder</title></head>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">${FONT_LINK}${DARK_CSS}<title>OceanicCoder</title></head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preview)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">

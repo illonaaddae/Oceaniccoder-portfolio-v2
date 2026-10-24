@@ -176,7 +176,6 @@ const CATALOG = [
           clientName: invoiceSample.clientName,
           total: invoiceSample.total,
           currency: invoiceSample.currency,
-          currencySymbol: invoiceSample.currencySymbol,
           paidDate: "11 Oct 2026",
         }),
       ),
