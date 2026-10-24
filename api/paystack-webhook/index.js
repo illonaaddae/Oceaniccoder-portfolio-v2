@@ -185,7 +185,6 @@ async function sendPaymentEmails(
     invoiceCurrency,
     paidCurrency,
   } = settlement;
-  const sym = currencySymbol(currency);
 
   // Only tell the client the invoice is settled when it actually is.
   if (settles && resendKey && clientEmail) {
@@ -784,7 +783,7 @@ module.exports = async function (context, req) {
             `paystack-webhook: invoice ${invoiceNumber} NOT marked paid — ` +
               (currencyMismatch
                 ? `paid in ${paidCurrency} but invoiced in ${invoiceCurrency}`
-                : `paid ${sym}${amountPaid.toFixed(2)} against a total of ${sym}${expected.toFixed(2)}`),
+                : `paid ${money(amountPaid, currency)} against a total of ${money(expected, currency)}`),
           );
           if (doc.archivedAt) await unarchive();
         }
