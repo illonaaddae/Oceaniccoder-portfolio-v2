@@ -167,7 +167,7 @@ const PrivacyPage: React.FC = () => (
         </p>
         <p>
           To block spam, the contact, booking, inquiry, comment and testimonial forms use Cloudflare
-          Turnstile. When a page with one of these forms opens, your browser loads Turnstile from
+          Turnstile. Before you send one of these forms, your browser loads Turnstile from
           Cloudflare, which sees your IP address and checks details about your browser and device to
           tell people from bots. When you send a form, our server sends the result and your IP
           address to Cloudflare to confirm it. Our server also uses your IP address in memory to

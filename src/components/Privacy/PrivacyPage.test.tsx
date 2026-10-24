@@ -87,9 +87,9 @@ describe("PrivacyPage", () => {
     expect(
       within(forms).getByText(/sends the result and your IP\s+address to Cloudflare/),
     ).toBeInTheDocument();
-    // Turnstile contacts Cloudflare as soon as the page opens, not only on send.
+    // Turnstile contacts Cloudflare before the form is sent, not only on send.
     expect(
-      within(forms).getByText(/When a page with one of these forms opens, your browser loads/),
+      within(forms).getByText(/Before you send one of these forms, your browser loads Turnstile/),
     ).toBeInTheDocument();
     expect(within(forms).getByText(/and never saves it/)).toBeInTheDocument();
     const processors = screen.getByRole("region", {
