@@ -7,6 +7,7 @@ import { createRequire } from "module";
 // (vi.mock does not intercept CommonJS require; see create-booking.test.js).
 const require = createRequire(import.meta.url);
 const quoteService = require("../shared/quotes/service.js");
+const cosmos = require("../shared/cosmos.js");
 const handler = require("./index.js");
 
 const SECRET = "sk_test_webhook";
@@ -57,7 +58,7 @@ describe("paystack-webhook quote branch", () => {
   });
 
   it("answers 500 so Paystack retries when settling throws", async () => {
-    spy.mockRejectedValue(new Error("appwrite down"));
+    spy.mockRejectedValue(new Error("Cosmos down"));
     expect((await run(signed(quoteEvent))).status).toBe(500);
   });
 
@@ -76,7 +77,7 @@ describe("paystack-webhook quote branch", () => {
     },
   );
 
-  it("leaves invoice charges on the existing path", async () => {
+  it("leaves invoice charges to the invoice branch", async () => {
     const invoiceEvent = {
       event: "charge.success",
       data: {
@@ -85,15 +86,23 @@ describe("paystack-webhook quote branch", () => {
         metadata: { invoiceNumber: "INV-123456" },
       },
     };
-    delete process.env.APPWRITE_API_KEY; // existing path bails before any network call
-    await run(signed(invoiceEvent));
-    expect(spy).not.toHaveBeenCalled();
+    // The invoice branch stops at the database, before any network call.
+    const getDatabase = vi.spyOn(cosmos, "getDatabase").mockImplementation(() => {
+      throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+    });
+    try {
+      expect((await run(signed(invoiceEvent))).status).toBe(500);
+      expect(getDatabase).toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      getDatabase.mockRestore();
+    }
   });
 });
 
-// Its own describe: the invalid DATA_BACKEND alert is sent once per process,
-// so it is the only test in this file that mails about it.
-describe("paystack-webhook quote branch with an invalid DATA_BACKEND", () => {
+// DATA_BACKEND no longer stops the webhook: an invalid value used to answer
+// 500 and mail the admin before the quote service was called.
+describe("paystack-webhook quote branch and DATA_BACKEND", () => {
   const https = require("https");
   let sent;
   beforeEach(() => {
@@ -101,7 +110,6 @@ describe("paystack-webhook quote branch with an invalid DATA_BACKEND", () => {
       PAYSTACK_SECRET_KEY: SECRET,
       RESEND_API_KEY: "re_test",
       RESEND_TO_EMAIL: "admin@example.com",
-      DATA_BACKEND: "bogus",
     });
     sent = [];
     vi.spyOn(https, "request").mockImplementation((options, onResponse) => {
@@ -121,24 +129,27 @@ describe("paystack-webhook quote branch with an invalid DATA_BACKEND", () => {
   });
   afterEach(() => {
     vi.restoreAllMocks();
-    for (const key of ["PAYSTACK_SECRET_KEY", "RESEND_API_KEY", "RESEND_TO_EMAIL", "DATA_BACKEND"])
+    vi.unstubAllEnvs();
+    for (const key of ["PAYSTACK_SECRET_KEY", "RESEND_API_KEY", "RESEND_TO_EMAIL"])
       delete process.env[key];
   });
 
-  it("answers 500 and mails the invalid setting once", async () => {
-    const quote = vi.spyOn(quoteService, "handleQuoteCharge");
-    for (let i = 0; i < 2; i++) {
-      const context = {
-        res: null,
-        log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
-      };
-      await handler(context, signed(quoteEvent));
-      expect(context.res.status).toBe(500);
-    }
-    expect(sent.map((m) => m.subject)).toEqual([
-      "Action needed: DATA_BACKEND has an invalid value; payments are not being recorded",
-    ]);
-    expect(sent[0].html).toContain("DATA_BACKEND is not valid");
-    expect(quote).not.toHaveBeenCalled();
+  it.each([
+    ["unset", ""],
+    ["appwrite", "appwrite"],
+    ["anything else", "bogus"],
+  ])("settles a quote charge when DATA_BACKEND is %s", async (_label, value) => {
+    vi.stubEnv("DATA_BACKEND", value);
+    const quote = vi.spyOn(quoteService, "handleQuoteCharge").mockResolvedValue({
+      state: "success",
+    });
+    const context = {
+      res: null,
+      log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+    };
+    await handler(context, signed(quoteEvent));
+    expect(context.res.status).toBe(200);
+    expect(quote).toHaveBeenCalledWith("Q-2026-0001-1-ABCDEFGH");
+    expect(sent).toEqual([]);
   });
 });

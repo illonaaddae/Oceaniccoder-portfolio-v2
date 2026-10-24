@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The webhook handler with DATA_BACKEND=cosmos and WRITE_HOLD: status codes,
+// The webhook's invoice branch on Cosmos and WRITE_HOLD: status codes,
 // alerts and the emails it sends. The step-by-step flow is in
 // invoiceCharge.test.js.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -10,7 +10,6 @@ import { createRequire } from "module";
 // object (vi.mock does not intercept CommonJS require).
 const require = createRequire(import.meta.url);
 const https = require("https");
-const sdk = require("node-appwrite");
 const cosmos = require("../shared/cosmos.js");
 const quoteService = require("../shared/quotes/service.js");
 const { createFakeCosmos } = require("../shared/fakeCosmos.js");
@@ -79,7 +78,6 @@ const ENV = {
   PAYSTACK_SECRET_KEY: SECRET,
   RESEND_API_KEY: "re_test",
   RESEND_TO_EMAIL: "admin@example.com",
-  DATA_BACKEND: "cosmos",
 };
 
 describe("paystack-webhook invoice branch on Cosmos", () => {
@@ -88,15 +86,10 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
   beforeEach(() => {
     Object.assign(process.env, ENV);
     delete process.env.WRITE_HOLD;
-    delete process.env.APPWRITE_API_KEY;
     db = createFakeCosmos();
     db.container("invoices").seed(invoiceDoc());
     vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
     sent = captureEmails();
-    // The Cosmos branch must never reach Appwrite.
-    for (const method of ["listDocuments", "createDocument", "updateDocument"]) {
-      vi.spyOn(sdk.Databases.prototype, method).mockRejectedValue(new Error("Appwrite called"));
-    }
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -688,32 +681,25 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(db.container("payments").docs.size).toBe(0);
   });
 
-  // The only test in this file with an invalid DATA_BACKEND: the once-per-
-  // process flag lives in index.js for the life of the module.
-  it("answers 500 to an invalid DATA_BACKEND and mails about it once it is sent", async () => {
-    process.env.DATA_BACKEND = "cosmo";
-    sent.answers.push(500);
-    for (let i = 0; i < 3; i++) expect((await run()).status).toBe(500);
-    // The first send fails, so the flag is not set and the next run mails.
-    expect(sent.map((m) => [m.subject, m.status])).toEqual([
-      ["Action needed: DATA_BACKEND has an invalid value; payments are not being recorded", 500],
-      ["Action needed: DATA_BACKEND has an invalid value; payments are not being recorded", 200],
-    ]);
-    const { html } = sent[1];
-    expect(html).toContain("DATA_BACKEND is not valid");
-    expect(html).toContain("In test mode Paystack retries each charge hourly for about 10 hours");
-    expect(html).toContain("are lost and must be recorded by hand");
-    expect(html).toContain("Paystack dashboard");
-    expect(html).toContain("function logs");
-    expect(html).toContain("sent once while the setting is wrong");
-    expect(html).not.toContain("once per payment");
-    expect(db.container("payments").docs.size).toBe(0);
-  });
-
-  it("does not touch Cosmos when DATA_BACKEND is unset", async () => {
-    delete process.env.DATA_BACKEND;
-    await run();
-    expect(cosmos.getDatabase).not.toHaveBeenCalled();
+  // DATA_BACKEND no longer picks the store: unset used to mean Appwrite, and
+  // an invalid value refused every charge.
+  it.each([
+    ["unset", ""],
+    ["appwrite", "appwrite"],
+    ["anything else", "cosmo"],
+  ])("records the charge on Cosmos when DATA_BACKEND is %s", async (_label, value) => {
+    vi.stubEnv("DATA_BACKEND", value);
+    try {
+      expect((await run()).status).toBe(200);
+      expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+      expect(payment()).toMatchObject({ invoiceApplied: true });
+      expect(subjects()).toEqual([
+        ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+        ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 
@@ -721,20 +707,16 @@ describe("paystack-webhook under WRITE_HOLD", () => {
   let sent;
   let quote;
   beforeEach(() => {
-    Object.assign(process.env, ENV, { WRITE_HOLD: "1", APPWRITE_API_KEY: "test-key" });
+    Object.assign(process.env, ENV, { WRITE_HOLD: "1" });
     sent = captureEmails();
     vi.spyOn(cosmos, "getDatabase").mockImplementation(() => {
       throw new Error("Cosmos called");
     });
     quote = vi.spyOn(quoteService, "handleQuoteCharge");
-    for (const method of ["listDocuments", "createDocument", "updateDocument"]) {
-      vi.spyOn(sdk.Databases.prototype, method).mockRejectedValue(new Error("Appwrite called"));
-    }
   });
   afterEach(() => {
     vi.restoreAllMocks();
-    for (const key of [...Object.keys(ENV), "WRITE_HOLD", "APPWRITE_API_KEY"])
-      delete process.env[key];
+    for (const key of [...Object.keys(ENV), "WRITE_HOLD"]) delete process.env[key];
   });
 
   const run = async (req) => {
@@ -746,16 +728,11 @@ describe("paystack-webhook under WRITE_HOLD", () => {
     return context.res;
   };
 
-  it.each(["cosmos", "appwrite"])(
-    "answers 503 to an invoice charge on %s and does no work",
-    async (backend) => {
-      process.env.DATA_BACKEND = backend;
-      expect((await run(signed(chargeOf()))).status).toBe(503);
-      expect(cosmos.getDatabase).not.toHaveBeenCalled();
-      expect(sdk.Databases.prototype.listDocuments).not.toHaveBeenCalled();
-      expect(sent).toEqual([]);
-    },
-  );
+  it("answers 503 to an invoice charge and does no work", async () => {
+    expect((await run(signed(chargeOf()))).status).toBe(503);
+    expect(cosmos.getDatabase).not.toHaveBeenCalled();
+    expect(sent).toEqual([]);
+  });
 
   it("answers 503 to a quote charge without calling the quote service", async () => {
     const event = chargeOf({ reference: "Q-2026-0001-1-ABCDEFGH", metadata: { kind: "quote" } });
@@ -767,7 +744,6 @@ describe("paystack-webhook under WRITE_HOLD", () => {
   // process flag lives in index.js for the life of the module.
   it("answers 500 to invoice and quote charges under an invalid WRITE_HOLD and mails once it is sent", async () => {
     process.env.WRITE_HOLD = "true";
-    process.env.DATA_BACKEND = "cosmos";
     const quoteEvent = chargeOf({
       reference: "Q-2026-0001-1-ABCDEFGH",
       metadata: { kind: "quote" },
