@@ -3,26 +3,17 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { MediaFile } from "@/services/api/storage";
 
-const mode = vi.hoisted(() => ({ usesCosmos: false }));
 const UPLOADED_LOGO = vi.hoisted(
   () => "https://oceaniccodermedia.blob.core.windows.net/media/logo-file/logo-file.png",
 );
 const manageList = vi.fn();
-const listAllDocuments = vi.fn();
 const readPlatformLogoOverrides = vi.fn();
 const readHeroImages = vi.fn();
 const listMediaFiles = vi.fn();
 const deleteImage = vi.fn();
 
 vi.mock("@/services/api/dataApi", () => ({
-  get usesCosmos() {
-    return mode.usesCosmos;
-  },
   manageList: (...a: unknown[]) => manageList(...a),
-}));
-vi.mock("@/services/api/listAll", () => ({
-  LIST_ALL_CAP: 2000,
-  listAllDocuments: (...a: unknown[]) => listAllDocuments(...a),
 }));
 vi.mock("@/services/api/storage", () => ({
   listMediaFiles: () => listMediaFiles(),
@@ -66,19 +57,12 @@ const rowsFor = (rows: Rows) => async (collection: string) => {
   return value;
 };
 
-function serveCosmos(rows: Rows) {
-  mode.usesCosmos = true;
+function serveRows(rows: Rows) {
   const read = rowsFor(rows);
   manageList.mockImplementation(async (collection: string) => {
     const documents = await read(collection);
     return { total: documents.length, documents };
   });
-}
-
-function serveAppwrite(rows: Rows) {
-  mode.usesCosmos = false;
-  const read = rowsFor(rows);
-  listAllDocuments.mockImplementation(read);
 }
 
 async function renderTab() {
@@ -97,7 +81,6 @@ const scanAlert = () => screen.queryByRole("alert");
 
 beforeEach(() => {
   manageList.mockReset();
-  listAllDocuments.mockReset();
   readPlatformLogoOverrides.mockReset();
   readPlatformLogoOverrides.mockResolvedValue({});
   readHeroImages.mockReset();
@@ -108,11 +91,10 @@ beforeEach(() => {
 });
 
 describe("StorageCleanupTab", () => {
-  it("reads every collection through /api/manage in Cosmos mode", async () => {
-    serveCosmos({ projects: [PROJECT] });
+  it("reads every collection through /api/manage", async () => {
+    serveRows({ projects: [PROJECT] });
     await renderTab();
 
-    expect(listAllDocuments).not.toHaveBeenCalled();
     expect(manageList).toHaveBeenCalledWith("projects");
     expect(manageList).toHaveBeenCalledWith("testimonials");
     // No limit: every row counts, or a file used by row 501 looks orphaned.
@@ -124,7 +106,7 @@ describe("StorageCleanupTab", () => {
   });
 
   it("deletes an orphan after confirmation when every collection was read", async () => {
-    serveCosmos({ projects: [PROJECT] });
+    serveRows({ projects: [PROJECT] });
     deleteImage.mockResolvedValue(undefined);
     await renderTab();
 
@@ -134,12 +116,9 @@ describe("StorageCleanupTab", () => {
     expect(deleteImage).toHaveBeenCalledWith("orphan-file");
   });
 
-  it.each([
-    ["Cosmos", serveCosmos],
-    ["Appwrite", serveAppwrite],
-  ])("blocks delete in %s mode when a collection can't be read", async (_name, serve) => {
+  it("blocks delete when a collection can't be read", async () => {
     // The project row that uses live-file can't be read, so live-file looks orphaned.
-    serve({ projects: new Error("Forbidden") });
+    serveRows({ projects: new Error("Forbidden") });
     await renderTab();
 
     const alert = scanAlert();
@@ -157,35 +136,11 @@ describe("StorageCleanupTab", () => {
     expect(deleteImage).not.toHaveBeenCalled();
   });
 
-  it("reads every Appwrite row in Appwrite mode, past the old 500-row page", async () => {
-    const filler = Array.from({ length: 600 }, (_, i) => ({ $id: `p${i}`, image: "" }));
-    serveAppwrite({ projects: [...filler, PROJECT] });
-    await renderTab();
-
-    expect(manageList).not.toHaveBeenCalled();
-    expect(listAllDocuments).toHaveBeenCalledWith("projects");
-    expect(screen.getByText("In use")).toBeInTheDocument();
-    expect(deleteButton()).toBeEnabled();
-  });
-
-  it("blocks delete when an Appwrite collection reaches the row cap", async () => {
-    const full = Array.from({ length: 2000 }, (_, i) => ({ $id: `p${i}`, image: "" }));
-    serveAppwrite({ projects: full });
-    await renderTab();
-
-    expect(
-      within(scanAlert() as HTMLElement).getByText(/projects: more than 1999 rows/),
-    ).toBeInTheDocument();
-    for (const button of screen.getAllByRole("button", { name: DELETE_FILE })) {
-      expect(button).toBeDisabled();
-    }
-  });
-
   describe("platform logo overrides", () => {
     const LOGO = media("logo-file");
 
     it("counts an override's file as in use even when the overrides load last", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       listMediaFiles.mockResolvedValue([...FILES, LOGO]);
       // Resolves after the collections and the media list.
       readPlatformLogoOverrides.mockImplementation(
@@ -203,7 +158,7 @@ describe("StorageCleanupTab", () => {
         ...media("6a08dac800096013ea70"),
         url: `${BASE}/6a08dac800096013ea70/pinclipart-com-welders-clipart-1637044.webp`,
       };
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       listMediaFiles.mockResolvedValue([...FILES, bundledAws]);
       readPlatformLogoOverrides.mockResolvedValue({ AWS: "" });
       await renderTab();
@@ -214,7 +169,7 @@ describe("StorageCleanupTab", () => {
     });
 
     it("keeps a replaced logo in use when an older scan finishes last", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       listMediaFiles.mockResolvedValue([...FILES, LOGO]);
       // The scan on mount reads the overrides from before the replacement and
       // is held until the scan the replacement starts has finished.
@@ -241,7 +196,7 @@ describe("StorageCleanupTab", () => {
     });
 
     it("blocks delete when the overrides can't be read", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       listMediaFiles.mockResolvedValue([...FILES, LOGO]);
       readPlatformLogoOverrides.mockRejectedValue(new Error("Unauthorized"));
       await renderTab();
@@ -256,7 +211,7 @@ describe("StorageCleanupTab", () => {
   });
 
   it("lists no files from the earlier scan after a refresh fails", async () => {
-    serveCosmos({ projects: [PROJECT] });
+    serveRows({ projects: [PROJECT] });
     await renderTab();
     expect(screen.getByText("live-file.png")).toBeInTheDocument();
 
@@ -271,12 +226,12 @@ describe("StorageCleanupTab", () => {
 
   it("shows no deletable files when a refresh can't list the media after a failed scan", async () => {
     // Scan 1: projects fails, so live-file is listed as an orphan with delete off.
-    serveCosmos({ projects: new Error("Forbidden") });
+    serveRows({ projects: new Error("Forbidden") });
     await renderTab();
     expect(enabledDeleteButtons()).toHaveLength(0);
 
     // Scan 2: every collection reads, but the media list fails.
-    serveCosmos({ projects: [PROJECT] });
+    serveRows({ projects: [PROJECT] });
     listMediaFiles.mockRejectedValue(new Error("Media list failed"));
     await userEvent.click(screen.getByRole("button", { name: /refresh/i }));
     // Announced once, by the error banner; the scan warning has been cleared.
@@ -291,7 +246,7 @@ describe("StorageCleanupTab", () => {
   it("counts an image the site's code uses as in use", async () => {
     // IMAGES.profile, the default hero and sidebar photo; no row points at it.
     const profile = media("69444ceb001c1eda1331");
-    serveCosmos({ projects: [PROJECT] });
+    serveRows({ projects: [PROJECT] });
     listMediaFiles.mockResolvedValue([...FILES, profile]);
     await renderTab();
 
@@ -301,14 +256,14 @@ describe("StorageCleanupTab", () => {
 
   describe("accessibility", () => {
     it("names each delete button after its file", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       await renderTab();
 
       expect(screen.getByRole("button", { name: "Delete orphan-file.png" })).toBeEnabled();
     });
 
     it("gives a blocked delete button its reason", async () => {
-      serveCosmos({ projects: new Error("Forbidden") });
+      serveRows({ projects: new Error("Forbidden") });
       await renderTab();
 
       for (const button of screen.getAllByRole("button", { name: DELETE_FILE })) {
@@ -321,7 +276,7 @@ describe("StorageCleanupTab", () => {
     });
 
     it("announces the scan in a status region", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       let finishList: (files: MediaFile[]) => void = () => {};
       listMediaFiles.mockImplementationOnce(() => new Promise((resolve) => (finishList = resolve)));
       render(<StorageCleanupTab theme="dark" />);
@@ -332,7 +287,7 @@ describe("StorageCleanupTab", () => {
     });
 
     it("keeps the finished count as scanned after a delete", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       deleteImage.mockResolvedValue(undefined);
       await renderTab();
 
@@ -345,13 +300,13 @@ describe("StorageCleanupTab", () => {
     });
 
     it("announces each partial scan in the status region", async () => {
-      serveCosmos({ projects: new Error("Forbidden") });
+      serveRows({ projects: new Error("Forbidden") });
       await renderTab();
 
       const status = screen.getByRole("status");
       expect(status).toHaveTextContent("Scan finished. 1 collection could not be read.");
 
-      serveCosmos({ projects: new Error("Forbidden"), gallery: new Error("Forbidden") });
+      serveRows({ projects: new Error("Forbidden"), gallery: new Error("Forbidden") });
       await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
       await waitFor(() =>
         expect(status).toHaveTextContent("Scan finished. 2 collections could not be read."),
@@ -359,7 +314,7 @@ describe("StorageCleanupTab", () => {
     });
 
     it("keeps keyboard focus on Refresh while it scans and ignores repeat presses", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       await renderTab();
       let finishList: (files: MediaFile[]) => void = () => {};
       listMediaFiles.mockImplementation(() => new Promise((resolve) => (finishList = resolve)));
@@ -382,7 +337,7 @@ describe("StorageCleanupTab", () => {
     });
 
     it("shows a scanning state in the header instead of zero counts", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       listMediaFiles.mockImplementationOnce(() => new Promise(() => {}));
       render(<StorageCleanupTab theme="dark" />);
 
@@ -404,13 +359,13 @@ describe("StorageCleanupTab", () => {
 
     it("counts a hero image as in use", async () => {
       await fileOnlyUsedBy(() => {
-        serveCosmos({});
+        serveRows({});
         readHeroImages.mockResolvedValue({ light: "", dark: LIVE_URL });
       });
     });
 
     it("blocks delete when the hero images can't be read", async () => {
-      serveCosmos({ projects: [PROJECT] });
+      serveRows({ projects: [PROJECT] });
       readHeroImages.mockRejectedValue(new Error("hero_images setting is not an object of URLs"));
       await renderTab();
 
@@ -428,19 +383,19 @@ describe("StorageCleanupTab", () => {
       ["an upper-case scheme", `![Image](${LIVE_URL.replace("https://", "HTTPS://")})`],
       ["a scheme-less URL", `![Image](${LIVE_URL.replace("https:", "")})`],
     ])("counts an image in a blog post body as in use: %s", async (_name, content) => {
-      await fileOnlyUsedBy(() => serveCosmos({ blog_posts: [{ $id: "b1", content }] }));
+      await fileOnlyUsedBy(() => serveRows({ blog_posts: [{ $id: "b1", content }] }));
     });
 
     it("counts a project's demo video as in use", async () => {
       await fileOnlyUsedBy(() =>
-        serveCosmos({ project_videos: [{ $id: "v1", projectId: "p1", demoVideoUrl: LIVE_URL }] }),
+        serveRows({ project_videos: [{ $id: "v1", projectId: "p1", demoVideoUrl: LIVE_URL }] }),
       );
     });
 
     it.each(["blog_posts", "project_videos"])(
       "blocks delete when %s can't be read",
       async (collection) => {
-        serveCosmos({ projects: [PROJECT], [collection]: new Error("Forbidden") });
+        serveRows({ projects: [PROJECT], [collection]: new Error("Forbidden") });
         await renderTab();
 
         expect(

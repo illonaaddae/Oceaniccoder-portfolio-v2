@@ -41,7 +41,7 @@ const SIZE_PRESETS = {
  * - Smooth fade-in animation
  * - Fallback image on error
  * - Supports custom placeholder colors
- * - Automatic image optimization for Appwrite images
+ * - Automatic image optimization for Azure Blob images
  * - Responsive srcSet generation
  */
 export const LazyImage: React.FC<LazyImageProps> = ({
@@ -68,7 +68,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     if (!src || disableOptimization || !isOptimizableImageUrl(src)) return src;
 
     const preset = SIZE_PRESETS[displaySize];
-    return getOptimizedImageUrl(src, preset.width, preset.height, 80);
+    return getOptimizedImageUrl(src, preset.width, preset.height);
   }, [src, displaySize, disableOptimization]);
 
   // Track the current source to display - initialize with src or optimized version
@@ -77,7 +77,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   // Generate srcSet for responsive images
   const srcSet = useMemo(() => {
     if (!src || disableOptimization || !isOptimizableImageUrl(src)) return "";
-    return generateSrcSet(src, [320, 480, 640, 768, 1024, 1280]);
+    return generateSrcSet(src);
   }, [src, disableOptimization]);
 
   // Intersection Observer to detect when image enters viewport
