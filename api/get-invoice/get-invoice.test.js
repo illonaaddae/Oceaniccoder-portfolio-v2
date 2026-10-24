@@ -219,23 +219,6 @@ describe("get-invoice on Cosmos", () => {
     });
   });
 
-  // DATA_BACKEND no longer picks the store: unset used to mean Appwrite, and
-  // any other value made the read throw.
-  it.each([
-    ["unset", ""],
-    ["appwrite", "appwrite"],
-    ["anything else", "mongo"],
-  ])("reads Cosmos when DATA_BACKEND is %s", async (_label, value) => {
-    vi.stubEnv("DATA_BACKEND", value);
-    try {
-      invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
-      expect((await run("INV-2026-0042")).status).toBe(200);
-      expect(invoices.queries).toHaveLength(1);
-    } finally {
-      vi.unstubAllEnvs();
-    }
-  });
-
   it("passes the number as a query parameter, not in the SQL", async () => {
     await run("INV-1' OR 1=1 --");
     expect(invoices.queries).toEqual([

@@ -1,5 +1,5 @@
 // Wires the real dependencies for the quote functions and the webhook.
-// Quotes, payments and locks live in Cosmos DB whatever DATA_BACKEND says;
+// Quotes, payments and locks live in Cosmos DB;
 // WRITE_HOLD pauses the service while data moves (see ../backend.js).
 
 const { getDatabase } = require("../cosmos");

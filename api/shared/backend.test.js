@@ -1,25 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 
-const { dataBackend, writeHold } = await import("./backend.js");
-
-describe("dataBackend", () => {
-  it("defaults to appwrite when DATA_BACKEND is unset or empty", () => {
-    expect(dataBackend({})).toBe("appwrite");
-    expect(dataBackend({ DATA_BACKEND: "" })).toBe("appwrite");
-  });
-
-  it("returns the configured backend", () => {
-    expect(dataBackend({ DATA_BACKEND: "appwrite" })).toBe("appwrite");
-    expect(dataBackend({ DATA_BACKEND: "cosmos" })).toBe("cosmos");
-  });
-
-  it("throws on any other value instead of guessing", () => {
-    for (const value of ["Cosmos", " cosmos", "cosmosdb", "true", "1"]) {
-      expect(() => dataBackend({ DATA_BACKEND: value })).toThrow(/DATA_BACKEND must be/);
-    }
-  });
-});
+const { writeHold } = await import("./backend.js");
 
 describe("writeHold", () => {
   it("is on for '1' and off when unset, empty or '0'", () => {
