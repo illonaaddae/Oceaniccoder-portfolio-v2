@@ -25,7 +25,7 @@ describe("renderPaymentConfirmation", () => {
     expect(html).toContain("Thank you, Kofi Mensah");
     expect(html).toContain("GHS 3,413.03");
     expect(html).toContain("10 October 2026");
-    expect(html).toContain("Paid</span>");
+    expect(html).toContain('stamp-paid@3x.png" width="65" height="26" alt="Paid"');
     expect(html).toContain("hello@oceaniccoder.dev");
   });
 

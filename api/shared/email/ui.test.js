@@ -53,7 +53,7 @@ describe("card", () => {
       rows: [["Invoice", "INV-1"]],
     });
     expect(html).toContain('bgcolor="#04333B"');
-    expect(html).toContain("&#10003; Paid</span>");
+    expect(html).toContain('stamp-paid@3x.png" width="65" height="26" alt="Paid"');
     expect(html).toContain("font-size:36px");
   });
 
@@ -135,26 +135,25 @@ describe("Gmail dark mode and phone widths", () => {
       highlight: "GHS 1.00",
     });
     expect(html).toMatch(
-      /<td align="right" style="vertical-align:middle;padding-left:12px;white-space:nowrap;text-align:right"><span style="display:inline-block;background:#fcd34d/,
+      /<td align="right" style="vertical-align:middle;padding-left:12px;white-space:nowrap;text-align:right"><img src="https:\/\/oceaniccoder\.dev\/images\/email\/stamp-due@3x\.png"/,
     );
   });
 });
 
 describe("status stamp", () => {
-  it("is filled with near-black text, so Gmail shows the same colour in light and dark", () => {
-    const html = ui.card({
-      title: "Receipt",
-      status: { label: "Paid", tone: "ok" },
-      highlight: "GHS 1.00",
-    });
-    expect(html).toContain("background:#86efac;background-image:linear-gradient(#86efac,#86efac)");
-    expect(html).toContain("color:#111111");
-    expect(html).not.toContain("border:1.5px");
+  it("sends Paid and Due as images of the outlined stamp, so Gmail cannot recolour them", () => {
+    const paid = ui.card({ title: "Receipt", status: { label: "Paid", tone: "ok" } });
+    expect(paid).toContain('src="https://oceaniccoder.dev/images/email/stamp-paid@3x.png"');
+    expect(paid).toContain('alt="Paid"');
     const due = ui.card({ title: "Amount due", status: { label: "Due", tone: "warn" } });
-    expect(due).toContain("background:#fcd34d");
-    expect(ui.card({ title: "T", status: { label: "X", tone: "nope" } })).toContain(
-      "background:#a5f3fc",
-    );
+    expect(due).toContain('alt="Due"');
+  });
+
+  it("draws any other status as an outlined text stamp", () => {
+    const html = ui.card({ title: "T", status: { label: "<Held>", tone: "nope" } });
+    expect(html).toContain("border:1.5px solid #a5f3fc");
+    expect(html).toContain("&lt;Held&gt;");
+    expect(html).not.toContain("<img");
   });
 });
 

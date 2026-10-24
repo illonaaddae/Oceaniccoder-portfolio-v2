@@ -164,10 +164,15 @@ function p(text) {
 const OCEAN = "#04333B";
 // Near-neutral, so Gmail's colour flip barely shifts it.
 const ON_OCEAN = "#cbd5e1";
-// Stamp fills on the ocean header. Filled rather than outlined, with
-// near-black text, so Gmail's dark mode shows the same green or yellow.
+// Stamp colours on the ocean header.
 const STAMPS = { ok: "#86efac", warn: "#fcd34d", info: "#a5f3fc", danger: "#fca5a5" };
-const STAMP_INK = "#111111";
+// Paid and Due are sent as images of the outlined stamp (public/images/email,
+// 3x), because Gmail's dark mode recolours text and borders but never images.
+// Other statuses fall back to the same stamp drawn in text.
+const STAMP_IMAGES = {
+  "ok:paid": { src: `${SITE}/images/email/stamp-paid@3x.png`, width: 65, height: 26 },
+  "warn:due": { src: `${SITE}/images/email/stamp-due@3x.png`, width: 47, height: 26 },
+};
 
 // Content on a dark surface, wrapped so Gmail's inversion leaves it white.
 // inner is extra style for the inner layer; a button puts its padding there so
@@ -198,9 +203,12 @@ function figureText(value) {
 function card({ title, highlight, highlightLabel, status, rows = [], body = "" }) {
   const tone = STAMPS[status?.tone] ? status.tone : "info";
   const stampColor = STAMPS[tone];
-  const stamp = status
-    ? `<span style="display:inline-block;${keepDark(stampColor)};border-radius:4px">${onDark(`${status.tone === "ok" ? "&#10003; " : ""}${esc(status.label)}`, true, `${LABEL};color:${STAMP_INK};padding:4px 8px;white-space:nowrap;border-radius:4px`)}</span>`
-    : "";
+  const image = status && STAMP_IMAGES[`${tone}:${String(status.label).toLowerCase()}`];
+  const stamp = !status
+    ? ""
+    : image
+      ? `<img src="${image.src}" width="${image.width}" height="${image.height}" alt="${esc(status.label)}" style="display:inline-block;border:0;width:${image.width}px;height:${image.height}px;vertical-align:middle">`
+      : `<span style="${LABEL};color:${stampColor};border:1.5px solid ${stampColor};border-radius:4px;padding:4px 8px;white-space:nowrap">${tone === "ok" ? "&#10003; " : ""}${esc(status.label)}</span>`;
   // Title and stamp share a row in their own table, outside the Gmail layers,
   // so the stamp sits at the right edge in every client.
   const top =

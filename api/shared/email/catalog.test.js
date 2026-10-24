@@ -94,10 +94,10 @@ describe("email catalog", () => {
   it("stamps receipts Paid and payment requests Due", () => {
     const stamp = (id) => findEmail(id).render().html;
     for (const id of ["invoicePaidConfirmation", "invoicePaidReceipt", "paymentReceipt"]) {
-      expect(stamp(id), id).toContain("&#10003; Paid</span>");
+      expect(stamp(id), id).toContain('stamp-paid@3x.png" width="65" height="26" alt="Paid"');
     }
     for (const id of ["invoiceSent", "paymentRequest"]) {
-      expect(stamp(id), id).toContain("Due</span>");
+      expect(stamp(id), id).toContain('stamp-due@3x.png" width="47" height="26" alt="Due"');
     }
   });
 
