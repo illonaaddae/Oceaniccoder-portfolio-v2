@@ -117,7 +117,7 @@ export default function BookingSection() {
   const [zoomLink, setZoomLink] = useState("");
   const [calendarLink, setCalendarLink] = useState("");
   const [slotAvailability, setSlotAvailability] = useState({});
-  const [appwriteBookedSlots, setAppwriteBookedSlots] = useState(new Set());
+  const [bookedSlots, setBookedSlots] = useState(new Set());
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
@@ -129,7 +129,7 @@ export default function BookingSection() {
     if (!form.preferredDate) return;
     setLoadingSlots(true);
     setSlotAvailability({});
-    setAppwriteBookedSlots(new Set());
+    setBookedSlots(new Set());
     // Fetch Google Calendar availability
     const availUrl = apiUrl(
       `/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`,
@@ -139,9 +139,9 @@ export default function BookingSection() {
       .then((data) => setSlotAvailability(data.available || {}))
       .catch(() => {})
       .finally(() => setLoadingSlots(false));
-    // Fetch Appwrite bookings for this date so already-booked slots show disabled immediately
+    // Fetch saved bookings for this date so already-booked slots show disabled immediately
     getBookedTimesForDate(form.preferredDate)
-      .then((booked) => setAppwriteBookedSlots(booked))
+      .then((booked) => setBookedSlots(booked))
       .catch(() => {});
   }, [form.preferredDate, form.timezone]);
 
@@ -188,8 +188,8 @@ export default function BookingSection() {
     setError("");
     setSubmitting(true);
     try {
-      // Double-booking is enforced server-side in the Azure Function (guests can't
-      // query Appwrite directly — 401). The function returns 409 if slot is taken.
+      // Double-booking is enforced server-side in the Azure Function, which
+      // returns 409 if the slot is taken.
 
       // Try calendar event creation — best-effort, don't block booking if unavailable
       let calMeetLink = null;
@@ -223,7 +223,7 @@ export default function BookingSection() {
         // API unavailable locally (run `func start` for full local testing) — continue to save
       }
 
-      // Save booking to Appwrite (include meet/zoom link so admin can resend it on confirm)
+      // Save the booking (include meet/zoom link so admin can resend it on confirm)
       const result = await createBooking(
         {
           ...form,
@@ -601,7 +601,7 @@ export default function BookingSection() {
                           <div className="grid grid-cols-3 gap-2">
                             {TIME_SLOTS.map((slot) => {
                               const isBooked =
-                                slotAvailability[slot] === false || appwriteBookedSlots.has(slot);
+                                slotAvailability[slot] === false || bookedSlots.has(slot);
                               const isSelected = form.preferredTime === slot;
                               return (
                                 <button

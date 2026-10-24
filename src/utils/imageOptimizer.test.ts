@@ -152,7 +152,8 @@ describe("Azure Blob media URLs", () => {
     expect(getImageForContext(PNG, "hero")).toMatch(/\/w1600\.webp$/);
   });
 
-  it("defaults to the card size, not the 960 fallback", () => {
+  it("defaults to the card size", () => {
+    expect(getImageForContext(PNG)).toBe(getImageForContext(PNG, "card"));
     expect(getImageForContext(PNG)).toMatch(/\/w480\.webp$/);
   });
 

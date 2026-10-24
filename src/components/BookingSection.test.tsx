@@ -223,7 +223,7 @@ describe("BookingSection — submit flow", () => {
       expect(screen.getByText(/09:00 AM on 2099-06-15 is already booked/i)).toBeInTheDocument();
     });
     expect(screen.queryByText("Booking Received!")).not.toBeInTheDocument();
-    // createBooking must NOT be called — the 409 blocks execution before Appwrite
+    // createBooking must NOT be called — the 409 blocks execution before the save
     expect(mockCreateBooking).not.toHaveBeenCalled();
   });
 
@@ -250,9 +250,9 @@ describe("BookingSection — submit flow", () => {
     expect(screen.getByLabelText(/preferred date/i)).toBeInTheDocument();
   });
 
-  test("shows generic error when API and Appwrite are both unreachable", async () => {
+  test("shows generic error when the calendar and the save both fail", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
-    mockCreateBooking.mockRejectedValue(new Error("Appwrite down"));
+    mockCreateBooking.mockRejectedValue(new Error("Save failed"));
 
     render(<BookingSection />);
     await advanceToStep2();
