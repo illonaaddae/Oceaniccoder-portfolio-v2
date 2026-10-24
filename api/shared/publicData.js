@@ -10,7 +10,6 @@
 // (drafts, hidden images, unapproved comments) and fields (commenter emails)
 // on the server, so a visitor can't get them by editing the request. A
 // collection with `fields` returns only those fields; `omit` drops named ones.
-// /api/comments uses the same comment rule for its Appwrite reads.
 
 const { MIGRATED_SETTINGS_KEYS } = require("./cosmos");
 

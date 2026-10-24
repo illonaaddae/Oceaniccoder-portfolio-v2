@@ -23,7 +23,7 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev";
 const HEADERS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-appwrite-jwt",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   Vary: "Origin",
   "Content-Type": "application/json",
   "Cache-Control": "no-store",

@@ -91,7 +91,6 @@ describe("send-newsletter access", () => {
   it("refuses a caller with no session and sends nothing", async () => {
     const r = await send({ "content-type": "application/json" }, { title: "T", slug: "t" });
     expect(r.status).toBe(401);
-    expect(r.body.transports).toEqual({ xAppwriteJwt: 0, body: 0, authorization: 0 });
     expect(request).not.toHaveBeenCalled();
   });
 

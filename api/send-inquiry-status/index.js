@@ -5,7 +5,7 @@ const { shell, heading, p, notice, small, lines } = require("../shared/email/ui"
 const CORS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-appwrite-jwt",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   Vary: "Origin",
   "Content-Type": "application/json",
 };
