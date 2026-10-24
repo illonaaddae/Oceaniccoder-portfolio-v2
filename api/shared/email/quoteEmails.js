@@ -25,6 +25,7 @@ const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
 function invoiceBlock(inv) {
   return card({
     title: "Amount due",
+    status: { label: "Due", tone: "warn" },
     highlightLabel: inv.label,
     highlight: inv.amount,
     rows: [["Due", inv.dueDate]],
@@ -234,6 +235,7 @@ function paymentReceipt(v) {
       }) +
       card({
         title: "Payment summary",
+        status: { label: "Paid", tone: "ok" },
         highlightLabel: v.stageLabel,
         highlight: v.amount,
         rows: [

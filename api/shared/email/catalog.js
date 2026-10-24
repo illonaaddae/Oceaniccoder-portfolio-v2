@@ -159,7 +159,7 @@ const CATALOG = [
         webhook.clientReceiptEmail({
           clientName: invoiceSample.clientName,
           invoiceNumber: invoiceSample.invoiceNumber,
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
         }),
       ),
   },
@@ -363,7 +363,7 @@ const CATALOG = [
         webhook.adminPaymentEmail({
           invoiceNumber: invoiceSample.invoiceNumber,
           clientName: invoiceSample.clientName,
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
           reference: "PAY-INV-2026-0042-1760184000",
           settles: true,
           problem: null,
@@ -381,7 +381,7 @@ const CATALOG = [
         webhook.recordFailedEmail({
           invoiceNumber: invoiceSample.invoiceNumber,
           error: "Appwrite returned 503 Service Unavailable",
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
           reference: "PAY-INV-2026-0042-1760184000",
         }),
       ),

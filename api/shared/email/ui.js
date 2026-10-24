@@ -106,20 +106,45 @@ function p(text) {
   return `<p style="margin:0 0 16px">${multiline(text)}</p>`;
 }
 
-function card({ title, highlight, highlightLabel, rows = [] }) {
-  const rowHtml = rows
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+// Cards read like a bank statement: the title (and the figure, when there is
+// one) sits on a deep ocean header, the details on white below. bgcolor keeps
+// the header dark in clients that drop the background style.
+const OCEAN = "#04333B";
+const ON_OCEAN = "#a5d8e2";
+// Stamps on the ocean header; light tints keep AA contrast on it.
+const STAMPS = { ok: "#86efac", warn: "#fcd34d", info: "#a5f3fc", danger: "#fca5a5" };
+
+// status = { label: "Paid", tone: "ok" } prints a stamp opposite the title.
+function card({ title, highlight, highlightLabel, status, rows = [] }) {
+  const stampColor = status ? STAMPS[status.tone] || STAMPS.info : "";
+  const stamp = status
+    ? `<span style="${LABEL};color:${stampColor};border:1.5px solid ${stampColor};border-radius:4px;padding:4px 8px;white-space:nowrap">${status.tone === "ok" ? "&#10003; " : ""}${esc(status.label)}</span>`
+    : "";
+  const top =
+    title || stamp
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="${LABEL};color:${ON_OCEAN}">${esc(title)}</td>${stamp ? `<td align="right" style="padding-left:12px">${stamp}</td>` : ""}</tr></table>`
+      : "";
+  // Amounts are short; a date like "Thursday, 15 October 2026 at 10:00 AM" is
+  // not, so long figures drop to a size that keeps them to a line or two.
+  const figureSize = String(highlight ?? "").length > 18 ? 24 : 36;
+  const figure = highlight
+    ? `${highlightLabel ? `<div style="font-size:14px;color:${ON_OCEAN};margin-top:${top ? 14 : 0}px">${esc(highlightLabel)}</div>` : ""}<div style="font-size:${figureSize}px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:${highlightLabel || !top ? 2 : 12}px">${esc(highlight)}</div>`
+    : "";
+  const shown = rows.filter(([, value]) => value !== undefined && value !== null && value !== "");
+  const rowHtml = shown
     .map(
-      ([label, value]) =>
-        `<tr><td style="padding:10px 0;border-top:1px solid ${C.line};color:${C.ink3};font-size:14px">${esc(label)}</td><td align="right" style="padding:10px 0 10px 12px;border-top:1px solid ${C.line};color:${C.ink};font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">${esc(value)}</td></tr>`,
+      ([label, value], i) =>
+        `<tr><td style="padding:12px 22px;${i ? `border-top:1px solid ${C.line};` : ""}color:${C.ink3};font-size:14px">${esc(label)}</td><td align="right" style="padding:12px 22px 12px 12px;${i ? `border-top:1px solid ${C.line};` : ""}color:${C.ink};font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">${esc(value)}</td></tr>`,
     )
     .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 24px">
-<tr><td style="padding:20px 22px 12px">
-${title ? `<div style="${LABEL};color:${C.ink3};margin:0 0 12px">${esc(title)}</div>` : ""}
-${highlight ? `${highlightLabel ? `<div style="font-size:14px;color:${C.ink3}">${esc(highlightLabel)}</div>` : ""}<div style="font-size:34px;line-height:1.15;font-weight:700;color:${C.ink};letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin:2px 0 14px">${esc(highlight)}</div>` : ""}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowHtml}</table>
-</td></tr></table>`;
+  if (!top && !figure) {
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:8px;margin:0 0 24px">${rowHtml}</table>`;
+  }
+  const headRadius = shown.length ? "8px 8px 0 0" : "8px";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 24px">
+<tr><td bgcolor="${OCEAN}" style="background:${OCEAN};border-radius:${headRadius};padding:${highlight ? "20px 22px 22px" : "14px 22px"}">${top}${figure}</td></tr>
+${shown.length ? `<tr><td style="border:1px solid ${C.line};border-top:0;border-radius:0 0 8px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowHtml}</table></td></tr>` : ""}
+</table>`;
 }
 
 // A one-time code on its own, large and monospaced. Digits stay one text run
@@ -128,9 +153,9 @@ ${highlight ? `${highlightLabel ? `<div style="font-size:14px;color:${C.ink3}">$
 const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
 
 function codeBlock({ label, code }) {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 20px">
-<tr><td align="center" style="padding:20px 22px">
-${label ? `<div style="${LABEL};color:${C.ink3};margin:0 0 10px">${esc(label)}</div>` : ""}<div style="font-family:${MONO};font-size:36px;line-height:1.2;font-weight:700;color:${C.ink};letter-spacing:.25em;padding-left:.25em;-webkit-user-select:all;user-select:all">${esc(code)}</div>
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
+<tr><td align="center" bgcolor="${OCEAN}" style="background:${OCEAN};border-radius:8px;padding:20px 22px">
+${label ? `<div style="${LABEL};color:${ON_OCEAN};margin:0 0 10px">${esc(label)}</div>` : ""}<div style="font-family:${MONO};font-size:36px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:.25em;padding-left:.25em;-webkit-user-select:all;user-select:all">${esc(code)}</div>
 </td></tr></table>`;
 }
 
@@ -175,6 +200,15 @@ function small(text, link) {
   return `<p style="margin:0;font-size:13px;color:${C.ink3}">${multiline(text)}${a}</p>`;
 }
 
+// "GHS 5,100.00": the code, not a symbol, so it reads the same in every font.
+function money(amount, currency) {
+  const n = Number(amount).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return currency ? `${currency} ${n}` : n;
+}
+
 function lines(...parts) {
   return parts.filter((x) => x !== undefined && x !== null && x !== "").join("\n");
 }
@@ -195,5 +229,6 @@ module.exports = {
   notice,
   divider,
   small,
+  money,
   lines,
 };

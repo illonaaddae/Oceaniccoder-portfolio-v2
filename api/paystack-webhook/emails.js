@@ -294,6 +294,7 @@ function clientReceiptEmail({ clientName, invoiceNumber, amount }) {
       }) +
       card({
         title: "Payment summary",
+        status: { label: "Paid", tone: "ok" },
         highlightLabel: "Amount",
         highlight: amount,
         rows: [["Invoice", invoiceNumber]],

@@ -13,6 +13,7 @@ const crypto = require("crypto");
 const https = require("https");
 const sdk = require("node-appwrite");
 const { evaluateSettlement } = require("./settlement");
+const { money } = require("../shared/email/ui");
 const quoteService = require("../shared/quotes/service");
 const cosmos = require("../shared/cosmos");
 const { dataBackend, writeHold } = require("../shared/backend");
@@ -196,7 +197,7 @@ async function sendPaymentEmails(
       clientReceiptEmail({
         clientName,
         invoiceNumber,
-        amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+        amount: money(amountPaid, currency),
       }),
       log,
     );
@@ -239,7 +240,7 @@ async function sendPaymentEmails(
       adminPaymentEmail({
         invoiceNumber,
         clientName,
-        amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+        amount: money(amountPaid, currency),
         reference: reference || "n/a",
         settles,
         problem,
@@ -815,7 +816,7 @@ module.exports = async function (context, req) {
               recordFailedEmail({
                 invoiceNumber,
                 error: pErr.message,
-                amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+                amount: money(amountPaid, currency),
                 reference: reference || "n/a",
               }),
               context.log,

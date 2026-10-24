@@ -131,7 +131,7 @@ describe("paystack-webhook invoice branch on Appwrite", () => {
       ["ama@example.com", "Payment received for invoice INV-2026-0042"],
       ["admin@example.com", "Payment received for invoice INV-2026-0042"],
     ]);
-    expect(sent[0].html).toContain("₵500.00 GHS");
+    expect(sent[0].html).toContain("GHS 500.00");
   });
 
   it("leaves an underpaid invoice open and only alerts the admin", async () => {

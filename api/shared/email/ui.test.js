@@ -43,3 +43,36 @@ describe("blocks", () => {
     expect(ui.lines("a", "", null, "b")).toBe("a\nb");
   });
 });
+
+describe("card", () => {
+  it("puts the title and figure on the ocean header, with a status stamp", () => {
+    const html = ui.card({
+      title: "Receipt",
+      status: { label: "Paid", tone: "ok" },
+      highlight: "GHS 5,100.00",
+      rows: [["Invoice", "INV-1"]],
+    });
+    expect(html).toContain('bgcolor="#04333B"');
+    expect(html).toContain("&#10003; Paid</span>");
+    expect(html).toContain("font-size:36px");
+  });
+
+  it("drops long figures such as dates to a smaller size", () => {
+    const html = ui.card({ title: "Booking", highlight: "Thursday, 15 October 2026 at 10:00 AM" });
+    expect(html).toContain("font-size:24px");
+  });
+
+  it("has no empty header when there is no title or figure", () => {
+    const html = ui.card({ rows: [["Paid so far", "GHS 6,000.00"]] });
+    expect(html).not.toContain("#04333B");
+    expect(html).toContain("Paid so far");
+  });
+});
+
+describe("money", () => {
+  it("groups thousands and names the currency once", () => {
+    expect(ui.money(5100, "GHS")).toBe("GHS 5,100.00");
+    expect(ui.money("3413.025", "GHS")).toBe("GHS 3,413.03");
+    expect(ui.money(12.5)).toBe("12.50");
+  });
+});
