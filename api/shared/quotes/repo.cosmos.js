@@ -1,8 +1,8 @@
-// The quote repo on Cosmos DB, used when DATA_BACKEND=cosmos. Same methods,
-// arguments and return shapes as repo.js; fakes.js mirrors both, and
-// contract.test.js runs the same checks against fakes.js and this file.
+// The quote repo on Cosmos DB. fakes.js mirrors its methods, arguments and
+// return shapes, and contract.test.js runs the same checks against fakes.js
+// and this file.
 //
-// Differences from Appwrite that callers can't see:
+// How it works underneath, which callers can't see:
 //   - Updates read, merge and replace with an IfMatch etag, retrying when
 //     another writer got in between. (Patch would avoid the read, but allows
 //     only 10 operations per request.)
@@ -25,7 +25,7 @@ const PAYMENTS = "payments";
 const INQUIRIES = "project_inquiries";
 const INVOICES = "invoices";
 
-// Same fields and fallbacks as repo.js.
+// Filled in on every read when missing or null.
 const JSON_FIELDS = {
   items: [],
   schedule: [],
@@ -67,9 +67,8 @@ function toInvoice(doc) {
   return doc ? withoutSystemFields(doc) : null;
 }
 
-// repo.js toDoc rules: id fields and `$` keys are never written. `_` keys are
-// Cosmos system fields. An undefined value leaves the field as it is, as the
-// Appwrite SDK does when it serialises the patch.
+// Id fields and `$` keys are never written. `_` keys are Cosmos system
+// fields. An undefined value leaves the field as it is.
 function cleanPatch(patch) {
   const out = {};
   for (const [key, value] of Object.entries(patch || {})) {
@@ -92,7 +91,7 @@ function newestFirst(rows) {
 }
 
 // Merge the patch into the row with an etag-checked replace. Returns the row
-// as stored. Throws 404 for a missing row, like Appwrite's updateDocument.
+// as stored. Throws 404 for a missing row.
 async function mergeAndReplace(container, id, patch) {
   const changes = cleanPatch(patch);
   const { doc } = await updateWith(container, id, () => changes);
@@ -188,7 +187,7 @@ function createCosmosQuoteRepo(db, { locks } = {}) {
     },
 
     // Payment rows recorded against one invoice number. A missing number is
-    // refused, as Appwrite refuses Query.equal on undefined.
+    // refused with a 400 instead of matching every unnumbered row.
     async listInvoicePayments(invoiceNumber) {
       if (invoiceNumber === undefined || invoiceNumber === null)
         throw Object.assign(new Error("Invalid query: Value must not be empty"), { code: 400 });
@@ -241,8 +240,8 @@ function createCosmosQuoteRepo(db, { locks } = {}) {
       return toInvoice(await mergeAndReplace(invoices, id, patch));
     },
 
-    // Best effort, as in repo.js: the inquiry may have been deleted, and that
-    // must not fail a quote action.
+    // Best effort: the inquiry may have been deleted, and that must not fail
+    // a quote action.
     async setInquiryStatus(id, status) {
       if (!id) return;
       try {
