@@ -30,14 +30,20 @@ const AdminLogin: React.FC = () => {
     >
       {/* Theme Toggle */}
       <button
+        type="button"
         onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
         className={`fixed top-4 right-4 p-3 rounded-xl border transition-all duration-200 ${
           theme === "dark"
             ? "bg-gray-800/80 border-gray-700 text-yellow-300 hover:bg-gray-700"
             : "bg-white/60 border-blue-200/40 text-slate-700 hover:bg-white/80"
         }`}
       >
-        {theme === "dark" ? <FaSun className="text-xl" /> : <FaMoon className="text-xl" />}
+        {theme === "dark" ? (
+          <FaSun className="text-xl" aria-hidden="true" />
+        ) : (
+          <FaMoon className="text-xl" aria-hidden="true" />
+        )}
       </button>
 
       <div className="w-full max-w-md">
