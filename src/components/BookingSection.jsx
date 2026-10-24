@@ -109,7 +109,7 @@ export default function BookingSection() {
   // The widget mounts with step 3 and its token arrives a few seconds later.
   // Confirm stays off until then: /api/create-booking sends the calendar invite
   // before the row is saved, and the save is refused without a token.
-  const waitingForSpamCheck = turnstile.active && !turnstile.token;
+  const waitingForSpamCheck = !turnstile.token;
   const [spamCheckSlow, setSpamCheckSlow] = useState(false);
   const sectionTopRef = useRef(null);
   const [bookingRef, setBookingRef] = useState("");
@@ -147,14 +147,13 @@ export default function BookingSection() {
 
   // The status line mounts empty and gets its text a moment later: screen
   // readers skip text that is already inside a live region when it appears.
-  const spamCheckMessage =
-    !turnstile.active || turnstile.error
-      ? ""
-      : waitingForSpamCheck
-        ? spamCheckSlow
-          ? "The spam check is taking longer than usual. If a checkbox appears above, tick it; otherwise reload the page or email hello@oceaniccoder.dev."
-          : "Running a quick spam check. Confirm Booking unlocks in a moment."
-        : "Spam check done. You can confirm your booking.";
+  const spamCheckMessage = turnstile.error
+    ? ""
+    : waitingForSpamCheck
+      ? spamCheckSlow
+        ? "The spam check is taking longer than usual. If a checkbox appears above, tick it; otherwise reload the page or email hello@oceaniccoder.dev."
+        : "Running a quick spam check. Confirm Booking unlocks in a moment."
+      : "Spam check done. You can confirm your booking.";
   const [spamCheckStatus, setSpamCheckStatus] = useState("");
   useEffect(() => {
     if (step !== 3) return;
@@ -825,23 +824,19 @@ export default function BookingSection() {
                         )}
 
                         <TurnstileSlot turnstile={turnstile} />
-                        {turnstile.active && (
-                          <p
-                            id="booking-spam-check-status"
-                            role="status"
-                            className="text-sm min-h-5"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            {spamCheckStatus}
-                          </p>
-                        )}
+                        <p
+                          id="booking-spam-check-status"
+                          role="status"
+                          className="text-sm min-h-5"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {spamCheckStatus}
+                        </p>
                         <button
                           onTouchStart={blurActive}
                           onClick={handleSubmit}
                           disabled={submitting || waitingForSpamCheck}
-                          aria-describedby={
-                            turnstile.active ? "booking-spam-check-status" : undefined
-                          }
+                          aria-describedby="booking-spam-check-status"
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
                           style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                         >

@@ -51,7 +51,7 @@ export function useContactForm() {
     setStatus("sending");
 
     try {
-      const result = await submitContactForm(formDataToSend, formData, turnstile.token);
+      const result = await submitContactForm(formData, turnstile.token);
       turnstile.reset(); // tokens are single-use
       lastSubmissionRef.current = Date.now();
       setStatus("success");

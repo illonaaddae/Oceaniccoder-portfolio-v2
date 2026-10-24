@@ -11,7 +11,6 @@ interface SubmissionFormProps {
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   submitting: boolean;
-  uploadingImage: boolean;
   imagePreview: string | null;
   setImagePreview: React.Dispatch<React.SetStateAction<string | null>>;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -27,7 +26,6 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({
   onSubmit,
   onImageUpload,
   submitting,
-  uploadingImage,
   imagePreview,
   setImagePreview,
   fileInputRef,
@@ -49,7 +47,6 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({
         setFormData={setFormData}
         imagePreview={imagePreview}
         setImagePreview={setImagePreview}
-        uploadingImage={uploadingImage}
         fileInputRef={fileInputRef}
         onImageUpload={onImageUpload}
         inputId={imageInputId}
