@@ -1,11 +1,5 @@
 import { getJson, postJson } from "./dataApi";
 
-export interface SiteView {
-  $id: string;
-  count: number;
-  lastUpdated: string;
-}
-
 export async function getSiteViews(): Promise<number> {
   try {
     return (await getJson<{ count: number }>("/api/counters/site-views")).count;

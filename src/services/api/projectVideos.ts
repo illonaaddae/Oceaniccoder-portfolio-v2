@@ -7,7 +7,7 @@
 //
 // Constraints:
 // - projectId is required (FK to projects.$id) — unique index ensures one video per project
-// - demoVideoUrl is required URL (Appwrite url-type validation)
+// - demoVideoUrl is a required URL
 import { COLLECTIONS } from "./collections";
 import { listRows, manageCreate, manageDelete, manageUpdate } from "./dataApi";
 
