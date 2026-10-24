@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useId, useRef } from "react";
 import { FaTrash, FaSync, FaExclamationTriangle, FaCheckCircle, FaImage } from "react-icons/fa";
 import { Pagination } from "@/components/common/Pagination";
-import { manageList, usesCosmos } from "@/services/api/dataApi";
-import { LIST_ALL_CAP, listAllDocuments } from "@/services/api/listAll";
+import { manageList } from "@/services/api/dataApi";
 import { deleteImage, listMediaFiles } from "@/services/api/storage";
 import { getOptimizedImageUrl } from "@/utils/imageOptimizer";
 import { IMAGES } from "@/utils/imageUrls";
@@ -73,15 +72,10 @@ const HARDCODED_URLS: Record<string, string> = {
 
 const PAGE_SIZE = 10;
 
-// Every row of a collection. A partial read would make the files used by the
-// missing rows look orphaned, so hitting the Appwrite cap counts as a failure.
+// Every row of a collection, with no limit: a partial read would make the
+// files used by the missing rows look orphaned.
 async function listCollectionRows(collection: string): Promise<Record<string, unknown>[]> {
-  if (usesCosmos) return (await manageList(collection)).documents;
-  const rows = await listAllDocuments<{ $id: string } & Record<string, unknown>>(collection);
-  if (rows.length >= LIST_ALL_CAP) {
-    throw new Error(`more than ${LIST_ALL_CAP - 1} rows, so the scan may be incomplete`);
-  }
-  return rows;
+  return (await manageList(collection)).documents;
 }
 
 /** Every platform with its logo: the saved override, else the bundled default. */
