@@ -44,6 +44,7 @@ export default [
         Image: "readonly",
         MutationObserver: "readonly",
         IntersectionObserver: "readonly",
+        ResizeObserver: "readonly",
         AbortController: "readonly",
         AbortSignal: "readonly",
         URLSearchParams: "readonly",

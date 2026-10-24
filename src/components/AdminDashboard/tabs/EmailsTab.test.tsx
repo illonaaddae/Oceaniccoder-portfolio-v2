@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { EmailPreviewList, EmailPreviewMail } from "@/services/api/quotes";
 
@@ -98,6 +98,38 @@ describe("EmailsTab", () => {
       "true",
     );
     expect(screen.getByTitle("Preview: Quote ready").className).toContain("w-[390px]");
+  });
+
+  it("scales the desktop preview down to fit a narrow pane, but not the mobile one", async () => {
+    let report: (width: number) => void = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(cb: (entries: { contentRect: { width: number } }[]) => void) {
+          report = (width) => cb([{ contentRect: { width } }]);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    try {
+      render(<EmailsTab theme="dark" />);
+      const frame = await screen.findByTitle("Preview: Quote ready");
+      act(() => report(320));
+      expect(frame.style.transform).toBe("scale(0.5)");
+      expect(frame.style.width).toBe("640px");
+      // Scaled down, the frame is twice as tall so the visible box stays full,
+      // and the wrapper clips what the transform leaves outside it.
+      expect(frame.style.height).toBe("200%");
+      expect(frame.parentElement?.className).toContain("overflow-hidden");
+      act(() => report(800));
+      expect(frame.style.transform).toBe("");
+      act(() => report(320));
+      await userEvent.click(screen.getByRole("button", { name: /mobile width/i }));
+      expect(screen.getByTitle("Preview: Quote ready").style.transform).toBe("");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("shows the plain-text version", async () => {
