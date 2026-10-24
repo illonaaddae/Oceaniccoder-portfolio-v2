@@ -20,7 +20,6 @@ const base = {
     { description: "Hosting setup", quantity: 1, unitPrice: 250.5 },
   ],
   currency: "GHS",
-  currencySymbol: "GH₵",
   subtotal: 3250.5,
   tax: 162.53,
   taxRate: 5,
@@ -42,7 +41,7 @@ describe("renderInvoiceEmail", () => {
     const { subtotal: _s, tax: _t, total: _total, ...rest } = base;
     const html = renderInvoiceEmail({ ...rest, taxRate: 0 }, NOW);
     expect(html).not.toContain("NaN");
-    expect(html).toContain("GH₵3250.50");
+    expect(html).toContain("GHS 3,250.50");
   });
 
   it("uses the branded kit shell with the invoice number in the letterhead", () => {
@@ -55,7 +54,7 @@ describe("renderInvoiceEmail", () => {
 
   it("shows the amount due, dates, parties, line items and totals", () => {
     const html = renderInvoiceEmail(base, NOW);
-    expect(html).toContain("GH₵3413.03 GHS");
+    expect(html).toContain("GHS 3,413.03");
     expect(html).toContain("10 October 2026");
     expect(html).toContain("24 October 2026");
     expect(html).toContain("15 November 2026");
@@ -64,12 +63,12 @@ describe("renderInvoiceEmail", () => {
     expect(html).toContain("kofi@example.com");
     expect(html).toContain("+233200000000");
     expect(html).toContain("Store build");
-    expect(html).toContain("GH₵1500.00");
-    expect(html).toContain("GH₵3000.00");
-    expect(html).toContain("GH₵250.50");
-    expect(html).toContain("GH₵3250.50");
+    expect(html).toContain("GHS 1,500.00");
+    expect(html).toContain("GHS 3,000.00");
+    expect(html).toContain("GHS 250.50");
+    expect(html).toContain("GHS 3,250.50");
     expect(html).toContain("Tax (5%)");
-    expect(html).toContain("GH₵162.53");
+    expect(html).toContain("GHS 162.53");
     expect(html).toContain("Deposit covers design.<br>Balance on launch.");
   });
 
@@ -106,9 +105,10 @@ describe("renderInvoiceEmail", () => {
     expect(html).not.toContain("+233");
   });
 
-  it("falls back to the currency code when there is no symbol", () => {
-    const html = renderInvoiceEmail({ ...base, currencySymbol: undefined }, NOW);
-    expect(html).toContain("GHS3413.03 GHS");
+  it("groups thousands and names the currency once", () => {
+    const html = renderInvoiceEmail(base, NOW);
+    expect(html).not.toContain("₵");
+    expect(html).not.toMatch(/\d GHS/);
   });
 
   it("escapes client-supplied text, including notes", () => {

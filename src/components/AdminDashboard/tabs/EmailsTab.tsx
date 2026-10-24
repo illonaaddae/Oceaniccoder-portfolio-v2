@@ -18,6 +18,7 @@ import {
   FaHandshake,
   FaInbox,
   FaMobileAlt,
+  FaMoon,
   FaMoneyBillWave,
   FaNewspaper,
   FaPaperPlane,
@@ -25,6 +26,7 @@ import {
   FaReply,
   FaSearch,
   FaSpinner,
+  FaSun,
   FaTimesCircle,
   FaUserPlus,
   FaWallet,
@@ -99,6 +101,17 @@ const BRAND = "#085866";
 // than this scales the email down to fit rather than cutting off its right edge.
 const DESKTOP_WIDTH = 640;
 
+const DARK_QUERY = "@media (prefers-color-scheme:dark)";
+
+/**
+ * The emails carry their own dark styles behind a prefers-color-scheme query,
+ * which an iframe answers from the operating system. Rewrite the query so the
+ * preview shows the chosen appearance whatever the OS is set to.
+ */
+export function withAppearance(html: string, appearance: "light" | "dark"): string {
+  return html.split(DARK_QUERY).join(appearance === "dark" ? "@media all" : "@media not all");
+}
+
 /** See every email before a client does, and send yourself a test. */
 export default function EmailsTab(_props: { theme: string }) {
   const [templates, setTemplates] = useState<EmailTemplateInfo[] | null>(null);
@@ -110,6 +123,7 @@ export default function EmailsTab(_props: { theme: string }) {
   const [sending, setSending] = useState(false);
   const [showText, setShowText] = useState(false);
   const [width, setWidth] = useState<"desktop" | "mobile">("desktop");
+  const [appearance, setAppearance] = useState<"light" | "dark">("light");
   const [collapsed, setCollapsed] = useState<EmailGroup[]>(readCollapsed);
   const panelRef = useRef<HTMLElement>(null);
   const frameBoxRef = useRef<HTMLDivElement>(null);
@@ -352,6 +366,30 @@ export default function EmailsTab(_props: { theme: string }) {
                   </button>
                 ))}
               </div>
+              <div
+                role="group"
+                aria-label="Preview appearance"
+                className="flex rounded-lg border p-0.5"
+                style={{ borderColor: "var(--border-subtle)" }}
+              >
+                {(["light", "dark"] as const).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setAppearance(a)}
+                    aria-pressed={appearance === a}
+                    aria-label={`${a === "light" ? "Light" : "Dark"} mail app`}
+                    className={iconBtn}
+                    style={
+                      appearance === a
+                        ? { background: BRAND, color: "#fff" }
+                        : { color: "var(--text-secondary)" }
+                    }
+                  >
+                    {a === "light" ? <FaSun aria-hidden /> : <FaMoon aria-hidden />}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={() => setShowText(!showText)}
@@ -430,7 +468,7 @@ export default function EmailsTab(_props: { theme: string }) {
                   <iframe
                     key={`${selected}-${width}`}
                     title={`Preview: ${current?.name ?? selected}`}
-                    srcDoc={preview.html}
+                    srcDoc={withAppearance(preview.html ?? "", appearance)}
                     sandbox=""
                     className={`mx-auto block h-full rounded-lg border bg-white shadow-sm ${
                       width === "mobile" ? "w-[390px] max-w-full" : "w-full"

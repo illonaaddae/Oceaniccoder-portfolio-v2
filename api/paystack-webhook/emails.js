@@ -5,8 +5,6 @@
 
 const { shell, heading, p, card, notice, small } = require("../shared/email/ui");
 
-const currencySymbol = (currency) => (currency === "GHS" ? "₵" : currency);
-
 // How long Paystack retries a webhook that fails
 // (paystack.com/docs/payments/webhooks): in live mode every 3 minutes for the
 // first 4 tries, then hourly for the next 72 hours; in test mode hourly for
@@ -294,6 +292,7 @@ function clientReceiptEmail({ clientName, invoiceNumber, amount }) {
       }) +
       card({
         title: "Payment summary",
+        status: { label: "Paid", tone: "ok" },
         highlightLabel: "Amount",
         highlight: amount,
         rows: [["Invoice", invoiceNumber]],
@@ -329,7 +328,6 @@ function adminPaymentEmail({ invoiceNumber, clientName, amount, reference, settl
 }
 
 module.exports = {
-  currencySymbol,
   webhookFailedEmail,
   webhookRetryEmail,
   webhookUntrackedEmail,

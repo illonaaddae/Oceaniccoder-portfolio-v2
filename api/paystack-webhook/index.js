@@ -13,6 +13,7 @@ const crypto = require("crypto");
 const https = require("https");
 const sdk = require("node-appwrite");
 const { evaluateSettlement } = require("./settlement");
+const { money } = require("../shared/email/ui");
 const quoteService = require("../shared/quotes/service");
 const cosmos = require("../shared/cosmos");
 const { dataBackend, writeHold } = require("../shared/backend");
@@ -27,7 +28,6 @@ const {
   noteAlertRecorded,
 } = require("./invoiceCharge");
 const {
-  currencySymbol,
   webhookFailedEmail,
   webhookRetryEmail,
   webhookUntrackedEmail,
@@ -184,7 +184,6 @@ async function sendPaymentEmails(
     invoiceCurrency,
     paidCurrency,
   } = settlement;
-  const sym = currencySymbol(currency);
 
   // Only tell the client the invoice is settled when it actually is.
   if (settles && resendKey && clientEmail) {
@@ -196,7 +195,7 @@ async function sendPaymentEmails(
       clientReceiptEmail({
         clientName,
         invoiceNumber,
-        amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+        amount: money(amountPaid, currency),
       }),
       log,
     );
@@ -217,12 +216,12 @@ async function sendPaymentEmails(
         : underpaid
           ? {
               tone: "danger",
-              text: `Underpaid by ${sym}${shortfall.toFixed(2)}. Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.`,
+              text: `Underpaid by ${money(shortfall, currency)}. Expected ${money(expected, currency)}. The invoice has been left open and the client has not been sent a confirmation.`,
             }
           : overpaid
             ? {
                 tone: "warn",
-                text: `Overpaid by ${sym}${surplus.toFixed(2)}. The invoice has been marked paid.`,
+                text: `Overpaid by ${money(surplus, currency)}. The invoice has been marked paid.`,
               }
             : null;
     await sendEmail(
@@ -239,7 +238,7 @@ async function sendPaymentEmails(
       adminPaymentEmail({
         invoiceNumber,
         clientName,
-        amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+        amount: money(amountPaid, currency),
         reference: reference || "n/a",
         settles,
         problem,
@@ -596,7 +595,6 @@ module.exports = async function (context, req) {
 
   const amountPaid = (data.amount || 0) / 100; // convert from pesewas back to base unit
   const currency = data.currency || "GHS";
-  const sym = currencySymbol(currency);
 
   if (backend === "cosmos") {
     // The Cosmos rows are keyed by reference; Paystack always sends one.
@@ -623,20 +621,20 @@ module.exports = async function (context, req) {
       if (outcome === "no-invoice") {
         await bail(
           "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
+          `looked for invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
         );
         return;
       }
       if (outcome === "ambiguous-invoice") {
         await bail(
           "more than one invoice has this number, so none was marked",
-          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
+          `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
         );
         return;
       }
       if (outcome === "conflict" && recorded) {
         const reason = "the invoice this payment was applied to was renumbered or deleted";
-        const detail = `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`;
+        const detail = `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`;
         context.log.error(`paystack-webhook: ${reason} — ${detail}`);
         if (resendKey && adminEmail) {
           await sendEmail(
@@ -654,7 +652,7 @@ module.exports = async function (context, req) {
       if (outcome === "conflict") {
         await bail(
           "the payments row for this reference belongs to another charge or was edited by hand, or its invoice was renumbered or deleted, so nothing was changed",
-          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
+          `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
         );
         return;
       }
@@ -783,7 +781,7 @@ module.exports = async function (context, req) {
             `paystack-webhook: invoice ${invoiceNumber} NOT marked paid — ` +
               (currencyMismatch
                 ? `paid in ${paidCurrency} but invoiced in ${invoiceCurrency}`
-                : `paid ${sym}${amountPaid.toFixed(2)} against a total of ${sym}${expected.toFixed(2)}`),
+                : `paid ${money(amountPaid, currency)} against a total of ${money(expected, currency)}`),
           );
           if (doc.archivedAt) await unarchive();
         }
@@ -815,7 +813,7 @@ module.exports = async function (context, req) {
               recordFailedEmail({
                 invoiceNumber,
                 error: pErr.message,
-                amount: `${sym}${amountPaid.toFixed(2)} ${currency}`,
+                amount: money(amountPaid, currency),
                 reference: reference || "n/a",
               }),
               context.log,
@@ -830,7 +828,7 @@ module.exports = async function (context, req) {
       } else {
         await bail(
           "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference || "none"}`,
+          `looked for invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference || "none"}`,
         );
         return;
       }
@@ -841,7 +839,7 @@ module.exports = async function (context, req) {
   } else {
     await bail(
       "APPWRITE_API_KEY is not set in Azure configuration",
-      `invoice ${invoiceNumber} was paid (${sym}${amountPaid.toFixed(2)} ${currency}) but could not be marked paid or recorded`,
+      `invoice ${invoiceNumber} was paid (${money(amountPaid, currency)}) but could not be marked paid or recorded`,
     );
     return;
   }

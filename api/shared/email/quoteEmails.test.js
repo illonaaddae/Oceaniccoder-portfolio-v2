@@ -135,7 +135,7 @@ describe("quote email templates", () => {
       expect(mail.html).toContain("Thank you for launching with me");
       expect(mail.html).toContain("ends on 20 Dec 2026");
       expect(mail.html).toContain("Care Plus");
-      expect(mail.html).toContain("GHS 900.00");
+      expect(mail.html).toContain("GHS</span>&nbsp;900.00");
       expect(mail.html).toContain("per month");
       expect(mail.html).toContain("Priority response within 1 working day");
       expect(mail.html).toContain("https://wa.me/233241234567");

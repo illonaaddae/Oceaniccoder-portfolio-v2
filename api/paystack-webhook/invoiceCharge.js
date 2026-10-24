@@ -30,7 +30,7 @@
 // retries and the next delivery resumes at the first step not done.
 
 const { evaluateSettlement } = require("./settlement");
-const { currencySymbol } = require("./emails");
+const { money } = require("../shared/email/ui");
 const { lockId, paymentIdFor } = require("../shared/tokens");
 
 // A delivery that claims the emails and then dies leaves its claim behind;
@@ -127,14 +127,13 @@ function recordedSettlement(row) {
 }
 
 function notPaidReason({ settlement, amountPaid, currency, invoice }) {
-  const sym = currencySymbol(currency);
   if (settlement.currencyMismatch) {
     return `paid in ${settlement.paidCurrency} but invoiced in ${settlement.invoiceCurrency}`;
   }
   if (settlement.unverifiedTotal) {
-    return `it has no usable total (${invoice.total}) to check ${sym}${amountPaid.toFixed(2)} against`;
+    return `it has no usable total (${invoice.total}) to check ${money(amountPaid, currency)} against`;
   }
-  return `paid ${sym}${amountPaid.toFixed(2)} against a total of ${sym}${settlement.expected.toFixed(2)}`;
+  return `paid ${money(amountPaid, currency)} against a total of ${money(settlement.expected, currency)}`;
 }
 
 /** Marks a store error as raised after the payment was fully recorded. */

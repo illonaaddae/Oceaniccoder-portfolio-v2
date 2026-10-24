@@ -25,6 +25,7 @@ const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
 function invoiceBlock(inv) {
   return card({
     title: "Amount due",
+    status: { label: "Due", tone: "warn" },
     highlightLabel: inv.label,
     highlight: inv.amount,
     rows: [["Due", inv.dueDate]],
@@ -234,6 +235,7 @@ function paymentReceipt(v) {
       }) +
       card({
         title: "Payment summary",
+        status: { label: "Paid", tone: "ok" },
         highlightLabel: v.stageLabel,
         highlight: v.amount,
         rows: [
@@ -305,8 +307,8 @@ function paymentAlert(v) {
 
 const PER = { month: "per month", year: "per year" };
 
-// One maintenance plan: name, price per period, and what it includes as a
-// tight list. Same white-on-slate card as the other summaries.
+// One maintenance plan: name and price per period on the card header, and
+// what it includes as a tight list below.
 function planCard(plan) {
   const items = plan.includes
     .map(
@@ -314,12 +316,14 @@ function planCard(plan) {
         `<tr><td style="vertical-align:top;padding:0 8px 6px 0;color:${C.tealDark};font-size:14px;line-height:1.5">&bull;</td><td style="padding:0 0 6px;font-size:14px;line-height:1.5;color:${C.ink2}">${esc(line)}</td></tr>`,
     )
     .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 16px">
-<tr><td style="padding:18px 22px 12px">
-<div style="font-size:17px;font-weight:700;color:${C.ink}">${esc(plan.name)}</div>
-<div style="font-size:15px;color:${C.ink3};margin:2px 0 ${items ? 12 : 4}px"><span style="font-size:22px;font-weight:700;color:${C.ink};font-variant-numeric:tabular-nums">${esc(plan.price)}</span> ${esc(PER[plan.period] || PER.month)}</div>
-${items ? `<table role="presentation" cellpadding="0" cellspacing="0">${items}</table>` : ""}
-</td></tr></table>`;
+  return card({
+    title: plan.name,
+    highlightLabel: PER[plan.period] || PER.month,
+    highlight: plan.price,
+    body: items
+      ? `<table role="presentation" cellpadding="0" cellspacing="0">${items}</table>`
+      : "",
+  });
 }
 
 function maintenanceOffer(v) {

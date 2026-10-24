@@ -66,7 +66,6 @@ const invoiceSample = {
     { description: "Hosting setup, 12 months", quantity: 1, unitPrice: 600 },
   ],
   currency: "GHS",
-  currencySymbol: "GH₵",
   subtotal: 5100,
   tax: 0,
   taxRate: 0,
@@ -159,7 +158,7 @@ const CATALOG = [
         webhook.clientReceiptEmail({
           clientName: invoiceSample.clientName,
           invoiceNumber: invoiceSample.invoiceNumber,
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
         }),
       ),
   },
@@ -176,7 +175,6 @@ const CATALOG = [
           clientName: invoiceSample.clientName,
           total: invoiceSample.total,
           currency: invoiceSample.currency,
-          currencySymbol: invoiceSample.currencySymbol,
           paidDate: "11 Oct 2026",
         }),
       ),
@@ -363,7 +361,7 @@ const CATALOG = [
         webhook.adminPaymentEmail({
           invoiceNumber: invoiceSample.invoiceNumber,
           clientName: invoiceSample.clientName,
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
           reference: "PAY-INV-2026-0042-1760184000",
           settles: true,
           problem: null,
@@ -381,7 +379,7 @@ const CATALOG = [
         webhook.recordFailedEmail({
           invoiceNumber: invoiceSample.invoiceNumber,
           error: "Appwrite returned 503 Service Unavailable",
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
           reference: "PAY-INV-2026-0042-1760184000",
         }),
       ),

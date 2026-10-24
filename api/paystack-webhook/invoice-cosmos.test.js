@@ -130,7 +130,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
       ["ama@example.com", "Payment received for invoice INV-2026-0042"],
       ["admin@example.com", "Payment received for invoice INV-2026-0042"],
     ]);
-    expect(sent[0].html).toContain("₵500.00 GHS");
+    expect(sent[0].html).toContain("GHS</span>&nbsp;500.00");
     expect(sent[1].html).toContain(REFERENCE);
   });
 
@@ -149,7 +149,7 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(subjects()).toEqual([
       ["admin@example.com", "Action needed: underpayment on invoice INV-2026-0042"],
     ]);
-    expect(sent[0].html).toContain("Underpaid by ₵500.00. Expected ₵1000.00.");
+    expect(sent[0].html).toContain("Underpaid by GHS 500.00. Expected GHS 1,000.00.");
   });
 
   it("only alerts the admin on a currency mismatch", async () => {

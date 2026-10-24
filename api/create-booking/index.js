@@ -247,10 +247,10 @@ async function isSlotTakenInCosmos(date, time) {
 const CLIENT_REASON = "OceanicCoder · Web and app development";
 const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
 
-// Free-text block for the booker's message: card styling, but the text keeps
-// its line breaks instead of sitting right-aligned in a table row.
+// Free-text block for the booker's message: a plain bordered block, so the
+// text keeps its line breaks instead of sitting right-aligned in a table row.
 function messageBlock(name, message) {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 24px">
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:8px;margin:0 0 24px">
 <tr><td style="padding:18px 22px">
 <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${C.ink3};margin:0 0 10px">Message from ${esc(name)}</div>
 <div style="font-size:14px;line-height:1.6;color:${C.ink2}">${multiline(message)}</div>

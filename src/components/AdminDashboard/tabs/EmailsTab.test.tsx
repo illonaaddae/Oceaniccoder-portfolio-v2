@@ -46,7 +46,7 @@ vi.mock("@/services/api/quotes", () => ({
   sendTestEmail: (n: string) => sendTestEmail(n),
 }));
 
-import EmailsTab from "./EmailsTab";
+import EmailsTab, { withAppearance } from "./EmailsTab";
 
 const row = (name: RegExp) => screen.findByRole("button", { name });
 
@@ -98,6 +98,33 @@ describe("EmailsTab", () => {
       "true",
     );
     expect(screen.getByTitle("Preview: Quote ready").className).toContain("w-[390px]");
+  });
+
+  it("previews the email as a dark mail app would show it", async () => {
+    fetchImpl = async (name?: string) =>
+      name
+        ? {
+            subject: "s",
+            html: "<style>@media (prefers-color-scheme:dark){body{background:#000}}</style>",
+            text: "t",
+          }
+        : LIST;
+    render(<EmailsTab theme="light" />);
+    await screen.findByTitle("Preview: Quote ready");
+    const frame = () => screen.getByTitle("Preview: Quote ready");
+    expect(frame().getAttribute("srcdoc")).toContain("@media not all");
+    await userEvent.click(screen.getByRole("button", { name: /dark mail app/i }));
+    expect(screen.getByRole("button", { name: /dark mail app/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(frame().getAttribute("srcdoc")).toContain("@media all");
+  });
+
+  it("forces the email's dark styles on or off whatever the OS is set to", () => {
+    const html = "<style>@media (prefers-color-scheme:dark){body{background:#000}}</style>";
+    expect(withAppearance(html, "dark")).toContain("@media all{body");
+    expect(withAppearance(html, "light")).toContain("@media not all{body");
   });
 
   it("scales the desktop preview down to fit a narrow pane, but not the mobile one", async () => {
