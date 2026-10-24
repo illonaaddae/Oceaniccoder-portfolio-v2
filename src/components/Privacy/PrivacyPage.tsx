@@ -327,7 +327,7 @@ const PrivacyPage: React.FC = () => (
           Every provider listed here can handle your data outside Ghana. Until the old copy is
           deleted, Appwrite holds some of it in Germany. Microsoft Azure stores it in the United
           States and the Netherlands. Cloudflare, Resend, OpenAI, Google, YouTube, Loom and Zoom are
-          based in the United States, Paystack in Nigeria and Africa&apos;s Talking in Kenya. Email
+          based in the United States, Paystack in Nigeria and Africa&apos;s Talking in Kenya. Email{" "}
           <EmailLink /> to ask how these transfers are protected.
         </p>
       </Section>

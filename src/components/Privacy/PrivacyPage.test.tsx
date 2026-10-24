@@ -100,6 +100,9 @@ describe("PrivacyPage", () => {
     // processor list. Cloudflare: three times in the forms section, once in
     // front of Paystack's checkout, and twice in the processor section (the
     // list and the transfers). A new mention needs a matching change in the code.
+    expect(processors.textContent).toMatch(
+      /Email hello@oceaniccoder\.dev to ask how these transfers are protected/,
+    );
     expect(document.body.textContent?.match(/turnstile/gi)).toHaveLength(3);
     expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(6);
     const quotes = screen.getByRole("region", { name: "Quotes and payments" });
