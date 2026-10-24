@@ -74,14 +74,15 @@ function letterhead(meta) {
     ? `<td align="right" style="vertical-align:middle;padding-left:16px"><div style="${LABEL};color:${C.ink3}">${esc(meta.label)}</div><div style="font-family:${FONT};font-size:15px;font-weight:700;color:${C.ink};font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:2px">${esc(meta.number)}</div></td>`
     : "";
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="vertical-align:middle"><img src="${LOGO}" width="140" height="40" alt="OceanicCoder" style="display:block;height:40px;width:auto;max-width:140px"></td>${ref}
+<td style="vertical-align:middle"><img class="oc-logo" src="${LOGO}" width="140" height="40" alt="OceanicCoder" style="display:block;height:40px;width:auto;max-width:140px"></td>${ref}
 </tr></table>`;
 }
 
 // Dark mode for the clients that honour it (Apple Mail, iOS Mail, Outlook for
 // Mac). Every colour lives inline, so the rules match the palette values in
-// those inline styles rather than classes; templates need no changes. Gmail
-// ignores this block and applies its own inversion.
+// those inline styles rather than classes; templates need no changes. Clients
+// that drop prefers-color-scheme rules, Gmail among them, show the light
+// version or darken it their own way.
 const DARK = {
   page: "#000b21",
   sheet: "#0b1730",
@@ -92,12 +93,16 @@ const DARK = {
   ink3: "#9fb0c3",
   link: "#5fd0e6",
   button: "#26a9c5",
+  // The light header (#04333B) is close to the dark sheet; lifted so the card keeps its edge.
+  ocean: "#0b4f5c",
 };
-const DARK_CSS = `<style>:root{color-scheme:light dark;supported-color-schemes:light dark}
+const DARK_CSS = `<style>:root{color-scheme:light dark}
 @media (prefers-color-scheme:dark){
 body,[style*="background:${C.bg}"]{background:${DARK.page}!important}
 [style*="background:#ffffff"]{background:${DARK.sheet}!important}
 [style*="background:${C.footer}"]{background:${DARK.footer}!important}
+[bgcolor="#04333B"]{background:${DARK.ocean}!important}
+.oc-logo{background:#ffffff;border-radius:8px;padding:6px 10px!important}
 [style*="${C.line}"]{border-color:${DARK.line}!important}
 [style*="color:${C.ink}"]{color:${DARK.ink}!important}
 [style*="color:${C.ink2}"]{color:${DARK.ink2}!important}

@@ -218,12 +218,12 @@ async function sendPaymentEmails(
         : underpaid
           ? {
               tone: "danger",
-              text: `Underpaid by ${sym}${shortfall.toFixed(2)}. Expected ${sym}${expected.toFixed(2)}. The invoice has been left open and the client has not been sent a confirmation.`,
+              text: `Underpaid by ${money(shortfall, currency)}. Expected ${money(expected, currency)}. The invoice has been left open and the client has not been sent a confirmation.`,
             }
           : overpaid
             ? {
                 tone: "warn",
-                text: `Overpaid by ${sym}${surplus.toFixed(2)}. The invoice has been marked paid.`,
+                text: `Overpaid by ${money(surplus, currency)}. The invoice has been marked paid.`,
               }
             : null;
     await sendEmail(

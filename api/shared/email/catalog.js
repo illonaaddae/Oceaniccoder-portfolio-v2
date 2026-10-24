@@ -66,7 +66,6 @@ const invoiceSample = {
     { description: "Hosting setup, 12 months", quantity: 1, unitPrice: 600 },
   ],
   currency: "GHS",
-  currencySymbol: "GH₵",
   subtotal: 5100,
   tax: 0,
   taxRate: 0,

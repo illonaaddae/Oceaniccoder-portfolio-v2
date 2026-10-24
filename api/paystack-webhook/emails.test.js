@@ -10,7 +10,7 @@ describe("paystack-webhook invoice emails", () => {
     const html = emails.clientReceiptEmail({
       clientName: "Ama",
       invoiceNumber: "INV-1",
-      amount: "₵100.00 GHS",
+      amount: "GHS 100.00",
     });
     expect(html).toContain("Ysabeau Office");
     expect(html).toContain("Oceaniccoder-logo@3x.png");
@@ -20,11 +20,11 @@ describe("paystack-webhook invoice emails", () => {
     const html = emails.clientReceiptEmail({
       clientName: "Ama",
       invoiceNumber: "INV-123456",
-      amount: "₵250.00 GHS",
+      amount: "GHS 250.00",
     });
     expect(html).toContain("Hi Ama");
     expect(html).toContain("INV-123456");
-    expect(html).toContain("₵250.00 GHS");
+    expect(html).toContain("GHS 250.00");
     expect(html).toContain("Illona @ OceanicCoder");
   });
 

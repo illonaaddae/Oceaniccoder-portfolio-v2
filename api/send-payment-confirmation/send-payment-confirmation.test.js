@@ -8,7 +8,6 @@ const base = {
   clientName: "Kofi Mensah",
   total: 3413.03,
   currency: "GHS",
-  currencySymbol: "GH₵",
   paidDate: "10 October 2026",
 };
 

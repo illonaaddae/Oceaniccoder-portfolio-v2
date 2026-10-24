@@ -263,7 +263,7 @@ describe("recordInvoiceCharge on Cosmos", () => {
       shortfall: 500,
     });
     expect(log.error).toHaveBeenCalledWith(
-      "paystack-webhook: invoice INV-2026-0042 NOT marked paid — paid ₵500.00 against a total of ₵1000.00",
+      "paystack-webhook: invoice INV-2026-0042 NOT marked paid — paid GHS 500.00 against a total of GHS 1,000.00",
     );
   });
 
@@ -450,7 +450,7 @@ describe("recordInvoiceCharge on Cosmos", () => {
         unverifiedTotal: true,
       });
       expect(log.error).toHaveBeenCalledWith(
-        "paystack-webhook: invoice INV-2026-0042 NOT marked paid — it has no usable total (undefined) to check ₵500.00 against",
+        "paystack-webhook: invoice INV-2026-0042 NOT marked paid — it has no usable total (undefined) to check GHS 500.00 against",
       );
     });
 

@@ -20,7 +20,6 @@ const base = {
     { description: "Hosting setup", quantity: 1, unitPrice: 250.5 },
   ],
   currency: "GHS",
-  currencySymbol: "GH₵",
   subtotal: 3250.5,
   tax: 162.53,
   taxRate: 5,

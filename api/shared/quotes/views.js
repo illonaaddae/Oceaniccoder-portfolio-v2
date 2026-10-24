@@ -3,6 +3,7 @@
 
 const M = require("./model");
 const { signReceipt } = require("../tokens");
+const { money } = require("../email/ui");
 
 const METHOD_LABELS = {
   card: "Card",
@@ -36,8 +37,7 @@ function siteBase() {
 }
 
 function formatMoney(minor, currency) {
-  const major = (Number(minor) || 0) / 100;
-  return `${currency} ${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return money((Number(minor) || 0) / 100, currency);
 }
 
 function formatDate(iso) {

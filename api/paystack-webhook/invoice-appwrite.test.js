@@ -142,7 +142,7 @@ describe("paystack-webhook invoice branch on Appwrite", () => {
     expect(sent.map((m) => [m.to[0], m.subject])).toEqual([
       ["admin@example.com", "Action needed: underpayment on invoice INV-2026-0042"],
     ]);
-    expect(sent[0].html).toContain("Underpaid by ₵500.00");
+    expect(sent[0].html).toContain("Underpaid by GHS 500.00");
   });
 
   it("gives up on a Resend request with no response and still finishes", async () => {
@@ -217,7 +217,7 @@ describe("paystack-webhook invoice branch on Appwrite", () => {
       ["ama@example.com", "Payment received for invoice INV-2026-0042"],
       ["admin@example.com", "Payment received for invoice INV-2026-0042"],
     ]);
-    expect(sent[1].html).toContain("Overpaid by ₵100.00. The invoice has been marked paid.");
+    expect(sent[1].html).toContain("Overpaid by GHS 100.00. The invoice has been marked paid.");
   });
 
   it("sends no client receipt for a settled invoice without a client email", async () => {

@@ -64,7 +64,8 @@ describe("card", () => {
 
   it("has no empty header when there is no title or figure", () => {
     const html = ui.card({ rows: [["Paid so far", "GHS 6,000.00"]] });
-    expect(html).not.toContain("#04333B");
+    expect(html).not.toContain("bgcolor");
+    expect(html).toContain("border-radius:8px");
     expect(html).toContain("Paid so far");
   });
 });
@@ -74,5 +75,33 @@ describe("money", () => {
     expect(ui.money(5100, "GHS")).toBe("GHS 5,100.00");
     expect(ui.money("3413.025", "GHS")).toBe("GHS 3,413.03");
     expect(ui.money(12.5)).toBe("12.50");
+  });
+});
+
+describe("dark mode", () => {
+  const html = ui.shell({ preview: "", body: "<p>x</p>", reason: "r" });
+
+  it("opts in to dark mode and ships the dark rules", () => {
+    expect(html).toContain('name="color-scheme" content="light dark"');
+    expect(html).toContain("@media (prefers-color-scheme:dark)");
+  });
+
+  it("keys every dark rule on a value the templates actually write inline", () => {
+    const tones = ["ok", "warn", "info", "danger"];
+    const sample = [
+      html,
+      ui.card({ title: "T", highlight: "GHS 1.00", rows: [["a", "b"]] }),
+      ui.button({ href: "https://x.dev", label: "Go" }),
+      ...tones.map((tone) => ui.heading({ eyebrow: "e", title: "t", tone })),
+      ...tones.map((tone) => ui.notice({ tone, text: "n" })),
+    ].join("");
+    const needles = [...html.matchAll(/\[style\*="([^"]+)"\]/g)].map((m) => m[1]);
+    expect(needles.length).toBeGreaterThan(10);
+    for (const needle of needles) expect(sample, needle).toContain(needle);
+  });
+
+  it("pads the logo so it stays readable on the dark sheet", () => {
+    expect(html).toContain('class="oc-logo"');
+    expect(html).toContain(".oc-logo{background:#ffffff");
   });
 });
