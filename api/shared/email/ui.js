@@ -156,7 +156,9 @@ const ON_OCEAN = "#a5d8e2";
 const STAMPS = { ok: "#86efac", warn: "#fcd34d", info: "#a5f3fc", danger: "#fca5a5" };
 
 // status = { label: "Paid", tone: "ok" } prints a stamp opposite the title.
-function card({ title, highlight, highlightLabel, status, rows = [] }) {
+// body is trusted template HTML shown on white under the rows; callers escape
+// anything in it that came from a user.
+function card({ title, highlight, highlightLabel, status, rows = [], body = "" }) {
   const stampColor = status ? STAMPS[status.tone] || STAMPS.info : "";
   const stamp = status
     ? `<span style="${LABEL};color:${stampColor};border:1.5px solid ${stampColor};border-radius:4px;padding:4px 8px;white-space:nowrap">${status.tone === "ok" ? "&#10003; " : ""}${esc(status.label)}</span>`
@@ -181,10 +183,14 @@ function card({ title, highlight, highlightLabel, status, rows = [] }) {
   if (!top && !figure) {
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:8px;margin:0 0 24px">${rowHtml}</table>`;
   }
-  const headRadius = shown.length ? "8px 8px 0 0" : "8px";
+  const below =
+    (shown.length
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowHtml}</table>`
+      : "") + (body ? `<div style="padding:16px 22px 10px">${body}</div>` : "");
+  const headRadius = below ? "8px 8px 0 0" : "8px";
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 24px">
 <tr><td bgcolor="${OCEAN}" style="background:${OCEAN};border-radius:${headRadius};padding:${highlight ? "20px 22px 22px" : "14px 22px"}">${top}${figure}</td></tr>
-${shown.length ? `<tr><td style="border:1px solid ${C.line};border-top:0;border-radius:0 0 8px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowHtml}</table></td></tr>` : ""}
+${below ? `<tr><td style="border:1px solid ${C.line};border-top:0;border-radius:0 0 8px 8px">${below}</td></tr>` : ""}
 </table>`;
 }
 

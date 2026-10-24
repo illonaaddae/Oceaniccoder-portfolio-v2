@@ -28,7 +28,6 @@ const {
   noteAlertRecorded,
 } = require("./invoiceCharge");
 const {
-  currencySymbol,
   webhookFailedEmail,
   webhookRetryEmail,
   webhookUntrackedEmail,
@@ -596,7 +595,6 @@ module.exports = async function (context, req) {
 
   const amountPaid = (data.amount || 0) / 100; // convert from pesewas back to base unit
   const currency = data.currency || "GHS";
-  const sym = currencySymbol(currency);
 
   if (backend === "cosmos") {
     // The Cosmos rows are keyed by reference; Paystack always sends one.
@@ -623,20 +621,20 @@ module.exports = async function (context, req) {
       if (outcome === "no-invoice") {
         await bail(
           "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
+          `looked for invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
         );
         return;
       }
       if (outcome === "ambiguous-invoice") {
         await bail(
           "more than one invoice has this number, so none was marked",
-          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
+          `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
         );
         return;
       }
       if (outcome === "conflict" && recorded) {
         const reason = "the invoice this payment was applied to was renumbered or deleted";
-        const detail = `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`;
+        const detail = `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`;
         context.log.error(`paystack-webhook: ${reason} — ${detail}`);
         if (resendKey && adminEmail) {
           await sendEmail(
@@ -654,7 +652,7 @@ module.exports = async function (context, req) {
       if (outcome === "conflict") {
         await bail(
           "the payments row for this reference belongs to another charge or was edited by hand, or its invoice was renumbered or deleted, so nothing was changed",
-          `invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference}`,
+          `invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference}`,
         );
         return;
       }
@@ -830,7 +828,7 @@ module.exports = async function (context, req) {
       } else {
         await bail(
           "no invoice matches this payment",
-          `looked for invoiceNumber "${invoiceNumber}", amount ${sym}${amountPaid.toFixed(2)} ${currency}, reference ${reference || "none"}`,
+          `looked for invoiceNumber "${invoiceNumber}", amount ${money(amountPaid, currency)}, reference ${reference || "none"}`,
         );
         return;
       }
@@ -841,7 +839,7 @@ module.exports = async function (context, req) {
   } else {
     await bail(
       "APPWRITE_API_KEY is not set in Azure configuration",
-      `invoice ${invoiceNumber} was paid (${sym}${amountPaid.toFixed(2)} ${currency}) but could not be marked paid or recorded`,
+      `invoice ${invoiceNumber} was paid (${money(amountPaid, currency)}) but could not be marked paid or recorded`,
     );
     return;
   }
