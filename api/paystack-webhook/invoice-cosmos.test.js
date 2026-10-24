@@ -161,6 +161,75 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(sent[0].html).toContain("Currency mismatch. Paid in USD, invoiced in GHS.");
   });
 
+  it("marks an overpaid invoice paid and tells the admin by how much", async () => {
+    db.container("invoices").seed(invoiceDoc({ total: 400 }));
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(subjects()).toEqual([
+      ["ama@example.com", "Payment received for invoice INV-2026-0042"],
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+    ]);
+    expect(sent[1].html).toContain("Overpaid by GHS 100.00. The invoice has been marked paid.");
+  });
+
+  it("sends no client receipt for a settled invoice without a client email", async () => {
+    db.container("invoices").seed(invoiceDoc({ clientEmail: undefined }));
+    expect((await run()).status).toBe(200);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(payment()).toMatchObject({ clientEmail: "" });
+    expect(subjects()).toEqual([
+      ["admin@example.com", "Payment received for invoice INV-2026-0042"],
+    ]);
+  });
+
+  it.each([
+    ["mobile_money", "momo"],
+    ["apple_pay", "apple_pay"],
+    ["bank_transfer", "bank"],
+    ["card", "card"],
+    [undefined, "card"],
+  ])("records a %s charge with method %s", async (channel, method) => {
+    expect((await run(signed(chargeOf({ channel })))).status).toBe(200);
+    expect(payment()).toMatchObject({ method });
+  });
+
+  it("gives up on a Resend request with no response and still finishes", async () => {
+    const timeouts = [];
+    // Resend accepts the request and never answers; the socket timeout fires.
+    https.request.mockImplementation(() => {
+      const listeners = {};
+      return {
+        on: (ev, fn) => {
+          listeners[ev] = fn;
+        },
+        setTimeout: (ms, fn) => timeouts.push({ ms, fn }),
+        destroy: (err) => listeners.error(err),
+        write: () => {},
+        end: () => timeouts.at(-1).fn(),
+      };
+    });
+    expect((await run()).status).toBe(200);
+    expect(timeouts.map((t) => t.ms)).toEqual([10000, 10000]);
+    expect(handlerLog.warn).toHaveBeenCalledWith(
+      "Email send failed:",
+      "no response from api.resend.com in 10s",
+    );
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(payment().notifiedAt).toEqual(expect.any(String));
+  }, 2000);
+
+  it("warns with the status when Resend refuses an email and carries on", async () => {
+    sent.answers.push(422, 200);
+    expect((await run()).status).toBe(200);
+    expect(handlerLog.warn).toHaveBeenCalledWith("Email send failed:", "Resend answered 422");
+    expect(sent.map((m) => [m.to[0], m.status])).toEqual([
+      ["ama@example.com", 422],
+      ["admin@example.com", 200],
+    ]);
+    expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
+    expect(payment().notifiedAt).toEqual(expect.any(String));
+  });
+
   const unavailable = () => Object.assign(new Error("Service Unavailable"), { code: 503 });
   // Fails the next `count` calls of a fake-container hook, then lets them through.
   const failNext = (container, hook, count) => {
@@ -696,20 +765,33 @@ describe("paystack-webhook under WRITE_HOLD", () => {
 
   // The only test in this file with an invalid WRITE_HOLD: the once-per-
   // process flag lives in index.js for the life of the module.
-  it("answers 500 to invoice and quote charges under an invalid WRITE_HOLD and mails once", async () => {
+  it("answers 500 to invoice and quote charges under an invalid WRITE_HOLD and mails once it is sent", async () => {
     process.env.WRITE_HOLD = "true";
     process.env.DATA_BACKEND = "cosmos";
     const quoteEvent = chargeOf({
       reference: "Q-2026-0001-1-ABCDEFGH",
       metadata: { kind: "quote" },
     });
+    sent.answers.push(500);
     expect((await run(signed(chargeOf()))).status).toBe(500);
     expect((await run(signed(quoteEvent))).status).toBe(500);
-    expect(sent.map((m) => m.subject)).toEqual([
-      "Action needed: WRITE_HOLD has an invalid value; payments are not being recorded",
+    expect((await run(signed(chargeOf()))).status).toBe(500);
+    // The first send fails, so the flag is not set and the next run mails.
+    const SUBJECT =
+      "Action needed: WRITE_HOLD has an invalid value; payments are not being recorded";
+    expect(sent.map((m) => [m.subject, m.status])).toEqual([
+      [SUBJECT, 500],
+      [SUBJECT, 200],
     ]);
-    expect(sent[0].html).toContain("WRITE_HOLD is not valid");
-    expect(sent[0].html).toContain("WRITE_HOLD must be");
+    const { html } = sent[1];
+    expect(html).toContain("WRITE_HOLD is not valid");
+    expect(html).toContain("WRITE_HOLD must be");
+    expect(html).toContain("In test mode Paystack retries each charge hourly for about 10 hours");
+    expect(html).toContain("are lost and must be recorded by hand");
+    expect(html).toContain("Paystack dashboard");
+    expect(html).toContain("function logs");
+    expect(html).toContain("sent once while the setting is wrong");
+    expect(html).not.toContain("once per payment");
     expect(quote).not.toHaveBeenCalled();
     expect(cosmos.getDatabase).not.toHaveBeenCalled();
   });

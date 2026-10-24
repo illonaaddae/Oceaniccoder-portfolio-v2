@@ -305,6 +305,13 @@ describe("recordInvoiceCharge on Cosmos", () => {
     expect(stored(invoices, "inv1")).toMatchObject({ status: "sent", archivedAt: null });
   });
 
+  it("does not add archivedAt to an invoice that was never archived", async () => {
+    const { invoices, run } = setup();
+    await run();
+    expect(stored(invoices, "inv1")).toMatchObject({ status: "paid" });
+    expect(stored(invoices, "inv1")).not.toHaveProperty("archivedAt");
+  });
+
   it("leaves a never-archived part-paid invoice untouched", async () => {
     const { invoices, run } = setup({ invoice: invoiceDoc({ total: 1000 }) });
     const before = invoices.docs.get("inv1")._etag;
