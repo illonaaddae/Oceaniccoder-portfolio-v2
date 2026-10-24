@@ -16,7 +16,6 @@ const {
   small,
 } = require("../shared/email/ui");
 const cosmos = require("../shared/cosmos");
-const { dataBackend } = require("../shared/backend");
 const { errorReason } = require("../shared/errors");
 const { withDeadline } = require("../shared/deadline");
 
@@ -183,47 +182,12 @@ async function createZoomMeeting(
   return JSON.parse(result.body).join_url ?? null;
 }
 
-const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT || "https://fra.cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || "6943431e00253c8f9883";
-const APPWRITE_DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "6943493400018e7c314c";
-const APPWRITE_BOOKINGS_COLLECTION = "bookings";
-
-async function isSlotTaken(date, time) {
-  const apiKey = process.env.APPWRITE_API_KEY;
-  if (!apiKey) return false;
-
-  const q1 = encodeURIComponent(
-    JSON.stringify({ method: "equal", attribute: "preferredDate", values: [date] }),
-  );
-  const q2 = encodeURIComponent(
-    JSON.stringify({ method: "equal", attribute: "preferredTime", values: [time] }),
-  );
-  const path = `/v1/databases/${APPWRITE_DATABASE_ID}/collections/${APPWRITE_BOOKINGS_COLLECTION}/documents?queries[]=${q1}&queries[]=${q2}&limit=1`;
-
-  const url = new URL(APPWRITE_ENDPOINT);
-  const res = await httpsRequest(
-    url.hostname,
-    path,
-    "GET",
-    {
-      "X-Appwrite-Project": APPWRITE_PROJECT_ID,
-      "X-Appwrite-Key": apiKey,
-      "Content-Type": "application/json",
-    },
-    "",
-  );
-
-  if (res.status !== 200) return false;
-  const data = JSON.parse(res.body);
-  return (data.total ?? 0) > 0;
-}
-
 // The browser gives up after 10 s. Bounding the check well inside that leaves
 // time for the owner alert, which a hung query would never reach.
 const SLOT_CHECK_TIMEOUT_MS = 5000;
 
 // Same match as the bookings check in /api/submit, which guards the row write.
-async function isSlotTakenInCosmos(date, time) {
+async function isSlotTaken(date, time) {
   const { resources } = await withDeadline(SLOT_CHECK_TIMEOUT_MS, (abortSignal) =>
     cosmos
       .getDatabase()
@@ -573,51 +537,43 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Server-side double-booking guard. The Appwrite check fails open. The
-  // Cosmos check fails closed: this function sends the calendar invite and
-  // the confirmation emails before the browser saves the row, so carrying on
-  // after a failed read could confirm a slot someone else holds. On a 503 the
-  // browser still saves through /api/submit, which checks the slot again, so
-  // the booking is kept; only its invite and emails are skipped.
-  let taken = false;
-  if (dataBackend() === "cosmos") {
-    try {
-      taken = await isSlotTakenInCosmos(preferredDate, preferredTime);
-    } catch (err) {
-      const reason = errorReason(err);
-      context.log.error("Slot check failed:", reason);
-      // The booking may still save through /api/submit, but with no invite or
-      // confirmation, so tell the owner, who can send both by hand.
-      await sendNotificationEmail(context, {
-        name,
-        email,
-        phone,
-        meetingType,
-        preferredDate,
-        preferredTime,
-        timezone,
-        message,
-        meetLink: null,
-        zoomLink: null,
-        calendarEventLink: null,
-        alert: {
-          subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} got no invite or confirmation`,
-          notice: `No invite or confirmation was sent\nThe server couldn't check whether ${preferredTime} on ${preferredDate} was free (${reason}), so it sent no calendar invite and no confirmation email.\nIf the booking saved, it is under Bookings in the dashboard. Check the slot is still free, then send the invite and confirmation by hand.`,
-        },
-      }).catch((e) => context.log.error("Notification error:", e.message));
-      context.res = {
-        status: 503,
-        headers: CORS,
-        body: JSON.stringify({ error: "slot_check_failed" }),
-      };
-      return;
-    }
-  } else {
-    try {
-      taken = await isSlotTaken(preferredDate, preferredTime);
-    } catch (err) {
-      context.log.warn("Slot check failed (non-fatal):", err.message);
-    }
+  // Server-side double-booking guard. It fails closed: this function sends
+  // the calendar invite and the confirmation emails before the browser saves
+  // the row, so carrying on after a failed read could confirm a slot someone
+  // else holds. On a 503 the browser still saves through /api/submit, which
+  // checks the slot again, so the booking is kept; only its invite and emails
+  // are skipped.
+  let taken;
+  try {
+    taken = await isSlotTaken(preferredDate, preferredTime);
+  } catch (err) {
+    const reason = errorReason(err);
+    context.log.error("Slot check failed:", reason);
+    // The booking may still save through /api/submit, but with no invite or
+    // confirmation, so tell the owner, who can send both by hand.
+    await sendNotificationEmail(context, {
+      name,
+      email,
+      phone,
+      meetingType,
+      preferredDate,
+      preferredTime,
+      timezone,
+      message,
+      meetLink: null,
+      zoomLink: null,
+      calendarEventLink: null,
+      alert: {
+        subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} got no invite or confirmation`,
+        notice: `No invite or confirmation was sent\nThe server couldn't check whether ${preferredTime} on ${preferredDate} was free (${reason}), so it sent no calendar invite and no confirmation email.\nIf the booking saved, it is under Bookings in the dashboard. Check the slot is still free, then send the invite and confirmation by hand.`,
+      },
+    }).catch((e) => context.log.error("Notification error:", e.message));
+    context.res = {
+      status: 503,
+      headers: CORS,
+      body: JSON.stringify({ error: "slot_check_failed" }),
+    };
+    return;
   }
   if (taken) {
     context.res = {
