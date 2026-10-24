@@ -171,9 +171,8 @@ const PrivacyPage: React.FC = () => (
         <List>
           <li>
             <strong className="text-[var(--text-primary)]">Contact:</strong> your name, email,
-            subject and message, so we can reply. We save them and email them to ourselves through
-            Resend; replying to that email goes to the address you gave. We don&apos;t send you
-            anything automatically.
+            subject and message, so we can reply to the address you gave. We save them and email
+            them to ourselves through Resend. We don&apos;t send you anything automatically.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Booking a call:</strong> your name,
@@ -283,7 +282,8 @@ const PrivacyPage: React.FC = () => (
         <List>
           <li>
             <strong className="text-[var(--text-primary)]">Microsoft Azure</strong> hosts the site
-            and our server code in its Central US region, and stores the data described above.
+            on its global network, runs our server code in its Central US region, and stores the
+            data described above.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Cloudflare</strong> runs the spam check
