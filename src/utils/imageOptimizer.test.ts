@@ -152,6 +152,10 @@ describe("Azure Blob media URLs", () => {
     expect(getImageForContext(PNG, "hero")).toMatch(/\/w1600\.webp$/);
   });
 
+  it("defaults to the card size, not the 960 fallback", () => {
+    expect(getImageForContext(PNG)).toMatch(/\/w480\.webp$/);
+  });
+
   it("builds a srcSet from the stored widths", () => {
     expect(generateSrcSet(PNG)).toBe(
       [480, 960, 1600]
