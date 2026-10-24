@@ -8,7 +8,7 @@ const widget = vi.hoisted(() => ({ token: "tok" }));
 
 vi.mock("../../services/api", () => ({ createMessage }));
 vi.mock("@/hooks/useTurnstile", () => ({
-  useTurnstile: () => ({ active: false, ref: vi.fn(), token: widget.token, error: null, reset }),
+  useTurnstile: () => ({ ref: vi.fn(), token: widget.token, error: null, reset }),
 }));
 // The real checks need the form open for 3 seconds; they have their own rules.
 vi.mock("./validateForm", () => ({ validateForm: () => ({ valid: true }) }));

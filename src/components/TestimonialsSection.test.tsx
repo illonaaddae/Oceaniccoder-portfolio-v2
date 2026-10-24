@@ -10,7 +10,7 @@ vi.mock("@/services/api", () => ({
 }));
 
 vi.mock("@/hooks/useTurnstile", () => ({
-  useTurnstile: () => ({ active: false, ref: vi.fn(), token: null, error: null, reset: vi.fn() }),
+  useTurnstile: () => ({ ref: vi.fn(), token: null, error: null, reset: vi.fn() }),
 }));
 
 vi.mock("./Testimonials/useTestimonialsCarousel", () => ({
