@@ -20,6 +20,8 @@ describe("createServices backend", () => {
     ["anything else", "mongo"],
   ])("uses Cosmos when DATA_BACKEND is %s", (_label, value) => {
     vi.stubEnv("DATA_BACKEND", value);
+    // A configured Appwrite must still be ignored: on the old code this key let
+    // the Appwrite stores build, so the test failed for the right reason.
     vi.stubEnv("APPWRITE_API_KEY", "test-key");
     vi.stubEnv("COSMOS_ENDPOINT", "");
     vi.stubEnv("COSMOS_KEY", "");

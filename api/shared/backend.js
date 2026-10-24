@@ -1,5 +1,7 @@
 // Server switches for the Appwrite → Cosmos cutover. The only place that
-// reads DATA_BACKEND and WRITE_HOLD, so every function agrees on them.
+// reads DATA_BACKEND and WRITE_HOLD, so every function agrees on them. The
+// quote service (quotes/service.js) always uses Cosmos; only WRITE_HOLD
+// applies to it.
 //
 // DATA_BACKEND picks where the server reads and writes: "appwrite" (the
 // default while it is unset) or "cosmos". Any other value throws, so a typo

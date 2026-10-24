@@ -6,8 +6,8 @@
 // stored: the challenge is an HMAC-signed token, the code is derived from it,
 // and the 30-day unlock is an HMAC-signed HttpOnly cookie. Counts that must
 // hold across instances (tries, single use, send quotas, the access epoch)
-// are rows in the existing `locks` table, so this works on Appwrite and on
-// Cosmos without a schema change.
+// are rows in the Cosmos `locks` container, so they need no schema of their
+// own.
 //
 // Session binding: a cookie holds the quote id, revision, access epoch and a
 // keyed tag of the client email. Revise bumps the revision. Rotate ("New

@@ -43,11 +43,11 @@ async function load(svc, id) {
   return quote;
 }
 
-// Row ids from either backend: Appwrite ids (at most 36 characters) and Cosmos
-// ids, which include the 67-character payment ids derived from a Paystack
-// reference (paymentIdFor). node-appwrite puts the id into the URL path without
-// encoding it, so anything else ("../", "?", "/") is refused before the call.
-// 128 stays well inside Cosmos's 255-character id limit.
+// Row ids: ids imported from Appwrite (at most 36 characters) and Cosmos ids,
+// which include the 67-character payment ids derived from a Paystack
+// reference (paymentIdFor). Only those characters are allowed, so "../", "?"
+// or "/" never reach a lookup; 128 stays well inside Cosmos's 255-character id
+// limit.
 const ROW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 function rowId(id) {
@@ -401,7 +401,8 @@ const actions = {
     // A part-payment leaves the invoice open, but it is still money received
     // (the webhook un-archives on any payment for the same reason). Rows with
     // no status predate the field and were all successful. With no number
-    // there is nothing to match (and Appwrite rejects equal on undefined).
+    // there is nothing to match (and listInvoicePayments refuses a missing
+    // number with a 400).
     const payments = invoice.invoiceNumber
       ? await svc.repo.listInvoicePayments(invoice.invoiceNumber)
       : [];
