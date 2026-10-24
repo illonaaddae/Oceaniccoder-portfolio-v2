@@ -144,7 +144,7 @@ const PrivacyPage: React.FC = () => (
         <SubHeading>Do Not Track and Global Privacy Control</SubHeading>
         <p>
           If your browser sends a Do Not Track or Global Privacy Control signal, we honour it fully:
-          the site sends nothing at all, not even an anonymous count.
+          our analytics record nothing at all, not even an anonymous count.
         </p>
 
         <SubHeading>How long we keep it</SubHeading>
@@ -164,7 +164,9 @@ const PrivacyPage: React.FC = () => (
         <p>We only receive what you type into a form, and use it for the reason given.</p>
         <p>
           To block spam, the contact, booking, inquiry, comment and testimonial forms use Cloudflare
-          Turnstile. It runs a check in your browser, and our server sends the result and your IP
+          Turnstile. When a page with one of these forms opens, your browser loads Turnstile from
+          Cloudflare, which sees your IP address and checks details about your browser and device to
+          tell people from bots. When you send a form, our server sends the result and your IP
           address to Cloudflare to confirm it. Our server also uses your IP address in memory to
           limit how many alerts one address can trigger, and never saves it.
         </p>
@@ -319,8 +321,10 @@ const PrivacyPage: React.FC = () => (
           </li>
         </List>
         <p>
-          Some of these providers handle data outside Ghana: Microsoft Azure in the United States
-          and the Netherlands, and Resend and Cloudflare in the United States.
+          Every provider listed here can handle your data outside Ghana. Microsoft Azure stores it
+          in the United States and the Netherlands. Cloudflare, Resend, OpenAI, Google, YouTube,
+          Loom and Zoom are based in the United States, Paystack in Nigeria and Africa&apos;s
+          Talking in Kenya. Email hello@oceaniccoder.dev to ask how these transfers are protected.
         </p>
       </Section>
 

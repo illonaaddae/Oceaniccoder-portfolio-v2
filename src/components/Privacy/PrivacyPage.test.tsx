@@ -87,6 +87,10 @@ describe("PrivacyPage", () => {
     expect(
       within(forms).getByText(/sends the result and your IP\s+address to Cloudflare/),
     ).toBeInTheDocument();
+    // Turnstile contacts Cloudflare as soon as the page opens, not only on send.
+    expect(
+      within(forms).getByText(/When a page with one of these forms opens, your browser loads/),
+    ).toBeInTheDocument();
     expect(within(forms).getByText(/and never saves it/)).toBeInTheDocument();
     const processors = screen.getByRole("region", {
       name: "Where your data is stored and who processes it",
@@ -95,8 +99,8 @@ describe("PrivacyPage", () => {
     // Pinned counts: Cloudflare twice in the forms section, once in front of
     // Paystack's checkout, and twice in the processor section (the list and
     // the transfers). A new mention needs a matching change in the code.
-    expect(document.body.textContent?.match(/turnstile/gi)).toHaveLength(2);
-    expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(5);
+    expect(document.body.textContent?.match(/turnstile/gi)).toHaveLength(3);
+    expect(document.body.textContent?.match(/cloudflare/gi)).toHaveLength(6);
     const quotes = screen.getByRole("region", { name: "Quotes and payments" });
     expect(
       within(quotes).getByText(/Cloudflare, which\s+protects Paystack's servers/),
@@ -122,7 +126,7 @@ describe("PrivacyPage", () => {
     expect(within(processors).getByText(/Appwrite in Frankfurt,\s+Germany/)).toBeInTheDocument();
     expect(
       within(processors).getByText(
-        /Microsoft Azure in the United States\s+and the Netherlands, and Resend and Cloudflare in the United States/,
+        /Microsoft Azure stores it in\s+the United States and the Netherlands\. Cloudflare, Resend, OpenAI, Google, YouTube, Loom\s+and Zoom are based in the United States, Paystack in Nigeria and Africa's Talking in\s+Kenya/,
       ),
     ).toBeInTheDocument();
   });
