@@ -105,3 +105,36 @@ describe("dark mode", () => {
     expect(html).toContain(".oc-logo{background:#ffffff");
   });
 });
+
+describe("Gmail dark mode and phone widths", () => {
+  it("keeps the card header dark and its text white in Gmail's inverted dark mode", () => {
+    const html = ui.card({ title: "Receipt", highlight: "GHS 5,100.00", rows: [["a", "b"]] });
+    expect(html).toContain("background-image:linear-gradient(#04333B,#04333B)");
+    expect(html).toContain('class="gmail-screen"');
+    expect(html).toContain('class="gmail-difference"');
+    const shell = ui.shell({ preview: "", body: "", reason: "" });
+    expect(shell).toContain('<body class="body"');
+    expect(shell).toContain(
+      "u + .body .gmail-difference{background:#000;mix-blend-mode:difference}",
+    );
+  });
+
+  it("keeps an amount on one line with the currency as a small prefix", () => {
+    const html = ui.card({ title: "T", highlight: "GHS 5,100.00" });
+    expect(html).toContain("white-space:nowrap");
+    expect(html).toContain('letter-spacing:.04em">GHS</span>&nbsp;5,100.00');
+    expect(ui.card({ title: "T", highlight: "Thursday, 15 October" })).toContain(
+      ">Thursday, 15 October<",
+    );
+  });
+
+  it("pins the status stamp to the right of the title", () => {
+    const html = ui.card({
+      title: "Amount due",
+      status: { label: "Due", tone: "warn" },
+      highlight: "GHS 1.00",
+    });
+    expect(html).toContain('<td width="100%"');
+    expect(html).toContain("white-space:nowrap;text-align:right");
+  });
+});

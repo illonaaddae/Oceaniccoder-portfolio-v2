@@ -96,7 +96,16 @@ const DARK = {
   // The light header (#04333B) is close to the dark sheet; lifted so the card keeps its edge.
   ocean: "#0b4f5c",
 };
+// Gmail's apps ignore prefers-color-scheme and invert colours themselves,
+// turning the ocean header pale and its white text dark. A same-colour
+// gradient keeps the background (Gmail leaves background images alone) and
+// two blend layers turn the inverted text back to white. Gmail swaps the
+// doctype for a <u>, so "u + .body" matches nowhere else, and in light mode
+// both blends are no-ops over black. hteumeuleu.com/2021/fixing-gmail-dark-mode-css-blend-modes
+const GMAIL_CSS = `u + .body .gmail-screen{background:#000;mix-blend-mode:screen}
+u + .body .gmail-difference{background:#000;mix-blend-mode:difference}`;
 const DARK_CSS = `<style>:root{color-scheme:light dark}
+${GMAIL_CSS}
 @media (prefers-color-scheme:dark){
 body,[style*="background:${C.bg}"]{background:${DARK.page}!important}
 [style*="background:#ffffff"]{background:${DARK.sheet}!important}
@@ -121,7 +130,7 @@ body,[style*="background:${C.bg}"]{background:${DARK.page}!important}
 
 function shell({ preview, body, reason, meta }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">${FONT_LINK}${DARK_CSS}<title>OceanicCoder</title></head>
-<body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
+<body class="body" style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preview)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
@@ -155,6 +164,23 @@ const ON_OCEAN = "#a5d8e2";
 // Stamps on the ocean header; light tints keep AA contrast on it.
 const STAMPS = { ok: "#86efac", warn: "#fcd34d", info: "#a5f3fc", danger: "#fca5a5" };
 
+// Content on a dark surface, wrapped so Gmail's inversion leaves it white.
+function onDark(html, inline = false) {
+  const tag = inline ? "span" : "div";
+  const display = inline ? ' style="display:inline-block"' : "";
+  return `<${tag} class="gmail-screen"${display}><${tag} class="gmail-difference"${display}>${html}</${tag}></${tag}>`;
+}
+const keepDark = (color) =>
+  `background:${color};background-image:linear-gradient(${color},${color})`;
+
+// "GHS 5,100.00": the code as a smaller prefix on the same line, so the figure
+// fits a phone-width card without breaking.
+function figureText(value) {
+  const m = /^([A-Z]{3}) (.+)$/.exec(String(value));
+  if (!m) return esc(value);
+  return `<span style="font-size:.5em;font-weight:600;letter-spacing:.04em">${esc(m[1])}</span>&nbsp;${esc(m[2])}`;
+}
+
 // status = { label: "Paid", tone: "ok" } prints a stamp opposite the title.
 // body is trusted template HTML shown on white under the rows; callers escape
 // anything in it that came from a user.
@@ -165,13 +191,13 @@ function card({ title, highlight, highlightLabel, status, rows = [], body = "" }
     : "";
   const top =
     title || stamp
-      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="${LABEL};color:${ON_OCEAN}">${esc(title)}</td>${stamp ? `<td align="right" style="padding-left:12px">${stamp}</td>` : ""}</tr></table>`
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td width="100%" style="${LABEL};color:${ON_OCEAN}">${esc(title)}</td>${stamp ? `<td align="right" style="padding-left:12px;white-space:nowrap;text-align:right">${stamp}</td>` : ""}</tr></table>`
       : "";
   // Amounts are short; a date like "Thursday, 15 October 2026 at 10:00 AM" is
   // not, so long figures drop to a size that keeps them to a line or two.
   const figureSize = String(highlight ?? "").length > 18 ? 24 : 36;
   const figure = highlight
-    ? `${highlightLabel ? `<div style="font-size:14px;color:${ON_OCEAN};margin-top:${top ? 14 : 0}px">${esc(highlightLabel)}</div>` : ""}<div style="font-size:${figureSize}px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:${highlightLabel || !top ? 2 : 12}px">${esc(highlight)}</div>`
+    ? `${highlightLabel ? `<div style="font-size:14px;color:${ON_OCEAN};margin-top:${top ? 14 : 0}px">${esc(highlightLabel)}</div>` : ""}<div style="font-size:${figureSize}px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:${highlightLabel || !top ? 2 : 12}px">${figureText(highlight)}</div>`
     : "";
   const shown = rows.filter(([, value]) => value !== undefined && value !== null && value !== "");
   const rowHtml = shown
@@ -189,7 +215,7 @@ function card({ title, highlight, highlightLabel, status, rows = [], body = "" }
       : "") + (body ? `<div style="padding:16px 22px 10px">${body}</div>` : "");
   const headRadius = below ? "8px 8px 0 0" : "8px";
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 24px">
-<tr><td bgcolor="${OCEAN}" style="background:${OCEAN};border-radius:${headRadius};padding:${highlight ? "20px 22px 22px" : "14px 22px"}">${top}${figure}</td></tr>
+<tr><td bgcolor="${OCEAN}" style="${keepDark(OCEAN)};border-radius:${headRadius};padding:${highlight ? "20px 22px 22px" : "14px 22px"}">${onDark(top + figure)}</td></tr>
 ${below ? `<tr><td style="border:1px solid ${C.line};border-top:0;border-radius:0 0 8px 8px">${below}</td></tr>` : ""}
 </table>`;
 }
@@ -201,8 +227,8 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monos
 
 function codeBlock({ label, code }) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
-<tr><td align="center" bgcolor="${OCEAN}" style="background:${OCEAN};border-radius:8px;padding:20px 22px">
-${label ? `<div style="${LABEL};color:${ON_OCEAN};margin:0 0 10px">${esc(label)}</div>` : ""}<div style="font-family:${MONO};font-size:36px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:.25em;padding-left:.25em;-webkit-user-select:all;user-select:all">${esc(code)}</div>
+<tr><td align="center" bgcolor="${OCEAN}" style="${keepDark(OCEAN)};border-radius:8px;padding:20px 22px">
+${onDark(`${label ? `<div style="${LABEL};color:${ON_OCEAN};margin:0 0 10px">${esc(label)}</div>` : ""}<div style="font-family:${MONO};font-size:36px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:.25em;padding-left:.25em;-webkit-user-select:all;user-select:all">${esc(code)}</div>`)}
 </td></tr></table>`;
 }
 
@@ -210,8 +236,9 @@ function button({ href, label, variant = "primary" }) {
   const styles =
     variant === "secondary"
       ? `background:#ffffff;color:${C.tealDark};border:1px solid ${C.line}`
-      : `background:${C.tealDark};color:#ffffff;border:1px solid ${C.tealDark}`;
-  return `<a href="${esc(safeUrl(href))}" style="display:inline-block;${styles};border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;text-decoration:none;margin:0 8px 8px 0">${esc(label)}</a>`;
+      : `${keepDark(C.tealDark)};color:#ffffff;border:1px solid ${C.tealDark}`;
+  const text = variant === "secondary" ? esc(label) : onDark(esc(label), true);
+  return `<a href="${esc(safeUrl(href))}" style="display:inline-block;${styles};border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;text-decoration:none;margin:0 8px 8px 0">${text}</a>`;
 }
 
 function buttons(...html) {

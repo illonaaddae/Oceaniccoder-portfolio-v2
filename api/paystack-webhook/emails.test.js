@@ -24,7 +24,7 @@ describe("paystack-webhook invoice emails", () => {
     });
     expect(html).toContain("Hi Ama");
     expect(html).toContain("INV-123456");
-    expect(html).toContain("GHS 250.00");
+    expect(html).toContain("GHS</span>&nbsp;250.00");
     expect(html).toContain("Illona @ OceanicCoder");
   });
 
