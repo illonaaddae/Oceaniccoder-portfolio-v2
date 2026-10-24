@@ -2,9 +2,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRequire } from "module";
 
-// Same node-appwrite instance as index.js (vi.mock does not reach CommonJS require).
+// Same module objects as index.js (vi.mock does not reach CommonJS require).
 const require = createRequire(import.meta.url);
-const sdk = require("node-appwrite");
 const { signInvoice } = require("../shared/tokens.js");
 const { UNSIGNED_LINKS_ACCEPTED_UNTIL } = require("../shared/invoiceLinks.js");
 const cosmos = require("../shared/cosmos.js");
@@ -33,8 +32,9 @@ const call = async ({ number, s }, ip) => {
 };
 const NOT_VALID = "This payment link is not valid. Ask us for a new one at hello@oceaniccoder.dev.";
 
+// Imported from Appwrite, so it carries $createdAt rather than createdAt.
 const invoice = {
-  $id: "inv1",
+  id: "inv1",
   invoiceNumber: "INV-2026-0042",
   clientName: "Ama Owusu",
   clientEmail: "ama@example.com",
@@ -44,30 +44,31 @@ const invoice = {
   $createdAt: "2026-10-01T09:00:00.000Z",
 };
 
-// File-wide so every describe block signs with the same secret.
+// File-wide: every describe block signs with the same secret and reads the
+// same fake Cosmos database.
+let invoices;
+// Replaces whatever the invoices container holds with these rows.
+const holding = (...rows) => {
+  invoices.docs.clear();
+  for (const row of rows) invoices.seed(row);
+};
 beforeEach(() => {
   process.env.RECEIPT_SIGNING_SECRET = SECRET;
+  const db = createFakeCosmos();
+  invoices = db.container("invoices");
+  vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
 });
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
   delete process.env.RECEIPT_SIGNING_SECRET;
 });
 
 describe("get-invoice", () => {
-  beforeEach(() => {
-    process.env.APPWRITE_API_KEY = "test-key";
-  });
-  afterEach(() => {
-    vi.restoreAllMocks();
-    delete process.env.APPWRITE_API_KEY;
-  });
-
   // Archiving is admin bookkeeping; the client's pay link keeps working and
   // never learns the invoice was archived.
   it("serves an archived invoice to the pay page without exposing the archive flag", async () => {
-    vi.spyOn(sdk.Databases.prototype, "listDocuments").mockResolvedValue({
-      documents: [{ ...invoice, archivedAt: "2026-10-11T00:00:00.000Z" }],
-    });
+    holding({ ...invoice, archivedAt: "2026-10-11T00:00:00.000Z" });
     const r = await run("INV-2026-0042");
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ invoiceNumber: "INV-2026-0042", status: "sent", total: 500 });
@@ -75,12 +76,11 @@ describe("get-invoice", () => {
   });
 
   it("returns 404 for an unknown invoice number", async () => {
-    vi.spyOn(sdk.Databases.prototype, "listDocuments").mockResolvedValue({ documents: [] });
     expect(await run("INV-NOPE")).toEqual({ status: 404, body: { error: NOT_VALID } });
   });
 
   it("tells browsers and caches never to keep the reply", async () => {
-    vi.spyOn(sdk.Databases.prototype, "listDocuments").mockResolvedValue({ documents: [invoice] });
+    holding(invoice);
     const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
     const number = "INV-2026-0042";
     await handler(context, { method: "GET", headers: {}, query: { number, s: sign(number) } });
@@ -89,16 +89,13 @@ describe("get-invoice", () => {
   });
 
   it("answers 429 after 30 requests in 10 minutes from one IP, before any lookup", async () => {
-    const lookup = vi
-      .spyOn(sdk.Databases.prototype, "listDocuments")
-      .mockResolvedValue({ documents: [] });
     for (let n = 0; n < 30; n += 1) {
       expect((await call({ number: `INV-${n}`, s: undefined }, "198.51.100.7")).status).toBe(404);
     }
-    lookup.mockClear();
+    invoices.queries.length = 0;
     const r = await call({ number: "INV-31", s: undefined }, "198.51.100.7");
     expect(r.status).toBe(429);
-    expect(lookup).not.toHaveBeenCalled();
+    expect(invoices.queries).toEqual([]);
     const context = { res: null, log: Object.assign(vi.fn(), { error: vi.fn() }) };
     await handler(context, {
       method: "GET",
@@ -111,11 +108,8 @@ describe("get-invoice", () => {
 
   describe("signed links", () => {
     const notFound = { status: 404, body: { error: NOT_VALID } };
-    let lookup;
     beforeEach(() => {
-      lookup = vi
-        .spyOn(sdk.Databases.prototype, "listDocuments")
-        .mockResolvedValue({ documents: [invoice] });
+      holding(invoice);
     });
     const afterCutoff = () =>
       vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL });
@@ -136,19 +130,18 @@ describe("get-invoice", () => {
       afterCutoff();
       const r = await run("INV-2026-0042", s);
       expect(r).toEqual(notFound);
-      expect(lookup).not.toHaveBeenCalled();
+      expect(invoices.queries).toEqual([]);
     });
 
     it("refuses a signature carried over to another invoice number", async () => {
       const r = await run("INV-2026-0043", sign("INV-2026-0042"));
       expect(r).toEqual(notFound);
-      expect(lookup).not.toHaveBeenCalled();
+      expect(invoices.queries).toEqual([]);
     });
 
     it("answers a bad signature exactly like an invoice that does not exist", async () => {
       afterCutoff();
       const refused = await run("INV-2026-0042", undefined);
-      lookup.mockResolvedValue({ documents: [] });
       expect(await run("INV-2026-0099")).toEqual(refused);
     });
 
@@ -177,17 +170,14 @@ describe("get-invoice", () => {
       ],
     ])("refuses an unsigned link during the grace period to an invoice %s", async (_, over) => {
       vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
-      lookup.mockResolvedValue({ documents: [{ ...invoice, ...over }] });
+      holding({ ...invoice, ...over });
       expect(await run("INV-2026-0042", undefined)).toEqual(notFound);
-      lookup.mockResolvedValue({ documents: [{ ...invoice, ...over }] });
       expect((await run("INV-2026-0042")).status).toBe(200);
     });
 
     it("opens an old unpaid invoice whose creation time uses Appwrite's offset format", async () => {
       vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
-      lookup.mockResolvedValue({
-        documents: [{ ...invoice, $createdAt: "2026-10-27T23:59:59.999+00:00" }],
-      });
+      holding({ ...invoice, $createdAt: "2026-10-27T23:59:59.999+00:00" });
       expect((await run("INV-2026-0042", undefined)).status).toBe(200);
     });
 
@@ -199,18 +189,6 @@ describe("get-invoice", () => {
 });
 
 describe("get-invoice on Cosmos", () => {
-  let invoices;
-  beforeEach(() => {
-    process.env.DATA_BACKEND = "cosmos";
-    const db = createFakeCosmos();
-    invoices = db.container("invoices");
-    vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
-  });
-  afterEach(() => {
-    vi.restoreAllMocks();
-    delete process.env.DATA_BACKEND;
-  });
-
   it("finds the invoice by number and returns only the public fields", async () => {
     invoices.seed({ id: "inv-other", invoiceNumber: "INV-2026-0001", total: 1, status: "paid" });
     invoices.seed({
@@ -241,12 +219,21 @@ describe("get-invoice on Cosmos", () => {
     });
   });
 
-  it("needs no Appwrite key and never calls Appwrite", async () => {
-    const appwrite = vi.spyOn(sdk.Databases.prototype, "listDocuments");
-    invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
-
-    expect((await run("INV-2026-0042")).status).toBe(200);
-    expect(appwrite).not.toHaveBeenCalled();
+  // DATA_BACKEND no longer picks the store: unset used to mean Appwrite, and
+  // any other value made the read throw.
+  it.each([
+    ["unset", ""],
+    ["appwrite", "appwrite"],
+    ["anything else", "mongo"],
+  ])("reads Cosmos when DATA_BACKEND is %s", async (_label, value) => {
+    vi.stubEnv("DATA_BACKEND", value);
+    try {
+      invoices.seed({ id: "inv1", invoiceNumber: "INV-2026-0042", total: 500, status: "sent" });
+      expect((await run("INV-2026-0042")).status).toBe(200);
+      expect(invoices.queries).toHaveLength(1);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("passes the number as a query parameter, not in the SQL", async () => {
@@ -278,7 +265,8 @@ describe("get-invoice on Cosmos", () => {
     expect(invoices.queries).toEqual([]);
   });
 
-  // Cosmos rows carry createdAt where Appwrite rows carry $createdAt.
+  // Rows written on Cosmos carry createdAt; rows imported from Appwrite carry
+  // $createdAt (the describe above).
   it("applies the unsigned-link grace period to the Cosmos createdAt", async () => {
     vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
     const row = { invoiceNumber: "INV-2026-0042", total: 500, status: "sent" };
