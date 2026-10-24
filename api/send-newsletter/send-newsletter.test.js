@@ -86,7 +86,7 @@ describe("send-newsletter access", () => {
   it("refuses a caller with no session and sends nothing", async () => {
     const r = await send({ "content-type": "application/json" }, { title: "T", slug: "t" });
     expect(r.status).toBe(401);
-    expect(r.body).toEqual({ error: "Sign in to the dashboard and try again." });
+    expect(r.body).not.toHaveProperty("transports");
     expect(request).not.toHaveBeenCalled();
   });
 

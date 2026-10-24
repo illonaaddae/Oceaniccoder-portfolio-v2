@@ -141,6 +141,7 @@ describe("requireAdmin refusals", () => {
 
   it("answers 500 only when no admin is configured at all", async () => {
     process.env.ADMIN_EMAIL = "admin@example.com";
+    process.env.VITE_ADMIN_EMAIL = "admin@example.com";
     expect(await requireAdmin(context, anonymous)).toMatchObject({ status: 500 });
     expect(await requireAdmin(context, signedIn("gh-123"))).toMatchObject({ status: 500 });
   });
