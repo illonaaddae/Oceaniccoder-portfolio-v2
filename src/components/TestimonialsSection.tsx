@@ -13,23 +13,16 @@ import {
   useTestimonialForm,
   SECTION_GRADIENT_STYLE,
 } from "./Testimonials";
-import { usesCosmos } from "@/services/api/dataApi";
 
 const TestimonialsSection: React.FC = () => {
   const { testimonials, loading, currentIndex, isAnimating, goToNext, goToPrev, goToSlide } =
     useTestimonialsCarousel();
 
   const form = useTestimonialForm();
-  // Visitors can only submit testimonials through /api/submit (Cosmos mode).
-  // In Appwrite mode only the admin may create them, so the form would always
-  // fail; it stays hidden until the Cosmos cutover.
-  const canShareExperience = usesCosmos;
 
   if (loading) return <LoadingState />;
 
   const hasTestimonials = testimonials.length > 0;
-  // Without testimonials or a form there is nothing to show.
-  if (!hasTestimonials && !canShareExperience) return null;
   const subtitle = hasTestimonials
     ? "What people say about working with me"
     : "Be the first to share your experience working with me";
@@ -74,14 +67,12 @@ const TestimonialsSection: React.FC = () => {
           />
         )}
 
-        {canShareExperience && (
-          <ShareExperienceButton
-            onClick={() => form.setShowForm(true)}
-            className={hasTestimonials ? "mt-16 text-center" : "text-center"}
-          />
-        )}
+        <ShareExperienceButton
+          onClick={() => form.setShowForm(true)}
+          className={hasTestimonials ? "mt-16 text-center" : "text-center"}
+        />
 
-        {canShareExperience && form.showForm && (
+        {form.showForm && (
           <TestimonialFormModal
             formData={form.formData}
             setFormData={form.setFormData}
@@ -91,7 +82,6 @@ const TestimonialsSection: React.FC = () => {
             onBackdropClick={form.handleBackdropClick}
             submitting={form.submitting}
             submitSuccess={form.submitSuccess}
-            uploadingImage={form.uploadingImage}
             imagePreview={form.imagePreview}
             setImagePreview={form.setImagePreview}
             fileInputRef={form.fileInputRef}

@@ -2,19 +2,13 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const mode = vi.hoisted(() => ({ usesCosmos: true }));
 const createMessage = vi.hoisted(() => vi.fn());
 const reset = vi.hoisted(() => vi.fn());
 const widget = vi.hoisted(() => ({ token: "tok" }));
 
 vi.mock("../../services/api", () => ({ createMessage }));
-vi.mock("../../services/api/dataApi", () => ({
-  get usesCosmos() {
-    return mode.usesCosmos;
-  },
-}));
 vi.mock("@/hooks/useTurnstile", () => ({
-  useTurnstile: () => ({ active: false, ref: vi.fn(), token: widget.token, error: null, reset }),
+  useTurnstile: () => ({ ref: vi.fn(), token: widget.token, error: null, reset }),
 }));
 // The real checks need the form open for 3 seconds; they have their own rules.
 vi.mock("./validateForm", () => ({ validateForm: () => ({ valid: true }) }));
@@ -29,11 +23,10 @@ function fillAndSend() {
   fireEvent.click(screen.getByRole("button", { name: /send message/i }));
 }
 
-describe("ContactForm on Cosmos", () => {
+describe("ContactForm", () => {
   let fetchMock;
 
   beforeEach(() => {
-    mode.usesCosmos = true;
     createMessage.mockReset();
     reset.mockReset();
     widget.token = "tok";
@@ -101,18 +94,5 @@ describe("ContactForm on Cosmos", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/wait for the spam check/i);
     expect(reset).not.toHaveBeenCalled();
-  });
-});
-
-describe("ContactForm on Appwrite", () => {
-  it("keeps the Web3Forms action and access key", () => {
-    mode.usesCosmos = false;
-    const { container } = render(<ContactForm />);
-
-    expect(container.querySelector("form")).toHaveAttribute(
-      "action",
-      "https://api.web3forms.com/submit",
-    );
-    expect(container.querySelector('input[name="access_key"]')).not.toBeNull();
   });
 });

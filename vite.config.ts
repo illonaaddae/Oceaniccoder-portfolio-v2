@@ -83,15 +83,6 @@ export default defineConfig({
             return "markdown";
           }
 
-          // ── Appwrite SDK ─────────────────────────────────────────────────
-          // The SDK is imported by services/api which is pulled in by
-          // eagerly-loaded home components via usePortfolioData.
-          // Isolating it keeps the main bundle lean and lets the SDK
-          // be cached separately (it never changes between deploys).
-          if (id.includes("/node_modules/appwrite/")) {
-            return "appwrite";
-          }
-
           // ── Icons ────────────────────────────────────────────────────────
           if (id.includes("/node_modules/react-icons/")) {
             return "icons";
