@@ -1,12 +1,10 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
+import { COLLECTIONS } from "./collections";
 import type { About } from "../../types";
-import { listRows, manageCreate, manageUpdate, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageUpdate } from "./dataApi";
 
 export async function getAbout(): Promise<About | null> {
   try {
-    const response = usesCosmos
-      ? await listRows(COLLECTIONS.ABOUT)
-      : await databases.listDocuments(DATABASE_ID, COLLECTIONS.ABOUT);
+    const response = await listRows(COLLECTIONS.ABOUT);
     return response.documents.length > 0 ? (response.documents[0] as unknown as About) : null;
   } catch {
     return null;
@@ -14,45 +12,14 @@ export async function getAbout(): Promise<About | null> {
 }
 
 export async function createAbout(about: Omit<About, "$id">): Promise<About> {
-  return (usesCosmos
-    ? manageCreate(COLLECTIONS.ABOUT, about as Record<string, unknown>)
-    : databases.createDocument(
-        DATABASE_ID,
-        COLLECTIONS.ABOUT,
-        ID.unique(),
-        about as Record<string, unknown>,
-      )) as unknown as About;
-}
-
-function handleAttributeError(error: unknown): never {
-  const msg = error instanceof Error ? error.message : String(error);
-  if (msg.includes("Unknown attribute") || msg.includes("attribute")) {
-    const match = msg.match(/"([^"]+)"/);
-    const attr = match ? match[1] : "unknown";
-    throw new Error(
-      `The attribute "${attr}" doesn't exist in your Appwrite database. ` +
-        `Please add it to the "about" collection in Appwrite Console.`,
-    );
-  }
-  throw error;
+  return manageCreate<About>(COLLECTIONS.ABOUT, about);
 }
 
 export async function updateAbout(
   aboutId: string,
   about: Partial<Omit<About, "$id">>,
 ): Promise<About> {
-  try {
-    return (await (usesCosmos
-      ? manageUpdate(COLLECTIONS.ABOUT, aboutId, about as Record<string, unknown>)
-      : databases.updateDocument(
-          DATABASE_ID,
-          COLLECTIONS.ABOUT,
-          aboutId,
-          about as Record<string, unknown>,
-        ))) as unknown as About;
-  } catch (error: unknown) {
-    handleAttributeError(error);
-  }
+  return manageUpdate<About>(COLLECTIONS.ABOUT, aboutId, about);
 }
 
 export async function saveAbout(
@@ -60,10 +27,5 @@ export async function saveAbout(
 ): Promise<About> {
   const existing = await getAbout();
   if (existing) return updateAbout(existing.$id, about);
-
-  try {
-    return await createAbout(about as Omit<About, "$id">);
-  } catch (error: unknown) {
-    handleAttributeError(error);
-  }
+  return createAbout(about as Omit<About, "$id">);
 }

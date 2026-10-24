@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { createComment, getAllComments, getCommentsByPostId } from "./comments";
+import { setAdminReads } from "./dataApi";
 
 const publicComment = {
   $id: "c1",
@@ -8,95 +10,68 @@ const publicComment = {
   isApproved: true,
 };
 
-function mockFetch(body: unknown) {
-  return vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
-}
-
-/** comments.ts reads VITE_DATA_BACKEND once, at import. */
-async function loadComments(backend?: "cosmos") {
-  vi.resetModules();
-  if (backend) vi.stubEnv("VITE_DATA_BACKEND", backend);
-  const comments = await import("./comments");
-  const { databases } = await import("./client");
-  return { ...comments, databases };
+function mockFetch(body: unknown, status = 200) {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
 }
 
 describe("comments service", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    setAdminReads(false);
+    window.history.replaceState({}, "", "/");
   });
 
-  describe("Appwrite build", () => {
-    it("reads a post's comments through /api/comments, not the collection", async () => {
-      const { getCommentsByPostId, databases } = await loadComments();
-      const list = vi.spyOn(databases, "listDocuments");
-      const fetchMock = mockFetch({ total: 1, documents: [publicComment] });
-      vi.stubGlobal("fetch", fetchMock);
+  it("reads a post's approved comments through /api/data", async () => {
+    const fetchMock = mockFetch({ total: 1, documents: [publicComment] });
 
-      const result = await getCommentsByPostId("post 1");
+    const result = await getCommentsByPostId("post1");
 
-      expect(fetchMock).toHaveBeenCalledWith("/api/comments?postId=post%201");
-      expect(list).not.toHaveBeenCalled();
-      expect(result).toEqual([publicComment]);
+    const url = new URL(fetchMock.mock.calls[0][0] as string, "https://example.test");
+    expect(url.pathname).toBe("/api/data/comments");
+    expect(JSON.parse(url.searchParams.get("where") ?? "")).toEqual({
+      postId: "post1",
+      isApproved: true,
     });
-
-    it("rejects with the server's message when the read fails", async () => {
-      const { getCommentsByPostId } = await loadComments();
-      vi.stubGlobal(
-        "fetch",
-        vi
-          .fn()
-          .mockResolvedValue(
-            new Response(JSON.stringify({ error: "Invalid postId" }), { status: 400 }),
-          ),
-      );
-
-      await expect(getCommentsByPostId("post1")).rejects.toThrow("Invalid postId");
-    });
-
-    it("still creates a visitor's comment in the browser", async () => {
-      const { createComment, databases } = await loadComments();
-      const create = vi
-        .spyOn(databases, "createDocument")
-        .mockResolvedValue({ ...publicComment, $id: "new" } as never);
-      const fetchMock = vi.fn();
-      vi.stubGlobal("fetch", fetchMock);
-
-      const created = await createComment({
-        postId: "post1",
-        authorName: "Ada",
-        content: "Hi",
-        isApproved: true,
-      });
-
-      expect(create).toHaveBeenCalledTimes(1);
-      expect(create.mock.calls[0][1]).toBe("comments");
-      expect(fetchMock).not.toHaveBeenCalled();
-      expect(created.$id).toBe("new");
-    });
+    expect(url.searchParams.get("orderBy")).toBe("$createdAt");
+    expect(url.searchParams.get("dir")).toBe("desc");
+    expect(result).toEqual([publicComment]);
   });
 
-  describe("Cosmos build", () => {
-    it("keeps reading through /api/data", async () => {
-      const { getCommentsByPostId, databases } = await loadComments("cosmos");
-      const list = vi.spyOn(databases, "listDocuments");
-      const fetchMock = mockFetch({ total: 1, documents: [publicComment] });
-      vi.stubGlobal("fetch", fetchMock);
+  it("rejects with the server's message when the read fails", async () => {
+    mockFetch({ error: "Invalid postId" }, 400);
 
-      const result = await getCommentsByPostId("post1");
+    await expect(getCommentsByPostId("post1")).rejects.toThrow("Invalid postId");
+  });
 
-      const url = new URL(fetchMock.mock.calls[0][0] as string, "https://example.test");
-      expect(url.pathname).toBe("/api/data/comments");
-      expect(JSON.parse(url.searchParams.get("where") ?? "")).toEqual({
-        postId: "post1",
-        isApproved: true,
-      });
-      expect(url.searchParams.get("orderBy")).toBe("$createdAt");
-      expect(url.searchParams.get("dir")).toBe("desc");
-      expect(list).not.toHaveBeenCalled();
-      expect(result).toEqual([publicComment]);
-    });
+  it("reads no comments (they carry emails) on the read-only /dashboard", async () => {
+    const fetchMock = mockFetch({ total: 1, documents: [publicComment] });
+
+    expect(await getAllComments()).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reads every comment through /api/manage in the admin dashboard", async () => {
+    window.history.replaceState({}, "", "/admin/dashboard");
+    setAdminReads(true);
+    const fetchMock = mockFetch({ total: 1, documents: [publicComment] });
+
+    expect(await getAllComments()).toEqual([publicComment]);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/^\/api\/manage\/comments\?/);
+  });
+
+  it("sends a visitor's comment through /api/submit with the spam-check token", async () => {
+    const fetchMock = mockFetch({ ...publicComment, $id: "new" });
+
+    const created = await createComment(
+      { postId: "post1", authorName: "Ada", content: "Hi", isApproved: true },
+      "token-1",
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/submit/comments");
+    expect(JSON.parse(init.body)).toMatchObject({ postId: "post1", turnstileToken: "token-1" });
+    expect(created.$id).toBe("new");
   });
 });

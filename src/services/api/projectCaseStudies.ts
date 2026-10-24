@@ -9,8 +9,8 @@
 // Constraints:
 // - projectId is required (FK to projects.$id) — one case study per project
 // - the three narrative fields are optional, since most projects have none
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
+import { COLLECTIONS } from "./collections";
+import { listRows, manageCreate, manageDelete, manageUpdate } from "./dataApi";
 
 export interface ProjectCaseStudy {
   $id: string;
@@ -38,11 +38,7 @@ export function hasAnyCaseStudyContent(fields: CaseStudyFields): boolean {
 }
 
 export async function getProjectCaseStudies(): Promise<ProjectCaseStudy[]> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.PROJECT_CASE_STUDIES, { limit: 100 })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, [
-        Query.limit(100),
-      ]);
+  const response = await listRows(COLLECTIONS.PROJECT_CASE_STUDIES, { limit: 100 });
   return response.documents as unknown as ProjectCaseStudy[];
 }
 
@@ -61,12 +57,10 @@ export async function getProjectCaseStudyMap(): Promise<Record<string, CaseStudy
 }
 
 export async function getProjectCaseStudy(projectId: string): Promise<ProjectCaseStudy | null> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.PROJECT_CASE_STUDIES, { where: { projectId }, limit: 1 })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, [
-        Query.equal("projectId", projectId),
-        Query.limit(1),
-      ]);
+  const response = await listRows(COLLECTIONS.PROJECT_CASE_STUDIES, {
+    where: { projectId },
+    limit: 1,
+  });
   return (response.documents[0] as unknown as ProjectCaseStudy) ?? null;
 }
 
@@ -79,11 +73,7 @@ export async function setProjectCaseStudy(
   const existing = await getProjectCaseStudy(projectId);
 
   if (!hasAnyCaseStudyContent(fields)) {
-    if (existing) {
-      await (usesCosmos
-        ? manageDelete(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id)
-        : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id));
-    }
+    if (existing) await manageDelete(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id);
     return;
   }
 
@@ -94,32 +84,13 @@ export async function setProjectCaseStudy(
   };
 
   if (existing) {
-    await (usesCosmos
-      ? manageUpdate(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id, payload)
-      : databases.updateDocument(
-          DATABASE_ID,
-          COLLECTIONS.PROJECT_CASE_STUDIES,
-          existing.$id,
-          payload,
-        ));
+    await manageUpdate(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id, payload);
   } else {
-    await (usesCosmos
-      ? manageCreate(COLLECTIONS.PROJECT_CASE_STUDIES, {
-          projectId,
-          ...payload,
-        })
-      : databases.createDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, ID.unique(), {
-          projectId,
-          ...payload,
-        }));
+    await manageCreate(COLLECTIONS.PROJECT_CASE_STUDIES, { projectId, ...payload });
   }
 }
 
 export async function deleteProjectCaseStudy(projectId: string): Promise<void> {
   const existing = await getProjectCaseStudy(projectId);
-  if (existing) {
-    await (usesCosmos
-      ? manageDelete(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id)
-      : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id));
-  }
+  if (existing) await manageDelete(COLLECTIONS.PROJECT_CASE_STUDIES, existing.$id);
 }
