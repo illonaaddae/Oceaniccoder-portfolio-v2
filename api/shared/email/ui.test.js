@@ -121,7 +121,7 @@ describe("Gmail dark mode and phone widths", () => {
 
   it("keeps an amount on one line with the currency as a small prefix", () => {
     const html = ui.card({ title: "T", highlight: "GHS 5,100.00" });
-    expect(html).toContain("white-space:nowrap");
+    expect(html).toContain('<span style="white-space:nowrap"><span');
     expect(html).toContain('letter-spacing:.03em">GHS</span>&nbsp;5,100.00');
     expect(ui.card({ title: "T", highlight: "Thursday, 15 October" })).toContain(
       ">Thursday, 15 October<",
@@ -164,5 +164,16 @@ describe("button", () => {
     expect(html).toContain(
       'class="gmail-difference" style="display:inline-block;border-radius:10px;padding:13px 23px"',
     );
+  });
+});
+
+describe("figure wrapping", () => {
+  it("lets a long booking date wrap on phones", () => {
+    const html = ui.card({
+      title: "Booking details",
+      highlight: "Thursday, 15 October 2026 at 10:00 AM",
+    });
+    expect(html).toContain("font-size:24px");
+    expect(html).not.toContain("nowrap");
   });
 });

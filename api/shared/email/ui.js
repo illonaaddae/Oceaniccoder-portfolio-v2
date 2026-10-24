@@ -101,7 +101,8 @@ const DARK = {
 // gradient keeps the background (Gmail leaves background images alone) and
 // two blend layers turn the inverted text back to white. The blend flips any
 // tinted text to its opposite hue, so text on dark surfaces stays white or
-// near-neutral, and coloured stamps are filled (Gmail keeps the fill). Gmail swaps the
+// near-neutral. Paid and Due stamps are images, which Gmail never recolours;
+// the text stamp used for other statuses is not protected. Gmail swaps the
 // doctype for a <u>, so "u + .body" matches nowhere else, and in light mode
 // both blends are no-ops over black. hteumeuleu.com/2021/fixing-gmail-dark-mode-css-blend-modes
 const GMAIL_CSS = `u + .body .gmail-screen{background:#000;mix-blend-mode:screen}
@@ -194,7 +195,7 @@ const keepDark = (color) =>
 function figureText(value) {
   const m = /^([A-Z]{3}) (.+)$/.exec(String(value));
   if (!m) return esc(value);
-  return `<span style="font-size:.65em;font-weight:600;letter-spacing:.03em">${esc(m[1])}</span>&nbsp;${esc(m[2])}`;
+  return `<span style="white-space:nowrap"><span style="font-size:.65em;font-weight:600;letter-spacing:.03em">${esc(m[1])}</span>&nbsp;${esc(m[2])}</span>`;
 }
 
 // status = { label: "Paid", tone: "ok" } prints a stamp opposite the title.
@@ -219,7 +220,7 @@ function card({ title, highlight, highlightLabel, status, rows = [], body = "" }
   // not, so long figures drop to a size that keeps them to a line or two.
   const figureSize = String(highlight ?? "").length > 18 ? 24 : 36;
   const figure = highlight
-    ? `${highlightLabel ? `<div style="font-size:14px;color:${ON_OCEAN};margin-top:${top ? 14 : 0}px">${esc(highlightLabel)}</div>` : ""}<div style="font-size:${figureSize}px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:${highlightLabel || !top ? 2 : 12}px">${figureText(highlight)}</div>`
+    ? `${highlightLabel ? `<div style="font-size:14px;color:${ON_OCEAN};margin-top:${top ? 14 : 0}px">${esc(highlightLabel)}</div>` : ""}<div style="font-size:${figureSize}px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:${highlightLabel || !top ? 2 : 12}px">${figureText(highlight)}</div>`
     : "";
   const shown = rows.filter(([, value]) => value !== undefined && value !== null && value !== "");
   const rowHtml = shown
