@@ -161,14 +161,17 @@ const PrivacyPage: React.FC = () => (
       </Section>
 
       <Section id="forms" title="Forms you fill in">
-        <p>We only receive what you type into a form, and use it for the reason given.</p>
+        <p>
+          Apart from the spam check below, we only receive what you type into a form, and use it for
+          the reason given.
+        </p>
         <p>
           To block spam, the contact, booking, inquiry, comment and testimonial forms use Cloudflare
           Turnstile. When a page with one of these forms opens, your browser loads Turnstile from
           Cloudflare, which sees your IP address and checks details about your browser and device to
           tell people from bots. When you send a form, our server sends the result and your IP
           address to Cloudflare to confirm it. Our server also uses your IP address in memory to
-          limit how many alerts one address can trigger, and never saves it.
+          limit how many contact-message alerts one address can trigger, and never saves it.
         </p>
         <List>
           <li>
@@ -278,8 +281,8 @@ const PrivacyPage: React.FC = () => (
           quotes, invoices, payment records and page-view records are kept in Azure Cosmos DB in its
           Central US region, in the United States. The site&apos;s images and uploaded photos are
           kept in Azure Blob Storage in its West Europe region, in the Netherlands. This data used
-          to be stored with Appwrite in Frankfurt, Germany; we delete that copy once the move to
-          Azure is complete.
+          to be stored with Appwrite in Frankfurt, Germany. We still hold that copy there until we
+          delete it, which we will do once we have checked the move.
         </p>
         <List>
           <li>
@@ -321,10 +324,11 @@ const PrivacyPage: React.FC = () => (
           </li>
         </List>
         <p>
-          Every provider listed here can handle your data outside Ghana. Microsoft Azure stores it
-          in the United States and the Netherlands. Cloudflare, Resend, OpenAI, Google, YouTube,
-          Loom and Zoom are based in the United States, Paystack in Nigeria and Africa&apos;s
-          Talking in Kenya. Email hello@oceaniccoder.dev to ask how these transfers are protected.
+          Every provider listed here can handle your data outside Ghana. Until the old copy is
+          deleted, Appwrite holds some of it in Germany. Microsoft Azure stores it in the United
+          States and the Netherlands. Cloudflare, Resend, OpenAI, Google, YouTube, Loom and Zoom are
+          based in the United States, Paystack in Nigeria and Africa&apos;s Talking in Kenya. Email
+          hello@oceaniccoder.dev to ask how these transfers are protected.
         </p>
       </Section>
 
