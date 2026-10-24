@@ -13,7 +13,7 @@
 // passes through this function (Static Web Apps functions cap request size
 // and time). Only the resize runs here, reading the original back from Blob.
 //
-// Every route needs the admin's Appwrite JWT.
+// Every route needs the admin's Static Web Apps (GitHub) session.
 
 const { requireAdmin } = require("../shared/adminAuth");
 const media = require("../shared/media");

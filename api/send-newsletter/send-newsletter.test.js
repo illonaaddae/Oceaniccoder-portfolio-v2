@@ -63,9 +63,7 @@ describe("send-newsletter access", () => {
 
   beforeEach(() => {
     saved.ids = process.env.ADMIN_USER_IDS;
-    saved.email = process.env.ADMIN_EMAIL;
     process.env.ADMIN_USER_IDS = "gh-123";
-    process.env.ADMIN_EMAIL = "admin@example.com";
     // A test that got past the gate must not reach Resend.
     request = vi.spyOn(https, "request").mockImplementation(() => {
       throw new Error("network in test");
@@ -73,10 +71,7 @@ describe("send-newsletter access", () => {
   });
   afterEach(() => {
     vi.restoreAllMocks();
-    for (const [key, name] of [
-      ["ids", "ADMIN_USER_IDS"],
-      ["email", "ADMIN_EMAIL"],
-    ]) {
+    for (const [key, name] of [["ids", "ADMIN_USER_IDS"]]) {
       if (saved[key] === undefined) delete process.env[name];
       else process.env[name] = saved[key];
     }
@@ -91,6 +86,7 @@ describe("send-newsletter access", () => {
   it("refuses a caller with no session and sends nothing", async () => {
     const r = await send({ "content-type": "application/json" }, { title: "T", slug: "t" });
     expect(r.status).toBe(401);
+    expect(r.body).toEqual({ error: "Sign in to the dashboard and try again." });
     expect(request).not.toHaveBeenCalled();
   });
 

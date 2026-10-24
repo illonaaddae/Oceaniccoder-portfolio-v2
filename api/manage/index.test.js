@@ -77,16 +77,11 @@ describe("/api/manage", () => {
   const saved = {};
   beforeEach(() => {
     saved.ids = process.env.ADMIN_USER_IDS;
-    saved.email = process.env.ADMIN_EMAIL;
     process.env.ADMIN_USER_IDS = "gh-123";
-    process.env.ADMIN_EMAIL = "admin@example.com";
     useContainer([project]);
   });
   afterEach(() => {
-    for (const [key, name] of [
-      ["ids", "ADMIN_USER_IDS"],
-      ["email", "ADMIN_EMAIL"],
-    ]) {
+    for (const [key, name] of [["ids", "ADMIN_USER_IDS"]]) {
       if (saved[key] === undefined) delete process.env[name];
       else process.env[name] = saved[key];
     }

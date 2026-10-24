@@ -109,11 +109,6 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
     });
     if (!res.ok) {
       const detail = await res.json().catch(() => ({}));
-      if (detail.transports) {
-        // Surfaced so a repeat failure names the transport rather than
-        // needing another round-trip through Azure's logs.
-        console.error("Newsletter auth transports (lengths):", detail.transports);
-      }
       throw new Error(detail.error || `Newsletter API returned ${res.status}`);
     }
     return res.json().catch(() => ({}));
