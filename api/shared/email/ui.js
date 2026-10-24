@@ -99,18 +99,13 @@ const DARK = {
 // Gmail's apps ignore prefers-color-scheme and invert colours themselves,
 // turning the ocean header pale and its white text dark. A same-colour
 // gradient keeps the background (Gmail leaves background images alone) and
-// two blend layers turn the inverted text back to white. The blend also turns
-// every other colour into its opposite hue, so tinted text on the header gets
-// its opposite in Gmail (green Paid is set pink there) and lands on the real one. Gmail swaps the
+// two blend layers turn the inverted text back to white. The blend flips any
+// tinted text to its opposite hue, so text on dark surfaces stays white or
+// near-neutral, and coloured stamps are filled (Gmail keeps the fill). Gmail swaps the
 // doctype for a <u>, so "u + .body" matches nowhere else, and in light mode
 // both blends are no-ops over black. hteumeuleu.com/2021/fixing-gmail-dark-mode-css-blend-modes
 const GMAIL_CSS = `u + .body .gmail-screen{background:#000;mix-blend-mode:screen}
-u + .body .gmail-difference{background:#000;mix-blend-mode:difference}
-u + .body .oc-on-ocean{color:#e2afa5!important}
-u + .body .oc-stamp-ok{color:#ef86c9!important;border-color:#ef86c9!important}
-u + .body .oc-stamp-warn{color:#4d76fc!important;border-color:#4d76fc!important}
-u + .body .oc-stamp-info{color:#fcaea5!important;border-color:#fcaea5!important}
-u + .body .oc-stamp-danger{color:#a5fcfc!important;border-color:#a5fcfc!important}`;
+u + .body .gmail-difference{background:#000;mix-blend-mode:difference}`;
 const DARK_CSS = `<style>:root{color-scheme:light dark}
 ${GMAIL_CSS}
 @media (prefers-color-scheme:dark){
@@ -167,15 +162,24 @@ function p(text) {
 // one) sits on a deep ocean header, the details on white below. bgcolor keeps
 // the header dark in clients that drop the background style.
 const OCEAN = "#04333B";
-const ON_OCEAN = "#a5d8e2";
-// Stamps on the ocean header; light tints keep AA contrast on it.
+// Near-neutral, so Gmail's colour flip barely shifts it.
+const ON_OCEAN = "#cbd5e1";
+// Stamp fills on the ocean header. Filled rather than outlined, with
+// near-black text, so Gmail's dark mode shows the same green or yellow.
 const STAMPS = { ok: "#86efac", warn: "#fcd34d", info: "#a5f3fc", danger: "#fca5a5" };
+const STAMP_INK = "#111111";
 
 // Content on a dark surface, wrapped so Gmail's inversion leaves it white.
-function onDark(html, inline = false) {
+// inner is extra style for the inner layer; a button puts its padding there so
+// the layers cover the whole button and leave no seam at their edge.
+function onDark(html, inline = false, inner = "") {
   const tag = inline ? "span" : "div";
-  const display = inline ? ' style="display:inline-block"' : "";
-  return `<${tag} class="gmail-screen"${display}><${tag} class="gmail-difference"${display}>${html}</${tag}></${tag}>`;
+  const outer = inline ? ' style="display:inline-block;border-radius:10px"' : "";
+  const innerStyle =
+    inline || inner
+      ? ` style="${inline ? "display:inline-block;border-radius:10px;" : ""}${inner}"`
+      : "";
+  return `<${tag} class="gmail-screen"${outer}><${tag} class="gmail-difference"${innerStyle}>${html}</${tag}></${tag}>`;
 }
 const keepDark = (color) =>
   `background:${color};background-image:linear-gradient(${color},${color})`;
@@ -195,17 +199,19 @@ function card({ title, highlight, highlightLabel, status, rows = [], body = "" }
   const tone = STAMPS[status?.tone] ? status.tone : "info";
   const stampColor = STAMPS[tone];
   const stamp = status
-    ? `<span class="oc-stamp-${tone}" style="${LABEL};color:${stampColor};border:1.5px solid ${stampColor};border-radius:4px;padding:4px 8px;white-space:nowrap">${status.tone === "ok" ? "&#10003; " : ""}${esc(status.label)}</span>`
+    ? `<span style="display:inline-block;${keepDark(stampColor)};border-radius:4px">${onDark(`${status.tone === "ok" ? "&#10003; " : ""}${esc(status.label)}`, true, `${LABEL};color:${STAMP_INK};padding:4px 8px;white-space:nowrap;border-radius:4px`)}</span>`
     : "";
+  // Title and stamp share a row in their own table, outside the Gmail layers,
+  // so the stamp sits at the right edge in every client.
   const top =
     title || stamp
-      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td width="100%" class="oc-on-ocean" style="${LABEL};color:${ON_OCEAN}">${esc(title)}</td>${stamp ? `<td align="right" style="padding-left:12px;white-space:nowrap;text-align:right">${stamp}</td>` : ""}</tr></table>`
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:middle">${onDark(`<div style="${LABEL};color:${ON_OCEAN}">${esc(title)}</div>`)}</td>${stamp ? `<td align="right" style="vertical-align:middle;padding-left:12px;white-space:nowrap;text-align:right">${stamp}</td>` : ""}</tr></table>`
       : "";
   // Amounts are short; a date like "Thursday, 15 October 2026 at 10:00 AM" is
   // not, so long figures drop to a size that keeps them to a line or two.
   const figureSize = String(highlight ?? "").length > 18 ? 24 : 36;
   const figure = highlight
-    ? `${highlightLabel ? `<div class="oc-on-ocean" style="font-size:14px;color:${ON_OCEAN};margin-top:${top ? 14 : 0}px">${esc(highlightLabel)}</div>` : ""}<div style="font-size:${figureSize}px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:${highlightLabel || !top ? 2 : 12}px">${figureText(highlight)}</div>`
+    ? `${highlightLabel ? `<div style="font-size:14px;color:${ON_OCEAN};margin-top:${top ? 14 : 0}px">${esc(highlightLabel)}</div>` : ""}<div style="font-size:${figureSize}px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:${highlightLabel || !top ? 2 : 12}px">${figureText(highlight)}</div>`
     : "";
   const shown = rows.filter(([, value]) => value !== undefined && value !== null && value !== "");
   const rowHtml = shown
@@ -223,7 +229,7 @@ function card({ title, highlight, highlightLabel, status, rows = [], body = "" }
       : "") + (body ? `<div style="padding:16px 22px 10px">${body}</div>` : "");
   const headRadius = below ? "8px 8px 0 0" : "8px";
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 24px">
-<tr><td bgcolor="${OCEAN}" style="${keepDark(OCEAN)};border-radius:${headRadius};padding:${highlight ? "20px 22px 22px" : "14px 22px"}">${onDark(top + figure)}</td></tr>
+<tr><td bgcolor="${OCEAN}" style="${keepDark(OCEAN)};border-radius:${headRadius};padding:${highlight ? "20px 22px 22px" : "14px 22px"}">${top}${figure ? onDark(figure) : ""}</td></tr>
 ${below ? `<tr><td style="border:1px solid ${C.line};border-top:0;border-radius:0 0 8px 8px">${below}</td></tr>` : ""}
 </table>`;
 }
@@ -236,17 +242,19 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monos
 function codeBlock({ label, code }) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
 <tr><td align="center" bgcolor="${OCEAN}" style="${keepDark(OCEAN)};border-radius:8px;padding:20px 22px">
-${onDark(`${label ? `<div class="oc-on-ocean" style="${LABEL};color:${ON_OCEAN};margin:0 0 10px">${esc(label)}</div>` : ""}<div style="font-family:${MONO};font-size:36px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:.25em;padding-left:.25em;-webkit-user-select:all;user-select:all">${esc(code)}</div>`)}
+${onDark(`${label ? `<div style="${LABEL};color:${ON_OCEAN};margin:0 0 10px">${esc(label)}</div>` : ""}<div style="font-family:${MONO};font-size:36px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:.25em;padding-left:.25em;-webkit-user-select:all;user-select:all">${esc(code)}</div>`)}
 </td></tr></table>`;
 }
 
+// The primary button has no border (Gmail would invert it to a light outline)
+// and carries its padding on the Gmail layers, 1px more to match the
+// secondary button's border.
 function button({ href, label, variant = "primary" }) {
-  const styles =
-    variant === "secondary"
-      ? `background:#ffffff;color:${C.tealDark};border:1px solid ${C.line}`
-      : `${keepDark(C.tealDark)};color:#ffffff;border:1px solid ${C.tealDark}`;
-  const text = variant === "secondary" ? esc(label) : onDark(esc(label), true);
-  return `<a href="${esc(safeUrl(href))}" style="display:inline-block;${styles};border-radius:10px;padding:12px 22px;font-size:15px;font-weight:600;text-decoration:none;margin:0 8px 8px 0">${text}</a>`;
+  const base = `display:inline-block;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;margin:0 8px 8px 0`;
+  if (variant === "secondary") {
+    return `<a href="${esc(safeUrl(href))}" style="${base};background:#ffffff;color:${C.tealDark};border:1px solid ${C.line};padding:12px 22px">${esc(label)}</a>`;
+  }
+  return `<a href="${esc(safeUrl(href))}" style="${base};${keepDark(C.tealDark)};color:#ffffff">${onDark(esc(label), true, "padding:13px 23px")}</a>`;
 }
 
 function buttons(...html) {

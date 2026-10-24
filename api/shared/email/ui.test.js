@@ -134,25 +134,36 @@ describe("Gmail dark mode and phone widths", () => {
       status: { label: "Due", tone: "warn" },
       highlight: "GHS 1.00",
     });
-    expect(html).toContain('<td width="100%"');
-    expect(html).toContain("white-space:nowrap;text-align:right");
+    expect(html).toMatch(
+      /<td align="right" style="vertical-align:middle;padding-left:12px;white-space:nowrap;text-align:right"><span style="display:inline-block;background:#fcd34d/,
+    );
   });
 });
 
-describe("Gmail colour flip", () => {
-  it("gives tinted header text its opposite colour in Gmail only, so it shows true", () => {
+describe("status stamp", () => {
+  it("is filled with near-black text, so Gmail shows the same colour in light and dark", () => {
     const html = ui.card({
       title: "Receipt",
       status: { label: "Paid", tone: "ok" },
       highlight: "GHS 1.00",
     });
-    expect(html).toContain('class="oc-stamp-ok"');
-    expect(html).toContain('class="oc-on-ocean"');
-    const shell = ui.shell({ preview: "", body: "", reason: "" });
-    expect(shell).toContain("u + .body .oc-stamp-ok{color:#ef86c9!important");
-    expect(shell).toContain("u + .body .oc-stamp-warn{color:#4d76fc!important");
+    expect(html).toContain("background:#86efac;background-image:linear-gradient(#86efac,#86efac)");
+    expect(html).toContain("color:#111111");
+    expect(html).not.toContain("border:1.5px");
+    const due = ui.card({ title: "Amount due", status: { label: "Due", tone: "warn" } });
+    expect(due).toContain("background:#fcd34d");
     expect(ui.card({ title: "T", status: { label: "X", tone: "nope" } })).toContain(
-      'class="oc-stamp-info"',
+      "background:#a5f3fc",
+    );
+  });
+});
+
+describe("button", () => {
+  it("gives the dark button no border and puts its padding on the Gmail layers", () => {
+    const html = ui.button({ href: "https://oceaniccoder.dev", label: "Pay now" });
+    expect(html).not.toContain("border:1px");
+    expect(html).toContain(
+      'class="gmail-difference" style="display:inline-block;border-radius:10px;padding:13px 23px"',
     );
   });
 });
