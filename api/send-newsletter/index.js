@@ -19,7 +19,7 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev";
 const CORS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type",
   Vary: "Origin",
   "Content-Type": "application/json",
 };
@@ -85,17 +85,6 @@ function httpsRequest(hostname, path, method, headers, body) {
   });
 }
 
-/** Which transports carried something — no token material, only shape. */
-function describeTransports(req) {
-  const headers = req.headers || {};
-  const size = (v) => (v ? String(v).trim().length : 0);
-  return {
-    xAppwriteJwt: size(headers["x-appwrite-jwt"] || headers["X-Appwrite-JWT"]),
-    body: size(req.body && req.body.jwt),
-    authorization: size(headers.authorization || headers.Authorization),
-  };
-}
-
 const handler = async function (context, req) {
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: CORS, body: "" };
@@ -104,19 +93,14 @@ const handler = async function (context, req) {
 
   // Gate first: this used to be anonymous, so anyone who knew the URL could
   // mail the entire subscriber list arbitrary content from the verified
-  // sending domain. requireAdmin accepts the Static Web Apps admin session or
-  // the Appwrite JWT, and fails closed when no admin is configured.
+  // sending domain. requireAdmin accepts only the Static Web Apps admin
+  // session, and fails closed when no admin is configured.
   const auth = await requireAdmin(context, req);
   if (!auth.user) {
     context.res = {
       status: auth.status,
       headers: CORS,
-      body: JSON.stringify({
-        error: auth.error,
-        // Lengths only, never token material: which transport survived the
-        // hosting layer can't be worked out from outside.
-        ...(auth.status === 401 && { transports: describeTransports(req) }),
-      }),
+      body: JSON.stringify({ error: auth.error }),
     };
     return;
   }
@@ -262,5 +246,4 @@ const handler = async function (context, req) {
 
 module.exports = handler;
 // Exported for tests; the Azure runtime only uses the default export above.
-module.exports.describeTransports = describeTransports;
 module.exports.newsletterEmailHtml = newsletterEmailHtml;

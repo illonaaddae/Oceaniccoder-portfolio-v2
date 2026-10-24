@@ -1,5 +1,30 @@
 // @vitest-environment node
+import { createRequire } from "node:module";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+// A node-appwrite whose every token belongs to the admin. If the Appwrite
+// sign-in path ever comes back, the token test below lets that caller in.
+const require = createRequire(import.meta.url);
+const appwriteLogins = vi.fn(async () => ({ $id: "u1", email: "admin@example.com" }));
+class FakeClient {
+  setEndpoint() {
+    return this;
+  }
+  setProject() {
+    return this;
+  }
+  setJWT() {
+    return this;
+  }
+}
+require.cache[require.resolve("node-appwrite")] = {
+  exports: {
+    Client: FakeClient,
+    Account: class {
+      get = appwriteLogins;
+    },
+  },
+};
 
 const { requireAdmin } = await import("./adminAuth.js");
 
@@ -61,6 +86,8 @@ describe("requireAdmin with a Static Web Apps session", () => {
 
 describe("requireAdmin refusals", () => {
   const NAMES = ["ADMIN_USER_IDS", "ADMIN_EMAIL", "VITE_ADMIN_EMAIL"];
+  // ADMIN_EMAIL and VITE_ADMIN_EMAIL are cleared too: they used to open the
+  // Appwrite sign-in path and must no longer count as an admin.
   let saved;
   beforeEach(() => {
     saved = Object.fromEntries(NAMES.map((name) => [name, process.env[name]]));
@@ -83,7 +110,6 @@ describe("requireAdmin refusals", () => {
 
   it("tells a signed-in user who isn't the admin so (403)", async () => {
     process.env.ADMIN_USER_IDS = "gh-123";
-    process.env.ADMIN_EMAIL = "admin@example.com";
     expect(await requireAdmin(context, signedIn("gh-999"))).toEqual({
       status: 403,
       error: "This account isn't the site admin.",
@@ -96,12 +122,26 @@ describe("requireAdmin refusals", () => {
     expect(await requireAdmin(context, anonymous)).toMatchObject({ status: 401 });
   });
 
-  it("answers 401 to a caller with no sign-in and no token", async () => {
-    process.env.ADMIN_EMAIL = "admin@example.com";
+  it("answers 401 to a caller with no sign-in", async () => {
+    process.env.ADMIN_USER_IDS = "gh-123";
     expect(await requireAdmin(context, anonymous)).toMatchObject({ status: 401 });
   });
 
+  it("no longer accepts an Appwrite token in any transport", async () => {
+    process.env.ADMIN_USER_IDS = "gh-123";
+    process.env.ADMIN_EMAIL = "admin@example.com";
+    const req = {
+      method: "POST",
+      headers: { "x-appwrite-jwt": "eyJ.fake.jwt", authorization: "Bearer eyJ.fake.jwt" },
+      body: { jwt: "eyJ.fake.jwt" },
+    };
+    expect(await requireAdmin(context, req)).toMatchObject({ status: 401 });
+    expect(appwriteLogins).not.toHaveBeenCalled();
+  });
+
   it("answers 500 only when no admin is configured at all", async () => {
+    process.env.ADMIN_EMAIL = "admin@example.com";
+    process.env.VITE_ADMIN_EMAIL = "admin@example.com";
     expect(await requireAdmin(context, anonymous)).toMatchObject({ status: 500 });
     expect(await requireAdmin(context, signedIn("gh-123"))).toMatchObject({ status: 500 });
   });
