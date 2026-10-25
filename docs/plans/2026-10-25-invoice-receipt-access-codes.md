@@ -27,7 +27,7 @@ Non-goals:
 ## 3. Constraints and assumptions
 
 - Stack: Azure Functions (classic, CommonJS) on Cosmos; `locks` container for counters (`api/shared/locks.js`), which needs Session or Strong consistency (comment at `locks.js:21-28`). No new service, no new dependency.
-- `QUOTE_ACCESS_SECRET` is set in production (≥ 32, confirmed 2026-10-21 per PR #211). Assumed reusable with new domain labels (section 8.1).
+- `QUOTE_ACCESS_SECRET` is set in production (≥ 32 characters, confirmed 2026-10-21 per PR #211). Assumed reusable with new domain labels (section 8.1).
 - Resend click tracking is off (PR #211). Must stay off or `#k=` links leak into Resend's redirector.
 - One owner, one developer. PRs must stay under about 24 files.
 - Unconfirmed: whether any one-off invoice row lacks `clientEmail` (imported from Appwrite). The design handles it (contact message), but the count is unknown. Check with one Cosmos query before PR 4.
@@ -154,7 +154,7 @@ What would change my mind: if the golden tests show that quote outputs can't be 
 | `api/send-invoice`                                           | Reads the invoice row, sends to the row's email, mints the link code                                                                                  | changed                             |
 | `api/shared/quotes/notify.js`, `views.js`                    | Receipt email link gets a receipt link code                                                                                                           | changed                             |
 | `api/quote-admin/actions.js`                                 | `resetInvoiceAccess`; `invoicePayLink` returns the preview flag                                                                                       | changed                             |
-| `api/quote-maintenance-due`                                  | Prune runs over `qa:`, `ia:`, `ra:` rows                                                                                                              | changed                             |
+| `api/quote-maintenance-due`                                  | Prune runs over `qa:` and `ia:` rows (receipts share `qa:`)                                                                                           | changed                             |
 | `api/shared/email/quoteEmails.js` (or new `accessEmails.js`) | `accessCode` and `accessLockedAlert` take a document kind                                                                                             | changed                             |
 | `src/components/Access/DocumentAccessGate.tsx`               | Generic code screen                                                                                                                                   | new (moved from `QuoteAccessGate`)  |
 | `src/utils/linkCode.ts`                                      | Captures `#k=` for `/q/`, `/pay/`, `/receipt/`                                                                                                        | changed from `quoteLinkCode.ts`     |
@@ -367,7 +367,7 @@ No new container and no new field on any row. All state is lock rows in `locks` 
 | `ia:lk:<nonce>`                                     | link code used                                                          | 45 days + 5 min + 1 day                              |
 | receipts                                            | `qa:*` rows of the parent quote; `qa:lk:<nonce>` for receipt link codes | as quotes                                            |
 
-Prune: `pruneAccessLocks` takes `{ locks, nowMs, schemes: [{rows:"qa", get: quoteRepo.get}, {rows:"ia", get: invoiceStore.readInvoice}] }` and handles both prefixes in one listing pass, so invoice rows are no longer counted as `skipped` and don't eat the listing cap. Same rules per prefix.
+Prune (PR 3 plan): one listing pass over the locks that hands each row to the scheme owning its prefix (`qa` for quotes, `ia` for invoices), each with its own `getScope`, so invoice rows are no longer counted as `skipped` and don't eat the listing cap. Same rules per prefix.
 
 Prune ownership (PR 1): only the scheme that owns a `rows` prefix prunes it. The receipt scheme shares `qa` and sets `prunes: false`; its `pruneAccessLocks` throws without touching a row, and the quote scheme prunes `qa` for both. Each scheme's `getScope(scopeId)` must return a record of that scheme's own shape, because `subject()` is applied to it to read the revision and epoch. A record of another shape reads as a different revision, so live wrong-code counters would be deleted and the 15-miss block reset (a test in `api/shared/access/core.test.js` shows this).
 

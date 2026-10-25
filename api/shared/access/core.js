@@ -231,9 +231,13 @@ function validateScheme(scheme) {
  * Throws at load when the scheme is malformed, or when its label or cookie
  * is already used by another scheme, or when a second scheme claims to prune
  * the same rows: any of those would let one kind's tokens, cookies or rows
- * pass as another's.
+ * pass as another's. Call it once per kind at module load, never inside a
+ * handler or factory: a second call with the same names throws.
  */
-function createAccess(scheme) {
+function createAccess(input) {
+  // One read of every field (getters included), so what is validated is what
+  // signs.
+  const scheme = Object.freeze({ ...input });
   validateScheme(scheme);
   const { label, rows, cookie, gateVar, logTag, unavailable, locked, subject } = scheme;
   const prunes = scheme.prunes !== false;

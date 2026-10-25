@@ -214,6 +214,23 @@ describe("pruneAccessLocks over a scheme", () => {
 });
 
 describe("scheme validation", () => {
+  it("reads each scheme field once, so what is validated is what signs", () => {
+    const names = fresh();
+    let reads = 0;
+    const scheme = { ...DOC_SCHEME, ...names };
+    Object.defineProperty(scheme, "label", {
+      enumerable: true,
+      get() {
+        reads += 1;
+        // A first answer that passes, then the quote label afterwards.
+        return reads === 1 ? names.label : "qa";
+      },
+    });
+    const access = createAccess(scheme);
+    expect(reads).toBe(1);
+    expect(access.scheme.label).toBe(names.label);
+  });
+
   it("refuses a label or cookie another scheme already uses", () => {
     expect(() => createAccess({ ...DOC_SCHEME, ...fresh(), label: "ta" })).toThrow(
       'createAccess: label "ta" is already used',
