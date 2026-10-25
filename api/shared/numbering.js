@@ -8,6 +8,9 @@
 
 const ATTEMPTS = 5;
 
+// Cosmos status codes that mean the create was not written.
+const DEFINITE_REJECTIONS = new Set([400, 403, 409, 413, 429]);
+
 /**
  * Writes a new row whose `field` is the next number after the highest one
  * starting with `prefix`, and returns the row as stored.
@@ -16,9 +19,6 @@ const ATTEMPTS = 5;
  * `build(number)` returns the document to create. Gives up with
  * `Could not allocate a(n) <label>` after five taken numbers.
  */
-// Cosmos status codes that mean the create was not written.
-const DEFINITE_REJECTIONS = new Set([400, 403, 409, 413, 429]);
-
 async function createWithNextNumber(container, locks, { field, prefix, format, build, label }) {
   const { resources } = await container.items
     .query({
