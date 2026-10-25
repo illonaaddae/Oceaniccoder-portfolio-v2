@@ -27,7 +27,7 @@ Non-goals:
 ## 3. Constraints and assumptions
 
 - Stack: Azure Functions (classic, CommonJS) on Cosmos; `locks` container for counters (`api/shared/locks.js`), which needs Session or Strong consistency (comment at `locks.js:21-28`). No new service, no new dependency.
-- `QUOTE_ACCESS_SECRET` is set in production (61 chars, confirmed 2026-10-21 per PR #211). Assumed reusable with new domain labels (section 8.1).
+- `QUOTE_ACCESS_SECRET` is set in production (≥ 32, confirmed 2026-10-21 per PR #211). Assumed reusable with new domain labels (section 8.1).
 - Resend click tracking is off (PR #211). Must stay off or `#k=` links leak into Resend's redirector.
 - One owner, one developer. PRs must stay under about 24 files.
 - Unconfirmed: whether any one-off invoice row lacks `clientEmail` (imported from Appwrite). The design handles it (contact message), but the count is unknown. Check with one Cosmos query before PR 4.
@@ -86,8 +86,8 @@ The central choice is how to reuse `quotes/access.js`. A second choice (receipt 
 ### Option A (recommended): extract a record-agnostic access core; quotes, invoices and receipts are bindings
 
 - New `api/shared/access/core.js`: `createAccess(scheme)` returns the same functions `quotes/access.js` exports today, but over a `subject` instead of a quote. A `scheme` fixes the HMAC label prefix, the lock-row prefix, the cookie prefix, the gate variable and the 503 text.
-- `api/shared/quotes/access.js` becomes a thin binding: `createAccess(QUOTE_SCHEME)` plus `quoteSubject(quote)`, exporting the same names and signatures so no caller changes. Golden tests pin today's exact outputs (cookie name, cookie value, challenge, link code, lock keys) for a fixed secret and clock, recorded from the current code before the refactor, so every live quote cookie, sent `#k=` code and lock row keeps working.
-- The `quote-access` handler body (status, claim, send, verify, lockout alert, IP limits) moves to `api/shared/access/endpoint.js` as `createAccessEndpoint({ access, resolve, emails, labels })`. `quote-access` keeps its route and contract and becomes a resolver plus wiring. A new `api/doc-access` function serves invoices and receipts with its own resolvers.
+- `api/shared/quotes/access.js` becomes a thin binding over the quote instance of the core, exporting the same names and signatures so no caller changes. `QUOTE_SCHEME` (with its `subject` mapping) and that one instance, `createAccess(QUOTE_SCHEME)`, live in `api/shared/quotes/accessScheme.js`. Golden tests pin today's exact outputs (cookie name, cookie value, challenge, link code, lock keys) for a fixed secret and clock, recorded from the current code before the refactor, so every live quote cookie, sent `#k=` code and lock row keeps working.
+- The `quote-access` handler body (status, claim, send, verify, lockout alert, IP limits) moves to `api/shared/access/endpoint.js` as `createAccessEndpoint({ access, locator, emails, labels })`, where `locator` is `{ check(body), find(svc, body) }`. `quote-access` keeps its route and contract and becomes a locator plus wiring. A new `api/doc-access` function serves invoices and receipts with its own locators.
 - `api/shared/invoices/access.js` and `api/shared/receipts/access.js` are bindings.
 - Frontend: `QuoteAccessGate` becomes a wrapper over a new `DocumentAccessGate` that takes an `AccessTarget` (API calls, storage key, copy). `quoteLinkCode.ts` generalises to `linkCode.ts` matching `/q/`, `/pay/` and `/receipt/`.
 
@@ -139,26 +139,28 @@ What would change my mind: if the golden tests show that quote outputs can't be 
 
 ### 8.1 Components and responsibilities
 
-| Component                                                    | Responsibility                                                                                                                                      | New or changed                      |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | --- |
-| `api/shared/access/core.js`                                  | `createAccess(scheme)`: challenge, code, link code, session cookie, epoch, tries, quotas, misses, prune, `requireAccess`, `adminCheck`, `maskEmail` | new (moved from `quotes/access.js`) |
-| `api/shared/quotes/access.js`                                | Binding: same exports and arguments as today, over the quote instance of the core                                                                   | changed (thin)                      |
-| `api/shared/quotes/accessScheme.js`                          | `QUOTE_SCHEME` (with its subject mapping) and the one quote instance of the core, which `quote-access` passes to the endpoint                       | new (PR 1)                          |
-| `api/shared/invoices/access.js`                              | Binding: `INVOICE_SCHEME`, `invoiceSubject`; `resolveInvoice({number, s})` applying `canOpenInvoice` + `unsignedGraceCovers`                        | new                                 |
-| `api/shared/receipts/access.js`                              | Binding: `RECEIPT_SCHEME`, `receiptSubject(quote, payment)`; `resolveReceipt({reference, s})`                                                       | new                                 |
-| `api/shared/access/endpoint.js`                              | The four actions, IP limits, lockout alert, redacted logs, generic over a resolver                                                                  | new (moved from `quote-access`)     |
-| `api/quote-access`                                           | Route unchanged; resolver = token lookup                                                                                                            | changed (thin)                      |
-| `api/doc-access`                                             | POST `{kind:"invoice"                                                                                                                               | "receipt", ...locator, action}`     | new |
-| `api/get-invoice`                                            | Locator check, then `requireAccess` (invoice), admin preview                                                                                        | changed                             |
-| `api/quote-receipt`                                          | Locator check, then quote session OR receipt session OR admin                                                                                       | changed                             |
-| `api/send-invoice`                                           | Reads the invoice row, sends to the row's email, mints the link code                                                                                | changed                             |
-| `api/shared/quotes/notify.js`, `views.js`                    | Receipt email link gets a receipt link code                                                                                                         | changed                             |
-| `api/quote-admin/actions.js`                                 | `resetInvoiceAccess`; `invoicePayLink` returns the preview flag                                                                                     | changed                             |
-| `api/quote-maintenance-due`                                  | Prune runs over `qa:`, `ia:`, `ra:` rows                                                                                                            | changed                             |
-| `api/shared/email/quoteEmails.js` (or new `accessEmails.js`) | `accessCode` and `accessLockedAlert` take a document kind                                                                                           | changed                             |
-| `src/components/Access/DocumentAccessGate.tsx`               | Generic code screen                                                                                                                                 | new (moved from `QuoteAccessGate`)  |
-| `src/utils/linkCode.ts`                                      | Captures `#k=` for `/q/`, `/pay/`, `/receipt/`                                                                                                      | changed from `quoteLinkCode.ts`     |
-| `PaymentPage.tsx`, `ReceiptPage.tsx`, `InvoicesTab.tsx`      | Locked state, admin preview, Reset access                                                                                                           | changed                             |
+| Component                                                    | Responsibility                                                                                                                                        | New or changed                      |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `api/shared/access/core.js`                                  | `createAccess(scheme)`: challenge, code, link code, session cookie, epoch, tries, quotas, misses, prune, `requireAccess`, `adminCheck`, `maskEmail`   | new (moved from `quotes/access.js`) |
+| `api/shared/quotes/access.js`                                | Binding: same exports and arguments as today, over the quote instance of the core                                                                     | changed (thin)                      |
+| `api/shared/quotes/accessScheme.js`                          | `QUOTE_SCHEME` (with its subject mapping) and the one quote instance of the core, which `quote-access` passes to the endpoint                         | new (PR 1)                          |
+| `api/shared/invoices/access.js`                              | Binding: `INVOICE_SCHEME`, `invoiceSubject`; the invoice locator (`check`, `find` on `{number, s}`) applying `canOpenInvoice` + `unsignedGraceCovers` | new                                 |
+| `api/shared/receipts/access.js`                              | Binding: `RECEIPT_SCHEME` (`prunes: false`), `receiptSubject(quote, payment)`; the receipt locator (`check`, `find` on `{reference, s}`)              | new                                 |
+| `api/shared/access/endpoint.js`                              | The four actions, IP limits, lockout alert, redacted logs, generic over a locator (`check`, `find`); log tag defaults to the scheme's `logTag`        | new (moved from `quote-access`)     |
+| `api/quote-access`                                           | Route unchanged; locator = token lookup                                                                                                               | changed (thin)                      |
+| `api/doc-access`                                             | POST `{kind:"invoice"\|"receipt", ...locator, action}`                                                                                                | new                                 |
+| `api/get-invoice`                                            | Locator check, then `requireAccess` (invoice), admin preview                                                                                          | changed                             |
+| `api/quote-receipt`                                          | Locator check, then quote session OR receipt session OR admin                                                                                         | changed                             |
+| `api/send-invoice`                                           | Reads the invoice row, sends to the row's email, mints the link code                                                                                  | changed                             |
+| `api/shared/quotes/notify.js`, `views.js`                    | Receipt email link gets a receipt link code                                                                                                           | changed                             |
+| `api/quote-admin/actions.js`                                 | `resetInvoiceAccess`; `invoicePayLink` returns the preview flag                                                                                       | changed                             |
+| `api/quote-maintenance-due`                                  | Prune runs over `qa:`, `ia:`, `ra:` rows                                                                                                              | changed                             |
+| `api/shared/email/quoteEmails.js` (or new `accessEmails.js`) | `accessCode` and `accessLockedAlert` take a document kind                                                                                             | changed                             |
+| `src/components/Access/DocumentAccessGate.tsx`               | Generic code screen                                                                                                                                   | new (moved from `QuoteAccessGate`)  |
+| `src/utils/linkCode.ts`                                      | Captures `#k=` for `/q/`, `/pay/`, `/receipt/`                                                                                                        | changed from `quoteLinkCode.ts`     |
+| `PaymentPage.tsx`, `ReceiptPage.tsx`, `InvoicesTab.tsx`      | Locked state, admin preview, Reset access                                                                                                             | changed                             |
+
+Scheme validation (PR 1): `createAccess` throws at load unless `label`, `rows` and `cookie` are each 2 to 8 lowercase letters and `subject`, `locked`, `unavailable`, `gateVar` and `logTag` are present. A `label` or `cookie` already used by another scheme in the process also throws, as does a second scheme that would prune the same `rows`. `rows` themselves may be shared (receipts share `qa`), so they are left out of the uniqueness check; only their pruning is owned (8.8). A refused scheme reserves nothing.
 
 Secret: reuse `QUOTE_ACCESS_SECRET` for all three kinds. Each scheme uses its own HMAC labels, so a token from one kind can't verify as another even with the same secret. Rotating the secret signs out every browser on all three kinds; that is acceptable and is the same blast radius as today for quotes. Kept separate from `RECEIPT_SIGNING_SECRET` for the reason in the quote plan (rotating that one breaks every receipt link forever). Alternative if the owner wants independent rotation: an `INVOICE_ACCESS_SECRET`; not recommended (one more setting to forget).
 
@@ -172,7 +174,7 @@ subject = {
   linkId, // what a link code is bound to
   clientEmail, // where codes go; input to the mail tag
   scopeId, // whose epoch, quotas, tries and misses apply
-  logName, // number for logs (never email, code, token, IP)
+  logName, // number for the endpoint's logs (never email, code, token, IP); the core doesn't read it
 };
 
 scheme = {
@@ -180,7 +182,11 @@ scheme = {
   rows, // lock-row prefix: `${rows}:epoch:`, :send:, :try:, :used:, :miss:, :lk:
   cookie, // cookie name prefix: `__Secure-oc_${cookie}_`
   gateVar, // kill switch env var
+  logTag, // prefix of log lines and errors; the endpoint's default log tag
   unavailable, // 503 text
+  locked, // 401 text
+  subject, // (record) => subject, above
+  prunes, // default true; false for a kind that shares another kind's rows
 };
 ```
 
@@ -222,7 +228,7 @@ Actions: `status`, `claim {linkCode}`, `send`, `verify {challenge, code}`. Respo
 
 Locator failure (bad or missing `s`, unknown number, unsigned outside grace, receipt not a successful quote payment): `404 { error: <the same NOT_FOUND text get-invoice uses>, inactive: true }`, checked before any lock read or email, identical for every cause.
 
-Order of checks for every action: method POST, known action, known kind, locator shape, kill switch for that kind (status answers `{locked:false, gateOff:true}`), secret (503), resolve locator (404), then the action.
+Order of checks for every action: method POST, known action, known kind, locator shape, kill switch for that kind (status answers `{locked:false, gateOff:true}`), secret (503), find the record through the locator (404), then the action.
 
 Unsigned grace locators (`kind: "invoice"` without `s`): status returns `maskedEmail: null` and `canUnlock: true` (the page says "the email address we sent the invoice to"); send quota is 1 per 10 minutes and 3 per day instead of 5 and 10 (section 8.9). Both are defaults for owner question Q3.
 
@@ -362,6 +368,8 @@ No new container and no new field on any row. All state is lock rows in `locks` 
 | receipts                                            | `qa:*` rows of the parent quote; `qa:lk:<nonce>` for receipt link codes | as quotes                                            |
 
 Prune: `pruneAccessLocks` takes `{ locks, nowMs, schemes: [{rows:"qa", get: quoteRepo.get}, {rows:"ia", get: invoiceStore.readInvoice}] }` and handles both prefixes in one listing pass, so invoice rows are no longer counted as `skipped` and don't eat the listing cap. Same rules per prefix.
+
+Prune ownership (PR 1): only the scheme that owns a `rows` prefix prunes it. The receipt scheme shares `qa` and sets `prunes: false`; its `pruneAccessLocks` throws without touching a row, and the quote scheme prunes `qa` for both. Each scheme's `getScope(scopeId)` must return a record of that scheme's own shape, because `subject()` is applied to it to read the revision and epoch. A record of another shape reads as a different revision, so live wrong-code counters would be deleted and the 15-miss block reset (a test in `api/shared/access/core.test.js` shows this).
 
 ER sketch:
 
