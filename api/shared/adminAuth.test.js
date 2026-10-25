@@ -1,5 +1,6 @@
 // @vitest-environment node
 import https from "node:https";
+import net from "node:net";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const { requireAdmin } = await import("./adminAuth.js");
@@ -112,15 +113,20 @@ describe("requireAdmin refusals", () => {
       body: { jwt: "eyJ.fake.jwt" },
     };
     // Nothing may try the token anywhere: no outbound request of any kind.
+    // The socket spy also catches https.get, http and a destructured request.
     const httpsRequest = vi.spyOn(https, "request");
     const fetchCall = vi.spyOn(globalThis, "fetch");
+    const connect = vi.spyOn(net.Socket.prototype, "connect");
     try {
       expect(await requireAdmin(context, req)).toMatchObject({ status: 401 });
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(httpsRequest).not.toHaveBeenCalled();
       expect(fetchCall).not.toHaveBeenCalled();
+      expect(connect).not.toHaveBeenCalled();
     } finally {
       httpsRequest.mockRestore();
       fetchCall.mockRestore();
+      connect.mockRestore();
     }
   });
 
