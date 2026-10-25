@@ -32,4 +32,22 @@ describe("createWithNextNumber", () => {
     );
     expect(db.container("things").docs.size).toBe(1);
   });
+
+  it("frees the number when building the row fails", async () => {
+    const db = createFakeCosmos();
+    const container = db.container("things");
+    const locks = createCosmosLocks(db);
+    await expect(
+      createWithNextNumber(container, locks, {
+        field: "thingNumber",
+        prefix: "T-",
+        format: (seq) => `T-${seq}`,
+        build: () => {
+          throw new Error("bad row");
+        },
+        label: "thing number",
+      }),
+    ).rejects.toThrow("bad row");
+    expect(await locks.take("thingNumber:T-1")).toBe(true);
+  });
 });
