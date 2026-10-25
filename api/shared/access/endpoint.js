@@ -45,13 +45,15 @@ const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]
  *             loads the record or throws that same error
  *   emails    code(record, code, minutes) and lockedAlert(record, atIso,
  *             blocked) give { subject, html, text }
- *   labels    log (log tag), ref (the record's name in log lines), and the
- *             kind's texts noEmail, gateOff and blocked
+ *   labels    ref (the record's name in log lines) and the kind's texts
+ *             noEmail, gateOff and blocked; log, the log tag, defaults to
+ *             the scheme's logTag
  *   services  () => { locks, now, ... }, passed to locator.find
  *   env, send, alertWaitMs  replaceable in tests
  */
 function createAccessEndpoint(deps) {
-  const { access, locator, emails, labels } = deps;
+  const { access, locator, emails } = deps;
+  const labels = { log: access.scheme.logTag, ...deps.labels };
   const env = deps.env || process.env;
   const sendMail = deps.send || sendEmail;
   const alertWaitMs = deps.alertWaitMs ?? ALERT_WAIT_MS;

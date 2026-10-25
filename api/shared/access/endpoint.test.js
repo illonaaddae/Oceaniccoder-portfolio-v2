@@ -15,9 +15,9 @@ const SECRET = "s".repeat(40);
 const START = Date.parse("2026-10-25T09:00:00.000Z");
 const DOC = { ref: "D-7", rev: 0, email: "ama@gmail.com", parent: "D-7", number: "DOC-0007" };
 const access = createAccess({
-  label: "ta",
-  rows: "tr",
-  cookie: "tc",
+  label: "ea",
+  rows: "er",
+  cookie: "ec",
   gateVar: "TEST_ACCESS_GATE",
   logTag: "test-access",
   unavailable: "Test links are unavailable.",
@@ -69,8 +69,8 @@ function setup({
       code: (doc, code, minutes) => ({ subject: `${code} for ${doc.number} (${minutes})` }),
       lockedAlert: (doc, at, blocked) => ({ subject: `locked ${doc.number} ${blocked}` }),
     },
+    // No log: the tag comes from the scheme's logTag.
     labels: {
-      log: "test-access",
       ref: "doc",
       noEmail: "No email on this document.",
       gateOff: "This document opens without a code.",
@@ -137,7 +137,7 @@ describe("createAccessEndpoint", () => {
     expect(t.mails[0].subject).toMatch(/^\d{6} for DOC-0007 \(10\)$/);
     expect(t.logs).toEqual(["test-access send doc=DOC-0007"]);
     const keys = t.lockCalls.mock.calls.map((call) => call[1]);
-    expect(keys.every((key) => key.startsWith("tr:"))).toBe(true);
+    expect(keys.every((key) => key.startsWith("er:"))).toBe(true);
   });
 
   it("verifies a code into the kind's cookie", async () => {
@@ -146,7 +146,7 @@ describe("createAccessEndpoint", () => {
     const code = t.mails[0].subject.slice(0, 6);
     const r = await t.call({ action: "verify", ref: "D-7", challenge: sent.body.challenge, code });
     expect(r.status).toBe(200);
-    expect(r.cookie).toMatch(/^__Secure-oc_tc_[0-9a-f]{16}=v1\./);
+    expect(r.cookie).toMatch(/^__Secure-oc_ec_[0-9a-f]{16}=v1\./);
     expect(t.logs).toContain("test-access verify ok doc=DOC-0007");
   });
 
@@ -155,7 +155,7 @@ describe("createAccessEndpoint", () => {
     const linkCode = access.mintLinkCode(SECRET, DOC, 0, START);
     const r = await t.call({ action: "claim", ref: "D-7", linkCode });
     expect(r.status).toBe(200);
-    expect(r.cookie).toMatch(/^__Secure-oc_tc_/);
+    expect(r.cookie).toMatch(/^__Secure-oc_ec_/);
     expect((await t.call({ action: "claim", ref: "D-7", linkCode })).status).toBe(409);
     expect(t.logs).toEqual([
       "test-access claim ok doc=DOC-0007",

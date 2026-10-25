@@ -38,7 +38,6 @@ const emails = {
 };
 
 const labels = {
-  log: "quote-access",
   ref: "quote",
   noEmail: `This quote can't be opened with a code. Contact ${CONTACT} to open it.`,
   gateOff: "This quote opens without a code right now.",
