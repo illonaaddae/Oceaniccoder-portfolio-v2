@@ -76,9 +76,11 @@ describe("createStandaloneInvoice", () => {
     expect((await create()).invoiceNumber).toBe("INV-2026-0002");
   });
 
-  it("gives up after five taken numbers and writes nothing", async () => {
+  it("gives up after 50 held numbers and writes nothing", async () => {
     const { locks, invoices, create } = setup();
-    for (let n = 1; n <= 5; n++) await locks.take(`invoiceNumber:INV-2026-000${n}`);
+    for (let n = 1; n <= 50; n++) {
+      await locks.take(`invoiceNumber:INV-2026-${String(n).padStart(4, "0")}`);
+    }
     await expect(create()).rejects.toThrow("Could not allocate an invoice number");
     expect(invoices.docs.size).toBe(0);
   });
@@ -89,6 +91,29 @@ describe("createStandaloneInvoice", () => {
       throw Object.assign(new Error("throttled"), { code: 429 });
     };
     await expect(create()).rejects.toThrow("throttled");
+    expect(await locks.take("invoiceNumber:INV-2026-0001")).toBe(true);
+  });
+
+  it("keeps working after five unclear failures in a row", async () => {
+    const { locks, invoices, create } = setup();
+    let failures = 5;
+    invoices.hooks.beforeCreate = async () => {
+      if (failures-- > 0) throw Object.assign(new Error("service unavailable"), { code: 503 });
+    };
+    for (let n = 0; n < 5; n++) await expect(create()).rejects.toThrow("service unavailable");
+    expect((await create()).invoiceNumber).toBe("INV-2026-0006");
+    expect(await locks.take("invoiceNumber:INV-2026-0005")).toBe(false);
+  });
+
+  it.each([
+    ["a missing container (404)", 404],
+    ["a bad key (401)", 401],
+  ])("frees the number after %s", async (_label, code) => {
+    const { locks, invoices, create } = setup();
+    invoices.hooks.beforeCreate = async () => {
+      throw Object.assign(new Error("refused"), { code });
+    };
+    await expect(create()).rejects.toThrow("refused");
     expect(await locks.take("invoiceNumber:INV-2026-0001")).toBe(true);
   });
 

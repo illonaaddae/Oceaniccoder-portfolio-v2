@@ -6,10 +6,22 @@
 // creates at once read the same highest number, but only one of them takes
 // each lock; the other moves on to the next number.
 
-const ATTEMPTS = 5;
+// Numbers already held are skipped quickly (the lock create answers 409), so
+// a generous cap keeps creates working even when earlier writes left held
+// numbers behind (see below). Any saved row moves the start past them.
+const ATTEMPTS = 50;
 
-// Cosmos status codes that mean the create was not written.
-const DEFINITE_REJECTIONS = new Set([400, 403, 409, 413, 429]);
+// A write may have been saved after a timeout, a 408/449, a 5xx or a network
+// error (string codes such as ECONNRESET, or none). Its number stays held so
+// it can't be handed out twice; a gap in the sequence is the safer cost. Any
+// other refusal (400, 401, 403, 404, 409, 413, 429...) wrote nothing and frees
+// the number. Recovery for a held number with no row: delete the `locks` row
+// for the key "<field>:<number>" (see locks.js).
+function mayHaveBeenSaved(err) {
+  const code = err && err.code;
+  if (typeof code !== "number") return true;
+  return code === 408 || code === 449 || code >= 500;
+}
 
 /**
  * Writes a new row whose `field` is the next number after the highest one
@@ -17,7 +29,7 @@ const DEFINITE_REJECTIONS = new Set([400, 403, 409, 413, 429]);
  *
  * `format(seq)` turns a sequence into a number and must start with `prefix`.
  * `build(number)` returns the document to create. Gives up with
- * `Could not allocate a(n) <label>` after five taken numbers.
+ * `Could not allocate a(n) <label>` after 50 numbers that are already held.
  */
 async function createWithNextNumber(container, locks, { field, prefix, format, build, label }) {
   const { resources } = await container.items
@@ -31,15 +43,19 @@ async function createWithNextNumber(container, locks, { field, prefix, format, b
     const number = format(start + attempt);
     const key = `${field}:${number}`;
     if (!(await locks.take(key))) continue;
+    let doc;
     try {
-      const { resource } = await container.items.create(build(number));
+      doc = build(number);
+    } catch (err) {
+      await locks.release(key).catch(() => {});
+      throw err;
+    }
+    try {
+      const { resource } = await container.items.create(doc);
       return resource;
     } catch (err) {
-      // Free the number only when the write was certainly refused. A timeout
-      // or a 5xx may still have saved the row, and freeing its number then
-      // could hand it out twice; a gap in the sequence is the safer cost. The
-      // write error matters more than a failed release.
-      if (DEFINITE_REJECTIONS.has(err && err.code)) await locks.release(key).catch(() => {});
+      // The write error matters more than a failed release.
+      if (!mayHaveBeenSaved(err)) await locks.release(key).catch(() => {});
       throw err;
     }
   }
