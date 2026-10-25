@@ -16,6 +16,9 @@ const ATTEMPTS = 5;
  * `build(number)` returns the document to create. Gives up with
  * `Could not allocate a(n) <label>` after five taken numbers.
  */
+// Cosmos status codes that mean the create was not written.
+const DEFINITE_REJECTIONS = new Set([400, 403, 409, 413, 429]);
+
 async function createWithNextNumber(container, locks, { field, prefix, format, build, label }) {
   const { resources } = await container.items
     .query({
@@ -32,9 +35,11 @@ async function createWithNextNumber(container, locks, { field, prefix, format, b
       const { resource } = await container.items.create(build(number));
       return resource;
     } catch (err) {
-      // Free the number for the next create; the write error matters more
-      // than a failed release.
-      await locks.release(key).catch(() => {});
+      // Free the number only when the write was certainly refused. A timeout
+      // or a 5xx may still have saved the row, and freeing its number then
+      // could hand it out twice; a gap in the sequence is the safer cost. The
+      // write error matters more than a failed release.
+      if (DEFINITE_REJECTIONS.has(err && err.code)) await locks.release(key).catch(() => {});
       throw err;
     }
   }

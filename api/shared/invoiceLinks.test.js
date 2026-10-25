@@ -47,6 +47,23 @@ describe("canOpenInvoice", () => {
 });
 
 describe("unsignedGraceCovers", () => {
+  it("never covers a server-assigned sequential number, however old", () => {
+    expect(
+      L.unsignedGraceCovers({
+        invoiceNumber: "INV-2026-0001",
+        createdAt: "2026-10-26T00:00:00.000Z",
+        status: "sent",
+      }),
+    ).toBe(false);
+    expect(
+      L.unsignedGraceCovers({
+        invoiceNumber: "INV-948213",
+        createdAt: "2026-10-26T00:00:00.000Z",
+        status: "sent",
+      }),
+    ).toBe(true);
+  });
+
   it("opens the grace for unpaid invoices created before 2026-10-28", () => {
     expect(new Date(L.UNSIGNED_INVOICES_CREATED_BEFORE).toISOString()).toBe(
       "2026-10-28T00:00:00.000Z",

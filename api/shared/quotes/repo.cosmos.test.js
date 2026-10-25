@@ -324,7 +324,7 @@ describe("Cosmos quote repo", () => {
         release: vi.fn().mockRejectedValue(new Error("release failed")),
       };
       db.container("quotes").hooks.beforeCreate = async () => {
-        throw new Error("write failed");
+        throw Object.assign(new Error("write failed"), { code: 400 });
       };
       const repo = createCosmosQuoteRepo(db, { locks });
       await expect(repo.create({}, 2026)).rejects.toThrow("write failed");

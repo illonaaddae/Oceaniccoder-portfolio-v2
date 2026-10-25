@@ -92,11 +92,20 @@ describe("createStandaloneInvoice", () => {
     expect(await locks.take("invoiceNumber:INV-2026-0001")).toBe(true);
   });
 
+  it("keeps the number reserved when the write may have been saved", async () => {
+    const { locks, invoices, create } = setup();
+    invoices.hooks.beforeCreate = async () => {
+      throw Object.assign(new Error("service unavailable"), { code: 503 });
+    };
+    await expect(create()).rejects.toThrow("service unavailable");
+    expect(await locks.take("invoiceNumber:INV-2026-0001")).toBe(false);
+  });
+
   it("reports the write error even when freeing the number fails", async () => {
     const db = createFakeCosmos();
     const invoices = db.container("invoices");
     invoices.hooks.beforeCreate = async () => {
-      throw new Error("write failed");
+      throw Object.assign(new Error("write failed"), { code: 400 });
     };
     const locks = {
       take: vi.fn().mockResolvedValue(true),
