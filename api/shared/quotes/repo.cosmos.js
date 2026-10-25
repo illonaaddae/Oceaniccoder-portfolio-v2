@@ -8,7 +8,7 @@
 //     only 10 operations per request.)
 //   - Unique keys only apply inside one partition, and quotes are partitioned
 //     by id, so a quote number is reserved through a lock row instead of a
-//     unique index.
+//     unique index (shared/numbering.js).
 //   - A payment with a Paystack reference gets an id derived from it, so a
 //     second row for the same reference fails with 409. Rows imported from
 //     Appwrite keep their old ids and are found by query.
@@ -18,6 +18,7 @@
 const { newId } = require("../cosmos");
 const { paymentIdFor } = require("../tokens");
 const { withoutSystemFields, readById, updateWith } = require("../cosmosRows");
+const { createWithNextNumber } = require("../numbering");
 const { quoteNumber } = require("./model");
 
 const QUOTES = "quotes";
@@ -36,7 +37,6 @@ const JSON_FIELDS = {
   extras: {},
 };
 const SKIP_ON_WRITE = new Set(["id", "createdAt", "updatedAt"]);
-const NUMBER_ATTEMPTS = 5;
 
 function parse(raw, fallback) {
   if (raw === null || raw === undefined || raw === "") return structuredClone(fallback);
@@ -126,34 +126,23 @@ function createCosmosQuoteRepo(db, { locks } = {}) {
     // before the quote is written, so two admins creating at once get
     // different numbers; a taken number moves on to the next one.
     async create(fields, year = new Date().getFullYear()) {
-      const [last] = await queryAll(
-        quotes,
-        "SELECT TOP 1 c.quoteNumber FROM c WHERE STARTSWITH(c.quoteNumber, @prefix) ORDER BY c.quoteNumber DESC",
-        [{ name: "@prefix", value: `Q-${year}-` }],
-      );
-      const start = last ? Number(last.quoteNumber.slice(-4)) + 1 : 1;
-      for (let attempt = 0; attempt < NUMBER_ATTEMPTS; attempt++) {
-        const number = quoteNumber(year, start + attempt);
-        const key = `quoteNumber:${number}`;
-        if (!(await locks.take(key))) continue;
-        try {
+      const quote = await createWithNextNumber(quotes, locks, {
+        field: "quoteNumber",
+        prefix: `Q-${year}-`,
+        format: (seq) => quoteNumber(year, seq),
+        label: "quote number",
+        build: (number) => {
           const now = new Date().toISOString();
-          const { resource } = await quotes.items.create({
+          return {
             ...cleanPatch(fields),
             id: newId(),
             quoteNumber: number,
             createdAt: now,
             updatedAt: now,
-          });
-          return toQuote(resource);
-        } catch (err) {
-          // Free the number for the next create; the write error matters more
-          // than a failed release.
-          await locks.release(key).catch(() => {});
-          throw err;
-        }
-      }
-      throw new Error("Could not allocate a quote number");
+          };
+        },
+      });
+      return toQuote(quote);
     },
 
     // Accepted quotes whose maintenance offer hasn't gone out yet (the field
