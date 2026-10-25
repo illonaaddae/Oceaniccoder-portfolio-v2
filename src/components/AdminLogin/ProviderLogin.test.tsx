@@ -36,7 +36,7 @@ describe("ProviderLogin", () => {
 
     expect(screen.getByRole("link", { name: "Sign out" })).toHaveAttribute(
       "href",
-      "/.auth/logout?post_logout_redirect_uri=%2F",
+      "/.auth/logout?post_logout_redirect_uri=%2Fadmin%2Fdashboard",
     );
   });
 

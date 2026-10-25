@@ -36,6 +36,8 @@ export function loginUrl(provider: LoginProvider, returnTo = "/admin/dashboard")
   return `/.auth/login/${provider}?post_login_redirect_uri=${encodeURIComponent(returnTo)}`;
 }
 
-export function logoutUrl(returnTo = "/"): string {
+// Signing out lands on the admin sign-in page, which is where both callers
+// (the dashboard's Logout and the login page's "sign out") come from.
+export function logoutUrl(returnTo = "/admin/dashboard"): string {
   return `/.auth/logout?post_logout_redirect_uri=${encodeURIComponent(returnTo)}`;
 }
