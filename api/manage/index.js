@@ -97,6 +97,10 @@ module.exports = async function (context, req) {
       if (updated[partitionField(collection)] !== existing[partitionField(collection)]) {
         throw new Invalid(`${partitionField(collection)} can't be changed`);
       }
+      // The server assigns invoice numbers; a rename could reuse a taken one.
+      if (collection === "invoices" && updated.invoiceNumber !== existing.invoiceNumber) {
+        throw new Invalid("invoiceNumber can't be changed");
+      }
       // Replace only if nobody else changed the row since we read it.
       const { resource } = await item.replace(updated, {
         accessCondition: { type: "IfMatch", condition: existing._etag },

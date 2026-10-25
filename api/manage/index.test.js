@@ -173,6 +173,34 @@ describe("/api/manage", () => {
       expect(writes.replaced).toHaveLength(1);
     });
 
+    it("refuses to change an invoice's number", async () => {
+      const writes = useContainer([
+        { id: "inv1", invoiceNumber: "INV-2026-0008", status: "sent", _etag: "e" },
+      ]);
+      const r = await call("PATCH", {
+        collection: "invoices",
+        id: "inv1",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body: { invoiceNumber: "INV-2026-0001" },
+      });
+      expect(r.status).toBe(400);
+      expect(writes.replaced).toEqual([]);
+    });
+
+    it("accepts a PATCH that repeats the same invoice number", async () => {
+      const writes = useContainer([
+        { id: "inv1", invoiceNumber: "INV-2026-0008", status: "sent", _etag: "e" },
+      ]);
+      const r = await call("PATCH", {
+        collection: "invoices",
+        id: "inv1",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body: { invoiceNumber: "INV-2026-0008", status: "paid" },
+      });
+      expect(r.status).toBe(200);
+      expect(writes.replaced).toHaveLength(1);
+    });
+
     it("refuses a PATCH that isn't JSON", async () => {
       const writes = useContainer([project]);
       const r = await call("PATCH", {
