@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 const { createAccess } = await import("./core.js");
-const { QUOTE_SCHEME } = await import("../quotes/accessScheme.js");
+const { quoteAccess: quote } = await import("../quotes/accessScheme.js");
 const { createFakeLocks } = await import("../quotes/fakes.js");
 
 const SECRET = "s".repeat(40);
@@ -41,7 +41,19 @@ const QUOTE = {
 };
 
 const doc = createAccess(DOC_SCHEME);
-const quote = createAccess(QUOTE_SCHEME);
+
+// Labels, cookies and pruned rows are unique per process, so every extra
+// scheme a test builds takes names nobody else uses.
+let freshCount = 0;
+function fresh() {
+  let n = (freshCount += 1);
+  let tag = "";
+  while (n > 0) {
+    tag = String.fromCharCode(97 + (n % 26)) + tag;
+    n = Math.floor(n / 26);
+  }
+  return { label: `l${tag}`, cookie: `c${tag}`, rows: `r${tag}` };
+}
 const cookieReq = (setCookie) => ({ headers: { cookie: setCookie.split(";")[0] } });
 const caught = async (fn) => {
   try {
@@ -169,5 +181,84 @@ describe("pruneAccessLocks over a scheme", () => {
     });
     expect(getScope).toHaveBeenCalledWith("parent-1");
     expect([...locks.held].sort()).toEqual(["qa:try:cid:1", "tr:miss:parent-1:1:0:1"]);
+  });
+
+  it("refuses to prune rows the scheme shares but doesn't own, and leaves them alone", async () => {
+    const sharer = createAccess({ ...DOC_SCHEME, ...fresh(), rows: "tr", prunes: false });
+    expect(sharer.scheme.prunes).toBe(false);
+    const clock = { ms: NOW };
+    const locks = createFakeLocks({ now: () => clock.ms });
+    await sharer.takeTry(locks, "cid");
+    clock.ms += DAY;
+    await expect(
+      sharer.pruneAccessLocks({ locks, getScope: async () => DOC, nowMs: clock.ms }),
+    ).rejects.toThrow(/doesn't own the "tr:" rows/);
+    expect([...locks.held]).toEqual(["tr:try:cid:1"]);
+  });
+
+  it("needs getScope to return the scheme's own record shape", async () => {
+    // Why: subject() is applied to what getScope returns. Here the scope
+    // lookup hands back a quote-shaped record (revision, not rev), so the
+    // live wrong-code counter reads as an older revision and is deleted.
+    const run = async (scopeRecord) => {
+      const clock = { ms: NOW };
+      const locks = createFakeLocks({ now: () => clock.ms });
+      await doc.recordMiss(locks, DOC, 0);
+      clock.ms += DAY;
+      await doc.pruneAccessLocks({ locks, getScope: async () => scopeRecord, nowMs: clock.ms });
+      return locks.held.has("tr:miss:parent-1:1:0:1");
+    };
+    expect(await run(DOC)).toBe(true);
+    expect(await run({ ...QUOTE, id: "parent-1" })).toBe(false);
+  });
+});
+
+describe("scheme validation", () => {
+  it("refuses a label or cookie another scheme already uses", () => {
+    expect(() => createAccess({ ...DOC_SCHEME, ...fresh(), label: "ta" })).toThrow(
+      'createAccess: label "ta" is already used',
+    );
+    expect(() => createAccess({ ...DOC_SCHEME, ...fresh(), cookie: "tc" })).toThrow(
+      'createAccess: cookie "tc" is already used',
+    );
+  });
+
+  it("lets kinds share rows, but only one of them prune them", () => {
+    expect(() => createAccess({ ...DOC_SCHEME, ...fresh(), rows: "tr" })).toThrow(
+      'rows "tr" are already pruned by another scheme',
+    );
+    expect(() =>
+      createAccess({ ...DOC_SCHEME, ...fresh(), rows: "tr", prunes: false }),
+    ).not.toThrow();
+  });
+
+  it.each([
+    ["label", "QA"],
+    ["label", "q"],
+    ["label", "q-a"],
+    ["label", "abcdefghi"],
+    ["rows", "q:a"],
+    ["rows", ""],
+    ["cookie", "q a"],
+    ["cookie", undefined],
+  ])("refuses a malformed %s (%j)", (field, value) => {
+    expect(() => createAccess({ ...DOC_SCHEME, ...fresh(), [field]: value })).toThrow(
+      `createAccess: ${field} must be 2 to 8 lowercase letters`,
+    );
+  });
+
+  it.each(["subject", "locked", "unavailable", "gateVar", "logTag"])(
+    "refuses a scheme without %s",
+    (field) => {
+      expect(() => createAccess({ ...DOC_SCHEME, ...fresh(), [field]: undefined })).toThrow(
+        /^createAccess: /,
+      );
+    },
+  );
+
+  it("doesn't reserve the names of a scheme it refused", () => {
+    const names = fresh();
+    expect(() => createAccess({ ...DOC_SCHEME, ...names, subject: null })).toThrow();
+    expect(() => createAccess({ ...DOC_SCHEME, ...names })).not.toThrow();
   });
 });

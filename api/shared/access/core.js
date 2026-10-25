@@ -174,6 +174,38 @@ function readCookie(req, name) {
   return null;
 }
 
+const SCHEME_NAME_RE = /^[a-z]{2,8}$/;
+// Every scheme created in this process. rows are left out of the uniqueness
+// check on purpose (receipts share the quote's rows); only their pruning is.
+const usedLabels = new Set();
+const usedCookies = new Set();
+const prunedRows = new Set();
+
+function validateScheme(scheme) {
+  const fail = (why) => {
+    throw new Error(`createAccess: ${why}`);
+  };
+  if (!scheme || typeof scheme !== "object") fail("a scheme object is required");
+  for (const field of ["label", "rows", "cookie"]) {
+    if (typeof scheme[field] !== "string" || !SCHEME_NAME_RE.test(scheme[field]))
+      fail(`${field} must be 2 to 8 lowercase letters`);
+  }
+  if (typeof scheme.subject !== "function") fail("subject must be a function");
+  for (const field of ["gateVar", "logTag", "unavailable", "locked"]) {
+    if (typeof scheme[field] !== "string" || !scheme[field]) fail(`${field} is required`);
+  }
+  if (scheme.prunes !== undefined && typeof scheme.prunes !== "boolean")
+    fail("prunes must be true or false");
+  if (usedLabels.has(scheme.label)) fail(`label "${scheme.label}" is already used`);
+  if (usedCookies.has(scheme.cookie)) fail(`cookie "${scheme.cookie}" is already used`);
+  const prunes = scheme.prunes !== false;
+  if (prunes && prunedRows.has(scheme.rows))
+    fail(`rows "${scheme.rows}" are already pruned by another scheme; set prunes: false`);
+  usedLabels.add(scheme.label);
+  usedCookies.add(scheme.cookie);
+  if (prunes) prunedRows.add(scheme.rows);
+}
+
 /**
  * The access rules for one kind of record. scheme:
  *   label       HMAC domain prefix: `${label}-chal:`, -code, -sess, -mail, -link, -name
@@ -184,10 +216,27 @@ function readCookie(req, name) {
  *   unavailable 503 text when the switch or the secret is misconfigured
  *   locked      401 text when a request has no unlock
  *   subject     (record) => { id, revision, linkId, clientEmail, scopeId, logName }
- *               (logName: the record's number for logs, never an email or token)
+ *               (logName is read only by shared/access/endpoint.js, for log
+ *               lines: the record's number, never an email or token)
+ *   prunes      whether this scheme deletes its `rows` rows (default true).
+ *               A kind that shares another kind's rows (receipts share the
+ *               quote's "qa") sets false and leaves pruning to the owner.
+ *
+ * label and cookie are separate settings even though every kind so far uses
+ * the same value for both: the label is a signing domain inside tokens and
+ * the cookie prefix is a name stored in client browsers, and either may need
+ * to change without the other (a new signing domain must not rename every
+ * cookie, nor the reverse).
+ *
+ * Throws at load when the scheme is malformed, or when its label or cookie
+ * is already used by another scheme, or when a second scheme claims to prune
+ * the same rows: any of those would let one kind's tokens, cookies or rows
+ * pass as another's.
  */
 function createAccess(scheme) {
+  validateScheme(scheme);
   const { label, rows, cookie, gateVar, logTag, unavailable, locked, subject } = scheme;
+  const prunes = scheme.prunes !== false;
   let gateErrorLogged = false;
   let secretErrorLogged = false;
 
@@ -453,13 +502,24 @@ function createAccess(scheme) {
 
   /**
    * Deletes this scheme's lock rows past their retention. Run once a day from
-   * the maintenance cron. getScope(scopeId) loads the record a miss row
-   * counts against (null when it is gone). Returns { deleted, kept, skipped }:
-   * skipped counts other rows, which are never touched but still fill the
-   * listing, so a run with a large skipped and no deleted means the listing
-   * cap is spent on rows this never deletes.
+   * the maintenance cron. Only the scheme that owns its rows prunes them
+   * (prunes, above); any other throws before touching a row.
+   *
+   * getScope(scopeId) loads the record a miss row counts against, or null
+   * when it is gone, and must return a record of this scheme's own shape:
+   * subject() is applied to it to read the revision and the epoch. A record
+   * of another shape reads as a different revision, so live wrong-code
+   * counters would be deleted and the 15-miss block reset.
+   *
+   * Returns { deleted, kept, skipped }: skipped counts other rows, which are
+   * never touched but still fill the listing, so a run with a large skipped
+   * and no deleted means the listing cap is spent on rows this never deletes.
    */
   async function pruneAccessLocks({ locks, getScope, nowMs }) {
+    if (!prunes)
+      throw new Error(
+        `${logTag}: this scheme doesn't own the "${rows}:" rows; prune them through the scheme that does`,
+      );
     // listBefore is strict, so +1 ms takes rows exactly one day old too.
     const listed = await locks.listBefore(new Date(nowMs - SHORT_RETENTION_MS + 1).toISOString());
     const scopes = new Map();
@@ -543,6 +603,7 @@ function createAccess(scheme) {
   }
 
   return {
+    scheme: Object.freeze({ ...scheme, prunes }),
     subject,
     gateEnabled,
     accessSecret,
