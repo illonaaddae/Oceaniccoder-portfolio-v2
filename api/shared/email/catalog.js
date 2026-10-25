@@ -369,22 +369,6 @@ const CATALOG = [
       ),
   },
   {
-    id: "invoiceRecordFailed",
-    group: "admin",
-    name: "Payment record failed",
-    when: "An invoice is paid but the record fails to save",
-    render: () =>
-      htmlOnly(
-        `Action needed: payment record failed for invoice ${invoiceSample.invoiceNumber}`,
-        webhook.recordFailedEmail({
-          invoiceNumber: invoiceSample.invoiceNumber,
-          error: "Appwrite returned 503 Service Unavailable",
-          amount: "GHS 5,100.00",
-          reference: "PAY-INV-2026-0042-1760184000",
-        }),
-      ),
-  },
-  {
     id: "webhookFailed",
     group: "admin",
     name: "Webhook not processed",
@@ -460,7 +444,7 @@ const CATALOG = [
     id: "webhookInvalidSetting",
     group: "admin",
     name: "Webhooks failing on a setting",
-    when: "DATA_BACKEND or WRITE_HOLD has an invalid value",
+    when: "WRITE_HOLD has an invalid value",
     render: () =>
       htmlOnly(
         "Action needed: WRITE_HOLD has an invalid value; payments are not being recorded",

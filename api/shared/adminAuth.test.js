@@ -1,30 +1,7 @@
 // @vitest-environment node
-import { createRequire } from "node:module";
+import https from "node:https";
+import net from "node:net";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-
-// A node-appwrite whose every token belongs to the admin. If the Appwrite
-// sign-in path ever comes back, the token test below lets that caller in.
-const require = createRequire(import.meta.url);
-const appwriteLogins = vi.fn(async () => ({ $id: "u1", email: "admin@example.com" }));
-class FakeClient {
-  setEndpoint() {
-    return this;
-  }
-  setProject() {
-    return this;
-  }
-  setJWT() {
-    return this;
-  }
-}
-require.cache[require.resolve("node-appwrite")] = {
-  exports: {
-    Client: FakeClient,
-    Account: class {
-      get = appwriteLogins;
-    },
-  },
-};
 
 const { requireAdmin } = await import("./adminAuth.js");
 
@@ -135,8 +112,22 @@ describe("requireAdmin refusals", () => {
       headers: { "x-appwrite-jwt": "eyJ.fake.jwt", authorization: "Bearer eyJ.fake.jwt" },
       body: { jwt: "eyJ.fake.jwt" },
     };
-    expect(await requireAdmin(context, req)).toMatchObject({ status: 401 });
-    expect(appwriteLogins).not.toHaveBeenCalled();
+    // Nothing may try the token anywhere: no outbound request of any kind.
+    // The socket spy also catches https.get, http and a destructured request.
+    const httpsRequest = vi.spyOn(https, "request");
+    const fetchCall = vi.spyOn(globalThis, "fetch");
+    const connect = vi.spyOn(net.Socket.prototype, "connect");
+    try {
+      expect(await requireAdmin(context, req)).toMatchObject({ status: 401 });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(httpsRequest).not.toHaveBeenCalled();
+      expect(fetchCall).not.toHaveBeenCalled();
+      expect(connect).not.toHaveBeenCalled();
+    } finally {
+      httpsRequest.mockRestore();
+      fetchCall.mockRestore();
+      connect.mockRestore();
+    }
   });
 
   it("answers 500 only when no admin is configured at all", async () => {

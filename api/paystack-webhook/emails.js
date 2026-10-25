@@ -252,32 +252,6 @@ function invalidSettingEmail(setting, detail, mode) {
   });
 }
 
-function recordFailedEmail({ invoiceNumber, error, amount, reference }) {
-  return shell({
-    preview: `Payment record failed for invoice ${invoiceNumber}`,
-    meta: { label: "Invoice", number: invoiceNumber },
-    reason: ADMIN_REASON,
-    body:
-      heading({
-        eyebrow: "Payment record failed",
-        tone: "danger",
-        title: "A paid invoice is missing from Payments",
-        intro: `Paystack payment for invoice ${invoiceNumber} succeeded and the invoice was marked paid, but the audit-log record failed to save.`,
-      }) +
-      notice({ tone: "danger", text: `Error: ${error}` }) +
-      card({
-        title: "Payment details",
-        rows: [
-          ["Amount", amount],
-          ["Reference", reference],
-        ],
-      }) +
-      small(
-        "This payment is missing from the Payments tab. Run scripts/backfill-payments.mjs to repair.",
-      ),
-  });
-}
-
 function clientReceiptEmail({ clientName, invoiceNumber, amount }) {
   return shell({
     preview: `Payment received for invoice ${invoiceNumber}. Thank you.`,
@@ -335,7 +309,6 @@ module.exports = {
   recordedConflictEmail,
   webhookEscalationEmail,
   invalidSettingEmail,
-  recordFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
 };

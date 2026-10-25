@@ -70,7 +70,6 @@ const ICONS: Record<string, IconType> = {
   paymentAlert: FaMoneyBillWave,
   paymentAlertProblem: FaExclamationTriangle,
   invoicePaidAlert: FaCreditCard,
-  invoiceRecordFailed: FaExclamationTriangle,
   webhookFailed: FaBullhorn,
 };
 

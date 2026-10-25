@@ -680,27 +680,6 @@ describe("paystack-webhook invoice branch on Cosmos", () => {
     expect(sent[0].html).toContain("payment has no Paystack reference");
     expect(db.container("payments").docs.size).toBe(0);
   });
-
-  // DATA_BACKEND no longer picks the store: unset used to mean Appwrite, and
-  // an invalid value refused every charge.
-  it.each([
-    ["unset", ""],
-    ["appwrite", "appwrite"],
-    ["anything else", "cosmo"],
-  ])("records the charge on Cosmos when DATA_BACKEND is %s", async (_label, value) => {
-    vi.stubEnv("DATA_BACKEND", value);
-    try {
-      expect((await run()).status).toBe(200);
-      expect(db.container("invoices").docs.get("inv1").status).toBe("paid");
-      expect(payment()).toMatchObject({ invoiceApplied: true });
-      expect(subjects()).toEqual([
-        ["ama@example.com", "Payment received for invoice INV-2026-0042"],
-        ["admin@example.com", "Payment received for invoice INV-2026-0042"],
-      ]);
-    } finally {
-      vi.unstubAllEnvs();
-    }
-  });
 });
 
 describe("paystack-webhook under WRITE_HOLD", () => {

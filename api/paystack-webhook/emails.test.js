@@ -63,18 +63,6 @@ describe("paystack-webhook invoice emails", () => {
     expect(emails.webhookFailedEmail("no key")).not.toContain("Detail:");
   });
 
-  it("points the admin at the backfill script when the record fails", () => {
-    const html = emails.recordFailedEmail({
-      invoiceNumber: "INV-7",
-      error: "timeout",
-      amount: "₵5.00 GHS",
-      reference: "n/a",
-    });
-    expect(html).toContain("Error: timeout");
-    expect(html).toContain("scripts/backfill-payments.mjs");
-    expect(html).toContain("₵5.00 GHS");
-  });
-
   describe("Paystack retry window", () => {
     const CHARGED = Date.parse("2026-10-20T09:15:00.000Z");
     const untracked = (window) => emails.webhookUntrackedEmail("r", "d", window);

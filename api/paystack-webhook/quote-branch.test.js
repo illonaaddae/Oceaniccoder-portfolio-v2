@@ -100,9 +100,7 @@ describe("paystack-webhook quote branch", () => {
   });
 });
 
-// DATA_BACKEND no longer stops the webhook: an invalid value used to answer
-// 500 and mail the admin before the quote service was called.
-describe("paystack-webhook quote branch and DATA_BACKEND", () => {
+describe("paystack-webhook quote branch with Resend configured", () => {
   const https = require("https");
   let sent;
   beforeEach(() => {
@@ -129,17 +127,11 @@ describe("paystack-webhook quote branch and DATA_BACKEND", () => {
   });
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllEnvs();
     for (const key of ["PAYSTACK_SECRET_KEY", "RESEND_API_KEY", "RESEND_TO_EMAIL"])
       delete process.env[key];
   });
 
-  it.each([
-    ["unset", ""],
-    ["appwrite", "appwrite"],
-    ["anything else", "bogus"],
-  ])("settles a quote charge when DATA_BACKEND is %s", async (_label, value) => {
-    vi.stubEnv("DATA_BACKEND", value);
+  it("settles a quote charge without alerting the admin", async () => {
     const quote = vi.spyOn(quoteService, "handleQuoteCharge").mockResolvedValue({
       state: "success",
     });
