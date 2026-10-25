@@ -746,3 +746,94 @@ describe("golden: prune", () => {
     `);
   });
 });
+
+describe("golden: retention edges and the day quota", () => {
+  it("keeps a used link code through the clock skew, then drops it", async () => {
+    const clock = { ms: NOW };
+    const locks = recordingLocks(() => clock.ms);
+    const repo = createFakeRepo({ quotes: [{ ...QUOTE }] });
+    await locks.take("qa:lk:edge");
+    const ages = [
+      A.LINK_CODE_TTL_MS + DAY,
+      A.LINK_CODE_TTL_MS + DAY + 5 * 60 * 1000 - 1,
+      A.LINK_CODE_TTL_MS + DAY + 5 * 60 * 1000,
+    ];
+    const results = [];
+    for (const age of ages) {
+      clock.ms = NOW + age;
+      results.push({
+        age,
+        result: await A.pruneAccessLocks({ locks, repo, nowMs: clock.ms }),
+        held: locks.held.has("qa:lk:edge"),
+      });
+    }
+    expect(results).toMatchInlineSnapshot(`
+      [
+        {
+          "age": 3974400000,
+          "held": true,
+          "result": {
+            "deleted": 0,
+            "kept": 1,
+            "skipped": 0,
+          },
+        },
+        {
+          "age": 3974699999,
+          "held": true,
+          "result": {
+            "deleted": 0,
+            "kept": 1,
+            "skipped": 0,
+          },
+        },
+        {
+          "age": 3974700000,
+          "held": false,
+          "result": {
+            "deleted": 1,
+            "kept": 0,
+            "skipped": 0,
+          },
+        },
+      ]
+    `);
+  });
+
+  it("refuses a send when the day's ten slots are spent, handing back the gap and hour", async () => {
+    const locks = recordingLocks();
+    const day = Math.floor(NOW / DAY);
+    for (let n = 1; n <= 10; n += 1) await locks.take(`qa:send:q-golden:3:2:d:${day}:${n}`);
+    locks.ops.length = 0;
+    const r = await A.takeSendSlots(locks, QUOTE, 2, NOW);
+    expect(r).toMatchInlineSnapshot(`
+      {
+        "ok": false,
+        "retryAfterSeconds": 53970,
+      }
+    `);
+    expect(locks.ops).toMatchInlineSnapshot(`
+      [
+        "take qa:send:q-golden:3:2:g:59749561 -> true",
+        "take qa:send:q-golden:3:2:g:59749562 -> true",
+        "take qa:send:q-golden:3:2:g:59749563 -> true",
+        "take qa:send:q-golden:3:2:h:497913:1 -> true",
+        "take qa:send:q-golden:3:2:d:20746:1 -> false",
+        "take qa:send:q-golden:3:2:d:20746:2 -> false",
+        "take qa:send:q-golden:3:2:d:20746:3 -> false",
+        "take qa:send:q-golden:3:2:d:20746:4 -> false",
+        "take qa:send:q-golden:3:2:d:20746:5 -> false",
+        "take qa:send:q-golden:3:2:d:20746:6 -> false",
+        "take qa:send:q-golden:3:2:d:20746:7 -> false",
+        "take qa:send:q-golden:3:2:d:20746:8 -> false",
+        "take qa:send:q-golden:3:2:d:20746:9 -> false",
+        "take qa:send:q-golden:3:2:d:20746:10 -> false",
+        "release qa:send:q-golden:3:2:g:59749561 -> true",
+        "release qa:send:q-golden:3:2:g:59749562 -> true",
+        "release qa:send:q-golden:3:2:g:59749563 -> true",
+        "release qa:send:q-golden:3:2:h:497913:1 -> true",
+      ]
+    `);
+    expect([...locks.held].filter((k) => !k.includes(":d:"))).toMatchInlineSnapshot(`[]`);
+  });
+});

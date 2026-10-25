@@ -1134,3 +1134,37 @@ describe("golden: quote-access claim", () => {
     `);
   });
 });
+
+describe("golden: quote-access verify after a block", () => {
+  it("answers 403 blocked before taking a try on a challenge fetched earlier", async () => {
+    const t = setup();
+    const sent = await t.call({ action: "send", token: TOKEN });
+    for (let n = 1; n <= 15; n += 1) await t.inner.take(`qa:miss:q-golden:2:0:${n}`);
+    t.transcript.length = 0;
+    await t.call({
+      action: "verify",
+      token: TOKEN,
+      challenge: sent.body.challenge,
+      code: t.lastCode(),
+    });
+    expect(t.transcript).toMatchInlineSnapshot(`
+      [
+        "lock has qa:epoch:q-golden:2:1 -> false",
+        "lock has qa:miss:q-golden:2:0:15 -> true",
+        {
+          "res": {
+            "body": {
+              "blocked": true,
+              "error": "Too many wrong codes were entered on this link, so no more codes will be sent. Contact hello@oceaniccoder.dev for a new link.",
+            },
+            "headers": {
+              "Cache-Control": "no-store",
+              "Content-Type": "application/json",
+            },
+            "status": 403,
+          },
+        },
+      ]
+    `);
+  });
+});
