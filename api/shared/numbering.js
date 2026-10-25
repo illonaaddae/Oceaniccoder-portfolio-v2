@@ -14,7 +14,7 @@ const ATTEMPTS = 5;
  *
  * `format(seq)` turns a sequence into a number and must start with `prefix`.
  * `build(number)` returns the document to create. Gives up with
- * `Could not allocate a <label>` after five taken numbers.
+ * `Could not allocate a(n) <label>` after five taken numbers.
  */
 async function createWithNextNumber(container, locks, { field, prefix, format, build, label }) {
   const { resources } = await container.items
@@ -38,7 +38,8 @@ async function createWithNextNumber(container, locks, { field, prefix, format, b
       throw err;
     }
   }
-  throw new Error(`Could not allocate a ${label}`);
+  const article = /^[aeiou]/i.test(label) ? "an" : "a";
+  throw new Error(`Could not allocate ${article} ${label}`);
 }
 
 // A hand-edited number such as "INV-2026-12a" would otherwise give NaN and a

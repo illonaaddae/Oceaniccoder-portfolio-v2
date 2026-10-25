@@ -9,6 +9,7 @@ const cosmos = require("../shared/cosmos");
 let database;
 vi.spyOn(cosmos, "getDatabase").mockImplementation(() => database);
 const handler = require("./index.js");
+const { createFakeCosmos } = require("../shared/fakeCosmos");
 
 const principal = (p) => Buffer.from(JSON.stringify(p)).toString("base64");
 const ADMIN = principal({ identityProvider: "github", userId: "gh-123", userRoles: ["admin"] });
@@ -292,6 +293,78 @@ describe("/api/manage", () => {
       const writes = useContainer([project]);
       expect((await call("DELETE", { collection: "projects", id: "p1" })).status).toBe(204);
       expect(writes.deleted).toEqual([{ id: "p1", partitionKey: "p1" }]);
+    });
+  });
+  describe("invoice numbers", () => {
+    const post = (body) =>
+      call("POST", {
+        collection: "invoices",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body,
+      });
+
+    let invoices;
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+      database = createFakeCosmos();
+      invoices = database.container("invoices");
+      invoices.seed({ id: "old", invoiceNumber: "INV-948213", status: "paid" });
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it("assigns the next number of the year and returns it, ignoring the one sent", async () => {
+      invoices.seed({ id: "seven", invoiceNumber: "INV-2026-0007", status: "sent" });
+      const r = await post({ invoiceNumber: "INV-123456", clientName: "Ama", status: "sent" });
+      expect(r.status).toBe(201);
+      expect(r.body).toMatchObject({ invoiceNumber: "INV-2026-0008", clientName: "Ama" });
+      expect(invoices.docs.get(r.body.$id).invoiceNumber).toBe("INV-2026-0008");
+    });
+
+    it("starts at 0001 when the year has no numbered invoice yet", async () => {
+      invoices.seed({ id: "last-year", invoiceNumber: "INV-2025-0031", status: "paid" });
+      expect((await post({ clientName: "Ama" })).body.invoiceNumber).toBe("INV-2026-0001");
+    });
+
+    it("gives invoices created at once different numbers", async () => {
+      const results = await Promise.all([post({}), post({}), post({})]);
+      expect(results.map((r) => r.status)).toEqual([201, 201, 201]);
+      expect(results.map((r) => r.body.invoiceNumber).sort()).toEqual([
+        "INV-2026-0001",
+        "INV-2026-0002",
+        "INV-2026-0003",
+      ]);
+    });
+
+    it("answers 500 and writes nothing when no number can be reserved", async () => {
+      const locks = database.container("locks");
+      locks.hooks.beforeCreate = async () => {
+        throw Object.assign(new Error("conflict"), { code: 409 });
+      };
+      const r = await post({ clientName: "Ama" });
+      expect(r).toMatchObject({ status: 500, body: { error: "Couldn't complete that" } });
+      expect(invoices.docs.size).toBe(1);
+    });
+
+    it("keeps an invoice's number on an edit", async () => {
+      invoices.seed({ id: "inv1", invoiceNumber: "INV-948213", status: "sent" });
+      const r = await call("PATCH", {
+        collection: "invoices",
+        id: "inv1",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body: { status: "sent", notes: "Updated" },
+      });
+      expect(r).toMatchObject({ status: 200, body: { invoiceNumber: "INV-948213" } });
+    });
+
+    it("leaves other collections' creates unnumbered", async () => {
+      const r = await call("POST", {
+        collection: "projects",
+        headers: { "x-ms-client-principal": ADMIN, ...JSON_TYPE },
+        body: { title: "New" },
+      });
+      expect(r.status).toBe(201);
+      expect(r.body.invoiceNumber).toBeUndefined();
     });
   });
 });
