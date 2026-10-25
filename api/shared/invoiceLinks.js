@@ -39,6 +39,9 @@ function canOpenInvoice(invoiceNumber, sig, secret, now = Date.now()) {
  * unchanged, and archiving never ends the client's pay link.
  */
 function unsignedGraceCovers(doc) {
+  // Server-assigned numbers (INV-2026-0008) are sequential and so guessable,
+  // and every email carrying one has a signed link: they never need the grace.
+  if (/^INV-\d{4}-\d{4,}$/.test(String(doc && doc.invoiceNumber))) return false;
   // Rows imported from Appwrite carry $createdAt; rows written on Cosmos carry createdAt.
   const created = Date.parse(doc && (doc.$createdAt || doc.createdAt));
   return created < UNSIGNED_INVOICES_CREATED_BEFORE && doc.status !== "paid";

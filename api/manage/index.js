@@ -10,7 +10,9 @@
 //   DELETE /api/manage/{collection}/{id}  → 204
 //
 // Payments are create-only and invoices can't be deleted (405); neither is
-// archived here (see refusedWrite in api/shared/adminData.js).
+// archived here (see refusedWrite in api/shared/adminData.js). A new invoice
+// gets its number from the server (shared/invoices/numbers.js), whatever the
+// body says.
 //
 // Admin only: the route is limited to the admin role in
 // staticwebapp.config.json, and requireAdmin checks again here. Documents use
@@ -18,6 +20,8 @@
 
 const { getDatabase, newDocument, fromCosmos } = require("../shared/cosmos");
 const { requireAdmin } = require("../shared/adminAuth");
+const { createCosmosLocks } = require("../shared/locks");
+const { createStandaloneInvoice } = require("../shared/invoices/numbers");
 const { BadRequest, parseListQuery, sortRows } = require("../shared/publicData");
 const {
   Invalid,
@@ -57,7 +61,8 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const container = getDatabase().container(collection);
+    const db = getDatabase();
+    const container = db.container(collection);
 
     if (req.method === "GET" && !id) {
       const options = parseListQuery(req.query);
@@ -69,7 +74,10 @@ module.exports = async function (context, req) {
 
     if (req.method === "POST" && !id) {
       const doc = newDocument(writableFields(req.body));
-      const { resource } = await container.items.create(doc);
+      const resource =
+        collection === "invoices"
+          ? await createStandaloneInvoice(container, createCosmosLocks(db), doc)
+          : (await container.items.create(doc)).resource;
       return reply(context, 201, fromCosmos(resource));
     }
 
@@ -88,6 +96,10 @@ module.exports = async function (context, req) {
       };
       if (updated[partitionField(collection)] !== existing[partitionField(collection)]) {
         throw new Invalid(`${partitionField(collection)} can't be changed`);
+      }
+      // The server assigns invoice numbers; a rename could reuse a taken one.
+      if (collection === "invoices" && updated.invoiceNumber !== existing.invoiceNumber) {
+        throw new Invalid("invoiceNumber can't be changed");
       }
       // Replace only if nobody else changed the row since we read it.
       const { resource } = await item.replace(updated, {

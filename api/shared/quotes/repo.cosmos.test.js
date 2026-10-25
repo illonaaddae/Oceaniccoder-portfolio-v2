@@ -301,9 +301,20 @@ describe("Cosmos quote repo", () => {
       expect((await repo.create({}, 2026)).quoteNumber).toBe("Q-2026-0002");
     });
 
-    it("gives up after five taken numbers", async () => {
+    it("keeps a quote number held after a write that may have been saved", async () => {
       const { repo, locks, quotes } = setup();
-      for (let n = 1; n <= 5; n++) await locks.take(`quoteNumber:Q-2026-000${n}`);
+      quotes.hooks.beforeCreate = async () => {
+        throw Object.assign(new Error("service unavailable"), { code: 503 });
+      };
+      await expect(repo.create({}, 2026)).rejects.toThrow("service unavailable");
+      expect(await locks.take("quoteNumber:Q-2026-0001")).toBe(false);
+    });
+
+    it("gives up after 50 held numbers", async () => {
+      const { repo, locks, quotes } = setup();
+      for (let n = 1; n <= 50; n++) {
+        await locks.take(`quoteNumber:Q-2026-${String(n).padStart(4, "0")}`);
+      }
       await expect(repo.create({}, 2026)).rejects.toThrow("Could not allocate a quote number");
       expect(quotes.docs.size).toBe(0);
     });
@@ -324,7 +335,7 @@ describe("Cosmos quote repo", () => {
         release: vi.fn().mockRejectedValue(new Error("release failed")),
       };
       db.container("quotes").hooks.beforeCreate = async () => {
-        throw new Error("write failed");
+        throw Object.assign(new Error("write failed"), { code: 400 });
       };
       const repo = createCosmosQuoteRepo(db, { locks });
       await expect(repo.create({}, 2026)).rejects.toThrow("write failed");

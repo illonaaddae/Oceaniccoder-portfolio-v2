@@ -3,10 +3,12 @@
 // 409, so exactly one caller wins even when the webhook, the return page and
 // polling race.
 //
-// Policy: locks have no TTL. Callers must release on error (settle does). If
-// the process crashes between take() and release(), the lock is stranded. A
-// stranded stage lock also blocks manual recording of that stage. Recovery is
-// deleting the row in the Cosmos `locks` container (id = "s_" plus a sha256
+// Policy: locks have no TTL. Callers must release on error (settle does);
+// number allocation (numbering.js) keeps a number held when a write may have
+// been saved, and documents how to free it. If the process crashes between
+// take() and release(), the lock is stranded. A stranded stage lock also
+// blocks manual recording of that stage. Recovery is deleting the row in the
+// Cosmos `locks` container (id = "s_" plus a sha256
 // prefix of the key). Rows imported from Appwrite use the same id, so they
 // keep holding.
 //
