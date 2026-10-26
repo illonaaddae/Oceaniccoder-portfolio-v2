@@ -1,6 +1,6 @@
-// First: takes a quote link's one-time code out of the URL before anything
+// First: takes a document link's one-time code out of the URL before anything
 // else runs (see the module).
-import "./utils/quoteLinkCode";
+import "./utils/linkCode";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
