@@ -54,7 +54,8 @@ const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]
  *             wrong codes count in a scope of their own that never blocks
  *             the record's other links
  *   emails    code(record, code, minutes) and lockedAlert(record, atIso,
- *             blocked) give { subject, html, text }
+ *             blocked, { linkBlocked }) give { subject, html, text };
+ *             linkBlocked: only a guessable link's own share ran out
  *   labels    ref (the record's name in log lines) and the kind's texts
  *             noEmail, gateOff and blocked; log, the log tag, defaults to
  *             the scheme's logTag
@@ -157,7 +158,7 @@ function createAccessEndpoint(deps) {
 
   // Awaited but capped at ALERT_WAIT_MS: the 429 must not wait on Resend, and
   // a fire-and-forget send could be frozen with the instance after return.
-  async function alertLockout(context, record, nowMs, blocked) {
+  async function alertLockout(context, record, nowMs, blocked, linkBlocked = false) {
     let timer;
     const timedOut = new Promise((resolve) => {
       timer = setTimeout(() => resolve({ ok: false, error: "timed out" }), alertWaitMs);
@@ -166,7 +167,7 @@ function createAccessEndpoint(deps) {
       .then(() =>
         sendMail({
           to: env.RESEND_TO_EMAIL,
-          ...emails.lockedAlert(record, new Date(nowMs).toISOString(), blocked),
+          ...emails.lockedAlert(record, new Date(nowMs).toISOString(), blocked, { linkBlocked }),
         }),
       )
       .catch((err) => ({ ok: false, error: err && err.message }));
@@ -205,14 +206,15 @@ function createAccessEndpoint(deps) {
       context.log(`${labels.log} verify ${name(record)} triesLeft=${triesLeft} misses=${misses}`);
       // One alert per locked-out challenge (owner decision), and one when the
       // record blocks; never both for one guess. At most MAX_MISSES / MAX_TRIES
-      // + 1 alerts per revision and epoch. Only one request can get the last
-      // try slot of a challenge, or miss slot MAX_MISSES. A guessable link's
-      // block sends the ordinary lock alert: the record itself is not blocked.
+      // + 1 alerts per revision and epoch, plus one when a guessable link
+      // blocks. Only one request can get the last try slot of a challenge, or
+      // miss slot MAX_MISSES, or a guessable link's last slot. That block has
+      // its own alert (linkBlocked): the record and its signed link still work.
       if (misses === MAX_MISSES || linkBlocked || (lockedOut && !blocked)) {
         context.log.warn(
           `${labels.log} ${misses === MAX_MISSES ? "blocked" : "lock"} ${name(record)}`,
         );
-        await alertLockout(context, record, nowMs, misses === MAX_MISSES);
+        await alertLockout(context, record, nowMs, misses === MAX_MISSES, linkBlocked);
       }
       if (blocked) throw new HttpError(403, labels.blocked, { triesLeft: 0, blocked: true });
       if (!lockedOut)

@@ -456,7 +456,37 @@ const LOCKED_ALERTS = {
 // Two cases: one code locked after five wrong tries, or (blocked) the
 // document's fifteenth wrong code, after which no code is sent or checked
 // until it is reset.
+// An invoice's unsigned (guessable) link reached its own five wrong codes:
+// only that link is blocked (shared/access/core.js GUESSABLE_MAX_MISSES), so
+// the owner is told the signed link still works and how to get it to the client.
+function unsignedLinkBlockedAlert(v) {
+  const a = LOCKED_ALERTS.invoice;
+  const subject = `Codes blocked after 5 wrong tries on the unsigned link for ${v.number}`;
+  const what = `Five wrong codes were entered on the unsigned link for invoice ${v.number}, so codes for that link are blocked for now.`;
+  const effect = "The client's signed link still works.";
+  const advice =
+    "To be sure they can pay, resend the invoice from the dashboard so they get the signed link. Reset access also clears the block, but anyone guessing the number could block it again.";
+  const html = shell({
+    preview: what,
+    meta: { label: "Invoice", number: v.number },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Invoice access",
+        tone: "warn",
+        title: "The unsigned link to an invoice is blocked",
+        intro: `${what} ${effect}`,
+      }) +
+      card({ title: "Invoice", rows: a.rows(v) }) +
+      notice({ tone: "warn", text: advice }) +
+      buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
+  });
+  const text = lines(what, effect, advice, `${v.clientName}, ${v.lockedOn}.`, v.adminLink);
+  return { subject, html, text };
+}
+
 function accessLockedAlert(v) {
+  if (v.kind === "invoice" && v.linkBlocked) return unsignedLinkBlockedAlert(v);
   const kind = v.kind === "invoice" ? "invoice" : "quote";
   const a = LOCKED_ALERTS[kind];
   const doc = ACCESS_DOCS[kind];

@@ -97,10 +97,11 @@ const invoiceEmails = {
       code,
       minutes,
     }),
-  lockedAlert: (invoice, at, blocked) =>
+  lockedAlert: (invoice, at, blocked, { linkBlocked = false } = {}) =>
     T.accessLockedAlert({
       kind: "invoice",
       blocked,
+      linkBlocked,
       clientName: invoice.clientName || "",
       number: invoice.invoiceNumber,
       lockedOn: V.formatDate(at),

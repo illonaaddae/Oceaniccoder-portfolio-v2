@@ -168,6 +168,18 @@ const SAMPLE_VIEWS = {
       adminLink: "https://oceaniccoder.dev/admin/dashboard",
     },
   },
+  invoiceAccessLinkBlockedAlert: {
+    template: "accessLockedAlert",
+    view: {
+      kind: "invoice",
+      blocked: false,
+      linkBlocked: true,
+      clientName: "Kofi Mensah",
+      number: "INV-512345",
+      lockedOn: "20 Oct 2026",
+      adminLink: "https://oceaniccoder.dev/admin/dashboard",
+    },
+  },
   paymentAlert: {
     template: "paymentAlert",
     view: {

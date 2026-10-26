@@ -479,7 +479,10 @@ describe("doc-access wrong codes on an unsigned invoice link", () => {
     });
     expect((await t.call({ ...UNSIGNED_BODY, action: "send" })).status).toBe(403);
     const alerts = t.mails.filter((m) => m.to === "owner@oceaniccoder.dev");
-    expect(alerts.map((m) => m.subject)).toEqual(["Code locked after 5 wrong tries on INV-512345"]);
+    expect(alerts.map((m) => m.subject)).toEqual([
+      "Codes blocked after 5 wrong tries on the unsigned link for INV-512345",
+    ]);
+    expect(alerts[0].text).toContain("The client's signed link still works.");
   });
 
   it("never blocks the signed link the client was emailed", async () => {

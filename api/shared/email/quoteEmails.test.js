@@ -246,6 +246,18 @@ describe("quote email templates", () => {
     );
   });
 
+  it("tells the owner when only the unsigned link of an invoice is blocked", () => {
+    const mail = T.accessLockedAlert(SAMPLE_VIEWS.invoiceAccessLinkBlockedAlert.view);
+    expect(mail.subject).toBe(
+      "Codes blocked after 5 wrong tries on the unsigned link for INV-512345",
+    );
+    const said =
+      "Five wrong codes were entered on the unsigned link for invoice INV-512345, so codes for that link are blocked for now. The client's signed link still works. To be sure they can pay, resend the invoice from the dashboard so they get the signed link. Reset access also clears the block, but anyone guessing the number could block it again.";
+    expect(mail.text.replace(/\s+/g, " ")).toContain(said);
+    expect(mail.html).toContain("The client&#39;s signed link still works.");
+    expect(mail.html).not.toContain("Fifteen");
+  });
+
   it("names the receipt in a quote's alert when the codes were for one of its receipts", () => {
     const view = { ...SAMPLE_VIEWS.accessLockedAlert.view, reference: "Q-2026-0007-1-K7Q2X9PL" };
     const mail = T.accessLockedAlert(view);
@@ -284,6 +296,7 @@ describe("quote email templates", () => {
         "accessLockedAlert",
         "invoiceAccessCode",
         "invoiceAccessLockedAlert",
+        "invoiceAccessLinkBlockedAlert",
         "receiptAccessCode",
         "maintenanceOffer",
         "paymentAlert",

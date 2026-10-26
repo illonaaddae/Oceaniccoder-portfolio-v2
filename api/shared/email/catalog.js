@@ -372,6 +372,13 @@ const CATALOG = [
     render: quote("invoiceAccessLockedAlert"),
   },
   {
+    id: "invoiceAccessLinkBlockedAlert",
+    group: "admin",
+    name: "Unsigned invoice link blocked",
+    when: "Five wrong codes on an old unsigned invoice link; the signed link still works",
+    render: quote("invoiceAccessLinkBlockedAlert"),
+  },
+  {
     id: "invoicePaidAlert",
     group: "admin",
     name: "Invoice payment received",

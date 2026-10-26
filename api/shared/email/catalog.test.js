@@ -32,6 +32,7 @@ describe("email catalog", () => {
       "invoiceAccessCode",
       "receiptAccessCode",
       "invoiceAccessLockedAlert",
+      "invoiceAccessLinkBlockedAlert",
       "bookingConfirmation",
       "bookingHostNotice",
       "bookingHostNoLink",
