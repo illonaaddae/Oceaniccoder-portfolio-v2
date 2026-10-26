@@ -8,9 +8,9 @@
 // shared/receipts/access.js). Design:
 // docs/plans/2026-10-25-invoice-receipt-access-codes.md (8.4).
 //
-// Order of checks: POST, a known action, a known kind, then the kind's
-// endpoint: locator shape, the kind's switch, the secret, the record, the
-// action. Locator failures answer one 404 per kind before any lock read or
+// Order of checks: POST, a known action, a known kind, the per-IP lookup
+// limit, then the kind's endpoint: locator shape, the kind's switch, the
+// secret, the record, the action. Locator failures answer one 404 per kind before any lock read or
 // email. Logs name the invoice number or receipt reference only.
 
 const { HttpError, readJson, handleError } = require("../shared/http");
@@ -20,12 +20,28 @@ const R = require("../shared/receipts/access");
 const { getDatabase } = require("../shared/cosmos");
 const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
 const { createServices } = require("../shared/quotes/service");
+const { createRateLimiter } = require("../shared/rateLimit");
+const { clientIp } = require("../shared/turnstile");
 
 const LOG = "doc-access";
+// Every action looks a record up, and a locator that finds nothing costs the
+// caller nothing else, so lookups are capped per IP like get-invoice's: 30 in
+// 10 minutes, per instance, for both kinds together. A client opening a page
+// makes one to three.
+const LOOKUPS_PER_IP = 30;
+const LOOKUP_WINDOW_MS = 10 * 60 * 1000;
 
-/** deps as createAccessEndpoint's: services, and env, send, alertWaitMs for tests. */
+/**
+ * deps as createAccessEndpoint's: services, and env, send, alertWaitMs for
+ * tests; now, the lookup limiter's clock in ms, too.
+ */
 function createHandler(deps) {
   const env = deps.env || process.env;
+  const now = deps.now || Date.now;
+  const allowLookupFromIp = createRateLimiter({
+    limit: LOOKUPS_PER_IP,
+    windowMs: LOOKUP_WINDOW_MS,
+  });
   const byKind = {
     invoice: createAccessEndpoint({
       ...deps,
@@ -48,6 +64,8 @@ function createHandler(deps) {
       const body = readJson(req);
       if (!isAccessAction(body.action)) throw new HttpError(400, "Unknown action.");
       if (!Object.hasOwn(byKind, body.kind)) throw new HttpError(400, "Unknown kind.");
+      if (!allowLookupFromIp(clientIp(req) || "unknown", 1, now()))
+        throw new HttpError(429, "Too many requests. Try again in a few minutes.");
       return await byKind[body.kind](context, req);
     } catch (err) {
       return handleError(context, err, LOG);

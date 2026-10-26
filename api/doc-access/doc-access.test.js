@@ -108,13 +108,15 @@ function setup({ env = ENV, locks = createFakeLocks(), invoices = [INVOICE, OLD_
     mails.push(mail);
     return { ok: true };
   });
+  const invoiceStore = createCosmosInvoiceStore(db);
+  invoiceStore.findInvoicesByNumber = vi.fn(invoiceStore.findInvoicesByNumber);
   const services = () => ({
     repo,
-    invoices: createCosmosInvoiceStore(db),
+    invoices: invoiceStore,
     locks: watched,
     now: () => new Date(clock.ms),
   });
-  const deps = { env, send: sendMail, alertWaitMs: 50, services };
+  const deps = { env, send: sendMail, alertWaitMs: 50, services, now: () => clock.ms };
   const handlers = {
     doc: createHandler(deps),
     quote: quoteAccessEndpoint.createHandler(deps),
@@ -137,7 +139,18 @@ function setup({ env = ENV, locks = createFakeLocks(), invoices = [INVOICE, OLD_
   };
   const call = (body, opts) => run("doc", body, opts);
   const codeOf = (mail) => mail.subject.match(/^(\d{6}) is your code/)[1];
-  return { call, run, locks, clock, mails, logs, lockCalls, sendMail, codeOf };
+  return {
+    call,
+    run,
+    locks,
+    invoices: invoiceStore,
+    clock,
+    mails,
+    logs,
+    lockCalls,
+    sendMail,
+    codeOf,
+  };
 }
 
 describe("doc-access contract", () => {
@@ -169,6 +182,29 @@ describe("doc-access contract", () => {
       body: { locked: true, canUnlock: true, blocked: false, maskedEmail: "a•••••@gmail.com" },
       cookie: undefined,
     });
+  });
+});
+
+describe("doc-access lookups per IP", () => {
+  it("refuses the 31st lookup in 10 minutes from one IP before any query", async () => {
+    const t = setup();
+    for (let i = 0; i < 30; i += 1) {
+      const number = `INV-${500000 + i}`;
+      expect((await t.call({ kind: "invoice", number, action: "status" })).status).toBe(404);
+    }
+    expect(t.invoices.findInvoicesByNumber).toHaveBeenCalledTimes(30);
+    const r = await t.call({ kind: "invoice", number: "INV-500030", action: "status" });
+    expect(r).toMatchObject({
+      status: 429,
+      body: { error: "Too many requests. Try again in a few minutes." },
+    });
+    expect(t.invoices.findInvoicesByNumber).toHaveBeenCalledTimes(30);
+    // Receipts share the budget; another IP has its own; it refills after 10 minutes.
+    expect((await t.call({ ...RECEIPT_BODY, action: "status" })).status).toBe(429);
+    const other = await t.call({ ...INVOICE_BODY, action: "status" }, { ip: "198.51.100.77" });
+    expect(other.status).toBe(200);
+    t.clock.ms += 10 * MIN;
+    expect((await t.call({ ...INVOICE_BODY, action: "status" })).status).toBe(200);
   });
 });
 
