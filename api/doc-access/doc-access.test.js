@@ -433,34 +433,53 @@ describe("doc-access wrong codes on an unsigned invoice link", () => {
   };
   const wrongCode = (code) => String((Number(code) + 1) % 1000000).padStart(6, "0");
 
-  // Three unsigned sends, five wrong codes after each: fifteen misses, which
-  // anyone who guesses an old invoice number can do.
-  async function guessFifteenTimes(t) {
+  const wrongVerifies = async (t, body, n, ip) => {
+    const sent = await t.call({ ...body, action: "send" }, { ip });
+    expect(sent.status).toBe(200);
+    const wrong = wrongCode(t.codeOf(t.mails[t.mails.length - 1]));
     let last;
+    for (let i = 0; i < n; i += 1) {
+      last = await t.call(
+        { ...body, action: "verify", challenge: sent.body.challenge, code: wrong },
+        { ip },
+      );
+    }
+    return last;
+  };
+
+  // The reviewer's sequence: three unsigned sends, five wrong codes after
+  // each, which anyone who guesses an old invoice number can do.
+  async function guessFifteenTimes(t) {
+    const results = [];
     for (let round = 0; round < 3; round += 1) {
       const ip = `198.51.100.${10 + round}`;
       const sent = await t.call({ ...UNSIGNED_BODY, action: "send" }, { ip });
-      expect(sent.status).toBe(200);
-      const wrong = wrongCode(t.codeOf(t.mails[t.mails.length - 1]));
-      for (let i = 0; i < 5; i += 1) {
-        last = await t.call(
-          { ...UNSIGNED_BODY, action: "verify", challenge: sent.body.challenge, code: wrong },
-          { ip },
-        );
+      results.push(sent.status);
+      if (sent.status === 200) {
+        const wrong = wrongCode(t.codeOf(t.mails[t.mails.length - 1]));
+        for (let i = 0; i < 5; i += 1) {
+          const r = await t.call(
+            { ...UNSIGNED_BODY, action: "verify", challenge: sent.body.challenge, code: wrong },
+            { ip },
+          );
+          results.push(r.status);
+        }
       }
       t.clock.ms += 16 * MIN;
     }
-    return last;
+    return results;
   }
 
-  it("blocks the unsigned link after fifteen", async () => {
+  it("blocks the unsigned link after five wrong codes, and alerts the owner once", async () => {
     const t = setup();
-    expect(await guessFifteenTimes(t)).toMatchObject({ status: 403, body: { blocked: true } });
+    expect(await guessFifteenTimes(t)).toEqual([200, 400, 400, 400, 400, 403, 403, 403]);
     expect((await t.call({ ...UNSIGNED_BODY, action: "status" })).body).toMatchObject({
       blocked: true,
       canUnlock: false,
     });
     expect((await t.call({ ...UNSIGNED_BODY, action: "send" })).status).toBe(403);
+    const alerts = t.mails.filter((m) => m.to === "owner@oceaniccoder.dev");
+    expect(alerts.map((m) => m.subject)).toEqual(["Code locked after 5 wrong tries on INV-512345"]);
   });
 
   it("never blocks the signed link the client was emailed", async () => {
@@ -484,19 +503,33 @@ describe("doc-access wrong codes on an unsigned invoice link", () => {
     expect(r.cookie).toMatch(/^__Secure-oc_ia_/);
   });
 
+  it("blocks the signed link at the fifteenth wrong code across both links", async () => {
+    const t = setup();
+    expect(await wrongVerifies(t, UNSIGNED_BODY, 5, "198.51.100.10")).toMatchObject({
+      status: 403,
+    });
+    t.clock.ms += 2 * MIN;
+    expect(await wrongVerifies(t, SIGNED_OLD, 5, "203.0.113.5")).toMatchObject({ status: 429 });
+    t.clock.ms += 2 * MIN;
+    expect(await wrongVerifies(t, SIGNED_OLD, 5, "203.0.113.5")).toMatchObject({
+      status: 403,
+      body: { blocked: true },
+    });
+    t.clock.ms += 2 * MIN;
+    expect((await t.call({ ...SIGNED_OLD, action: "send" }, { ip: "203.0.113.6" })).status).toBe(
+      403,
+    );
+    expect(t.locks.held.has("ia:miss:inv-row-2:0:0:15")).toBe(true);
+  });
+
   it("still blocks both links after fifteen wrong codes on the signed one", async () => {
     const t = setup();
-    for (let i = 0; i < 14; i += 1) await invoiceAccess.recordMiss(t.locks, OLD_INVOICE, 0);
-    const sent = await t.call({ ...SIGNED_OLD, action: "send" });
-    const wrong = wrongCode(t.codeOf(t.mails[0]));
-    const r = await t.call({
-      ...SIGNED_OLD,
-      action: "verify",
-      challenge: sent.body.challenge,
-      code: wrong,
-    });
-    expect(r).toMatchObject({ status: 403, body: { blocked: true } });
-    t.clock.ms += 16 * MIN;
+    let last;
+    for (let round = 0; round < 3; round += 1) {
+      last = await wrongVerifies(t, SIGNED_OLD, 5, `203.0.113.${round + 1}`);
+      t.clock.ms += 2 * MIN;
+    }
+    expect(last).toMatchObject({ status: 403, body: { blocked: true } });
     expect((await t.call({ ...SIGNED_OLD, action: "send" })).status).toBe(403);
     expect((await t.call({ ...UNSIGNED_BODY, action: "send" })).status).toBe(403);
     expect((await t.call({ ...UNSIGNED_BODY, action: "status" })).body.blocked).toBe(true);

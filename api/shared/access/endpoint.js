@@ -17,7 +17,7 @@ const { send, readJson, handleError, HttpError, str } = require("../http");
 const { clientIp } = require("../turnstile");
 const { createRateLimiter } = require("../rateLimit");
 const { sendEmail } = require("../email/send");
-const { maskEmail, CODE_TTL_MS, MAX_TRIES, MAX_MISSES } = require("./core");
+const { maskEmail, CODE_TTL_MS, MAX_TRIES, MAX_MISSES, GUESSABLE_MAX_MISSES } = require("./core");
 
 const MINUTE_MS = 60 * 1000;
 const SENDS_PER_IP_HOUR = 10;
@@ -197,14 +197,18 @@ function createAccessEndpoint(deps) {
     const triesLeft = MAX_TRIES - attempt;
     if (!access.codeMatches(secret, checked.challengeId, code)) {
       const misses = await access.recordMiss(svc.locks, record, checked.epoch, { guessable });
-      const blocked = misses === 0 || misses === MAX_MISSES;
+      // A guessable link's own share running out blocks that link only; for
+      // it, misses counts that share (core recordMiss).
+      const linkBlocked = guessable && misses === GUESSABLE_MAX_MISSES;
+      const blocked = misses === 0 || misses === MAX_MISSES || linkBlocked;
       const lockedOut = triesLeft === 0;
       context.log(`${labels.log} verify ${name(record)} triesLeft=${triesLeft} misses=${misses}`);
       // One alert per locked-out challenge (owner decision), and one when the
       // record blocks; never both for one guess. At most MAX_MISSES / MAX_TRIES
       // + 1 alerts per revision and epoch. Only one request can get the last
-      // try slot of a challenge, or miss slot MAX_MISSES.
-      if (misses === MAX_MISSES || (lockedOut && !blocked)) {
+      // try slot of a challenge, or miss slot MAX_MISSES. A guessable link's
+      // block sends the ordinary lock alert: the record itself is not blocked.
+      if (misses === MAX_MISSES || linkBlocked || (lockedOut && !blocked)) {
         context.log.warn(
           `${labels.log} ${misses === MAX_MISSES ? "blocked" : "lock"} ${name(record)}`,
         );

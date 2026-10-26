@@ -47,6 +47,12 @@ const SENDS_PER_DAY = 10;
 // Counting guesses, not locked-out challenges, means four wrong tries per
 // challenge can't dodge it.
 const MAX_MISSES = 15;
+// Wrong codes typed through a guessable link (an unsigned invoice link) also
+// count in a scope of their own, capped at one challenge's worth. Reaching it
+// blocks only guessable links, and since every guess also takes one of the
+// MAX_MISSES slots, a guesser can spend at most 5 of the 15 and never block
+// the signed link the client was emailed.
+const GUESSABLE_MAX_MISSES = MAX_TRIES;
 // The gap between code emails is rolling, not per clock minute: each send
 // reserves GAP_BUCKETS buckets of GAP_BUCKET_MS starting at its own, so the
 // next one gets through 60 to 90 seconds later.
@@ -470,32 +476,44 @@ function createAccess(input) {
     };
   }
 
-  // Wrong codes typed through a guessable link count in their own scope
-  // ("umiss"), so a guesser can block that link but never the signed link the
-  // client was emailed. Same key shape, so the prune parses both.
+  // "umiss" rows count the guessable links' share (GUESSABLE_MAX_MISSES). Same
+  // key shape as "miss", so the prune parses both.
   const missPrefix = (s, epoch, guessable = false) =>
     `${rows}:${guessable ? "umiss" : "miss"}:${s.scopeId}:${s.revision}:${epoch}`;
+  const slotNumber = (key) => (key ? Number(key.slice(key.lastIndexOf(":") + 1)) : 0);
 
   /**
-   * Counts one wrong code against this revision and epoch (in the guessable
-   * scope with guessable). Returns its number, 1..MAX_MISSES, or 0 when every
-   * slot was already taken (a parallel guess got the last one). Exactly one
-   * request ever gets MAX_MISSES.
+   * Counts one wrong code against this revision and epoch. Returns its number,
+   * 1..MAX_MISSES, or 0 when every slot was already taken (a parallel guess got
+   * the last one). Exactly one request ever gets MAX_MISSES.
+   *
+   * With guessable, the code first takes a guessable slot, then one of the
+   * usual ones. Returns 0 when either is full (blocked already), MAX_MISSES
+   * when it took the last usual slot (everything is now blocked), otherwise
+   * its guessable number, 1..GUESSABLE_MAX_MISSES.
    */
   async function recordMiss(locks, record, epoch, { guessable = false } = {}) {
-    const prefix = missPrefix(subject(record), epoch, guessable);
-    const key = await takeFirstFree(locks, prefix, MAX_MISSES);
-    return key ? Number(key.slice(key.lastIndexOf(":") + 1)) : 0;
+    const s = subject(record);
+    if (guessable) {
+      const own = slotNumber(
+        await takeFirstFree(locks, missPrefix(s, epoch, true), GUESSABLE_MAX_MISSES),
+      );
+      if (!own) return 0;
+      const shared = slotNumber(await takeFirstFree(locks, missPrefix(s, epoch), MAX_MISSES));
+      if (!shared) return 0;
+      return shared === MAX_MISSES ? MAX_MISSES : own;
+    }
+    return slotNumber(await takeFirstFree(locks, missPrefix(s, epoch), MAX_MISSES));
   }
 
   /**
    * Whether codes are blocked until the access is reset. A guessable link is
-   * blocked by its own count or by the usual one; any other only by the usual.
+   * blocked by its own share or by the usual count; any other only by the usual.
    */
   async function sendsBlocked(locks, record, epoch, { guessable = false } = {}) {
     const s = subject(record);
     if (await locks.has(`${missPrefix(s, epoch)}:${MAX_MISSES}`)) return true;
-    return guessable && locks.has(`${missPrefix(s, epoch, true)}:${MAX_MISSES}`);
+    return guessable && locks.has(`${missPrefix(s, epoch, true)}:${GUESSABLE_MAX_MISSES}`);
   }
 
   // Link codes: the one-time "#k=" part of a link the admin emails, which
@@ -733,5 +751,6 @@ module.exports = {
   CODE_TTL_MS,
   MAX_TRIES,
   MAX_MISSES,
+  GUESSABLE_MAX_MISSES,
   LINK_CODE_TTL_MS,
 };

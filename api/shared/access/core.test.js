@@ -255,14 +255,36 @@ describe("takeSendSlots for a guessable link", () => {
 });
 
 describe("wrong codes through a guessable link", () => {
-  it("count in their own scope, which blocks only guessable links", async () => {
+  const guess = (locks, epoch = 0) => doc.recordMiss(locks, DOC, epoch, { guessable: true });
+
+  it("block only guessable links, after five", async () => {
     const locks = createFakeLocks();
-    for (let i = 0; i < 14; i += 1) await doc.recordMiss(locks, DOC, 0, { guessable: true });
-    expect(await doc.recordMiss(locks, DOC, 0, { guessable: true })).toBe(15);
-    expect(locks.held.has("tr:umiss:parent-1:1:0:15")).toBe(true);
-    expect([...locks.held].some((key) => key.startsWith("tr:miss:"))).toBe(false);
+    expect(await guess(locks)).toBe(1);
+    for (let i = 0; i < 3; i += 1) await guess(locks);
+    expect(await guess(locks)).toBe(5);
+    expect(await guess(locks)).toBe(0);
+    expect(locks.held.has("tr:umiss:parent-1:1:0:5")).toBe(true);
     expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
     expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(false);
+  });
+
+  it("count toward the usual fifteen, so the total per epoch stays fifteen", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 5; i += 1) await guess(locks);
+    // The five guesses hold five of the usual slots; the tenth signed miss is the fifteenth.
+    for (let i = 1; i <= 9; i += 1) expect(await doc.recordMiss(locks, DOC, 0)).toBe(5 + i);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(false);
+    expect(await doc.recordMiss(locks, DOC, 0)).toBe(15);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(true);
+    expect(await doc.recordMiss(locks, DOC, 0)).toBe(0);
+  });
+
+  it("answer fifteen when a guess takes the last of the usual slots", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 14; i += 1) await doc.recordMiss(locks, DOC, 0);
+    expect(await guess(locks)).toBe(15);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(true);
+    expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
   });
 
   it("are blocked by the usual block too", async () => {
@@ -270,19 +292,24 @@ describe("wrong codes through a guessable link", () => {
     for (let i = 0; i < 15; i += 1) await doc.recordMiss(locks, DOC, 0);
     expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(true);
     expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
+    expect(await guess(locks)).toBe(0);
   });
 
   it("are pruned like the usual ones: live kept, superseded dropped", async () => {
     const clock = { ms: NOW };
     const locks = createFakeLocks({ now: () => clock.ms });
-    await doc.recordMiss(locks, DOC, 0, { guessable: true });
+    await guess(locks, 0);
     await doc.bumpEpoch(locks, DOC);
-    await doc.recordMiss(locks, DOC, 1, { guessable: true });
+    await guess(locks, 1);
     clock.ms += DAY;
     expect(
       await doc.pruneAccessLocks({ locks, getScope: async () => DOC, nowMs: clock.ms }),
-    ).toEqual({ deleted: 1, kept: 2, skipped: 0 });
-    expect([...locks.held].sort()).toEqual(["tr:epoch:parent-1:1:1", "tr:umiss:parent-1:1:1:1"]);
+    ).toEqual({ deleted: 2, kept: 3, skipped: 0 });
+    expect([...locks.held].sort()).toEqual([
+      "tr:epoch:parent-1:1:1",
+      "tr:miss:parent-1:1:1:1",
+      "tr:umiss:parent-1:1:1:1",
+    ]);
   });
 });
 
