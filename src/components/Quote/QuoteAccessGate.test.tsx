@@ -138,7 +138,8 @@ describe("QuoteAccessGate sending a code", () => {
       setup();
       const message = await screen.findByRole("alert");
       expect(message).toHaveTextContent(text);
-      expect(message).toHaveFocus();
+      // Focus moves in an effect after the alert renders, so wait for it.
+      await waitFor(() => expect(message).toHaveFocus());
       expect(screen.queryByLabelText("6-digit code")).toBeNull();
     },
   );
@@ -153,6 +154,16 @@ describe("QuoteAccessGate sending a code", () => {
     fetchQuoteAccess.mockResolvedValue({ locked: false });
     const t = setup();
     await waitFor(() => expect(t.onUnlocked).toHaveBeenCalled());
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+  });
+
+  it("says a quote with no shown address can't open with a code, whatever canUnlock says", async () => {
+    fetchQuoteAccess.mockResolvedValue({ locked: true, canUnlock: true, maskedEmail: null });
+    setup();
+    expect(await screen.findByText(/can't be opened with a code/)).toHaveTextContent(
+      "This quote can't be opened with a code. Contact hello@oceaniccoder.dev to open it.",
+    );
+    expect(screen.queryByLabelText("6-digit code")).toBeNull();
     expect(sendQuoteCode).not.toHaveBeenCalled();
   });
 
@@ -209,7 +220,7 @@ describe("QuoteAccessGate checking a code", () => {
     await enter("123456");
     const message = await screen.findByRole("alert");
     expect(message).toHaveTextContent(BLOCKED);
-    expect(message).toHaveFocus();
+    await waitFor(() => expect(message).toHaveFocus());
     expect(sessionStorage.getItem(`oc-quote-code:${t.token}`)).toBeNull();
   });
 });

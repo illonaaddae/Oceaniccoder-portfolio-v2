@@ -8,7 +8,7 @@ const booking = require("../../create-booking/index.js");
 const { welcomeEmailHtml } = require("../../newsletter-signup/index.js");
 const { inquiryEmail } = require("../../notify-inquiry/index.js");
 const { messageAlertEmail } = require("../../submit/messageAlert.js");
-const { emails: webhook } = require("../../paystack-webhook/index.js");
+const webhook = require("../../paystack-webhook/emails.js");
 const { buildStatusEmail } = require("../../send-inquiry-status/index.js");
 const { renderInvoiceEmail } = require("../../send-invoice/index.js");
 const { buildReplyEmail } = require("../../send-message-reply/index.js");
@@ -50,6 +50,12 @@ const bookingSample = {
   calendarEventLink: "https://calendar.google.com/calendar/event?eid=sample",
 };
 
+// Sample failure for the webhook alert previews.
+const WEBHOOK_REASON = "Cosmos rejected the update (status 503)";
+const WEBHOOK_DETAIL =
+  "Service Unavailable (invoice INV-2026-0042, reference PAY-INV-2026-0042-1760184000)";
+const WEBHOOK_WINDOW = { mode: "live", chargedAt: Date.parse("2026-10-11T10:00:00Z") };
+
 const invoiceSample = {
   invoiceNumber: "INV-2026-0042",
   clientName: "Kofi Mensah",
@@ -60,7 +66,6 @@ const invoiceSample = {
     { description: "Hosting setup, 12 months", quantity: 1, unitPrice: 600 },
   ],
   currency: "GHS",
-  currencySymbol: "GH₵",
   subtotal: 5100,
   tax: 0,
   taxRate: 0,
@@ -153,7 +158,7 @@ const CATALOG = [
         webhook.clientReceiptEmail({
           clientName: invoiceSample.clientName,
           invoiceNumber: invoiceSample.invoiceNumber,
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
         }),
       ),
   },
@@ -170,7 +175,6 @@ const CATALOG = [
           clientName: invoiceSample.clientName,
           total: invoiceSample.total,
           currency: invoiceSample.currency,
-          currencySymbol: invoiceSample.currencySymbol,
           paidDate: "11 Oct 2026",
         }),
       ),
@@ -357,26 +361,10 @@ const CATALOG = [
         webhook.adminPaymentEmail({
           invoiceNumber: invoiceSample.invoiceNumber,
           clientName: invoiceSample.clientName,
-          amount: "GH₵5100.00 GHS",
+          amount: "GHS 5,100.00",
           reference: "PAY-INV-2026-0042-1760184000",
           settles: true,
           problem: null,
-        }),
-      ),
-  },
-  {
-    id: "invoiceRecordFailed",
-    group: "admin",
-    name: "Payment record failed",
-    when: "An invoice is paid but the record fails to save",
-    render: () =>
-      htmlOnly(
-        `Action needed: payment record failed for invoice ${invoiceSample.invoiceNumber}`,
-        webhook.recordFailedEmail({
-          invoiceNumber: invoiceSample.invoiceNumber,
-          error: "Appwrite returned 503 Service Unavailable",
-          amount: "GH₵5100.00 GHS",
-          reference: "PAY-INV-2026-0042-1760184000",
         }),
       ),
   },
@@ -391,6 +379,79 @@ const CATALOG = [
         webhook.webhookFailedEmail(
           "Signature did not match",
           "x-paystack-signature header differs from the expected HMAC",
+        ),
+      ),
+  },
+  {
+    id: "webhookRetry",
+    group: "admin",
+    name: "Payment waiting to be recorded",
+    when: "A Paystack webhook fails in a way a retry can finish",
+    render: () =>
+      htmlOnly(
+        `Action needed: Paystack will retry a payment for invoice ${invoiceSample.invoiceNumber}`,
+        webhook.webhookRetryEmail(WEBHOOK_REASON, WEBHOOK_DETAIL, WEBHOOK_WINDOW),
+      ),
+  },
+  {
+    id: "webhookUntracked",
+    group: "admin",
+    name: "Payment may need recording by hand",
+    when: "A webhook fails and Cosmos can't keep track of the alert",
+    render: () =>
+      htmlOnly(
+        `Action needed: a payment for invoice ${invoiceSample.invoiceNumber} may need recording by hand`,
+        webhook.webhookUntrackedEmail(WEBHOOK_REASON, WEBHOOK_DETAIL, WEBHOOK_WINDOW),
+      ),
+  },
+  {
+    id: "webhookEscalation",
+    group: "admin",
+    name: "Payment still unrecorded after 24 hours",
+    when: "The same payment's webhook still fails a day after its alert",
+    render: () =>
+      htmlOnly(
+        `Action needed: a payment for invoice ${invoiceSample.invoiceNumber} is still unrecorded after 24 hours`,
+        webhook.webhookEscalationEmail(WEBHOOK_REASON, WEBHOOK_DETAIL, WEBHOOK_WINDOW),
+      ),
+  },
+  {
+    id: "webhookRecordedRetry",
+    group: "admin",
+    name: "Recorded payment, emails unfinished",
+    when: "A payment is recorded but its confirmation emails fail",
+    render: () =>
+      htmlOnly(
+        `Paystack will retry the confirmation emails for a recorded payment on invoice ${invoiceSample.invoiceNumber}`,
+        webhook.recordedRetryEmail(WEBHOOK_REASON, WEBHOOK_DETAIL),
+      ),
+  },
+  {
+    id: "webhookRecordedConflict",
+    group: "admin",
+    name: "Recorded payment, receipt not sent",
+    when: "A recorded payment's invoice is renumbered or deleted before its receipt",
+    render: () =>
+      htmlOnly(
+        `Action needed: receipt not sent for a recorded payment on invoice ${invoiceSample.invoiceNumber}`,
+        webhook.recordedConflictEmail(
+          "the invoice this payment was applied to was renumbered or deleted",
+          WEBHOOK_DETAIL,
+        ),
+      ),
+  },
+  {
+    id: "webhookInvalidSetting",
+    group: "admin",
+    name: "Webhooks failing on a setting",
+    when: "WRITE_HOLD has an invalid value",
+    render: () =>
+      htmlOnly(
+        "Action needed: WRITE_HOLD has an invalid value; payments are not being recorded",
+        webhook.invalidSettingEmail(
+          "WRITE_HOLD",
+          'WRITE_HOLD must be "1" or "0", not "true"',
+          "live",
         ),
       ),
   },

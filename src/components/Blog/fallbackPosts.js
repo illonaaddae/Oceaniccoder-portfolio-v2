@@ -1,3 +1,5 @@
+import { IMAGES } from "@/utils/imageUrls";
+
 export const fallbackPosts = [
   {
     $id: "intro-to-react",
@@ -11,8 +13,7 @@ export const fallbackPosts = [
     tags: ["React", "JavaScript", "Frontend", "Web Development"],
     publishedAt: "2025-01-15",
     readTime: "5 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
+    image: IMAGES.blogPlaceholder1,
     featured: true,
   },
   {
@@ -27,8 +28,7 @@ export const fallbackPosts = [
     tags: ["Women in Tech", "Leadership", "Diversity", "Inclusion"],
     publishedAt: "2025-01-10",
     readTime: "6 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf000057a457f95/blog-placeholder-2.svg",
+    image: IMAGES.blogPlaceholder2,
     featured: true,
   },
   {
@@ -43,8 +43,7 @@ export const fallbackPosts = [
     tags: ["Community Building", "Tech", "Mentorship", "Inclusion"],
     publishedAt: "2025-01-05",
     readTime: "7 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf00032bc7780ff/blog-placeholder-3.svg",
+    image: IMAGES.blogPlaceholder3,
     featured: false,
   },
   {
@@ -59,8 +58,7 @@ export const fallbackPosts = [
     tags: ["CSS", "UI Design", "Frontend", "Tutorial"],
     publishedAt: "2024-12-20",
     readTime: "4 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
+    image: IMAGES.blogPlaceholder1,
     featured: false,
   },
 ];

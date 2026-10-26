@@ -7,6 +7,7 @@ import { createRequire } from "module";
 // (vi.mock does not intercept CommonJS require; see create-booking.test.js).
 const require = createRequire(import.meta.url);
 const quoteService = require("../shared/quotes/service.js");
+const cosmos = require("../shared/cosmos.js");
 const handler = require("./index.js");
 
 const SECRET = "sk_test_webhook";
@@ -57,7 +58,7 @@ describe("paystack-webhook quote branch", () => {
   });
 
   it("answers 500 so Paystack retries when settling throws", async () => {
-    spy.mockRejectedValue(new Error("appwrite down"));
+    spy.mockRejectedValue(new Error("Cosmos down"));
     expect((await run(signed(quoteEvent))).status).toBe(500);
   });
 
@@ -66,7 +67,17 @@ describe("paystack-webhook quote branch", () => {
     expect((await run(signed(quoteEvent))).status).toBe(200);
   });
 
-  it("leaves invoice charges on the existing path", async () => {
+  it.each([[12345], [{ id: 1 }], [""], [undefined]])(
+    "refuses a quote charge whose reference is not a non-empty string: %j",
+    async (reference) => {
+      spy.mockResolvedValue({ state: "success" });
+      const event = { ...quoteEvent, data: { ...quoteEvent.data, reference } };
+      expect((await run(signed(event))).status).toBe(200);
+      expect(spy).not.toHaveBeenCalled();
+    },
+  );
+
+  it("leaves invoice charges to the invoice branch", async () => {
     const invoiceEvent = {
       event: "charge.success",
       data: {
@@ -75,8 +86,62 @@ describe("paystack-webhook quote branch", () => {
         metadata: { invoiceNumber: "INV-123456" },
       },
     };
-    delete process.env.APPWRITE_API_KEY; // existing path bails before any network call
-    await run(signed(invoiceEvent));
-    expect(spy).not.toHaveBeenCalled();
+    // The invoice branch stops at the database, before any network call.
+    const getDatabase = vi.spyOn(cosmos, "getDatabase").mockImplementation(() => {
+      throw new Error("COSMOS_ENDPOINT and COSMOS_KEY must be set");
+    });
+    try {
+      expect((await run(signed(invoiceEvent))).status).toBe(500);
+      expect(getDatabase).toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      getDatabase.mockRestore();
+    }
+  });
+});
+
+describe("paystack-webhook quote branch with Resend configured", () => {
+  const https = require("https");
+  let sent;
+  beforeEach(() => {
+    Object.assign(process.env, {
+      PAYSTACK_SECRET_KEY: SECRET,
+      RESEND_API_KEY: "re_test",
+      RESEND_TO_EMAIL: "admin@example.com",
+    });
+    sent = [];
+    vi.spyOn(https, "request").mockImplementation((options, onResponse) => {
+      let raw = "";
+      return {
+        on: () => {},
+        setTimeout: () => {},
+        write: (chunk) => {
+          raw += chunk;
+        },
+        end: () => {
+          sent.push(JSON.parse(raw));
+          onResponse({ statusCode: 200, on: (ev, fn) => ev === "end" && fn() });
+        },
+      };
+    });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const key of ["PAYSTACK_SECRET_KEY", "RESEND_API_KEY", "RESEND_TO_EMAIL"])
+      delete process.env[key];
+  });
+
+  it("settles a quote charge without alerting the admin", async () => {
+    const quote = vi.spyOn(quoteService, "handleQuoteCharge").mockResolvedValue({
+      state: "success",
+    });
+    const context = {
+      res: null,
+      log: Object.assign(vi.fn(), { info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+    };
+    await handler(context, signed(quoteEvent));
+    expect(context.res.status).toBe(200);
+    expect(quote).toHaveBeenCalledWith("Q-2026-0001-1-ABCDEFGH");
+    expect(sent).toEqual([]);
   });
 });

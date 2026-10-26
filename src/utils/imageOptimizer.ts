@@ -1,22 +1,10 @@
-import { STORAGE_BUCKET_ID } from "../lib/appwrite";
-
 /**
- * Image optimization for the two places images live while the site moves off
- * Appwrite:
- *
- * - Appwrite Storage, which resizes on request (`/preview?width=…`).
- * - Azure Blob (`<media>/<fileId>/<name>`), which can't resize, so every raster
- *   image has WebP copies at fixed widths next to it (`w480.webp`, `w960.webp`,
- *   `w1600.webp`), made at upload time by /api/media and by
- *   scripts/migrate-storage-to-blob.mjs. A request is served from the smallest
- *   copy at least as wide as asked for.
- *
- * The Appwrite branch goes once the database rows point at Blob.
+ * Image optimization for Azure Blob (`<media>/<fileId>/<name>`), which can't
+ * resize, so every raster image has WebP copies at fixed widths next to it
+ * (`w480.webp`, `w960.webp`, `w1600.webp`), made at upload time by /api/media
+ * and by scripts/migrate-storage-to-blob.mjs. A request is served from the
+ * smallest copy at least as wide as asked for. Any other URL is used as it is.
  */
-
-// Appwrite configuration for URL building
-const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "6943431e00253c8f9883";
 
 /** Base URL of the Blob `media` container, no trailing slash. */
 export const MEDIA_BASE_URL = (
@@ -58,7 +46,7 @@ export function getMediaVariantUrl(url: string, width: number): string {
 
 /** True when getOptimizedImageUrl can return something smaller than `url`. */
 export function isOptimizableImageUrl(url: string): boolean {
-  return isAppwriteUrl(url) || isMediaImageUrl(url);
+  return isMediaImageUrl(url);
 }
 
 // Standard image sizes for different use cases
@@ -71,7 +59,8 @@ export const IMAGE_SIZES = {
 } as const;
 
 /**
- * Check if a URL is from Appwrite Storage
+ * Check if a URL is from Appwrite Storage. Only read to match old references
+ * by file id (migrated files keep their Appwrite id); nothing loads them.
  */
 export function isAppwriteUrl(url: string): boolean {
   return url?.includes("appwrite.io") && url.includes("/storage/");
@@ -97,50 +86,18 @@ export function getFileIdFromUrl(url: string): string | null {
 }
 
 /**
- * Get an optimized preview URL for an Appwrite image
- * @param url - Original Appwrite storage URL
- * @param width - Desired width
- * @param height - Desired height (optional, will maintain aspect ratio if not provided)
- * @param quality - Image quality (0-100), defaults to 80
- * @returns Optimized preview URL or original URL if not an Appwrite URL
+ * The stored copy of a Blob image closest to the size asked for. Blob copies
+ * keep the original aspect ratio, so height only matters when no width is
+ * given. Anything else (SVG, PDF, video, other hosts) comes back unchanged.
  */
-export function getOptimizedImageUrl(
-  url: string,
-  width?: number,
-  height?: number,
-  quality: number = 80,
-): string {
-  if (!url) return url;
-
-  // Blob copies keep the original aspect ratio, so height only matters when
-  // no width is given; quality was fixed when the copies were made.
-  if (isMediaImageUrl(url)) return getMediaVariantUrl(url, width ?? height ?? 960);
-  // Other Blob files (SVG, PDF, video) have no copies; serve them as they are.
-  if (parseMediaUrl(url)) return url;
-
-  const fileId = getFileIdFromUrl(url);
-  if (!fileId) return url;
-
-  try {
-    // Build the preview URL manually to ensure project parameter is included
-    // This ensures the URL works from any domain without authentication issues
-    const params = new URLSearchParams();
-    if (width) params.append("width", width.toString());
-    if (height) params.append("height", height.toString());
-    params.append("quality", quality.toString());
-    params.append("project", APPWRITE_PROJECT_ID);
-
-    const previewUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${STORAGE_BUCKET_ID}/files/${fileId}/preview?${params.toString()}`;
-    return previewUrl;
-  } catch (error) {
-    console.warn("Failed to generate optimized image URL:", error);
-    return url;
-  }
+export function getOptimizedImageUrl(url: string, width?: number, height?: number): string {
+  if (!url || !isMediaImageUrl(url)) return url;
+  return getMediaVariantUrl(url, width ?? height ?? 960);
 }
 
 /**
  * Get responsive image URLs for different screen sizes
- * @param url - Original Appwrite storage URL
+ * @param url - Original image URL
  * @returns Object with URLs for different sizes
  */
 export function getResponsiveImageUrls(url: string): {
@@ -161,27 +118,10 @@ export function getResponsiveImageUrls(url: string): {
   };
 }
 
-/**
- * Generate srcSet for responsive images
- * @param url - Original Appwrite storage URL
- * @param sizes - Array of widths to generate
- * @returns srcSet string for use in img tag
- */
-export function generateSrcSet(
-  url: string,
-  sizes: number[] = [320, 640, 768, 1024, 1280, 1920],
-): string {
-  if (isMediaImageUrl(url)) {
-    return MEDIA_VARIANT_WIDTHS.map((w) => `${getMediaVariantUrl(url, w)} ${w}w`).join(", ");
-  }
-  if (!isAppwriteUrl(url)) return "";
-
-  return sizes
-    .map((width) => {
-      const optimizedUrl = getOptimizedImageUrl(url, width);
-      return `${optimizedUrl} ${width}w`;
-    })
-    .join(", ");
+/** srcSet of a Blob image's stored copies; "" for any other URL. */
+export function generateSrcSet(url: string): string {
+  if (!isMediaImageUrl(url)) return "";
+  return MEDIA_VARIANT_WIDTHS.map((w) => `${getMediaVariantUrl(url, w)} ${w}w`).join(", ");
 }
 
 /**

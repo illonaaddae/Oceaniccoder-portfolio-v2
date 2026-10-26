@@ -54,6 +54,13 @@ describe("isCollection", () => {
     // Cosmos-only: raw page views have their own Functions.
     expect(isCollection("analytics")).toBe(false);
   });
+
+  it("keeps quotes and locks out, which only the quote functions touch", () => {
+    expect(isCollection("quotes")).toBe(false);
+    expect(isCollection("locks")).toBe(false);
+    expect(isCollection("payments")).toBe(true);
+    expect(isCollection("invoices")).toBe(true);
+  });
 });
 
 describe("partitionField", () => {

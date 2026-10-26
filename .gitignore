@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 build/
 dist/
 .env
@@ -36,3 +36,8 @@ backup/
 
 # Azure Functions local settings (secrets for func start). Never commit.
 api/local.settings.json
+
+# Cosmos and Paystack keys for the cutover scripts (node --env-file):
+# .env.cutover (read-only key) and .env.cutover.write (primary key). Never commit.
+.env.cutover
+.env.cutover.*

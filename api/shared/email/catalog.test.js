@@ -36,8 +36,13 @@ describe("email catalog", () => {
       "invoicePaidConfirmation",
       "invoicePaidReceipt",
       "invoicePaidAlert",
-      "invoiceRecordFailed",
       "webhookFailed",
+      "webhookRetry",
+      "webhookUntracked",
+      "webhookEscalation",
+      "webhookRecordedRetry",
+      "webhookRecordedConflict",
+      "webhookInvalidSetting",
       "inquiryReceivedAlert",
       "messageReceivedAlert",
       "inquiryReviewed",
@@ -72,6 +77,26 @@ describe("email catalog", () => {
       expect(verifyInvoice("INV-2026-0042", sig[1], "real-secret")).toBe(false);
     } finally {
       delete process.env.RECEIPT_SIGNING_SECRET;
+    }
+  });
+
+  it("uses no grey rounded card anywhere and shows no currency symbol", () => {
+    for (const e of CATALOG) {
+      const { html, text } = e.render();
+      expect(html, e.id).not.toMatch(
+        /background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px/,
+      );
+      expect(html + text, e.id).not.toContain("₵");
+    }
+  });
+
+  it("stamps receipts Paid and payment requests Due", () => {
+    const stamp = (id) => findEmail(id).render().html;
+    for (const id of ["invoicePaidConfirmation", "invoicePaidReceipt", "paymentReceipt"]) {
+      expect(stamp(id), id).toContain('stamp-paid@3x.png" width="65" height="26" alt="Paid"');
+    }
+    for (const id of ["invoiceSent", "paymentRequest"]) {
+      expect(stamp(id), id).toContain('stamp-due@3x.png" width="47" height="26" alt="Due"');
     }
   });
 

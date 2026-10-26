@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, test, expect } from "vitest";
 import ProviderLogin from "./ProviderLogin";
+import type { LoginTheme } from "./loginTheme";
 
 describe("ProviderLogin", () => {
   test("signs in through the GitHub provider and returns to the dashboard", () => {
@@ -35,7 +36,7 @@ describe("ProviderLogin", () => {
 
     expect(screen.getByRole("link", { name: "Sign out" })).toHaveAttribute(
       "href",
-      "/.auth/logout?post_logout_redirect_uri=%2F",
+      "/.auth/logout?post_logout_redirect_uri=%2Fadmin%2Fdashboard",
     );
   });
 
@@ -46,7 +47,7 @@ describe("ProviderLogin", () => {
     expect(screen.getByText(/Setting up\?/)).not.toHaveClass("break-all");
   });
 
-  test.each([
+  test.each<[LoginTheme, string]>([
     ["light", "text-error-700"],
     ["dark", "text-error-400"],
   ])("shows the not-admin alert in an AA-contrast error colour (%s)", (theme, colour) => {

@@ -1,4 +1,5 @@
 import React from "react";
+import { IMAGES } from "@/utils/imageUrls";
 
 interface SidebarHeaderProps {
   theme: string;
@@ -26,7 +27,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ theme, isCollapsed
           }`}
         >
           <img
-            src="https://oceaniccodermedia.blob.core.windows.net/media/69444ceb001c1eda1331/profile.webp"
+            src={IMAGES.profile}
             alt="Admin Profile"
             className="w-full h-full object-cover"
             onError={(e) => {

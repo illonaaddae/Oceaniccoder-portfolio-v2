@@ -86,16 +86,14 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
   };
 
   /**
-   * Calls the newsletter endpoint as the signed-in admin (adminHeaders: an
-   * Appwrite JWT, or the SWA session cookie in cosmos mode).
+   * Calls the newsletter endpoint as the signed-in admin (the SWA session
+   * cookie; see adminHeaders).
    *
    * The endpoint mails a real subscriber list from a verified domain, so it
    * requires the admin.
    */
   const postNewsletter = async (post: Partial<BlogPost> & { slug: string }, mode?: "test") => {
-    // Throws "session expired" itself when the Appwrite session is gone.
     const headers = await adminHeaders();
-    const jwt = headers["x-appwrite-jwt"]; // Appwrite sign-in only
 
     const res = await fetch(apiUrl("/api/send-newsletter"), {
       method: "POST",
@@ -106,19 +104,11 @@ export function useBlogActions({ blogPosts, onAdd, onEdit, onDelete }: UseBlogAc
         slug: post.slug,
         category: post.category,
         image: post.image,
-        // Also in the body: headers can be rewritten or dropped by the hosting
-        // layer, the body cannot. The server tries every transport it finds.
-        ...(jwt ? { jwt } : {}),
         ...(mode ? { mode } : {}),
       }),
     });
     if (!res.ok) {
       const detail = await res.json().catch(() => ({}));
-      if (detail.transports) {
-        // Surfaced so a repeat failure names the transport rather than
-        // needing another round-trip through Azure's logs.
-        console.error("Newsletter auth transports (lengths):", detail.transports);
-      }
       throw new Error(detail.error || `Newsletter API returned ${res.status}`);
     }
     return res.json().catch(() => ({}));

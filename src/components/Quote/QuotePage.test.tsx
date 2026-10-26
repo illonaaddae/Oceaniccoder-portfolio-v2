@@ -28,7 +28,7 @@ vi.mock("@/services/api/quotes", async () => {
 
 import QuotePage from "./QuotePage";
 import { QuoteApiError } from "@/services/api/quotes";
-import { captureLinkCode } from "@/utils/quoteLinkCode";
+import { captureLinkCode } from "@/utils/linkCode";
 
 const baseQuote: ClientQuote = {
   quoteNumber: "Q-2026-0001",

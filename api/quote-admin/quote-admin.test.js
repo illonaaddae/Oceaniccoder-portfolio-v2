@@ -2,10 +2,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { createHandler } = await import("./index.js");
-const { verifyInvoice } = await import("../shared/tokens.js");
+const { verifyInvoice, paymentIdFor } = await import("../shared/tokens.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
 const access = await import("../shared/quotes/access.js");
+const { createCosmosQuoteRepo } = await import("../shared/quotes/repo.cosmos.js");
+const { createCosmosLocks } = await import("../shared/locks.js");
+const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
 
 const NOW = new Date("2026-10-10T09:00:00.000Z");
 const LINK_SECRET = "k".repeat(40);
@@ -678,12 +681,36 @@ describe("quote-admin archive and restore", () => {
       const getPayment = vi.spyOn(t.repo, "getPayment");
       const getInvoice = vi.spyOn(t.repo, "getInvoice");
       expect((await t.call({ action, id: "nope" })).status).toBe(404);
-      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(37), 42];
+      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(129), 42];
       for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
       // Only the well-formed id reached the repo.
       expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
     },
   );
+
+  it("archives and restores a Cosmos payment whose id is derived from its reference", async () => {
+    const db = createFakeCosmos();
+    const repo = createCosmosQuoteRepo(db, { locks: createCosmosLocks(db) });
+    const id = paymentIdFor("PAY-Q-2026-0001-deposit-1760086800000");
+    db.container("payments").seed(attempt({ id }));
+    const handler = createHandler({
+      requireAdmin: async () => ({ user: { email: "illona@oceaniccoder.dev" } }),
+      services: () => ({ repo, now: () => NOW }),
+    });
+    const call = async (body) => {
+      const context = { log: { error: vi.fn(), info: vi.fn() } };
+      await handler(context, { method: "POST", body, headers: {} });
+      return { status: context.res.status, body: JSON.parse(context.res.body) };
+    };
+
+    const archived = await call({ action: "archivePayment", id });
+    expect(archived.status).toBe(200);
+    expect(archived.body.payment).toEqual({ id, archivedAt: NOW.toISOString() });
+    const restored = await call({ action: "restorePayment", id });
+    expect(restored.status).toBe(200);
+    expect(restored.body.payment).toEqual({ id, archivedAt: null });
+    expect((await repo.getPayment(id)).archivedAt).toBeNull();
+  });
 
   it("keeps stage state unchanged after archiving an attempt", async () => {
     const t = setup();

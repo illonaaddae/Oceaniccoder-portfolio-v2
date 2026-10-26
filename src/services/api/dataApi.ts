@@ -1,13 +1,6 @@
 import { apiUrl } from "@/utils/apiUrl";
 
 /**
- * Which database the site reads from. Set VITE_DATA_BACKEND=cosmos at build
- * time to read through /api/data (Cosmos DB); anything else keeps Appwrite.
- * Goes away once the Appwrite → Azure cutover is done.
- */
-export const usesCosmos = import.meta.env.VITE_DATA_BACKEND === "cosmos";
-
-/**
  * In the signed-in admin dashboard, reads go through /api/manage so drafts,
  * hidden images and pending comments show up there. Everywhere else, the
  * read-only /dashboard included, reads go through /api/data.

@@ -1,19 +1,9 @@
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  afterEach,
-  type Mock,
-} from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, type Mock } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 // The public /dashboard has no admin session, and messages, bookings,
-// inquiries and comments hold visitors' contact details. In a Cosmos build it
-// must not ask /api/manage for them (the Appwrite build shows them empty too).
+// inquiries and comments hold visitors' contact details, so it must not ask
+// /api/manage for them.
 
 type FetchFn = (...args: Parameters<typeof fetch>) => Promise<Response>;
 let fetchMock: Mock<FetchFn>;
@@ -24,19 +14,12 @@ const manageCalls = () => urls().filter((url) => url.startsWith("/api/manage"));
 // Loading the whole dashboard is slow on a busy machine.
 const SLOW = { timeout: 10_000 };
 
-describe("dashboard reads in a Cosmos build", () => {
+describe("dashboard reads", () => {
   let AdminDashboard: (typeof import("./index"))["AdminDashboard"];
 
-  // dataApi reads VITE_DATA_BACKEND once, at import.
   beforeAll(async () => {
-    vi.resetModules();
-    vi.stubEnv("VITE_DATA_BACKEND", "cosmos");
     ({ AdminDashboard } = await import("./index"));
   }, 60_000);
-
-  afterAll(() => {
-    vi.unstubAllEnvs();
-  });
 
   const renderDashboard = (path: string, isReadOnly: boolean) => {
     window.history.replaceState({}, "", path);

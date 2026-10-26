@@ -1,5 +1,9 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { contactInfo, socialLinks } from "./contactData";
+
+const cardClass =
+  "flex items-center gap-4 p-4 glass-btn hover:scale-105 transition-all duration-300 group";
 
 const ContactInfoCard = React.memo(() => (
   <div className="space-y-8">
@@ -13,21 +17,29 @@ const ContactInfoCard = React.memo(() => (
 
       {/* Contact Info */}
       <div className="space-y-6">
-        {contactInfo.map((info) => (
-          <a
-            key={info.label}
-            href={info.href}
-            className="flex items-center gap-4 p-4 glass-btn hover:scale-105 transition-all duration-300 group"
-          >
-            <div className="text-2xl group-hover:scale-110 transition-transform duration-300">
-              {info.icon}
-            </div>
-            <div>
-              <div className="text-sm text-[var(--text-accent)]">{info.label}</div>
-              <div className="font-medium text-[var(--text-primary)]">{info.value}</div>
-            </div>
-          </a>
-        ))}
+        {contactInfo.map((info) => {
+          const body = (
+            <>
+              <div className="text-2xl group-hover:scale-110 transition-transform duration-300">
+                {info.icon}
+              </div>
+              <div>
+                <div className="text-sm text-[var(--text-accent)]">{info.label}</div>
+                <div className="font-medium text-[var(--text-primary)]">{info.value}</div>
+              </div>
+            </>
+          );
+          // In-app pages go through the router; email and the like stay plain links.
+          return info.to ? (
+            <Link key={info.label} to={info.to} className={cardClass}>
+              {body}
+            </Link>
+          ) : (
+            <a key={info.label} href={info.href} className={cardClass}>
+              {body}
+            </a>
+          );
+        })}
       </div>
 
       {/* Social Links */}

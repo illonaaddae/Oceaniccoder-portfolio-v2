@@ -1,17 +1,17 @@
 import React from "react";
 import { FaGithub } from "react-icons/fa";
 import { loginUrl, logoutUrl } from "@/services/api/session";
+import type { LoginTheme } from "./loginTheme";
 
 interface ProviderLoginProps {
-  theme: string;
+  theme: LoginTheme;
   /** SWA user id of someone signed in who isn't the admin (yet). */
   signedInId?: string | null;
 }
 
 /**
- * Admin sign-in through Static Web Apps (used with VITE_DATA_BACKEND=cosmos):
- * GitHub only. Whether the account is the admin is decided on the
- * server (/api/get-roles).
+ * Admin sign-in through Static Web Apps: GitHub only. Whether the account is
+ * the admin is decided on the server (/api/get-roles).
  */
 const ProviderLogin: React.FC<ProviderLoginProps> = ({ theme, signedInId }) => {
   const dk = theme === "dark";

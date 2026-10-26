@@ -25,10 +25,6 @@ const AdminDashboard = lazyWithReload(
   "AdminDashboard",
   () => import("@/components/AdminDashboard"),
 );
-const AdminPasswordReset = lazyWithReload(
-  "AdminPasswordReset",
-  () => import("@/components/AdminPasswordReset"),
-);
 const NotFound = lazyWithReload("NotFound", () => import("@/components/NotFound"));
 const Privacy = lazyWithReload("PrivacyPage", () => import("@/components/Privacy/PrivacyPage"));
 const Booking = lazyWithReload("BookingSection", () => import("@/components/BookingSection"));
@@ -86,7 +82,6 @@ export {
   Blog,
   BlogPost,
   AdminDashboard,
-  AdminPasswordReset,
   NotFound,
   Privacy,
   Booking,

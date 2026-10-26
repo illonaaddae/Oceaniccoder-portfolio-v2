@@ -60,7 +60,8 @@ export class QuoteApiError extends Error {
 export const isLockedError = (err: unknown) =>
   err instanceof QuoteApiError && err.access.locked === true;
 
-async function call<T>(path: string, init?: FetchInit): Promise<T> {
+/** Fetches an /api path; a failed answer throws QuoteApiError with its access details. Shared with access.ts. */
+export async function call<T>(path: string, init?: FetchInit): Promise<T> {
   let res: Response;
   try {
     res = await fetch(apiUrl(path), init);
@@ -92,7 +93,7 @@ async function call<T>(path: string, init?: FetchInit): Promise<T> {
   return body as T;
 }
 
-const postJson = (body: unknown): FetchInit => ({
+export const postJson = (body: unknown): FetchInit => ({
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
@@ -109,21 +110,9 @@ export async function fetchClientQuote(
 ) {
   const query = `token=${encodeURIComponent(token)}${preview || admin ? "&preview=1" : ""}`;
   if (!admin) return call<{ quote: ClientQuote }>(`/api/quote-view?${query}`);
-  let headers: Record<string, string>;
-  try {
-    headers = await adminHeaders();
-  } catch (err) {
-    // No dashboard session in this browser: the same answer the server gives,
-    // so the page shows its admin card instead of a generic error.
-    throw new QuoteApiError(
-      err instanceof Error ? err.message : "Sign in to the dashboard.",
-      401,
-      undefined,
-      undefined,
-      { locked: true },
-    );
-  }
-  return call<{ quote: ClientQuote }>(`/api/quote-view?${query}&admin=1`, { headers });
+  return call<{ quote: ClientQuote }>(`/api/quote-view?${query}&admin=1`, {
+    headers: await adminHeaders(),
+  });
 }
 
 /** The dashboard's Preview link for a client link; any "#k=" link code is left off. */
@@ -133,7 +122,10 @@ export interface QuoteAccessStatus {
   locked: boolean;
   canUnlock?: boolean;
   blocked?: boolean;
-  /** "p•••••@hotmail.com", or null when the quote has no client email. */
+  /**
+   * "p•••••@hotmail.com", or null when the document has no client email or
+   * (doc-access) the address is hidden on an unsigned invoice link.
+   */
   maskedEmail?: string | null;
   gateOff?: boolean;
 }

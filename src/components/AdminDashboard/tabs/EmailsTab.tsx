@@ -18,6 +18,7 @@ import {
   FaHandshake,
   FaInbox,
   FaMobileAlt,
+  FaMoon,
   FaMoneyBillWave,
   FaNewspaper,
   FaPaperPlane,
@@ -25,6 +26,7 @@ import {
   FaReply,
   FaSearch,
   FaSpinner,
+  FaSun,
   FaTimesCircle,
   FaUserPlus,
   FaWallet,
@@ -68,7 +70,6 @@ const ICONS: Record<string, IconType> = {
   paymentAlert: FaMoneyBillWave,
   paymentAlertProblem: FaExclamationTriangle,
   invoicePaidAlert: FaCreditCard,
-  invoiceRecordFailed: FaExclamationTriangle,
   webhookFailed: FaBullhorn,
 };
 
@@ -95,6 +96,21 @@ function writeCollapsed(groups: EmailGroup[]) {
 // Brand teal: white on it is 8.1:1. --accent-teal is too light for white text in dark mode.
 const BRAND = "#085866";
 
+// The emails are a 600px card with a 20px margin each side. A desktop preview box narrower
+// than this scales the email down to fit rather than cutting off its right edge.
+const DESKTOP_WIDTH = 640;
+
+const DARK_QUERY = "@media (prefers-color-scheme:dark)";
+
+/**
+ * The emails carry their own dark styles behind a prefers-color-scheme query,
+ * which an iframe answers from the operating system. Rewrite the query so the
+ * preview shows the chosen appearance whatever the OS is set to.
+ */
+export function withAppearance(html: string, appearance: "light" | "dark"): string {
+  return html.split(DARK_QUERY).join(appearance === "dark" ? "@media all" : "@media not all");
+}
+
 /** See every email before a client does, and send yourself a test. */
 export default function EmailsTab(_props: { theme: string }) {
   const [templates, setTemplates] = useState<EmailTemplateInfo[] | null>(null);
@@ -106,8 +122,19 @@ export default function EmailsTab(_props: { theme: string }) {
   const [sending, setSending] = useState(false);
   const [showText, setShowText] = useState(false);
   const [width, setWidth] = useState<"desktop" | "mobile">("desktop");
+  const [appearance, setAppearance] = useState<"light" | "dark">("light");
   const [collapsed, setCollapsed] = useState<EmailGroup[]>(readCollapsed);
   const panelRef = useRef<HTMLElement>(null);
+  const frameBoxRef = useRef<HTMLDivElement>(null);
+  const [frameBoxWidth, setFrameBoxWidth] = useState(0);
+
+  useEffect(() => {
+    const box = frameBoxRef.current;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setFrameBoxWidth(entry.contentRect.width));
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +176,10 @@ export default function EmailsTab(_props: { theme: string }) {
   }, [selected]);
 
   const current = templates?.find((t) => t.id === selected) ?? null;
+  const fit =
+    width === "desktop" && frameBoxWidth > 0 && frameBoxWidth < DESKTOP_WIDTH
+      ? frameBoxWidth / DESKTOP_WIDTH
+      : 1;
 
   const toggleGroup = (g: EmailGroup) => {
     const next = collapsed.includes(g) ? collapsed.filter((x) => x !== g) : [...collapsed, g];
@@ -229,7 +260,7 @@ export default function EmailsTab(_props: { theme: string }) {
                       </span>
                     </button>
                   </h3>
-                  <ul id={`email-group-${g.id}`} hidden={!open} className="grid gap-px">
+                  <ul id={`email-group-${g.id}`} hidden={!open} className="grid grid-cols-1 gap-px">
                     {list.map((t) => {
                       const on = t.id === selected;
                       const Icon = ICONS[t.id] ?? FaEnvelope;
@@ -257,13 +288,13 @@ export default function EmailsTab(_props: { theme: string }) {
                             </span>
                             <span className="min-w-0">
                               <span
-                                className="block truncate text-sm font-medium"
+                                className="block text-sm font-medium"
                                 style={on ? undefined : { color: "var(--text-primary)" }}
                               >
                                 {t.name}
                               </span>
                               <span
-                                className="block truncate text-xs"
+                                className="block text-xs"
                                 style={{
                                   color: on ? "rgba(255,255,255,0.75)" : "var(--text-secondary)",
                                 }}
@@ -297,9 +328,14 @@ export default function EmailsTab(_props: { theme: string }) {
                 style={{ color: "var(--text-primary)" }}
               >
                 <FaEnvelopeOpenText aria-hidden style={{ color: "var(--text-secondary)" }} />
-                <span className="truncate">{preview?.subject ?? current?.subject ?? ""}</span>
+                <span className="min-w-0 break-words">
+                  {preview?.subject ?? current?.subject ?? ""}
+                </span>
               </p>
-              <p className="mt-0.5 text-xs truncate" style={{ color: "var(--text-secondary)" }}>
+              <p
+                className="mt-0.5 text-xs [overflow-wrap:anywhere]"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 From OceanicCoder &lt;{from || "…"}&gt;
                 {current ? ` · ${current.when}` : ""}
               </p>
@@ -326,6 +362,30 @@ export default function EmailsTab(_props: { theme: string }) {
                     }
                   >
                     {w === "desktop" ? <FaDesktop aria-hidden /> : <FaMobileAlt aria-hidden />}
+                  </button>
+                ))}
+              </div>
+              <div
+                role="group"
+                aria-label="Preview appearance"
+                className="flex rounded-lg border p-0.5"
+                style={{ borderColor: "var(--border-subtle)" }}
+              >
+                {(["light", "dark"] as const).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setAppearance(a)}
+                    aria-pressed={appearance === a}
+                    aria-label={`${a === "light" ? "Light" : "Dark"} mail app`}
+                    className={iconBtn}
+                    style={
+                      appearance === a
+                        ? { background: BRAND, color: "#fff" }
+                        : { color: "var(--text-secondary)" }
+                    }
+                  >
+                    {a === "light" ? <FaSun aria-hidden /> : <FaMoon aria-hidden />}
                   </button>
                 ))}
               </div>
@@ -385,6 +445,7 @@ export default function EmailsTab(_props: { theme: string }) {
           )}
 
           <div
+            ref={frameBoxRef}
             className="p-3 sm:p-6 lg:min-h-0 lg:flex-1"
             style={{ background: "var(--bg-primary)" }}
           >
@@ -402,16 +463,28 @@ export default function EmailsTab(_props: { theme: string }) {
                   {preview.text}
                 </pre>
               ) : (
-                <iframe
-                  key={`${selected}-${width}`}
-                  title={`Preview: ${current?.name ?? selected}`}
-                  srcDoc={preview.html}
-                  sandbox=""
-                  className={`mx-auto block h-[900px] lg:h-full rounded-lg border bg-white shadow-sm ${
-                    width === "mobile" ? "w-[390px] max-w-full" : "w-full"
-                  }`}
-                  style={{ borderColor: "var(--border-subtle)" }}
-                />
+                <div className={`h-[900px] lg:h-full ${fit < 1 ? "overflow-hidden" : ""}`}>
+                  <iframe
+                    key={`${selected}-${width}`}
+                    title={`Preview: ${current?.name ?? selected}`}
+                    srcDoc={withAppearance(preview.html ?? "", appearance)}
+                    sandbox=""
+                    className={`mx-auto block h-full rounded-lg border bg-white shadow-sm ${
+                      width === "mobile" ? "w-[390px] max-w-full" : "w-full"
+                    }`}
+                    style={
+                      fit < 1
+                        ? {
+                            borderColor: "var(--border-subtle)",
+                            width: DESKTOP_WIDTH,
+                            height: `${100 / fit}%`,
+                            transform: `scale(${fit})`,
+                            transformOrigin: "top left",
+                          }
+                        : { borderColor: "var(--border-subtle)" }
+                    }
+                  />
+                </div>
               ))}
           </div>
         </section>

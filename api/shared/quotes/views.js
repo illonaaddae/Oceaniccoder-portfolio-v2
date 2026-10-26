@@ -3,6 +3,7 @@
 
 const M = require("./model");
 const { signReceipt } = require("../tokens");
+const { money } = require("../email/ui");
 
 const METHOD_LABELS = {
   card: "Card",
@@ -36,8 +37,7 @@ function siteBase() {
 }
 
 function formatMoney(minor, currency) {
-  const major = (Number(minor) || 0) / 100;
-  return `${currency} ${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return money((Number(minor) || 0) / 100, currency);
 }
 
 function formatDate(iso) {
@@ -66,7 +66,7 @@ function planSummary(schedule) {
 
 // A client link, with the one-time link code in the fragment when there is
 // one: a fragment never reaches a server, a log or a Referer header. The page
-// reads it, signs the browser in and drops it (src/utils/quoteLinkCode.ts).
+// reads it, signs the browser in and drops it (src/utils/linkCode.ts).
 function clientLink(base, token, path, linkCode) {
   return `${base}/q/${token}${path}${linkCode ? `#k=${linkCode}` : ""}`;
 }

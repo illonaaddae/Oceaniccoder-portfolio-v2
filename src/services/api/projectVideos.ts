@@ -7,9 +7,9 @@
 //
 // Constraints:
 // - projectId is required (FK to projects.$id) — unique index ensures one video per project
-// - demoVideoUrl is required URL (Appwrite url-type validation)
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { listRows, manageCreate, manageDelete, manageUpdate, usesCosmos } from "./dataApi";
+// - demoVideoUrl is a required URL
+import { COLLECTIONS } from "./collections";
+import { listRows, manageCreate, manageDelete, manageUpdate } from "./dataApi";
 
 export interface ProjectVideo {
   $id: string;
@@ -18,9 +18,7 @@ export interface ProjectVideo {
 }
 
 export async function getProjectVideos(): Promise<ProjectVideo[]> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.PROJECT_VIDEOS, { limit: 100 })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, [Query.limit(100)]);
+  const response = await listRows(COLLECTIONS.PROJECT_VIDEOS, { limit: 100 });
   return response.documents as unknown as ProjectVideo[];
 }
 
@@ -33,12 +31,7 @@ export async function getProjectVideoMap(): Promise<Record<string, string>> {
 }
 
 export async function getProjectVideo(projectId: string): Promise<ProjectVideo | null> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.PROJECT_VIDEOS, { where: { projectId }, limit: 1 })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, [
-        Query.equal("projectId", projectId),
-        Query.limit(1),
-      ]);
+  const response = await listRows(COLLECTIONS.PROJECT_VIDEOS, { where: { projectId }, limit: 1 });
   return (response.documents[0] as unknown as ProjectVideo) ?? null;
 }
 
@@ -46,39 +39,17 @@ export async function getProjectVideo(projectId: string): Promise<ProjectVideo |
 export async function setProjectVideo(projectId: string, demoVideoUrl: string): Promise<void> {
   const existing = await getProjectVideo(projectId);
   if (!demoVideoUrl) {
-    if (existing) {
-      await (usesCosmos
-        ? manageDelete(COLLECTIONS.PROJECT_VIDEOS, existing.$id)
-        : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id));
-    }
+    if (existing) await manageDelete(COLLECTIONS.PROJECT_VIDEOS, existing.$id);
     return;
   }
   if (existing) {
-    await (usesCosmos
-      ? manageUpdate(COLLECTIONS.PROJECT_VIDEOS, existing.$id, {
-          demoVideoUrl,
-        })
-      : databases.updateDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id, {
-          demoVideoUrl,
-        }));
+    await manageUpdate(COLLECTIONS.PROJECT_VIDEOS, existing.$id, { demoVideoUrl });
   } else {
-    await (usesCosmos
-      ? manageCreate(COLLECTIONS.PROJECT_VIDEOS, {
-          projectId,
-          demoVideoUrl,
-        })
-      : databases.createDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, ID.unique(), {
-          projectId,
-          demoVideoUrl,
-        }));
+    await manageCreate(COLLECTIONS.PROJECT_VIDEOS, { projectId, demoVideoUrl });
   }
 }
 
 export async function deleteProjectVideo(projectId: string): Promise<void> {
   const existing = await getProjectVideo(projectId);
-  if (existing) {
-    await (usesCosmos
-      ? manageDelete(COLLECTIONS.PROJECT_VIDEOS, existing.$id)
-      : databases.deleteDocument(DATABASE_ID, COLLECTIONS.PROJECT_VIDEOS, existing.$id));
-  }
+  if (existing) await manageDelete(COLLECTIONS.PROJECT_VIDEOS, existing.$id);
 }

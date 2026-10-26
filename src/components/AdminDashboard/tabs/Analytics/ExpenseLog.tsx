@@ -86,7 +86,7 @@ export function ExpenseLog({
       setError(
         err instanceof Error
           ? `Couldn't log the expense: ${err.message}`
-          : "Couldn't log the expense. Check that the expenses table exists in Appwrite.",
+          : "Couldn't log the expense. Please try again.",
       );
     } finally {
       setSaving(false);

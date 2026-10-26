@@ -1,5 +1,5 @@
 /**
- * Static Web Apps sign-in for the admin (used once VITE_DATA_BACKEND=cosmos).
+ * Static Web Apps sign-in for the admin.
  * One provider, GitHub, registered in public/staticwebapp.config.json. The admin role is
  * assigned on the server by /api/get-roles, from the SWA user ids listed in
  * ADMIN_USER_IDS; the browser only reads it.
@@ -36,6 +36,8 @@ export function loginUrl(provider: LoginProvider, returnTo = "/admin/dashboard")
   return `/.auth/login/${provider}?post_login_redirect_uri=${encodeURIComponent(returnTo)}`;
 }
 
-export function logoutUrl(returnTo = "/"): string {
+// Signing out lands on the admin sign-in page, which is where both callers
+// (the dashboard's Logout and the login page's "sign out") come from.
+export function logoutUrl(returnTo = "/admin/dashboard"): string {
   return `/.auth/logout?post_logout_redirect_uri=${encodeURIComponent(returnTo)}`;
 }
