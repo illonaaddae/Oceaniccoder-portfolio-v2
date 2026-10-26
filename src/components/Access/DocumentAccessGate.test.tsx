@@ -11,7 +11,9 @@ const SENT = {
   challenge: "v1.c1.sig",
   maskedEmail: "k•••••@e•••••.com",
   expiresInSeconds: 600,
-  retryAfterSeconds: 90,
+  // No resend countdown: its 1-second tick would land outside act() in a
+  // slow run. QuoteAccessGate.test.tsx covers the countdown.
+  retryAfterSeconds: 0,
 };
 const LOCKED = { locked: true, canUnlock: true, blocked: false, maskedEmail: SENT.maskedEmail };
 
