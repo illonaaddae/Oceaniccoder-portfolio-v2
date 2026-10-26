@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  claimQuoteLink,
-  fetchClientQuote,
-  isLockedError,
-  QuoteApiError,
-} from "@/services/api/quotes";
+import { quoteAccessTarget } from "@/services/api/access";
+import { fetchClientQuote, isLockedError, QuoteApiError } from "@/services/api/quotes";
 import { takeLinkCode } from "@/utils/linkCode";
 import type { ClientQuote } from "@/types/quote";
 
@@ -33,10 +29,12 @@ const claims = new Map<string, Promise<boolean>>();
 function claimLinkOnce(token: string): Promise<boolean> {
   const code = takeLinkCode("quote", token);
   if (code) {
-    const claim = claimQuoteLink(token, code).then(
-      () => true,
-      () => false,
-    );
+    const claim = quoteAccessTarget(token)
+      .claim(code)
+      .then(
+        () => true,
+        () => false,
+      );
     claims.set(token, claim);
     void claim.then(() => claims.delete(token));
   }
