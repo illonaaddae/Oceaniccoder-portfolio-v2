@@ -146,6 +146,23 @@ describe("invoiceLocator", () => {
     expect(await setup().open(body)).toEqual(NOT_FOUND);
   });
 
+  it("answers the same 404 when two rows share the number, and logs the number only", async () => {
+    const db = createFakeCosmos();
+    db.container("invoices").seed(SIGNED);
+    db.container("invoices").seed({ ...SIGNED, id: "inv-row-9", clientEmail: "other@x.dev" });
+    const logWarn = vi.fn();
+    const locator = invoiceLocator({ env: { RECEIPT_SIGNING_SECRET: LINK_SECRET }, logWarn });
+    const svc = { invoices: createCosmosInvoiceStore(db), now: () => new Date(NOW) };
+    const body = { number: SIGNED.invoiceNumber, s: sig(SIGNED.invoiceNumber) };
+    await expect(locator.find(svc, body)).rejects.toMatchObject({
+      status: 404,
+      message: INVOICE_NOT_FOUND,
+      extra: { inactive: true },
+    });
+    expect(logWarn).toHaveBeenCalledWith("invoice-access duplicate number=INV-2026-0008");
+    expect(JSON.stringify(logWarn.mock.calls)).not.toContain("@");
+  });
+
   it("answers 404 for every signature when the signing secret is missing", async () => {
     const locator = invoiceLocator({ env: {} });
     const svc = { invoices: setup().invoices, now: () => new Date(NOW) };

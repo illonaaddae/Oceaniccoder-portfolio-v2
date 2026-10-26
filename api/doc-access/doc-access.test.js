@@ -230,6 +230,24 @@ describe("doc-access locator failures", () => {
     { action: "claim", linkCode: "x" },
   ];
 
+  it("answers the same 404 for a number two invoices share, before any lock or email", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const t = setup({ invoices: [INVOICE, { ...INVOICE, id: "inv-row-9" }] });
+      for (const action of ACTIONS) {
+        expect(await t.call({ ...INVOICE_BODY, ...action })).toEqual({
+          status: 404,
+          body: { error: INVOICE_NOT_FOUND, inactive: true },
+          cookie: undefined,
+        });
+      }
+      expect(t.lockCalls).not.toHaveBeenCalled();
+      expect(t.sendMail).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it.each(INVOICE_CAUSES)(
     "answers one 404 for an invoice with %s, before any lock or email",
     async (_name, locator) => {

@@ -54,9 +54,10 @@ const notFound = () => new HttpError(404, INVOICE_NOT_FOUND, { inactive: true })
  * that is present must be right; a missing one opens only an old unpaid
  * invoice until the grace ends (shared/invoiceLinks.js). Every failure is the
  * same 404, and check() and the signature test run before any lookup.
- * env supplies RECEIPT_SIGNING_SECRET, which signs pay links.
+ * env supplies RECEIPT_SIGNING_SECRET, which signs pay links; logWarn takes
+ * the one line logged when two invoices share a number.
  */
-function invoiceLocator({ env = process.env } = {}) {
+function invoiceLocator({ env = process.env, logWarn = console.warn } = {}) {
   return {
     check(body) {
       const { number, s } = body;
@@ -68,8 +69,15 @@ function invoiceLocator({ env = process.env } = {}) {
     async find(svc, body) {
       const nowMs = svc.now().getTime();
       if (!canOpenInvoice(body.number, body.s, env.RECEIPT_SIGNING_SECRET, nowMs)) throw notFound();
-      // The first of any rows sharing the number, as get-invoice takes.
-      const [invoice] = await svc.invoices.findInvoicesByNumber(body.number);
+      const rows = await svc.invoices.findInvoicesByNumber(body.number);
+      // Two rows with one number (old numbers could collide): the query has
+      // no order, so either could answer, with its own client and counters.
+      // Fail closed rather than send a code to the wrong client.
+      if (rows.length > 1) {
+        logWarn(`invoice-access duplicate number=${body.number}`);
+        throw notFound();
+      }
+      const [invoice] = rows;
       if (!invoice) throw notFound();
       if (!hasSignature(body.s) && !unsignedGraceCovers(invoice)) throw notFound();
       return invoice;
