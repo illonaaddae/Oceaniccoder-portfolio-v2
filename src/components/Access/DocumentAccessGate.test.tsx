@@ -211,8 +211,24 @@ describe("DocumentAccessGate across kinds", () => {
     await act(async () => {});
     expect(target.send).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status").textContent).toBe(
-      "Press Send a code to get one at the email address we sent the invoice to.",
+      "Press Send a code to get one at k•••••@e•••••.com.",
     );
+  });
+
+  it("drops the Send a code prompt on an unsigned link while a resend has to wait", async () => {
+    const target = fakeTarget("invoice");
+    target.status.mockResolvedValue({ locked: true, canUnlock: true, maskedEmail: null });
+    target.send.mockRejectedValue(
+      new QuoteApiError("Wait before asking for another code.", 429, undefined, undefined, {
+        retryAfterSeconds: 90,
+      }),
+    );
+    const t = setup(target);
+    await userEvent.click(await screen.findByRole("button", { name: /Send a code/ }));
+    await screen.findByText("Wait before asking for another code.");
+    expect(screen.getByRole("status").textContent).toBe("");
+    // Stops the countdown before its 1-second tick lands outside act().
+    t.unmount();
   });
 
   it("opens the document when the status says this browser is already unlocked", async () => {
