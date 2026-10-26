@@ -372,6 +372,83 @@ describe("doc-access for an unsigned invoice link", () => {
   });
 });
 
+describe("doc-access wrong codes on an unsigned invoice link", () => {
+  const SIGNED_OLD = {
+    ...UNSIGNED_BODY,
+    s: signInvoice(OLD_INVOICE.invoiceNumber, LINK_SECRET),
+  };
+  const wrongCode = (code) => String((Number(code) + 1) % 1000000).padStart(6, "0");
+
+  // Three unsigned sends, five wrong codes after each: fifteen misses, which
+  // anyone who guesses an old invoice number can do.
+  async function guessFifteenTimes(t) {
+    let last;
+    for (let round = 0; round < 3; round += 1) {
+      const ip = `198.51.100.${10 + round}`;
+      const sent = await t.call({ ...UNSIGNED_BODY, action: "send" }, { ip });
+      expect(sent.status).toBe(200);
+      const wrong = wrongCode(t.codeOf(t.mails[t.mails.length - 1]));
+      for (let i = 0; i < 5; i += 1) {
+        last = await t.call(
+          { ...UNSIGNED_BODY, action: "verify", challenge: sent.body.challenge, code: wrong },
+          { ip },
+        );
+      }
+      t.clock.ms += 16 * MIN;
+    }
+    return last;
+  }
+
+  it("blocks the unsigned link after fifteen", async () => {
+    const t = setup();
+    expect(await guessFifteenTimes(t)).toMatchObject({ status: 403, body: { blocked: true } });
+    expect((await t.call({ ...UNSIGNED_BODY, action: "status" })).body).toMatchObject({
+      blocked: true,
+      canUnlock: false,
+    });
+    expect((await t.call({ ...UNSIGNED_BODY, action: "send" })).status).toBe(403);
+  });
+
+  it("never blocks the signed link the client was emailed", async () => {
+    const t = setup();
+    await guessFifteenTimes(t);
+    const ip = "203.0.113.5";
+    expect((await t.call({ ...SIGNED_OLD, action: "status" }, { ip })).body).toEqual({
+      locked: true,
+      canUnlock: true,
+      blocked: false,
+      maskedEmail: "k•••••@hotmail.com",
+    });
+    const sent = await t.call({ ...SIGNED_OLD, action: "send" }, { ip });
+    expect(sent.status).toBe(200);
+    const code = t.codeOf(t.mails[t.mails.length - 1]);
+    const r = await t.call(
+      { ...SIGNED_OLD, action: "verify", challenge: sent.body.challenge, code },
+      { ip },
+    );
+    expect(r.status).toBe(200);
+    expect(r.cookie).toMatch(/^__Secure-oc_ia_/);
+  });
+
+  it("still blocks both links after fifteen wrong codes on the signed one", async () => {
+    const t = setup();
+    for (let i = 0; i < 14; i += 1) await invoiceAccess.recordMiss(t.locks, OLD_INVOICE, 0);
+    const sent = await t.call({ ...SIGNED_OLD, action: "send" });
+    const wrong = wrongCode(t.codeOf(t.mails[0]));
+    const r = await t.call({
+      ...SIGNED_OLD,
+      action: "verify",
+      challenge: sent.body.challenge,
+      code: wrong,
+    });
+    expect(r).toMatchObject({ status: 403, body: { blocked: true } });
+    t.clock.ms += 16 * MIN;
+    expect((await t.call({ ...SIGNED_OLD, action: "send" })).status).toBe(403);
+    expect((await t.call({ ...UNSIGNED_BODY, action: "send" })).status).toBe(403);
+    expect((await t.call({ ...UNSIGNED_BODY, action: "status" })).body.blocked).toBe(true);
+  });
+});
+
 describe("doc-access for a receipt", () => {
   it("sends the code to the quote's client email, not the payer's", async () => {
     const t = setup();

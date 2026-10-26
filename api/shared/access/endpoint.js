@@ -50,7 +50,9 @@ const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]
  *             loads the record or throws that same error; guessable(body),
  *             optional, is true for a locator anyone could type (an unsigned
  *             invoice link): status and send then never show the masked
- *             address, and code emails get the tighter guessable quota
+ *             address, code emails get the tighter guessable quota, and
+ *             wrong codes count in a scope of their own that never blocks
+ *             the record's other links
  *   emails    code(record, code, minutes) and lockedAlert(record, atIso,
  *             blocked) give { subject, html, text }
  *   labels    ref (the record's name in log lines) and the kind's texts
@@ -78,7 +80,9 @@ function createAccessEndpoint(deps) {
     const blocked =
       !unlocked &&
       Boolean(maskedEmail) &&
-      (await access.sendsBlocked(svc.locks, record, await access.currentEpoch(svc.locks, record)));
+      (await access.sendsBlocked(svc.locks, record, await access.currentEpoch(svc.locks, record), {
+        guessable,
+      }));
     return {
       status: 200,
       body: {
@@ -96,7 +100,7 @@ function createAccessEndpoint(deps) {
     const { clientEmail } = access.subject(record);
     if (!maskEmail(clientEmail)) throw new HttpError(409, labels.noEmail, { noEmail: true });
     const epoch = await access.currentEpoch(svc.locks, record);
-    if (await access.sendsBlocked(svc.locks, record, epoch)) {
+    if (await access.sendsBlocked(svc.locks, record, epoch, { guessable })) {
       context.log(`${labels.log} blocked ${name(record)}`);
       throw new HttpError(403, labels.blocked, { blocked: true });
     }
@@ -172,7 +176,7 @@ function createAccessEndpoint(deps) {
       context.log.error(`${labels.log} lock alert failed ${name(record)}: ${redact(mail.error)}`);
   }
 
-  async function verifyCode({ context, svc, secret, record, body, ip, nowMs }) {
+  async function verifyCode({ context, svc, secret, record, body, ip, guessable, nowMs }) {
     if (!allowVerifyFromIp(ip || "unknown", 1, nowMs)) throw new HttpError(429, TOO_MANY);
     const code = str(body.code, 40).replace(/[\s-]/g, "");
     if (!/^\d{6}$/.test(code)) throw new HttpError(400, "Enter the 6-digit code from the email.");
@@ -185,14 +189,14 @@ function createAccessEndpoint(deps) {
     });
     if (!checked.ok) throw new HttpError(400, NEW_CODE[checked.reason], { newCodeNeeded: true });
     // Challenges fetched before the block must not keep a guesser going after it.
-    if (await access.sendsBlocked(svc.locks, record, checked.epoch))
+    if (await access.sendsBlocked(svc.locks, record, checked.epoch, { guessable }))
       throw new HttpError(403, labels.blocked, { blocked: true });
 
     const attempt = await access.takeTry(svc.locks, checked.challengeId);
     if (!attempt) throw new HttpError(429, TOO_MANY, { triesLeft: 0, newCodeNeeded: true });
     const triesLeft = MAX_TRIES - attempt;
     if (!access.codeMatches(secret, checked.challengeId, code)) {
-      const misses = await access.recordMiss(svc.locks, record, checked.epoch);
+      const misses = await access.recordMiss(svc.locks, record, checked.epoch, { guessable });
       const blocked = misses === 0 || misses === MAX_MISSES;
       const lockedOut = triesLeft === 0;
       context.log(`${labels.log} verify ${name(record)} triesLeft=${triesLeft} misses=${misses}`);

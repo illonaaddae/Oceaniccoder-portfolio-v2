@@ -254,6 +254,38 @@ describe("takeSendSlots for a guessable link", () => {
   });
 });
 
+describe("wrong codes through a guessable link", () => {
+  it("count in their own scope, which blocks only guessable links", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 14; i += 1) await doc.recordMiss(locks, DOC, 0, { guessable: true });
+    expect(await doc.recordMiss(locks, DOC, 0, { guessable: true })).toBe(15);
+    expect(locks.held.has("tr:umiss:parent-1:1:0:15")).toBe(true);
+    expect([...locks.held].some((key) => key.startsWith("tr:miss:"))).toBe(false);
+    expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(false);
+  });
+
+  it("are blocked by the usual block too", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 15; i += 1) await doc.recordMiss(locks, DOC, 0);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(true);
+    expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
+  });
+
+  it("are pruned like the usual ones: live kept, superseded dropped", async () => {
+    const clock = { ms: NOW };
+    const locks = createFakeLocks({ now: () => clock.ms });
+    await doc.recordMiss(locks, DOC, 0, { guessable: true });
+    await doc.bumpEpoch(locks, DOC);
+    await doc.recordMiss(locks, DOC, 1, { guessable: true });
+    clock.ms += DAY;
+    expect(
+      await doc.pruneAccessLocks({ locks, getScope: async () => DOC, nowMs: clock.ms }),
+    ).toEqual({ deleted: 1, kept: 2, skipped: 0 });
+    expect([...locks.held].sort()).toEqual(["tr:epoch:parent-1:1:1", "tr:umiss:parent-1:1:1:1"]);
+  });
+});
+
 describe("pruneAcrossSchemes", () => {
   const other = createAccess({ ...DOC_SCHEME, ...fresh() });
   const OTHER = { ...DOC, parent: "other-parent" };

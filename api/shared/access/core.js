@@ -470,21 +470,32 @@ function createAccess(input) {
     };
   }
 
-  const missPrefix = (s, epoch) => `${rows}:miss:${s.scopeId}:${s.revision}:${epoch}`;
+  // Wrong codes typed through a guessable link count in their own scope
+  // ("umiss"), so a guesser can block that link but never the signed link the
+  // client was emailed. Same key shape, so the prune parses both.
+  const missPrefix = (s, epoch, guessable = false) =>
+    `${rows}:${guessable ? "umiss" : "miss"}:${s.scopeId}:${s.revision}:${epoch}`;
 
   /**
-   * Counts one wrong code against this revision and epoch. Returns its number,
-   * 1..MAX_MISSES, or 0 when every slot was already taken (a parallel guess got
-   * the last one). Exactly one request ever gets MAX_MISSES.
+   * Counts one wrong code against this revision and epoch (in the guessable
+   * scope with guessable). Returns its number, 1..MAX_MISSES, or 0 when every
+   * slot was already taken (a parallel guess got the last one). Exactly one
+   * request ever gets MAX_MISSES.
    */
-  async function recordMiss(locks, record, epoch) {
-    const key = await takeFirstFree(locks, missPrefix(subject(record), epoch), MAX_MISSES);
+  async function recordMiss(locks, record, epoch, { guessable = false } = {}) {
+    const prefix = missPrefix(subject(record), epoch, guessable);
+    const key = await takeFirstFree(locks, prefix, MAX_MISSES);
     return key ? Number(key.slice(key.lastIndexOf(":") + 1)) : 0;
   }
 
-  /** Whether codes are blocked until the access is reset. */
-  function sendsBlocked(locks, record, epoch) {
-    return locks.has(`${missPrefix(subject(record), epoch)}:${MAX_MISSES}`);
+  /**
+   * Whether codes are blocked until the access is reset. A guessable link is
+   * blocked by its own count or by the usual one; any other only by the usual.
+   */
+  async function sendsBlocked(locks, record, epoch, { guessable = false } = {}) {
+    const s = subject(record);
+    if (await locks.has(`${missPrefix(s, epoch)}:${MAX_MISSES}`)) return true;
+    return guessable && locks.has(`${missPrefix(s, epoch, true)}:${MAX_MISSES}`);
   }
 
   // Link codes: the one-time "#k=" part of a link the admin emails, which
@@ -561,7 +572,7 @@ function createAccess(input) {
       const ageMs = nowMs - Date.parse(createdAt);
       if (SHORT_LIVED.some((prefix) => key.startsWith(prefix))) return true;
       if (key.startsWith(`${rows}:lk:`)) return ageMs >= LINK_RETENTION_MS;
-      if (key.startsWith(`${rows}:miss:`)) {
+      if (key.startsWith(`${rows}:miss:`) || key.startsWith(`${rows}:umiss:`)) {
         const miss = parseMissKey(key);
         return miss !== null && (await superseded(miss));
       }
