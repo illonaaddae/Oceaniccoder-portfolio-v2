@@ -1,6 +1,12 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
-import { getJson, submitRow, usesCosmos } from "./dataApi";
-import { listAllDocuments } from "./listAll";
+import { COLLECTIONS } from "./collections";
+import {
+  getJson,
+  manageDelete,
+  manageList,
+  manageUpdate,
+  readsAsAdmin,
+  submitRow,
+} from "./dataApi";
 
 export interface Booking {
   $id?: string;
@@ -24,53 +30,34 @@ export async function createBooking(
   booking: Omit<Booking, "$id" | "$createdAt">,
   turnstileToken?: string | null,
 ): Promise<Booking> {
-  if (usesCosmos) return submitRow<Booking>(COLLECTIONS.BOOKINGS, booking, turnstileToken);
-  // No document-level permissions — collection-level permissions govern
-  // (visitors create, only admin reads/updates/deletes — set in Appwrite Console)
-  const result = await databases.createDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, ID.unique(), {
-    ...booking,
-  } as Record<string, unknown>);
-  return result as unknown as Booking;
+  return submitRow<Booking>(COLLECTIONS.BOOKINGS, booking, turnstileToken);
 }
 
 /** Every booking, newest first (the old 200-row limit dropped older ones). */
 export async function getBookings(): Promise<Booking[]> {
-  return listAllDocuments<Booking & { $id: string }>(COLLECTIONS.BOOKINGS);
-}
-
-export async function isSlotBooked(preferredDate: string, preferredTime: string): Promise<boolean> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
-    Query.limit(500),
-  ]);
-  return response.documents.some(
-    (doc) => doc.preferredDate === preferredDate && doc.preferredTime === preferredTime,
-  );
+  // Private rows (contact details): the read-only /dashboard shows none.
+  if (!readsAsAdmin()) return [];
+  const response = await manageList<Booking>(COLLECTIONS.BOOKINGS, {
+    orderBy: "$createdAt",
+    dir: "desc",
+  });
+  return response.documents;
 }
 
 export async function getBookedTimesForDate(preferredDate: string): Promise<Set<string>> {
-  if (usesCosmos) {
-    const { times } = await getJson<{ times: string[] }>(
-      `/api/booked-times?date=${encodeURIComponent(preferredDate)}`,
-    );
-    return new Set(times);
-  }
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.BOOKINGS, [
-    Query.limit(500),
-  ]);
-  const booked = new Set<string>();
-  response.documents.forEach((doc) => {
-    if (doc.preferredDate === preferredDate) booked.add(doc.preferredTime as string);
-  });
-  return booked;
+  const { times } = await getJson<{ times: string[] }>(
+    `/api/booked-times?date=${encodeURIComponent(preferredDate)}`,
+  );
+  return new Set(times);
 }
 
 export async function updateBookingStatus(
   id: string,
   status: "confirmed" | "cancelled" | "pending",
 ): Promise<void> {
-  await databases.updateDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id, { status });
+  await manageUpdate(COLLECTIONS.BOOKINGS, id, { status });
 }
 
 export async function deleteBooking(id: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BOOKINGS, id);
+  await manageDelete(COLLECTIONS.BOOKINGS, id);
 }

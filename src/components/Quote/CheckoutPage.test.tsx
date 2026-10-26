@@ -8,6 +8,8 @@ import type { ClientQuote } from "@/types/quote";
 const fetchClientQuote = vi.fn();
 const startStagePayment = vi.fn();
 const checkStagePayment = vi.fn();
+const fetchQuoteAccess = vi.fn();
+const sendQuoteCode = vi.fn();
 vi.mock("@/services/api/quotes", async () => {
   const actual =
     await vi.importActual<typeof import("@/services/api/quotes")>("@/services/api/quotes");
@@ -16,6 +18,8 @@ vi.mock("@/services/api/quotes", async () => {
     fetchClientQuote: (...a: unknown[]) => fetchClientQuote(...a),
     startStagePayment: (...a: unknown[]) => startStagePayment(...a),
     checkStagePayment: (...a: unknown[]) => checkStagePayment(...a),
+    fetchQuoteAccess: (...a: unknown[]) => fetchQuoteAccess(...a),
+    sendQuoteCode: (...a: unknown[]) => sendQuoteCode(...a),
   };
 });
 const resumeTransaction = vi.fn();
@@ -26,6 +30,13 @@ vi.mock("@/utils/paystackV2", () => ({
 }));
 
 import CheckoutPage from "./CheckoutPage";
+import { QuoteApiError } from "@/services/api/quotes";
+import { loadPaystackV2 } from "@/utils/paystackV2";
+
+const locked = () =>
+  new QuoteApiError("Enter the code we email you to open this quote.", 401, undefined, undefined, {
+    locked: true,
+  });
 
 const quote = {
   quoteNumber: "Q-2026-0001",
@@ -80,6 +91,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   fetchClientQuote.mockResolvedValue({ quote });
   checkStagePayment.mockResolvedValue({ state: "pending", receiptPath: null });
+  fetchQuoteAccess.mockResolvedValue({ locked: true, maskedEmail: "k•••••@e•••••.com" });
+  sendQuoteCode.mockResolvedValue({
+    challenge: "v1.c.s",
+    maskedEmail: "k•••••@e•••••.com",
+    expiresInSeconds: 600,
+    retryAfterSeconds: 90,
+  });
 });
 
 describe("CheckoutPage", () => {
@@ -335,5 +353,46 @@ describe("CheckoutPage", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe("access gate", () => {
+    it("shows the code screen when the quote is locked on load", async () => {
+      fetchClientQuote.mockRejectedValue(locked());
+      renderAt("/q/tokP1/pay/deposit");
+      expect(await screen.findByLabelText("6-digit code")).toBeInTheDocument();
+      await waitFor(() => expect(sendQuoteCode).toHaveBeenCalledWith("tokP1"));
+      expect(screen.queryByText("GHS 6,000.00")).toBeNull();
+    });
+
+    it("shows the code screen when starting the payment answers locked", async () => {
+      startStagePayment.mockRejectedValue(locked());
+      renderAt("/q/tokP2/pay/deposit");
+      await userEvent.click(await payButton());
+      expect(await screen.findByLabelText("6-digit code")).toBeInTheDocument();
+      expect(loadPaystackV2).not.toHaveBeenCalled();
+      expect(checkStagePayment).not.toHaveBeenCalled();
+      expect(screen.queryByRole("button", { name: /pay ghs/i })).toBeNull();
+    });
+
+    it("admin preview without a session never emails the client a code", async () => {
+      fetchClientQuote.mockRejectedValue(locked());
+      renderAt("/q/tokP3/pay/deposit?preview=admin");
+      expect(await screen.findByText(/preview needs your dashboard session/i)).toBeInTheDocument();
+      expect(fetchClientQuote).toHaveBeenCalledWith("tokP3", { preview: true, admin: true });
+      expect(fetchQuoteAccess).not.toHaveBeenCalled();
+      expect(sendQuoteCode).not.toHaveBeenCalled();
+    });
+
+    it("admin preview shows the page but starts no payment, and links back in preview", async () => {
+      renderAt("/q/tokP4/pay/deposit?preview=admin");
+      await userEvent.click(await payButton());
+      expect(await screen.findByText(/preview only: payments are turned off/i)).toBeInTheDocument();
+      expect(startStagePayment).not.toHaveBeenCalled();
+      expect(screen.getByRole("link", { name: /back to the quote/i })).toHaveAttribute(
+        "href",
+        "/q/tokP4?preview=admin",
+      );
+      expect(sendQuoteCode).not.toHaveBeenCalled();
+    });
   });
 });

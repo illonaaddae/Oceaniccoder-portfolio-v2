@@ -1,6 +1,6 @@
 import React from "react";
 import { FaLock } from "react-icons/fa";
-import type { LoginTheme } from "./useAdminLogin";
+import type { LoginTheme } from "./loginTheme";
 
 interface LoginFooterProps {
   theme: LoginTheme;
@@ -20,7 +20,7 @@ const LoginFooter: React.FC<LoginFooterProps> = ({ theme }) => {
         }`}
       >
         <FaLock className="w-3 h-3" />
-        This dashboard is password protected. Only you should have access.
+        This dashboard is for the site admin only.
       </p>
     </div>
   );

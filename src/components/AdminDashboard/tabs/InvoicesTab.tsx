@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaFileInvoiceDollar } from "react-icons/fa";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FaFileInvoiceDollar, FaTimes } from "react-icons/fa";
 import { getInvoices, updateInvoice } from "@/services/api/invoices";
 import { createPayment, getPaymentsForInvoice } from "@/services/api/payments";
 import { apiUrl } from "@/utils/apiUrl";
@@ -80,6 +80,16 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  // The signed pay link, shown when the browser blocked the new tab. Focus
+  // moves to its link so keyboard and screen reader users land on it.
+  const [blockedPayLink, setBlockedPayLink] = useState<{ href: string; number: string } | null>(
+    null,
+  );
+  // eslint-disable-next-line no-undef -- DOM global type, not a runtime value
+  const blockedPayLinkRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    if (blockedPayLink) blockedPayLinkRef.current?.focus();
+  }, [blockedPayLink]);
   const [busy, setBusy] = useState<string | null>(null);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [filter, setFilter] = useState<InvoiceFilter>("all");
@@ -287,6 +297,39 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
     }
   };
 
+  // Only the server can sign the pay link. The tab opens inside the click,
+  // because Safari blocks a window.open that comes after an await. If the
+  // browser blocked even that, the link is shown to open or copy by hand.
+  const viewPayPage = async (inv: Invoice) => {
+    const tab = window.open("", "_blank");
+    setActionError(null);
+    setBlockedPayLink(null);
+    try {
+      const { link } = await quoteAdmin<{ link: string }>("invoicePayLink", { id: inv.$id });
+      if (!tab) {
+        setBlockedPayLink({
+          href: new URL(link, window.location.origin).href,
+          number: inv.invoiceNumber,
+        });
+        return;
+      }
+      tab.opener = null;
+      tab.location.href = link;
+    } catch (e) {
+      tab?.close();
+      setActionError(e instanceof Error ? e.message : "Couldn't open the pay page.");
+    }
+  };
+
+  const copyPayLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setNotice("Copied the pay link.");
+    } catch {
+      setActionError("Couldn't copy to the clipboard. Select the link instead.");
+    }
+  };
+
   const copyNumber = async (number: string) => {
     try {
       await navigator.clipboard.writeText(number);
@@ -351,12 +394,7 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
     const inv = row.invoice;
     actions.push({
       label: "View pay page",
-      onSelect: () =>
-        window.open(
-          `/pay/${encodeURIComponent(inv.invoiceNumber)}`,
-          "_blank",
-          "noopener,noreferrer",
-        ),
+      onSelect: () => void viewPayPage(inv),
     });
     const unpaid = row.status !== "paid";
     // Mark as paid stays hidden on archived invoices: restore first.
@@ -398,6 +436,44 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
           message={`Quote invoices couldn't load: ${quoteError}`}
           onDismiss={() => setQuoteError(null)}
         />
+      )}
+      {blockedPayLink && (
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-4 py-3 text-sm"
+          style={{
+            background: "var(--status-pending-bg)",
+            borderColor: "var(--status-pending-border)",
+            color: "var(--text-primary)",
+          }}
+        >
+          <span id="blocked-pay-link-note">Your browser blocked the new tab.</span>
+          <a
+            ref={blockedPayLinkRef}
+            aria-describedby="blocked-pay-link-note"
+            href={blockedPayLink.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium underline"
+          >
+            Open the pay page for {blockedPayLink.number}
+          </a>
+          <button
+            type="button"
+            onClick={() => void copyPayLink(blockedPayLink.href)}
+            className="rounded border px-2 py-1 font-medium"
+            style={{ borderColor: "var(--status-pending-border)" }}
+          >
+            Copy link
+          </button>
+          <button
+            type="button"
+            aria-label="Dismiss pay link"
+            onClick={() => setBlockedPayLink(null)}
+            className="rounded p-1"
+          >
+            <FaTimes aria-hidden="true" />
+          </button>
+        </div>
       )}
       <p className="sr-only" role="status" aria-live="polite">
         {notice}

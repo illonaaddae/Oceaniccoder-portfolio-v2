@@ -5,9 +5,37 @@ const { HttpError, str } = require("../shared/http");
 const M = require("../shared/quotes/model");
 const V = require("../shared/quotes/views");
 const { newToken, hashToken } = require("../shared/tokens");
+const { invoicePayPath } = require("../shared/invoiceLinks");
 const { sendMaintenanceOffer } = require("../shared/quotes/maintenance");
+const {
+  bumpEpoch,
+  currentEpoch,
+  gateEnabled,
+  accessSecret,
+  mintLinkCode,
+  normalEmail,
+} = require("../shared/quotes/access");
 
 const MANUAL_METHODS = ["bank", "momo", "cash"];
+
+// One-time link codes for the client's emails (the "#k=" fragment that signs
+// the browser in). Checks the gate and secret before the caller writes
+// anything, so a missing secret refuses the action instead of sending an
+// email nobody can open. The returned mint(updated) takes the quote as
+// written, with its new tokenHash, because a code only works with the link it
+// came with; call it once per email so every email has its own code. The
+// epoch is read here: send, Email again and payment requests don't change it
+// (rotate does, and returns a bare link). While the gate is
+// off (gated: false), mint returns null and the links go out bare.
+async function linkCodes(svc, quote) {
+  if (!gateEnabled()) return { gated: false, mint: () => null };
+  const secret = accessSecret();
+  const epoch = await currentEpoch(svc.locks, quote);
+  return {
+    gated: true,
+    mint: (updated) => mintLinkCode(secret, updated, epoch, svc.now().getTime()),
+  };
+}
 
 async function load(svc, id) {
   const quote = typeof id === "string" && id ? await svc.repo.get(id) : null;
@@ -15,9 +43,12 @@ async function load(svc, id) {
   return quote;
 }
 
-// Appwrite document ids. node-appwrite puts the id into the URL path without
-// encoding it, so anything else ("../", "?", "/") is refused before the call.
-const ROW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,35}$/;
+// Row ids: ids imported from Appwrite (at most 36 characters) and Cosmos ids,
+// which include the 67-character payment ids derived from a Paystack
+// reference (paymentIdFor). Only those characters are allowed, so "../", "?"
+// or "/" never reach a lookup; 128 stays well inside Cosmos's 255-character id
+// limit.
+const ROW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 function rowId(id) {
   if (typeof id !== "string" || !ROW_ID.test(id)) throw new HttpError(400, "Invalid id.");
@@ -121,6 +152,7 @@ const actions = {
     if (quote.status !== "draft") throw new HttpError(409, "Only drafts can be sent.");
     const problem = M.sendError(quote);
     if (problem) throw new HttpError(400, problem);
+    const { mint } = await linkCodes(svc, quote);
     const token = newToken();
     const now = svc.now();
     const updated = await svc.repo.update(quote.id, {
@@ -131,7 +163,7 @@ const actions = {
       viewedAt: null,
     });
     await svc.repo.setInquiryStatus(updated.inquiryId, "quoted");
-    const mail = await svc.notify.quoteSent(updated, token);
+    const mail = await svc.notify.quoteSent(updated, token, mint(updated));
     return detail(svc, updated, { link: V.quoteLink(token), emailed: mail.ok });
   },
 
@@ -167,6 +199,16 @@ const actions = {
     const quote = await load(svc, input.id);
     if (!["sent", "accepted"].includes(quote.status))
       throw new HttpError(409, "Only sent or accepted quotes have a link.");
+    // New link is the leak response, so it also locks out every browser that
+    // entered a code. The epoch goes first, so either failure fails closed:
+    // - the epoch write fails: nothing changed; the old link and sessions
+    //   stay as they were, never a new link with old sessions still open;
+    // - the link write fails after it: every session is already locked out
+    //   and the old link still works, behind a new code. Pressing New link
+    //   again finishes the job.
+    // The link goes back bare, like every link the admin sees: whoever opens
+    // it is emailed a code at the client's address.
+    await bumpEpoch(svc.locks, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, { tokenHash: hashToken(token) });
     return detail(svc, updated, { link: V.quoteLink(token), emailed: false });
@@ -203,14 +245,27 @@ const actions = {
         "Nothing is due on this quote, so there's no email to send. Use New link to share the quote page.",
       );
 
+    const codes = await linkCodes(svc, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, {
       tokenHash: hashToken(token),
       ...(save ? { clientEmail: extra } : {}),
     });
     const stages = M.stageStates(updated, payments, now);
+    // Only the client's own copy signs a browser in. Anyone else it goes to
+    // gets the code screen, and the code goes to the client.
     const results = await Promise.all(
-      addresses.map((address) => svc.notify.quoteEmailAgain(updated, token, stages, address)),
+      addresses.map((address) => {
+        const own = normalEmail(address) === normalEmail(updated.clientEmail);
+        return svc.notify.quoteEmailAgain(
+          updated,
+          token,
+          stages,
+          address,
+          own ? codes.mint(updated) : null,
+          !own && codes.gated,
+        );
+      }),
     );
     const emailedTo = addresses.filter((_, i) => results[i].ok);
     const failedTo = addresses.filter((_, i) => !results[i].ok);
@@ -231,6 +286,7 @@ const actions = {
     if (stage.state === "paid") throw new HttpError(409, "This stage is already paid.");
     const due = { ...((quote.payState && quote.payState.due) || {}) };
     due[stage.id] = due[stage.id] || svc.now().toISOString();
+    const { mint } = await linkCodes(svc, quote);
     const token = newToken();
     const updated = await svc.repo.update(quote.id, {
       payState: { due },
@@ -241,7 +297,13 @@ const actions = {
       await svc.repo.listPayments(updated.quoteNumber),
       svc.now().getTime(),
     );
-    const mail = await svc.notify.paymentRequest(updated, after[stage.index], token, after);
+    const mail = await svc.notify.paymentRequest(
+      updated,
+      after[stage.index],
+      token,
+      after,
+      mint(updated),
+    );
     return detail(svc, updated, { link: V.quoteLink(token), emailed: mail.ok });
   },
 
@@ -339,7 +401,8 @@ const actions = {
     // A part-payment leaves the invoice open, but it is still money received
     // (the webhook un-archives on any payment for the same reason). Rows with
     // no status predate the field and were all successful. With no number
-    // there is nothing to match (and Appwrite rejects equal on undefined).
+    // there is nothing to match (and listInvoicePayments refuses a missing
+    // number with a 400).
     const payments = invoice.invoiceNumber
       ? await svc.repo.listInvoicePayments(invoice.invoiceNumber)
       : [];
@@ -360,6 +423,16 @@ const actions = {
     const invoice = await loadInvoice(svc, input.id);
     const updated = await svc.repo.updateInvoice(invoice.id, { archivedAt: null });
     return { invoice: archiveView(updated) };
+  },
+
+  // The signed /pay/ link for a one-off invoice. The browser has no secret to
+  // sign with, so the dashboard asks for it here.
+  async invoicePayLink(svc, input) {
+    const invoice = await loadInvoice(svc, input.id);
+    if (!invoice.invoiceNumber) throw new HttpError(409, "This invoice has no number to pay.");
+    const secret = svc.receiptSecret ?? process.env.RECEIPT_SIGNING_SECRET;
+    if (!secret) throw new HttpError(503, "Pay links need RECEIPT_SIGNING_SECRET to be set.");
+    return { link: invoicePayPath(invoice.invoiceNumber, secret) };
   },
 };
 

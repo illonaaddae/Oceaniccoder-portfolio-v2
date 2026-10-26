@@ -155,7 +155,9 @@ export default function QuoteClientPreview({
       >
         <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-6">
           {state.kind === "loading" && <QuoteLoading />}
-          {state.kind === "error" && <QuoteError message={state.message} onRetry={load} />}
+          {state.kind === "error" && (
+            <QuoteError message={state.message} onRetry={load} headingLevel={2} />
+          )}
           {quote && (
             <>
               <JourneyBar quote={quote} />

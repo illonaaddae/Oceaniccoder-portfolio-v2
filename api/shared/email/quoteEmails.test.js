@@ -75,6 +75,39 @@ describe("quote email templates", () => {
     expect(acc.text).not.toMatch(/deposit/i);
   });
 
+  describe("how the quote link opens", () => {
+    const view = { ...SAMPLE_VIEWS.quoteSent.view, linkOpens: false, codeByEmail: false };
+    const OPENS = "This link usually opens straight away.";
+    const ASKS = "This link asks for a short code that we email to Kofi.";
+
+    it("says the link opens straight away when this copy carries a link code", () => {
+      const sent = T.quoteSent({ ...view, linkOpens: true });
+      for (const body of [sent.html, sent.text]) {
+        expect(body).toContain(OPENS);
+        expect(body).toContain("another device");
+        expect(body).not.toContain("asks for a short code");
+      }
+    });
+
+    it("says the link asks for a code sent to the client on a copy without one", () => {
+      const sent = T.quoteSent({ ...view, codeByEmail: true });
+      for (const body of [sent.html, sent.text]) {
+        expect(body).toContain(ASKS);
+        expect(body).not.toContain(OPENS);
+        expect(body).not.toContain("@example");
+      }
+    });
+
+    it("says nothing about codes while the gate is off", () => {
+      const sent = T.quoteSent(view);
+      for (const body of [sent.html, sent.text]) {
+        expect(body).not.toContain(OPENS);
+        expect(body).not.toContain("asks for a short code");
+        expect(body).toContain("Questions? Reply to this email.");
+      }
+    });
+  });
+
   it("keeps the deposit wording for a staged quote", () => {
     const acc = T.quoteAccepted({ ...SAMPLE_VIEWS.quoteAccepted.view, singleStage: false });
     expect(acc.html).toContain("Pay the deposit");
@@ -102,7 +135,7 @@ describe("quote email templates", () => {
       expect(mail.html).toContain("Thank you for launching with me");
       expect(mail.html).toContain("ends on 20 Dec 2026");
       expect(mail.html).toContain("Care Plus");
-      expect(mail.html).toContain("GHS 900.00");
+      expect(mail.html).toContain("GHS</span>&nbsp;900.00");
       expect(mail.html).toContain("per month");
       expect(mail.html).toContain("Priority response within 1 working day");
       expect(mail.html).toContain("https://wa.me/233241234567");
@@ -136,9 +169,66 @@ describe("quote email templates", () => {
     });
   });
 
+  describe("access code", () => {
+    const view = SAMPLE_VIEWS.accessCode.view;
+
+    it("puts the code in the subject, the preview, the html and the text", () => {
+      const mail = T.accessCode(view);
+      expect(mail.subject).toBe("482915 is your code for quote Q-2026-0007");
+      expect(mail.html).toContain("Your verification code is 482915. It works for 10 minutes.");
+      expect(mail.html).toContain("Hi Kofi, someone opened your quote in a new browser.");
+      expect(mail.text).toContain("If it wasn't you, you can ignore this email.");
+    });
+
+    it("leads with a plain verification sentence for Gmail's copy chip and autofill", () => {
+      const mail = T.accessCode(view);
+      expect(mail.text.split("\n")[0]).toBe("Your verification code is 482915.");
+      const body = mail.html.slice(mail.html.indexOf("<h1"));
+      expect(body.indexOf("Your verification code is 482915.")).toBeLessThan(
+        body.indexOf("someone opened your quote"),
+      );
+    });
+
+    it("shows the code alone, unspaced and selectable in one tap", () => {
+      const mail = T.accessCode(view);
+      expect(mail.html).toMatch(/user-select:all">482915<\/div>/);
+      expect(mail.text.split("\n")).toContain("482915");
+      expect(mail.text).toContain(
+        "Someone opened your quote in a new browser. Here's your code:\n\n482915\n\nIt works for 10 minutes.",
+      );
+    });
+
+    it("carries no link to the quote", () => {
+      const mail = T.accessCode(view);
+      expect(mail.html).not.toContain("/q/");
+      expect(mail.text).not.toMatch(/https?:/);
+    });
+  });
+
+  it("tells the owner which quote locked and how to cut off a shared link", () => {
+    const mail = T.accessLockedAlert(SAMPLE_VIEWS.accessLockedAlert.view);
+    expect(mail.subject).toBe("Code locked after 5 wrong tries on Q-2026-0007");
+    expect(mail.html).toContain("Kofi Mensah");
+    expect(mail.html).toContain("Use New link on the quote");
+    expect(mail.text).toContain("https://oceaniccoder.dev/admin/dashboard");
+    expect(mail.text).not.toContain("No more codes will be sent");
+  });
+
+  it("says when codes are blocked until New link or Revise", () => {
+    const mail = T.accessLockedAlert({ ...SAMPLE_VIEWS.accessLockedAlert.view, blocked: true });
+    expect(mail.subject).toBe("Codes blocked after 15 wrong tries on Q-2026-0007");
+    const blocked =
+      "No more codes will be sent or accepted on this link until you use New link or Revise.";
+    expect(mail.html).toContain(blocked);
+    expect(mail.text).toContain(blocked);
+    expect(mail.text).toContain("Fifteen wrong codes have been entered for Q-2026-0007 (");
+  });
+
   it("covers every template sample", () => {
     expect(Object.keys(SAMPLES).sort()).toEqual(
       [
+        "accessCode",
+        "accessLockedAlert",
         "maintenanceOffer",
         "paymentAlert",
         "paymentAlertProblem",

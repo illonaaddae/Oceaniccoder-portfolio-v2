@@ -1,6 +1,7 @@
 /* global require, module, Buffer */
 const https = require("https");
 const { requireAdmin } = require("../shared/adminAuth");
+const { invoicePayPath } = require("../shared/invoiceLinks");
 const {
   C,
   esc,
@@ -11,12 +12,13 @@ const {
   button,
   buttons,
   small,
+  money: formatMoney,
 } = require("../shared/email/ui");
 
 const CORS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-appwrite-jwt",
+  "Access-Control-Allow-Headers": "Content-Type",
   Vary: "Origin",
   "Content-Type": "application/json",
 };
@@ -71,13 +73,13 @@ ${sum("Total", money(total), true)}
 }
 
 function notesBlock(notes) {
-  return `<div style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;padding:16px 20px;margin:0 0 24px"><div style="${LABEL};color:${C.ink3};margin:0 0 8px">Notes</div><div style="font-size:14px;color:${C.ink2}">${multiline(notes)}</div></div>`;
+  return `<div style="border-top:1px solid ${C.line};padding:16px 0 0;margin:0 0 24px"><div style="${LABEL};color:${C.ink3};margin:0 0 8px">Notes</div><div style="font-size:14px;color:${C.ink2}">${multiline(notes)}</div></div>`;
 }
 
-// Pure: builds the invoice email HTML from the request body fields.
-function renderInvoiceEmail(d, now = new Date()) {
-  const sym = d.currencySymbol || d.currency;
-  const money = (n) => `${sym}${Number(n).toFixed(2)}`;
+// Pure: builds the invoice email HTML from the request body fields. The pay
+// link is signed, so it throws when `secret` is missing.
+function renderInvoiceEmail(d, now = new Date(), secret = process.env.RECEIPT_SIGNING_SECRET) {
+  const money = (n) => formatMoney(n, d.currency);
   const items = d.items || [];
   // Older callers sent items only; work the sums out rather than print NaN.
   const num = (v, fallback) =>
@@ -91,8 +93,8 @@ function renderInvoiceEmail(d, now = new Date()) {
   const issuedDate = formatDate(now);
   const dueDate = d.dueDate ? formatDate(new Date(d.dueDate)) : null;
   const delivery = d.estimatedDelivery ? formatDate(new Date(d.estimatedDelivery)) : null;
-  const amountDue = `${money(d.total)} ${d.currency}`;
-  const payLink = `https://oceaniccoder.dev/pay/${encodeURIComponent(d.invoiceNumber)}`;
+  const amountDue = money(d.total);
+  const payLink = `https://oceaniccoder.dev${invoicePayPath(d.invoiceNumber, secret)}`;
 
   return shell({
     preview: `Invoice ${d.invoiceNumber}: ${amountDue}${dueDate ? `, due ${dueDate}` : ""}`,
@@ -106,6 +108,7 @@ function renderInvoiceEmail(d, now = new Date()) {
       }) +
       card({
         title: "Amount due",
+        status: { label: "Due", tone: "warn" },
         highlight: amountDue,
         rows: [
           ["Issued", issuedDate],
@@ -219,7 +222,6 @@ module.exports = async function (context, req) {
     clientPhone,
     items = [],
     currency,
-    currencySymbol,
     subtotal,
     tax,
     taxRate,
@@ -240,13 +242,21 @@ module.exports = async function (context, req) {
 
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
-  const sym = currencySymbol || currency;
 
   if (!apiKey) {
     context.res = {
       status: 503,
       headers: CORS,
       body: JSON.stringify({ error: "Not configured" }),
+    };
+    return;
+  }
+  // Without the signing secret the email could carry no working pay link.
+  if (!process.env.RECEIPT_SIGNING_SECRET) {
+    context.res = {
+      status: 503,
+      headers: CORS,
+      body: JSON.stringify({ error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set." }),
     };
     return;
   }
@@ -258,7 +268,6 @@ module.exports = async function (context, req) {
     clientPhone,
     items,
     currency,
-    currencySymbol,
     subtotal,
     tax,
     taxRate,
@@ -286,7 +295,7 @@ module.exports = async function (context, req) {
       if (clientPhone) {
         sendSMS(
           clientPhone,
-          `Hi ${clientName}, your invoice ${invoiceNumber} for ${sym}${Number(total).toFixed(2)} ${currency} from OceanicCoder has been sent to ${clientEmail}.`,
+          `Hi ${clientName}, your invoice ${invoiceNumber} for ${formatMoney(total, currency)} from OceanicCoder has been sent to ${clientEmail}.`,
           context.log,
         );
       }

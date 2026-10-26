@@ -25,6 +25,7 @@ const SAMPLE_VIEWS = {
       validUntil: "24 Oct 2026",
       planSummary: "60% deposit, 40% balance",
       link: "https://oceaniccoder.dev/q/sample-token",
+      linkOpens: true,
     },
   },
   quoteAccepted: {
@@ -119,6 +120,21 @@ const SAMPLE_VIEWS = {
       ],
       note: "Plans are optional. You can start or stop at any time. Unused hours don’t roll over.",
       whatsappLink: "https://wa.me/233241234567",
+    },
+  },
+  accessCode: {
+    template: "accessCode",
+    view: { clientFirstName: "Kofi", quoteNumber: "Q-2026-0007", code: "482915", minutes: 10 },
+  },
+  accessLockedAlert: {
+    template: "accessLockedAlert",
+    view: {
+      blocked: false,
+      clientName: "Kofi Mensah",
+      quoteNumber: "Q-2026-0007",
+      title: "Online store with Paystack checkout",
+      lockedOn: "20 Oct 2026",
+      adminLink: "https://oceaniccoder.dev/admin/dashboard",
     },
   },
   paymentAlert: {

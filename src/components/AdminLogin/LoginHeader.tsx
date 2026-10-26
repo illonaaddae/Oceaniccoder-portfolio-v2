@@ -1,6 +1,6 @@
 import React from "react";
 import { FaLock } from "react-icons/fa";
-import type { LoginTheme } from "./useAdminLogin";
+import type { LoginTheme } from "./loginTheme";
 
 interface LoginHeaderProps {
   theme: LoginTheme;

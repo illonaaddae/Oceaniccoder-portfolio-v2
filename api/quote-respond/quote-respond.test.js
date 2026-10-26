@@ -5,7 +5,9 @@ const { createHandler } = await import("./index.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const { hashToken, newToken } = await import("../shared/tokens.js");
 const M = await import("../shared/quotes/model.js");
+const A = await import("../shared/quotes/access.js");
 
+const SECRET = "r".repeat(40);
 const TOKEN = newToken();
 const NOW = new Date("2026-10-10T09:00:00.000Z");
 const base = {
@@ -29,7 +31,13 @@ const base = {
   tokenHash: hashToken(TOKEN),
 };
 
-function setup(quote = base, { notify: notifyOverride } = {}) {
+// The unlock cookie a browser holds after a code or link code.
+const unlocked = (quote = base) => A.sessionCookie(SECRET, quote, 0, NOW.getTime()).split(";")[0];
+
+function setup(
+  quote = base,
+  { notify: notifyOverride, env = { QUOTE_ACCESS_SECRET: SECRET } } = {},
+) {
   const repo = createFakeRepo({ quotes: [quote] });
   const notify = {
     quoteAccepted: vi.fn().mockResolvedValue({ ok: true }),
@@ -38,14 +46,19 @@ function setup(quote = base, { notify: notifyOverride } = {}) {
   };
   const locks = createFakeLocks();
   const handler = createHandler({
+    env,
     services: () => ({ repo, notify, locks, now: () => NOW }),
   });
-  const call = async (body) => {
+  const call = async (body, { cookie = unlocked(quote) } = {}) => {
     const context = { log: { error: vi.fn(), warn: vi.fn() } };
     await handler(context, {
       method: "POST",
       body: { token: TOKEN, ...body },
-      headers: { "x-forwarded-for": "1.2.3.4:555", "user-agent": "Test UA" },
+      headers: {
+        "x-forwarded-for": "1.2.3.4:555",
+        "user-agent": "Test UA",
+        ...(cookie ? { cookie } : {}),
+      },
     });
     return { status: context.res.status, body: JSON.parse(context.res.body), context };
   };
@@ -212,5 +225,38 @@ describe("quote-respond double submits and races", () => {
       quoteNumber: "Q-2026-0001",
       clientEmail: "kofi@example.com",
     });
+  });
+});
+
+describe("quote-respond access gate", () => {
+  it.each([
+    { action: "accept", name: "Kofi Mensah", agree: true },
+    { action: "decline", reason: "Too dear" },
+  ])("refuses $action without an unlock and changes nothing", async (body) => {
+    const t = setup();
+    const r = await t.call(body, { cookie: null });
+    expect(r.status).toBe(401);
+    expect(r.body).toEqual({ locked: true, error: expect.any(String) });
+    expect(t.repo.quotes.get("q1").status).toBe("sent");
+    expect(t.notify.decision).not.toHaveBeenCalled();
+  });
+
+  it("accepts without a cookie when the gate is switched off", async () => {
+    const t = setup(base, { env: { QUOTE_ACCESS_GATE: "off" } });
+    const r = await t.call(
+      { action: "accept", name: "Kofi Mensah", agree: true },
+      { cookie: null },
+    );
+    expect(r.status).toBe(200);
+  });
+
+  it("keeps the expiry answer behind the gate", async () => {
+    const t = setup({ ...base, validUntil: "2026-10-09T00:00:00.000Z" });
+    const r = await t.call(
+      { action: "accept", name: "Kofi Mensah", agree: true },
+      { cookie: null },
+    );
+    expect(r.status).toBe(401);
+    expect(t.repo.quotes.get("q1").status).toBe("sent");
   });
 });

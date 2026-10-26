@@ -3,6 +3,7 @@ import { FaStar } from "react-icons/fa";
 import { BlogPost, BlogViewStats } from "@/types";
 import { BlogPostActions } from "./BlogPostActions";
 import { BlogPostMeta } from "./BlogPostMeta";
+import { IMAGES } from "@/utils/imageUrls";
 
 interface BlogPostCardProps {
   post: BlogPost;
@@ -13,8 +14,7 @@ interface BlogPostCardProps {
   views?: BlogViewStats;
 }
 
-const FALLBACK_IMAGE =
-  "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg";
+const FALLBACK_IMAGE = IMAGES.blogPlaceholder1;
 
 export const BlogPostCard: React.FC<BlogPostCardProps> = ({
   post,

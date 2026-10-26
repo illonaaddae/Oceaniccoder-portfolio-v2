@@ -1,22 +1,14 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { COLLECTIONS } from "./collections";
 import type { BlogPost } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate } from "./dataApi";
 
 export async function getBlogPosts(): Promise<BlogPost[]> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.BLOG_POSTS, { orderBy: "publishedAt", dir: "desc" })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_POSTS, [
-        Query.orderDesc("publishedAt"),
-      ]);
+  const response = await listRows(COLLECTIONS.BLOG_POSTS, { orderBy: "publishedAt", dir: "desc" });
   return response.documents as unknown as BlogPost[];
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.BLOG_POSTS, { where: { slug } })
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.BLOG_POSTS, [
-        Query.equal("slug", slug),
-      ]);
+  const response = await listRows(COLLECTIONS.BLOG_POSTS, { where: { slug } });
   if (response.documents.length === 0) throw new Error("Blog post not found");
   return response.documents[0] as unknown as BlogPost;
 }
@@ -36,13 +28,7 @@ export async function createBlogPost(post: Omit<BlogPost, "$id">): Promise<BlogP
   if (post.featured !== undefined) cleanedData.featured = post.featured;
   if (post.published !== undefined) cleanedData.published = post.published;
 
-  const result = await databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.BLOG_POSTS,
-    ID.unique(),
-    cleanedData,
-  );
-  return result as unknown as BlogPost;
+  return manageCreate<BlogPost>(COLLECTIONS.BLOG_POSTS, cleanedData);
 }
 
 export async function updateBlogPost(
@@ -63,15 +49,9 @@ export async function updateBlogPost(
   if (post.featured !== undefined) cleanedData.featured = post.featured;
   if (post.published !== undefined) cleanedData.published = post.published;
 
-  const result = await databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.BLOG_POSTS,
-    postId,
-    cleanedData,
-  );
-  return result as unknown as BlogPost;
+  return manageUpdate<BlogPost>(COLLECTIONS.BLOG_POSTS, postId, cleanedData);
 }
 
 export async function deleteBlogPost(postId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.BLOG_POSTS, postId);
+  await manageDelete(COLLECTIONS.BLOG_POSTS, postId);
 }

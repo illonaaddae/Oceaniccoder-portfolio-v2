@@ -10,12 +10,7 @@ import PageViewTracker from "./components/PageViewTracker";
 import TerminalLoader from "./components/TerminalLoader";
 import Chatbot from "./components/Chatbot";
 import useTheme from "./hooks/useTheme";
-import {
-  verifyAdminPassword,
-  incrementSiteViews,
-  hasAppwriteSession,
-  logoutAdmin,
-} from "./services/api";
+import { incrementSiteViews, hasAdminSession, logoutAdmin } from "./services/api";
 import { prefetchRoutes } from "./utils/prefetchRoutes";
 import { PREFETCHABLE_ROUTES } from "./routes/lazyComponents";
 import { optOutOfTracking } from "./utils/analytics/consent";
@@ -41,47 +36,19 @@ function App() {
     prefetchRoutes(PREFETCHABLE_ROUTES);
   }, []);
 
-  // Auth gate: Appwrite server-side session is the single source of truth.
-  // The legacy localStorage hash fallback was removed (it required exposing
-  // VITE_ADMIN_PASSWORD_HASH in the client bundle).
+  // Auth gate: the server-side session is the single source of truth (Static
+  // Web Apps with the admin role). The legacy localStorage hash fallback was
+  // removed (it exposed VITE_ADMIN_PASSWORD_HASH in the client bundle).
   useEffect(() => {
-    hasAppwriteSession().then((hasSession) => {
+    hasAdminSession().then((hasSession) => {
       setIsAdminLoggedIn(hasSession);
-      if (hasSession) {
-        // The owner's browser: never count its page views.
-        optOutOfTracking();
-      } else {
-        localStorage.removeItem("adminAuth");
-        localStorage.removeItem("adminHash"); // clean up stale legacy key
-      }
+      // The owner's browser: never count its page views.
+      if (hasSession) optOutOfTracking();
     });
   }, []);
 
-  const handleAdminLogin = useCallback(async (password: string) => {
-    try {
-      const isValid = await verifyAdminPassword(password);
-      if (isValid) {
-        // verifyAdminPassword creates an Appwrite session; that session IS the
-        // auth state. localStorage.adminAuth kept only as a UI hint for legacy
-        // code paths that haven't been migrated yet — it's no longer a secret.
-        localStorage.setItem("adminAuth", "authenticated");
-        optOutOfTracking();
-        setIsAdminLoggedIn(true);
-      } else {
-        // eslint-disable-next-line no-alert
-        window.alert("Invalid password");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      // eslint-disable-next-line no-alert
-      window.alert("Login failed. Please try again.");
-    }
-  }, []);
-
-  const handleAdminLogout = useCallback(async () => {
-    await logoutAdmin();
-    localStorage.removeItem("adminAuth");
-    localStorage.removeItem("adminHash");
+  const handleAdminLogout = useCallback(() => {
+    logoutAdmin();
     setIsAdminLoggedIn(false);
   }, []);
 
@@ -113,7 +80,6 @@ function App() {
                 >
                   <AnimatedRoutes
                     isAdminLoggedIn={isAdminLoggedIn}
-                    onAdminLogin={handleAdminLogin}
                     onAdminLogout={handleAdminLogout}
                   />
                   <RouteChangeHandler />

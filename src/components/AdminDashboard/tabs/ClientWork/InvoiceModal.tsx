@@ -105,9 +105,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
     setSending(true);
     setError("");
 
-    const invoiceNumber = isUpdate
-      ? existingInvoice!.invoiceNumber
-      : `INV-${Date.now().toString().slice(-6)}`;
+    let invoiceNumber = existingInvoice?.invoiceNumber ?? "";
 
     try {
       if (isUpdate) {
@@ -123,9 +121,8 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
           status: existingInvoice!.status,
         });
       } else {
-        await createInvoice({
+        const created = await createInvoice({
           inquiryId: inquiry.$id,
-          invoiceNumber,
           clientName: inquiry.name,
           clientEmail: inquiry.email,
           clientPhone: inquiry.phone,
@@ -139,6 +136,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
           estimatedDelivery,
           status: "sent",
         });
+        invoiceNumber = created.invoiceNumber;
       }
 
       // fetch only rejects on a network failure — an HTTP 502/503 resolves
@@ -174,7 +172,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
         setError(
           `Invoice ${invoiceNumber} was saved, but the email failed to send ` +
             `(${emailRes.status}: ${body.error ?? "unknown error"}). ` +
-            `The client has NOT been notified. Check Resend, then resend from the invoice.`,
+            `The client has NOT been notified. Fix that, then resend from the invoice.`,
         );
         return;
       }

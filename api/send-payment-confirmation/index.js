@@ -1,12 +1,12 @@
 /* global require, module, Buffer */
 const https = require("https");
 const { requireAdmin } = require("../shared/adminAuth");
-const { shell, heading, card, small } = require("../shared/email/ui");
+const { shell, heading, card, small, money } = require("../shared/email/ui");
 
 const CORS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-appwrite-jwt",
+  "Access-Control-Allow-Headers": "Content-Type",
   Vary: "Origin",
   "Content-Type": "application/json",
 };
@@ -15,16 +15,8 @@ const CLIENT_REASON = "OceanicCoder · Web and app development";
 
 // Pure: builds the receipt email HTML. paidDate is pre-formatted so the HTML
 // and the plain-text part show the same date.
-function renderPaymentConfirmation({
-  invoiceNumber,
-  clientName,
-  total,
-  currency,
-  currencySymbol,
-  paidDate,
-}) {
-  const sym = currencySymbol || currency;
-  const amount = `${sym}${Number(total).toFixed(2)} ${currency}`;
+function renderPaymentConfirmation({ invoiceNumber, clientName, total, currency, paidDate }) {
+  const amount = money(total, currency);
   return shell({
     preview: `Payment of ${amount} received for ${invoiceNumber}. Thank you.`,
     meta: { label: "Receipt", number: invoiceNumber },
@@ -38,12 +30,12 @@ function renderPaymentConfirmation({
       }) +
       card({
         title: "Receipt",
+        status: { label: "Paid", tone: "ok" },
         highlightLabel: "Amount paid",
         highlight: amount,
         rows: [
           ["Invoice", invoiceNumber],
           ["Date", paidDate],
-          ["Status", "Paid"],
         ],
       }) +
       small(
@@ -94,8 +86,7 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const { invoiceNumber, clientName, clientEmail, total, currency, currencySymbol } =
-    req.body || {};
+  const { invoiceNumber, clientName, clientEmail, total, currency } = req.body || {};
 
   if (!clientEmail || !invoiceNumber) {
     context.res = {
@@ -108,8 +99,6 @@ module.exports = async function (context, req) {
 
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
-  const sym = currencySymbol || currency;
-
   if (!apiKey) {
     context.res = { status: 503, headers: CORS, body: JSON.stringify({ error: "Not configured" }) };
     return;
@@ -126,7 +115,6 @@ module.exports = async function (context, req) {
     clientName,
     total,
     currency,
-    currencySymbol,
     paidDate,
   });
 
@@ -141,7 +129,7 @@ module.exports = async function (context, req) {
         to: [clientEmail],
         subject: `Your receipt from OceanicCoder – ${invoiceNumber}`,
         html,
-        text: `Hi ${clientName},\n\nThank you for your payment. This is your receipt for invoice ${invoiceNumber}.\n\nAmount: ${sym}${Number(total).toFixed(2)} ${currency}\nDate: ${paidDate}\nStatus: PAID\n\nQuestions? Reply to this email or contact hello@oceaniccoder.dev\n\nOceanicCoder\nhttps://oceaniccoder.dev`,
+        text: `Hi ${clientName},\n\nThank you for your payment. This is your receipt for invoice ${invoiceNumber}.\n\nAmount: ${money(total, currency)}\nDate: ${paidDate}\nStatus: PAID\n\nQuestions? Reply to this email or contact hello@oceaniccoder.dev\n\nOceanicCoder\nhttps://oceaniccoder.dev`,
       },
     );
 

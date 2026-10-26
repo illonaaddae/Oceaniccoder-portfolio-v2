@@ -80,7 +80,7 @@ describe("QuoteWorkspace", () => {
         return { ...sentDetail, link: "https://oceaniccoder.dev/q/OLD", emailed: true };
       }
       if (action === "rotate")
-        return { ...sentDetail, link: "https://oceaniccoder.dev/q/NEW", emailed: false };
+        return { ...sentDetail, link: "https://oceaniccoder.dev/q/NEW#k=CODE", emailed: false };
       throw new Error(`unexpected ${action}`);
     });
     Object.defineProperty(navigator, "clipboard", {
@@ -100,13 +100,14 @@ describe("QuoteWorkspace", () => {
     await userEvent.click(await within(sidebar()).findByRole("button", { name: /new link/i }));
     await waitFor(() =>
       expect(within(panel).getByLabelText("Quote link")).toHaveValue(
-        "https://oceaniccoder.dev/q/NEW",
+        "https://oceaniccoder.dev/q/NEW#k=CODE",
       ),
     );
     expect(within(panel).getByRole("button", { name: /copy link/i })).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: /open as the client/i })).toHaveAttribute(
       "href",
-      "https://oceaniccoder.dev/q/NEW?preview=1",
+      // The admin preview never carries the link code, so it can't spend it.
+      "https://oceaniccoder.dev/q/NEW?preview=admin",
     );
   });
 });

@@ -91,6 +91,9 @@ const INITIAL_FORM = {
   preferredPlatform: "google",
 };
 
+// The token normally arrives in a few seconds; past this, say what to do.
+const SPAM_CHECK_SLOW_MS = 15000;
+
 const getTodayMin = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -103,13 +106,18 @@ export default function BookingSection() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const turnstile = useTurnstile();
+  // The widget mounts with step 3 and its token arrives a few seconds later.
+  // Confirm stays off until then: /api/create-booking sends the calendar invite
+  // before the row is saved, and the save is refused without a token.
+  const waitingForSpamCheck = !turnstile.token;
+  const [spamCheckSlow, setSpamCheckSlow] = useState(false);
   const sectionTopRef = useRef(null);
   const [bookingRef, setBookingRef] = useState("");
   const [meetLink, setMeetLink] = useState("");
   const [zoomLink, setZoomLink] = useState("");
   const [calendarLink, setCalendarLink] = useState("");
   const [slotAvailability, setSlotAvailability] = useState({});
-  const [appwriteBookedSlots, setAppwriteBookedSlots] = useState(new Set());
+  const [bookedSlots, setBookedSlots] = useState(new Set());
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
@@ -121,7 +129,7 @@ export default function BookingSection() {
     if (!form.preferredDate) return;
     setLoadingSlots(true);
     setSlotAvailability({});
-    setAppwriteBookedSlots(new Set());
+    setBookedSlots(new Set());
     // Fetch Google Calendar availability
     const availUrl = apiUrl(
       `/api/get-availability?date=${form.preferredDate}&timezone=${encodeURIComponent(form.timezone)}`,
@@ -131,11 +139,35 @@ export default function BookingSection() {
       .then((data) => setSlotAvailability(data.available || {}))
       .catch(() => {})
       .finally(() => setLoadingSlots(false));
-    // Fetch Appwrite bookings for this date so already-booked slots show disabled immediately
+    // Fetch saved bookings for this date so already-booked slots show disabled immediately
     getBookedTimesForDate(form.preferredDate)
-      .then((booked) => setAppwriteBookedSlots(booked))
+      .then((booked) => setBookedSlots(booked))
       .catch(() => {});
   }, [form.preferredDate, form.timezone]);
+
+  // The status line mounts empty and gets its text a moment later: screen
+  // readers skip text that is already inside a live region when it appears.
+  const spamCheckMessage = turnstile.error
+    ? ""
+    : waitingForSpamCheck
+      ? spamCheckSlow
+        ? "The spam check is taking longer than usual. If a checkbox appears above, tick it; otherwise reload the page or email hello@oceaniccoder.dev."
+        : "Running a quick spam check. Confirm Booking unlocks in a moment."
+      : "Spam check done. You can confirm your booking.";
+  const [spamCheckStatus, setSpamCheckStatus] = useState("");
+  useEffect(() => {
+    if (step !== 3) return;
+    setSpamCheckStatus(spamCheckMessage);
+  }, [step, spamCheckMessage]);
+
+  useEffect(() => {
+    if (step !== 3 || !waitingForSpamCheck) return undefined;
+    const timer = setTimeout(() => setSpamCheckSlow(true), SPAM_CHECK_SLOW_MS);
+    return () => {
+      clearTimeout(timer);
+      setSpamCheckSlow(false);
+    };
+  }, [step, waitingForSpamCheck]);
 
   // iOS Safari keeps the keyboard open on the first tap of a button, consuming it.
   // Blurring on touchStart forces the keyboard to dismiss so the click fires immediately.
@@ -156,8 +188,8 @@ export default function BookingSection() {
     setError("");
     setSubmitting(true);
     try {
-      // Double-booking is enforced server-side in the Azure Function (guests can't
-      // query Appwrite directly — 401). The function returns 409 if slot is taken.
+      // Double-booking is enforced server-side in the Azure Function, which
+      // returns 409 if the slot is taken.
 
       // Try calendar event creation — best-effort, don't block booking if unavailable
       let calMeetLink = null;
@@ -191,7 +223,7 @@ export default function BookingSection() {
         // API unavailable locally (run `func start` for full local testing) — continue to save
       }
 
-      // Save booking to Appwrite (include meet/zoom link so admin can resend it on confirm)
+      // Save the booking (include meet/zoom link so admin can resend it on confirm)
       const result = await createBooking(
         {
           ...form,
@@ -569,7 +601,7 @@ export default function BookingSection() {
                           <div className="grid grid-cols-3 gap-2">
                             {TIME_SLOTS.map((slot) => {
                               const isBooked =
-                                slotAvailability[slot] === false || appwriteBookedSlots.has(slot);
+                                slotAvailability[slot] === false || bookedSlots.has(slot);
                               const isSelected = form.preferredTime === slot;
                               return (
                                 <button
@@ -792,10 +824,19 @@ export default function BookingSection() {
                         )}
 
                         <TurnstileSlot turnstile={turnstile} />
+                        <p
+                          id="booking-spam-check-status"
+                          role="status"
+                          className="text-sm min-h-5"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {spamCheckStatus}
+                        </p>
                         <button
                           onTouchStart={blurActive}
                           onClick={handleSubmit}
-                          disabled={submitting}
+                          disabled={submitting || waitingForSpamCheck}
+                          aria-describedby="booking-spam-check-status"
                           className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
                           style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                         >

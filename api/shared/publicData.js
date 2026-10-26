@@ -10,7 +10,6 @@
 // (drafts, hidden images, unapproved comments) and fields (commenter emails)
 // on the server, so a visitor can't get them by editing the request. A
 // collection with `fields` returns only those fields; `omit` drops named ones.
-// /api/comments uses the same comment rule for its Appwrite reads.
 
 const { MIGRATED_SETTINGS_KEYS } = require("./cosmos");
 
@@ -55,7 +54,7 @@ function cosmosField(name, collection) {
   if (rule?.omit?.includes(name) || (rule?.fields && !rule.fields.includes(name))) {
     throw new BadRequest(`Field not available: ${name}`);
   }
-  return SYSTEM_FIELDS[name] || name;
+  return Object.hasOwn(SYSTEM_FIELDS, name) ? SYSTEM_FIELDS[name] : name;
 }
 
 /** Validates the query string. Throws BadRequest on anything unexpected. */

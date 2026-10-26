@@ -33,6 +33,13 @@ const SHARED_THROUGHPUT = 1000;
 // expire. createIfNotExists never changes an existing container, so check it
 // in the portal (Settings → Time to Live: "On (no default)") if it was created
 // by hand. Production was created with defaultTtl -1.
+//
+// `quotes` and `locks` hold quote tokens, payment state and lock rows, so
+// only the quote functions touch them (`manage: false` keeps them out of
+// /api/manage). They are still imported from the Appwrite backup.
+//
+// A shared-throughput database holds at most 25 containers. This list is at
+// 25; another container needs its own database or dedicated throughput.
 const ANALYTICS_INDEXING_POLICY = {
   indexingMode: "consistent",
   includedPaths: [{ path: "/type/?" }, { path: "/day/?" }, { path: "/ts/?" }, { path: "/sid/?" }],
@@ -54,15 +61,19 @@ const CONTAINERS = {
   certifications: { partitionKey: "/id" },
   comments: { partitionKey: "/id" },
   education: { partitionKey: "/id" },
+  // Never existed in Appwrite (the Analytics tab showed "unavailable").
+  expenses: { partitionKey: "/id" },
   gallery: { partitionKey: "/id" },
   invoices: { partitionKey: "/id" },
   journey: { partitionKey: "/id" },
+  locks: { partitionKey: "/id", manage: false },
   messages: { partitionKey: "/id" },
   payments: { partitionKey: "/id" },
   project_case_studies: { partitionKey: "/projectId", uniqueKeys: [["/projectId"]] },
   project_inquiries: { partitionKey: "/id" },
   project_videos: { partitionKey: "/projectId", uniqueKeys: [["/projectId"]] },
   projects: { partitionKey: "/id" },
+  quotes: { partitionKey: "/id", manage: false },
   settings: { partitionKey: "/id" },
   site_views: { partitionKey: "/id" },
   skills: { partitionKey: "/id" },

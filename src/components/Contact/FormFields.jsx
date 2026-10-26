@@ -2,9 +2,6 @@ import React from "react";
 
 const FormFields = React.memo(({ formData, handleInputChange }) => (
   <>
-    {/* Hidden fields for Web3Forms */}
-    <input type="hidden" name="access_key" value="e0faddf8-32ef-4a92-b097-8aec3e900163" />
-    <input type="hidden" name="subject" value="New message from Oceaniccoder website" />
     <input
       type="text"
       name="website"
