@@ -339,7 +339,9 @@ export default function DocumentAccessGate({
                 ? `We sent ${sends > 1 ? "a new" : "a"} code to ${recipient}.`
                 : sending
                   ? `Sending a code to ${recipient}…`
-                  : ""}
+                  : addressHidden
+                    ? `Press Send a code to get one at ${copy.recipient}.`
+                    : ""}
             </span>
           </p>
           <div className="min-w-0">

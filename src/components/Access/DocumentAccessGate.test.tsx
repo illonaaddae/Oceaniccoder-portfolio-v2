@@ -187,7 +187,9 @@ describe("DocumentAccessGate across kinds", () => {
     // Leaving act runs the effects of the code screen, where an auto-send would start.
     await act(async () => {});
     expect(target.send).not.toHaveBeenCalled();
-    expect(screen.getByRole("status").textContent).toBe("");
+    expect(screen.getByRole("status").textContent).toBe(
+      "Press Send a code to get one at the email address we sent the invoice to.",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Send a code" }));
     await screen.findByText("We sent a code to the email address we sent the invoice to.");
     expect(target.send).toHaveBeenCalledTimes(1);
@@ -208,6 +210,9 @@ describe("DocumentAccessGate across kinds", () => {
     await screen.findByText("That code has expired.");
     await act(async () => {});
     expect(target.send).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status").textContent).toBe(
+      "Press Send a code to get one at the email address we sent the invoice to.",
+    );
   });
 
   it("opens the document when the status says this browser is already unlocked", async () => {
