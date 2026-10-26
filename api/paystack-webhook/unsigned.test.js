@@ -161,6 +161,32 @@ describe("paystack-webhook with an unverified request", () => {
     expect(sent).toHaveLength(2);
   });
 
+  it("says in the next alert how many failures were held back, and starts over once it is sent", async () => {
+    const held = /(\d+) more signature failures? since the last alert/;
+    await post(WRONG_SIG);
+    for (let i = 0; i < 3; i++) await post(WRONG_SIG);
+    now += HOUR;
+    await post(WRONG_SIG);
+    expect(sent[1].html).toMatch(held);
+    expect(sent[1].html.match(held)[1]).toBe("3");
+
+    now += HOUR;
+    await post(WRONG_SIG, {});
+    expect(sent).toHaveLength(3);
+    expect(sent[2].html).not.toMatch(held);
+  });
+
+  it("keeps the count of held-back failures when the alert fails to send", async () => {
+    await post(WRONG_SIG);
+    await post(WRONG_SIG);
+    now += HOUR;
+    sent.answers.push(500);
+    await post(WRONG_SIG);
+    await post(WRONG_SIG);
+    expect(sent.map((m) => m.status)).toEqual([200, 500, 200]);
+    expect(sent[2].html).toContain("1 more signature failure since the last alert");
+  });
+
   it("gives the hour back when the email fails, so the next mismatch emails", async () => {
     sent.answers.push(500);
     await post(WRONG_SIG);

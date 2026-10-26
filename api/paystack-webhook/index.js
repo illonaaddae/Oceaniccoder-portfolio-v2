@@ -83,6 +83,8 @@ const claimInProcess = (key) => {
 const UNVERIFIED_ALERT_INTERVAL_MS = 60 * 60 * 1000;
 const UNVERIFIED_ALERT_KEY = "unverified-signature";
 let unverifiedAlertAt = -Infinity;
+// Failures held back while the claim is held, reported in the next alert.
+let heldBackFailures = 0;
 const claimUnverifiedAlert = () => {
   const now = Date.now();
   if (now - unverifiedAlertAt >= UNVERIFIED_ALERT_INTERVAL_MS) {
@@ -454,6 +456,7 @@ module.exports = async function (context, req) {
       await alertOnce({
         claim: async () => {
           if (claimUnverifiedAlert()) return true;
+          heldBackFailures += 1;
           const at = new Date(unverifiedAlertAt).toISOString();
           context.log.warn(
             `paystack-webhook: no email; the admin was alerted at ${at} and gets at most one an hour`,
@@ -461,18 +464,27 @@ module.exports = async function (context, req) {
           return false;
         },
         release: async () => processAlerts.delete(UNVERIFIED_ALERT_KEY),
-        send: () =>
-          sendEmail(
+        send: async () => {
+          // Taken before the send so failures held back while it is in
+          // flight are kept for the next alert.
+          const held = heldBackFailures;
+          const heldNote = held
+            ? ` ${held} more signature ${held === 1 ? "failure" : "failures"} since the last alert ${held === 1 ? "was" : "were"} only logged.`
+            : "";
+          const sent = await sendEmail(
             resendKey,
             fromEmail,
             adminEmail,
             "Action needed: a Paystack webhook was not processed",
             webhookFailedEmail(
               reason,
-              `${detail} Further mismatches in the next hour are only logged.`,
+              `${detail}${heldNote} Further mismatches in the next hour are only logged.`,
             ),
             context.log,
-          ),
+          );
+          if (sent) heldBackFailures -= held;
+          return sent;
+        },
         log: context.log,
       });
     }
