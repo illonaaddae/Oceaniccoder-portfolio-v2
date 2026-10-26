@@ -1,4 +1,5 @@
-import { FaAward, FaPlus } from "react-icons/fa";
+import { useState } from "react";
+import { FaAward, FaExclamationCircle, FaPlus, FaTimes } from "react-icons/fa";
 import type { Certification } from "@/types";
 import { CertificationsTable } from "./Certifications/CertificationsTable";
 import { CertificationFilters } from "./Certifications/CertificationFilters";
@@ -8,7 +9,7 @@ interface CertificationsTabProps {
   theme: "light" | "dark";
   loading: boolean;
   filteredCertifications: Certification[];
-  onDelete: (certId: string) => void;
+  onDelete: (certId: string) => Promise<void> | void;
   onEdit?: (cert: Certification) => void;
   onShowForm?: () => void;
   isReadOnly?: boolean;
@@ -25,9 +26,43 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
 }) => {
   const { filters, setFilter, clearFilters, isFiltered, filtered, platforms, types, years } =
     useCertificationFilters(filteredCertifications);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Cancelling the confirm resolves without deleting, so only a rejection
+  // from the delete itself lands here.
+  const handleDelete = async (certId: string) => {
+    try {
+      await onDelete(certId);
+    } catch (err) {
+      console.error("Failed to delete certification:", err);
+      setDeleteError("Failed to delete certification. Please try again.");
+      setTimeout(() => setDeleteError(null), 4000);
+    }
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {deleteError && (
+        <div
+          className={`fixed top-4 right-4 z-[200] flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-lg ${
+            theme === "dark"
+              ? "bg-red-500/20 border-red-400/50 text-red-300"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          <FaExclamationCircle className="text-lg flex-shrink-0" aria-hidden="true" />
+          <p role="alert" className="flex-1 text-sm font-medium">
+            {deleteError}
+          </p>
+          <button
+            onClick={() => setDeleteError(null)}
+            className="p-1 rounded-lg hover:bg-black/10 transition-colors"
+            aria-label="Dismiss"
+          >
+            <FaTimes className="text-xs" aria-hidden="true" />
+          </button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
           <h1
@@ -116,7 +151,7 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
               theme={theme}
               isReadOnly={isReadOnly}
               onEdit={onEdit}
-              onDelete={onDelete}
+              onDelete={handleDelete}
             />
           )}
         </>

@@ -66,6 +66,36 @@ describe("AdminDashboard delete confirmation", () => {
     await waitFor(() => expect(deleteCertification).toHaveBeenCalledWith("c1"));
   });
 
+  it("shows an error when a confirmed certification delete fails", async () => {
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    deleteCertification.mockImplementationOnce(async () => {
+      throw new Error("network down");
+    });
+    try {
+      render(<AdminDashboard onLogout={() => {}} />);
+
+      fireEvent.click(screen.getByTitle("Certifications"));
+      const [trash] = await screen.findAllByTitle("Delete certification");
+      fireEvent.click(trash);
+
+      const dialog = await screen.findByRole("alertdialog", {
+        name: 'Delete "Cloud Practitioner"?',
+      });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete certification" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Failed to delete certification. Please try again.",
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off("unhandledRejection", unhandled);
+      consoleError.mockRestore();
+    }
+  });
+
   it("deletes nothing when the dialog is cancelled", async () => {
     render(<AdminDashboard onLogout={() => {}} />);
 
