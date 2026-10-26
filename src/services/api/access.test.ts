@@ -62,6 +62,35 @@ describe("docAccessTarget", () => {
     });
   });
 
+  it("sends only the locator's own fields", async () => {
+    answer({ ok: true });
+    const invoice = {
+      kind: "invoice" as const,
+      number: "INV-1",
+      s: "sig",
+      clientEmail: "a@b.co",
+      id: "x",
+    };
+    const receipt = {
+      kind: "receipt" as const,
+      reference: "ref_1",
+      s: "sig",
+      token: "quote-token",
+    };
+    await docAccessTarget(invoice).status();
+    await docAccessTarget(receipt).claim("nonce.minted.mac");
+    expect(sent().map((c) => c.body)).toEqual([
+      { kind: "invoice", number: "INV-1", s: "sig", action: "status" },
+      {
+        kind: "receipt",
+        reference: "ref_1",
+        s: "sig",
+        action: "claim",
+        linkCode: "nonce.minted.mac",
+      },
+    ]);
+  });
+
   it("throws the access details of a refusal", async () => {
     answer({ error: "Too many wrong codes.", blocked: true, triesLeft: 0 }, 403);
     const err = await docAccessTarget({ kind: "invoice", number: "INV-1", s: "sig" })

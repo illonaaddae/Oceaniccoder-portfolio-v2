@@ -42,8 +42,21 @@ export type DocumentLocator =
   | { kind: "invoice"; number: string; s?: string }
   | { kind: "receipt"; reference: string; s: string };
 
-const docAccess = <T>(locator: DocumentLocator, body: Record<string, unknown>) =>
-  call<T>("/api/doc-access", postJson({ ...locator, ...body }));
+// Only the locator's own fields go out, named one by one: a locator built
+// from wider data (a page's params, a record) must not leak extra fields.
+const locatorFields = (locator: DocumentLocator) =>
+  locator.kind === "invoice"
+    ? { kind: locator.kind, number: locator.number, s: locator.s }
+    : { kind: locator.kind, reference: locator.reference, s: locator.s };
+
+type DocAccessAction =
+  | { action: "status" }
+  | { action: "send" }
+  | { action: "verify"; challenge: string; code: string }
+  | { action: "claim"; linkCode: string };
+
+const docAccess = <T>(locator: DocumentLocator, body: DocAccessAction) =>
+  call<T>("/api/doc-access", postJson({ ...locatorFields(locator), ...body }));
 
 export function docAccessTarget(locator: DocumentLocator): AccessTarget {
   return {
