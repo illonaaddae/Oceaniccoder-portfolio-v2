@@ -138,7 +138,8 @@ describe("QuoteAccessGate sending a code", () => {
       setup();
       const message = await screen.findByRole("alert");
       expect(message).toHaveTextContent(text);
-      expect(message).toHaveFocus();
+      // Focus moves in an effect after the alert renders, so wait for it.
+      await waitFor(() => expect(message).toHaveFocus());
       expect(screen.queryByLabelText("6-digit code")).toBeNull();
     },
   );
@@ -209,7 +210,7 @@ describe("QuoteAccessGate checking a code", () => {
     await enter("123456");
     const message = await screen.findByRole("alert");
     expect(message).toHaveTextContent(BLOCKED);
-    expect(message).toHaveFocus();
+    await waitFor(() => expect(message).toHaveFocus());
     expect(sessionStorage.getItem(`oc-quote-code:${t.token}`)).toBeNull();
   });
 });
