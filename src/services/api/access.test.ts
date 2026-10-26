@@ -91,6 +91,12 @@ describe("docAccessTarget", () => {
     ]);
   });
 
+  it("leaves s out for an unsigned invoice link", async () => {
+    answer({ ok: true });
+    await docAccessTarget({ kind: "invoice", number: "INV-1" }).status();
+    expect(sent()[0].body).toEqual({ kind: "invoice", number: "INV-1", action: "status" });
+  });
+
   it("throws the access details of a refusal", async () => {
     answer({ error: "Too many wrong codes.", blocked: true, triesLeft: 0 }, 403);
     const err = await docAccessTarget({ kind: "invoice", number: "INV-1", s: "sig" })

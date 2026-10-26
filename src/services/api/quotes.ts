@@ -122,7 +122,10 @@ export interface QuoteAccessStatus {
   locked: boolean;
   canUnlock?: boolean;
   blocked?: boolean;
-  /** "p•••••@hotmail.com", or null when the quote has no client email. */
+  /**
+   * "p•••••@hotmail.com", or null when the document has no client email or
+   * (doc-access) the address is hidden on an unsigned invoice link.
+   */
   maskedEmail?: string | null;
   gateOff?: boolean;
 }
