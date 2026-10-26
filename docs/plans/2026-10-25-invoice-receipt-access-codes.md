@@ -462,16 +462,24 @@ Each PR: scoped Vitest run (`npx vitest run --maxWorkers=2 api/shared/access api
 
 ### 10.2 Open questions only the owner can answer
 
+The owner answered Q1, Q2, Q3, Q7, Q8 and Q10 on 2026-10-26; each answer is under its question. Q4, Q5, Q6 and Q9 are still open.
+
 1. **Receipt code address.** The code for a receipt goes to the quote's client email (recommended, it is the address you verified). The alternative is the payer's typed email on the payment row, which can be anyone who had the quote page open. Which?
+   **Decided 2026-10-26:** the quote's client email.
 2. **Receipt unlock scope.** Recommended: a receipt code or receipt link opens only that receipt, while an unlocked quote opens all its receipts. Or should a receipt code also unlock the whole quote?
+   **Decided 2026-10-26:** a receipt code or link opens only that receipt; an unlocked quote opens all its receipts.
 3. **Unsigned grace links.** Accept the defaults (no masked email, at most 3 code emails a day per invoice), or end the grace before 2026-11-21 now that the code step exists?
+   **Decided 2026-10-26:** keep the defaults. Unsigned grace locators get `maskedEmail: null` on `status` and on `send`, and `canUnlock: true`. Their send quota is 1 per 10 minutes and 3 per day per invoice epoch, on top of the per-IP limit. The grace still ends 2026-11-21.
 4. **Revoking an invoice link.** Is "Reset access" (signs everyone out, same URL, next open needs a code) enough, or should it also issue a new URL so the old one shows "not valid"? The latter needs a link version on the invoice row and changes the signing input.
 5. **Admin preview of a pay page.** Hide the payment buttons and show a "Preview" banner (default), or show the page exactly as the client sees it?
 6. **Invoice email wording.** Add "This link usually opens straight away. If you open it on another device, we'll email you a short code first." under the Pay button, as on quotes?
 7. **Names and copy.** "Reset access" for the dashboard action and its confirmation text; code email subjects "123456 is your code for invoice INV-123456" and "... for your receipt"; screen titles "Open your invoice" and "Open your receipt".
+   **Decided 2026-10-26:** subjects "123456 is your code for invoice INV-…" and "… for your receipt"; titles "Open your invoice" and "Open your receipt". The name and confirmation text of "Reset access" are not decided yet.
 8. **Link-code lifetime.** 45 days as on quotes for invoice and receipt emails, after which the emailed link asks for a code? Receipts are often opened months later.
+   **Decided 2026-10-26:** 45 days for invoice and receipt link codes.
 9. **Paid and archived invoices.** Stay behind the code like unpaid ones (default, they still show the client's name and amount)?
 10. **Separate secret.** Reuse `QUOTE_ACCESS_SECRET` for invoices and receipts (default), or set a new secret so they can be rotated alone?
+    **Decided 2026-10-26:** reuse `QUOTE_ACCESS_SECRET`.
 
 ## 11. ADR
 
