@@ -87,6 +87,28 @@ describe("ConfirmProvider dialog", () => {
     expect(trigger.closest("[inert]")).toBeNull();
   });
 
+  it("locks page scroll while open and unlocks it once closed", () => {
+    const { open } = setup();
+    open();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("keeps the scroll lock of a Modal underneath after it closes", () => {
+    document.body.style.overflow = "hidden";
+    try {
+      const { open } = setup();
+      open();
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(document.body.style.overflow).toBe("hidden");
+    } finally {
+      document.body.style.overflow = "";
+    }
+  });
+
   it("closes and resolves false on Escape", async () => {
     const { open, results } = setup();
     open();

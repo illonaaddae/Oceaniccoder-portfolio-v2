@@ -115,14 +115,18 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     if (state) cancelRef.current?.focus();
   }, [state]);
 
-  // While open the dialog is modal: everything else on the page is inert, and
-  // Escape cancels. On close, focus goes back to whatever opened it.
+  // While open the dialog is modal: everything else on the page is inert and
+  // can't scroll, and Escape cancels. On close, focus goes back to whatever
+  // opened it.
   useEffect(() => {
     if (!isOpen) return;
     const background = Array.from(document.body.children).filter(
       (el) => el !== overlayRef.current && !el.hasAttribute("inert"),
     );
     background.forEach((el) => el.setAttribute("inert", ""));
+    // Restore what was there, not "unset": a Modal underneath has its own lock.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     // Capture phase, and stopped there: a Modal underneath also closes on
     // Escape from a document listener, and one key press should only cancel
@@ -138,6 +142,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
       background.forEach((el) => el.removeAttribute("inert"));
+      document.body.style.overflow = previousOverflow;
       restoreFocus(returnFocusRef.current);
       returnFocusRef.current = null;
     };
