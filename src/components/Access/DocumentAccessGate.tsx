@@ -190,8 +190,9 @@ export default function DocumentAccessGate({
         if (!status.locked) onUnlocked();
         else if (status.blocked) setScreen({ kind: "contact", message: BLOCKED, announce: false });
         // A record with no address can't unlock. An unsigned invoice link
-        // can, but the server hides the address (maskedEmail null).
-        else if (!status.maskedEmail && !status.canUnlock)
+        // can, but the server hides the address (maskedEmail null); quotes
+        // have no such link.
+        else if (!status.maskedEmail && (target.kind === "quote" || !status.canUnlock))
           setScreen({ kind: "contact", message: copy.noEmail, announce: false });
         else {
           setMaskedEmail(status.maskedEmail ?? null);
@@ -236,9 +237,11 @@ export default function DocumentAccessGate({
   }, [target, copy, onUnlocked, contact, showError, waitUntil]);
 
   // Ask for a code once the page is actually in front of someone, so a tab
-  // opened in the background (or prerendered) doesn't email a code.
+  // opened in the background (or prerendered) doesn't email a code. Not when
+  // the address is hidden (an unsigned link, guessable until its grace ends):
+  // the visitor presses Send a code, so a guess alone emails nobody.
   useEffect(() => {
-    if (screen.kind !== "entry" || challenge || autoSent.has(sentKey)) return;
+    if (screen.kind !== "entry" || !maskedEmail || challenge || autoSent.has(sentKey)) return;
     const go = () => {
       if (document.visibilityState !== "visible" || autoSent.has(sentKey)) return;
       autoSent.add(sentKey);
@@ -247,7 +250,7 @@ export default function DocumentAccessGate({
     document.addEventListener("visibilitychange", go);
     go();
     return () => document.removeEventListener("visibilitychange", go);
-  }, [screen.kind, challenge, sentKey, sendCode]);
+  }, [screen.kind, maskedEmail, challenge, sentKey, sendCode]);
 
   // The resend countdown ticks once a second while it runs.
   useEffect(() => {

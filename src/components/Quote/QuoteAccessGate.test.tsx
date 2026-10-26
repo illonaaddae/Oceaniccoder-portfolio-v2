@@ -157,6 +157,16 @@ describe("QuoteAccessGate sending a code", () => {
     expect(sendQuoteCode).not.toHaveBeenCalled();
   });
 
+  it("says a quote with no shown address can't open with a code, whatever canUnlock says", async () => {
+    fetchQuoteAccess.mockResolvedValue({ locked: true, canUnlock: true, maskedEmail: null });
+    setup();
+    expect(await screen.findByText(/can't be opened with a code/)).toHaveTextContent(
+      "This quote can't be opened with a code. Contact hello@oceaniccoder.dev to open it.",
+    );
+    expect(screen.queryByLabelText("6-digit code")).toBeNull();
+    expect(sendQuoteCode).not.toHaveBeenCalled();
+  });
+
   it("does not announce or move focus for a quote blocked before the page opened", async () => {
     fetchQuoteAccess.mockResolvedValue({ locked: true, blocked: true, maskedEmail: "k@x.co" });
     setup();

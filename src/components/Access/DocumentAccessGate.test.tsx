@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import DocumentAccessGate, { LockedDocument } from "./DocumentAccessGate";
@@ -102,10 +102,11 @@ describe.each([
       `oc-access:${kind}:${target.key}`,
       JSON.stringify({ challenge: "v1.saved.sig", expiresAt: Date.now() + 60000 }),
     );
-    setup(target);
+    const t = setup(target);
     await enter("123456", button);
     expect(target.send).not.toHaveBeenCalled();
     expect(target.verify).toHaveBeenCalledWith("v1.saved.sig", "123456");
+    await waitFor(() => expect(t.onUnlocked).toHaveBeenCalled());
   });
 
   it("on blocked announces the contact message and moves focus to it", async () => {
@@ -168,15 +169,26 @@ describe("DocumentAccessGate across kinds", () => {
     expect(again.send).not.toHaveBeenCalled();
   });
 
-  it("asks for a code for an unsigned invoice link without naming the address", async () => {
+  it("emails a code by itself when the link shows the address", async () => {
+    const target = fakeTarget("invoice");
+    setup(target);
+    await screen.findByText("We sent a code to k•••••@e•••••.com.");
+    expect(target.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for the visitor to ask before emailing a code on an unsigned invoice link", async () => {
     const target = fakeTarget("invoice");
     target.status.mockResolvedValue({ locked: true, canUnlock: true, maskedEmail: null });
     target.send.mockResolvedValue({ ...SENT, maskedEmail: null });
     setup(target);
+    expect(await screen.findByLabelText("6-digit code")).toBeInTheDocument();
+    // Leaving act runs the effects of the code screen, where an auto-send would start.
+    await act(async () => {});
+    expect(target.send).not.toHaveBeenCalled();
+    expect(screen.getByRole("status").textContent).toBe("");
+    await userEvent.click(screen.getByRole("button", { name: "Send a code" }));
     await screen.findByText("We sent a code to the email address we sent the invoice to.");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "the email address we sent the invoice to",
-    );
+    expect(target.send).toHaveBeenCalledTimes(1);
   });
 
   it("opens the document when the status says this browser is already unlocked", async () => {
