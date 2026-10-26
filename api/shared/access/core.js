@@ -193,7 +193,8 @@ const usedLabels = new Set();
 const usedCookies = new Set();
 const prunedRows = new Set();
 // createAccess result -> its prune rule, for pruneAcrossSchemes. Kept off the
-// returned object so callers see one way to prune.
+// returned object: pruneAccessLocks is the single-scheme form of
+// pruneAcrossSchemes, and both go through it.
 const pruneRules = new WeakMap();
 
 function validateScheme(scheme) {

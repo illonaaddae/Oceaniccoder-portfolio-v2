@@ -75,6 +75,8 @@ function createHandler(deps) {
       let pruned = null;
       try {
         // Each getScope returns its own kind's record (a deleted one is null).
+        // A getScope that throws (a Cosmos 429 on readInvoice, say) ends the
+        // whole pass; the catch below logs it and tomorrow's run tries again.
         pruned = await pruneAcrossSchemes({
           locks: svc.locks,
           nowMs,
