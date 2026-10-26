@@ -245,8 +245,8 @@ export default function DocumentAccessGate({
   // opened in the background (or prerendered) doesn't email a code. Not when
   // the address is hidden (an unsigned link, guessable until its grace ends):
   // the visitor presses Send a code, so opening a guessed link in a browser
-  // emails nobody. The server's unsigned send quota is the real limit; this
-  // only keeps page loads from spending it.
+  // emails nobody. The server's unsigned send quota (doc-access, plan 8.9) is
+  // the real limit; this only keeps page loads from spending it.
   useEffect(() => {
     if (screen.kind !== "entry" || addressHidden || challenge || autoSent.has(sentKey)) return;
     const go = () => {
