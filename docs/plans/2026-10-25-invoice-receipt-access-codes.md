@@ -230,6 +230,15 @@ Locator failure (bad or missing `s`, unknown number, unsigned outside grace, rec
 
 Order of checks for every action: method POST, known action, known kind, locator shape, kill switch for that kind (status answers `{locked:false, gateOff:true}`), secret (503), find the record through the locator (404), then the action.
 
+As built in PR 3 (deviations accepted 2026-10-26):
+
+- A receipt locator failure answers `404 { error: "Receipt not found.", inactive: true }`, `quote-receipt`'s text, so the receipt page shows the same text whichever call fails. Invoices use `get-invoice`'s text. Each kind's 404 is identical for every cause.
+- An unknown `kind` answers `400 "Unknown kind."`.
+- After the kind check and before the kind's endpoint, every request counts against a per-IP lookup limit of 30 per 10 minutes per instance, as `get-invoice`'s, for both kinds together: `429 "Too many requests. Try again in a few minutes."`, before any record is read. Without it a locator that finds nothing cost the caller nothing.
+- Two invoice rows with the same number fail closed with the same 404 and a log line naming the number only.
+- The unsigned quota is layered on the usual one, not instead of it: an unsigned send also takes the usual gap, hour and day slots, so a guesser can spend at most 3 of the client's 10 a day.
+- Each kind has its own per-IP send and verify limiters (10 sends an hour, 30 verifies per 10 minutes, per instance), as `quote-access` has.
+
 Unsigned grace locators (`kind: "invoice"` without `s`): status returns `maskedEmail: null` and `canUnlock: true` (the page says "the email address we sent the invoice to"); send quota is 1 per 10 minutes and 3 per day instead of 5 and 10 (section 8.9). Both are defaults for owner question Q3.
 
 #### `GET /api/get-invoice?number=&s=[&admin=1]`
@@ -384,11 +393,16 @@ erDiagram
 ### 8.9 Security analysis
 
 - **Brute force of the 6-digit code.** 5 tries per challenge (`ia:try:`), 15 wrong codes per invoice epoch then a block until Reset access (`ia:miss:`), challenges expire in 10 minutes, 30 verifies per IP per 10 minutes per instance. Worst case before the block: 15 guesses in 10^6, so 1.5e-5 per epoch. Receipts share the quote's 15. The owner is alerted on every locked challenge and on the block (generalised `accessLockedAlert`).
+
+  As built in PR 3: a wrong code through an unsigned (guessable) locator takes one of 5 `ia:umiss:` slots and also one of the 15 `ia:miss:` slots. At 5 `umiss`, unsigned sends and verifies are blocked; signed ones are not. The signed link blocks at 15 `miss` in total, signed and unsigned together. So the total per epoch stays at most 15 guesses (1.5e-5), a guesser can spend at most 5 of them, and a guesser alone can never block the signed link the client was emailed. The 5-`umiss` block sends the ordinary "code locked" owner alert. The prune treats `umiss` rows like `miss` rows.
+
 - **Link-code forgery.** A link code is `nonce.minted.HMAC(ia-link:, linkId:id:rev:epoch:mailTag:nonce:minted)`, the full 256-bit HMAC-SHA256 as 43 base64url characters. Without the secret it can't be made; it is bound to one invoice, one link, the current epoch and the current client email.
 - **Replay.** Link codes single use (`ia:lk:`), challenges single use (`ia:used:`), both stored past their lifetime. A stolen cookie works until it expires (30 days, not sliding) or until Reset access / email change; it is HttpOnly, Secure, SameSite=Strict, `__Secure-` prefixed. Link codes travel in the fragment, so they never reach our logs, a proxy or a Referer header, and are removed from history before any third-party script loads.
 - **Enumeration.** Locator checks happen before any lock read or email, with one 404 body for every cause (as `get-invoice` today). Signed locators can't be guessed (HMAC-SHA256 cut to 32 base64url characters, 192 bits). The locked 401 carries no field. The remaining oracle is unsigned grace links (next bullet).
 - **Unsigned grace links (to 2026-11-21).** Today an unsigned `/pay/INV-123456` shows full invoice data for an unpaid invoice created before 2026-10-28, and invoice numbers are `INV-` + last 6 digits of `Date.now()` (`InvoiceModal.tsx:108-110`), so they are guessable. After this change an unsigned hit shows only the code screen, which is strictly better, but two residual risks stay until the grace ends: (a) `status` answers differently for a real grace invoice (locked) and a guess (404), so the set of grace invoices is enumerable at 30 requests per 10 minutes per IP per instance; (b) a guesser can make a real client receive code emails. Mitigations in this design: no masked email on unsigned locators, tighter send quota on unsigned locators (1 per 10 minutes, 3 per day per invoice epoch, in addition to the per-IP limit), and the grace end date is unchanged. Owner may also choose to end the grace early (Q3).
 - **Email bombing.** Codes only go to the address on the record, never to an address in the request. Per invoice epoch: 60 s gap, 5 per hour, 10 per day (3 per day unsigned); per IP 10 per hour per instance. Receipts share the quote's quotas, so many receipt links don't multiply them. Auto-send happens once per page load and only when the tab is visible (`QuoteAccessGate.tsx:191-203`). Mail scanners only GET; every access action is a POST from page script.
+
+- **Shared receipt counters (info).** A forwarded receipt link can use up its quote's send quota and, with wrong codes, its 15-miss block, which also stops codes on the quote page. This is by design: receipts share the quote's counters so several receipt links give no extra sends or guesses. New link or Revise on the quote resets them.
 - **Cross-record unlock.** Separate HMAC labels per kind (`qa-`, `ia-`, `ra-`), separate cookie names, payload id checked against the subject, mail tag keyed by kind and id. A quote unlock opens that quote's receipts by design (subset of what it already shows) and nothing else; a receipt unlock opens one receipt; an invoice unlock opens one invoice.
 - **Admin bypass.** `admin=1` is only a hint; the server runs `requireAdmin` (GitHub SWA session, PR #229) and only when there is no client session. `?preview=admin` without an admin session shows the "needs your dashboard session" card and sends nothing.
 - **Payment integrity.** Unchanged: Paystack Inline runs in the browser and the webhook verifies signatures (`api/paystack-webhook`). The gate only controls who sees the invoice and starts the widget.
@@ -398,6 +412,8 @@ erDiagram
 ### 8.10 Observability
 
 - Logs per action: `doc-access <action> kind=<k> number=<n|ref> [reason|triesLeft|misses]`, `get-invoice locked number=<n>`, `quote-receipt locked ref=<r>`, `send-invoice linkcode number=<n>`, `notify receipt link code skipped quote=<n> reason=<r>`.
+
+- As built in PR 3, the `doc-access` lines read `doc-access <action> invoice=<number>` or `doc-access <action> receipt=<reference>` (for example `doc-access send invoice=INV-2026-0008`, `doc-access verify receipt=<ref> triesLeft=3 misses=4`): the kind is the field name. A duplicate invoice number logs `invoice-access duplicate number=<n>`.
 - Alerts: owner lockout emails (existing pattern). No new metric store.
 - One-time check after rollout: Application Insights query for `doc-access` 5xx and `get-invoice` 503 in the first 48 hours.
 
@@ -421,6 +437,8 @@ erDiagram
 `INVOICE_ACCESS_GATE` and `RECEIPT_ACCESS_GATE` follow the quote rule: unset or `on` means on, `off` is the kill switch, anything else 503s and logs once. `QUOTE_ACCESS_SECRET` is already set; no new setting is required. Add both variables to the CLAUDE.md table.
 
 Because unset means on, enforcement goes live when the enforcing PR deploys. The SWA deploy ships the frontend and functions together, so the page that understands `locked` arrives with the function that sends it.
+
+For PR 3 the owner sets `INVOICE_ACCESS_GATE=off` and `RECEIPT_ACCESS_GATE=off` in the SWA application settings before it deploys, and they stay off until PR 4 (invoices) and PR 5 (receipts) ship.
 
 Rollback: set the variable to `off` in Application settings (no redeploy). `/pay/` then behaves exactly as today (signature plus grace); receipts open with `?s=` alone. Link codes already emailed are harmless with the gate off (the page drops the fragment; claim answers `gateOff`). Reverting a PR is also safe: no stored format changes.
 
