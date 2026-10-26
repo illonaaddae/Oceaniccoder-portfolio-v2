@@ -6,6 +6,8 @@ import { createRequire } from "module";
 // object (vi.mock does not intercept CommonJS require).
 const require = createRequire(import.meta.url);
 const https = require("https");
+const cosmos = require("../shared/cosmos.js");
+const quoteService = require("../shared/quotes/service.js");
 const handler = require("./index.js");
 
 const HOUR = 60 * 60 * 1000;
@@ -38,7 +40,8 @@ function captureEmails() {
 // Anyone can POST to the webhook. Unverified requests must not email the admin
 // every time, or a loop of junk requests floods the inbox and uses up the
 // Resend quota that real receipts depend on. One email an hour still surfaces
-// a real key mode mix-up.
+// a real key mode mix-up, and a 500 makes Paystack retry the real deliveries
+// so they are recorded once the key is fixed.
 describe("paystack-webhook with an unverified request", () => {
   // The throttle lives in index.js for the life of the module, so every test
   // starts more than an hour after the last one.
@@ -70,14 +73,13 @@ describe("paystack-webhook with an unverified request", () => {
   });
 
   it.each([
-    ["no signature header", {}, undefined],
-    ["a signature that isn't hex", { "x-paystack-signature": "not-hex" }, undefined],
-    ["a hex signature of the wrong length", { "x-paystack-signature": "ab".repeat(10) }, undefined],
-    ["a signature that isn't a string", { "x-paystack-signature": ["ab".repeat(64)] }, undefined],
-    ["a well-formed signature with no body", WRONG_SIG, {}],
-  ])("answers 200 and only logs, never emails, for %s", async (_name, headers, req) => {
+    ["no signature header", {}],
+    ["a signature that isn't hex", { "x-paystack-signature": "not-hex" }],
+    ["a hex signature of the wrong length", { "x-paystack-signature": "ab".repeat(10) }],
+    ["a signature that isn't a string", { "x-paystack-signature": ["ab".repeat(64)] }],
+  ])("answers 200 and only logs, never emails, for %s", async (_name, headers) => {
     for (let i = 0; i < 3; i++) {
-      const { res, log } = await post(headers, req);
+      const { res, log } = await post(headers);
       expect(res.status).toBe(200);
       expect(log.error).toHaveBeenCalledWith(
         expect.stringContaining("not from Paystack; no email"),
@@ -86,9 +88,42 @@ describe("paystack-webhook with an unverified request", () => {
     expect(sent).toEqual([]);
   });
 
+  it.each([
+    ["a signature that doesn't match", undefined],
+    ["a well-formed signature with no body", {}],
+  ])("answers 500 and emails once an hour for %s", async (_name, req) => {
+    for (let i = 0; i < 3; i++) {
+      const { res } = await post(WRONG_SIG, req);
+      expect(res.status).toBe(500);
+    }
+    expect(sent.map((m) => m.subject)).toEqual([SUBJECT]);
+  });
+
+  it("processes nothing on a signature mismatch", async () => {
+    const getDatabase = vi.spyOn(cosmos, "getDatabase");
+    const handleQuoteCharge = vi.spyOn(quoteService, "handleQuoteCharge");
+    for (const reference of ["PAY-INV-2026-0042-1760000000", "Q-2026-0001-1-ABCDEFGH"]) {
+      const charge = {
+        event: "charge.success",
+        data: {
+          reference,
+          domain: "test",
+          amount: 50000,
+          currency: "GHS",
+          metadata: { invoiceNumber: "INV-2026-0042", kind: "quote" },
+        },
+      };
+      const { res } = await post(WRONG_SIG, { rawBody: JSON.stringify(charge), body: charge });
+      expect(res.status).toBe(500);
+    }
+    expect(getDatabase).not.toHaveBeenCalled();
+    expect(handleQuoteCharge).not.toHaveBeenCalled();
+    expect(sent.map((m) => m.subject)).toEqual([SUBJECT]);
+  });
+
   it("emails once for a signature mismatch, then logs that it held back the rest", async () => {
     const first = await post(WRONG_SIG);
-    expect(first.res.status).toBe(200);
+    expect(first.res.status).toBe(500);
     expect(sent.map((m) => m.subject)).toEqual([SUBJECT]);
     expect(sent[0].html).toContain("PAYSTACK_SECRET_KEY is a test key");
     expect(sent[0].html).toContain("Further mismatches in the next hour are only logged.");
@@ -96,7 +131,7 @@ describe("paystack-webhook with an unverified request", () => {
     for (let i = 0; i < 5; i++) {
       now += 60 * 1000;
       const { res, log } = await post(WRONG_SIG);
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(500);
       expect(log.error).toHaveBeenCalledWith(
         expect.stringContaining("signature verification failed"),
       );

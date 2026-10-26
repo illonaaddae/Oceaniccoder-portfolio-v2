@@ -4,10 +4,12 @@
 // Verifies signature using PAYSTACK_SECRET_KEY, records the payment against
 // its invoice in Cosmos DB (see invoiceCharge.js), and sends confirmation
 // emails via Resend.
-// Answers 200 for anything a retry would not fix. Answers 500 for a failure a
-// retry can finish (quote and invoice payments) or one that fixing a setting
-// will (an invalid WRITE_HOLD), and 503 while WRITE_HOLD is on, because
-// Paystack retries any non-2xx.
+// Answers 200 for anything a retry would not fix, including a request with no
+// signature or a malformed one. Answers 500 for a signature that does not
+// verify (a wrong key fails real deliveries too, and they are recorded once it
+// is fixed), a failure a retry can finish (quote and invoice payments) or one
+// that fixing a setting will (an invalid WRITE_HOLD), and 503 while WRITE_HOLD
+// is on, because Paystack retries any non-2xx.
 
 const crypto = require("crypto");
 const https = require("https");
@@ -428,8 +430,8 @@ module.exports = async function (context, req) {
 
   /**
    * Turn away a request whose signature can't be verified, with a 200 because
-   * a retry would not help. One with no signature, a malformed one or no body
-   * never came from Paystack, so it is only logged.
+   * a retry would not help. One with no signature or a malformed one never
+   * came from Paystack, so it is only logged.
    */
   const ignoreUnverified = (reason, detail) => {
     context.log.error(
@@ -439,9 +441,12 @@ module.exports = async function (context, req) {
   };
 
   /**
-   * A well-formed signature that doesn't match is what a key mode mix-up looks
-   * like, and Paystack won't retry after the 200, so it has to reach someone:
-   * at most once an hour per process. Every attempt is logged.
+   * A well-formed signature that doesn't verify is what a wrong key or a key
+   * mode mix-up looks like, or the platform dropping a real body. Answer 500
+   * so Paystack retries real deliveries and they are recorded once the cause
+   * is fixed; a forged request gains nothing from the retry. The admin is
+   * emailed at most once an hour per process, so a forger can't flood the
+   * inbox. Every attempt is logged.
    */
   const refuseSignature = async (reason, detail) => {
     context.log.error(`paystack-webhook: ${reason} — ${detail}`);
@@ -471,7 +476,7 @@ module.exports = async function (context, req) {
         log: context.log,
       });
     }
-    ok();
+    retry();
   };
 
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -513,7 +518,10 @@ module.exports = async function (context, req) {
     return;
   }
   if (typeof rawBody !== "string" || !rawBody) {
-    ignoreUnverified("request had no body to verify the signature against");
+    await refuseSignature(
+      "request had no body to verify the signature against",
+      "the x-paystack-signature header is well formed, so the platform may have dropped the body of a real delivery.",
+    );
     return;
   }
 

@@ -30,7 +30,8 @@ describe("paystack-webhook signature checks", () => {
       method: "POST",
       headers: { "x-paystack-signature": "ab".repeat(64) },
     });
-    expect(res.status).toBe(200);
+    // 500 so Paystack retries, in case the platform dropped a real body.
+    expect(res.status).toBe(500);
     expect(log.error).toHaveBeenCalledWith(expect.stringContaining("no body to verify"));
   });
 
