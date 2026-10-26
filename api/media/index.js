@@ -13,7 +13,7 @@
 // passes through this function (Static Web Apps functions cap request size
 // and time). Only the resize runs here, reading the original back from Blob.
 //
-// Every route needs the admin's Appwrite JWT.
+// Every route needs the admin's Static Web Apps (GitHub) session.
 
 const { requireAdmin } = require("../shared/adminAuth");
 const media = require("../shared/media");
@@ -23,7 +23,7 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://oceaniccoder.dev";
 const HEADERS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-appwrite-jwt",
+  "Access-Control-Allow-Headers": "Content-Type",
   Vary: "Origin",
   "Content-Type": "application/json",
   "Cache-Control": "no-store",

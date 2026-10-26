@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 
 const { CATALOG, findEmail } = await import("./catalog.js");
+const { verifyInvoice } = await import("../tokens.js");
 
 describe("email catalog", () => {
   it("lists every email once, each with a group, name and trigger", () => {
@@ -26,6 +27,8 @@ describe("email catalog", () => {
       "paymentAlert",
       "paymentAlertProblem",
       "maintenanceOffer",
+      "accessCode",
+      "accessLockedAlert",
       "bookingConfirmation",
       "bookingHostNotice",
       "bookingHostNoLink",
@@ -33,9 +36,15 @@ describe("email catalog", () => {
       "invoicePaidConfirmation",
       "invoicePaidReceipt",
       "invoicePaidAlert",
-      "invoiceRecordFailed",
       "webhookFailed",
+      "webhookRetry",
+      "webhookUntracked",
+      "webhookEscalation",
+      "webhookRecordedRetry",
+      "webhookRecordedConflict",
+      "webhookInvalidSetting",
       "inquiryReceivedAlert",
+      "messageReceivedAlert",
       "inquiryReviewed",
       "inquiryQuoted",
       "inquiryWon",
@@ -56,6 +65,38 @@ describe("email catalog", () => {
     for (const bad of ["NaN", "undefined", "[object Object]"]) {
       expect(mail.html).not.toContain(bad);
       expect(mail.subject).not.toContain(bad);
+    }
+  });
+
+  it("previews the invoice email with a pay link the real secret does not sign", () => {
+    process.env.RECEIPT_SIGNING_SECRET = "real-secret";
+    try {
+      const { html } = findEmail("invoiceSent").render();
+      const sig = html.match(/\/pay\/INV-2026-0042\?s=([A-Za-z0-9_-]{32})"/);
+      expect(sig).not.toBeNull();
+      expect(verifyInvoice("INV-2026-0042", sig[1], "real-secret")).toBe(false);
+    } finally {
+      delete process.env.RECEIPT_SIGNING_SECRET;
+    }
+  });
+
+  it("uses no grey rounded card anywhere and shows no currency symbol", () => {
+    for (const e of CATALOG) {
+      const { html, text } = e.render();
+      expect(html, e.id).not.toMatch(
+        /background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px/,
+      );
+      expect(html + text, e.id).not.toContain("₵");
+    }
+  });
+
+  it("stamps receipts Paid and payment requests Due", () => {
+    const stamp = (id) => findEmail(id).render().html;
+    for (const id of ["invoicePaidConfirmation", "invoicePaidReceipt", "paymentReceipt"]) {
+      expect(stamp(id), id).toContain('stamp-paid@3x.png" width="65" height="26" alt="Paid"');
+    }
+    for (const id of ["invoiceSent", "paymentRequest"]) {
+      expect(stamp(id), id).toContain('stamp-due@3x.png" width="47" height="26" alt="Due"');
     }
   });
 

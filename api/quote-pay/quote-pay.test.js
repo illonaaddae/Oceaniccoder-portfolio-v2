@@ -5,12 +5,16 @@ const { createHandler } = await import("./index.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const { hashToken, newToken } = await import("../shared/tokens.js");
 const M = await import("../shared/quotes/model.js");
+const A = await import("../shared/quotes/access.js");
 
+const SECRET = "p".repeat(40);
+const ENV = { QUOTE_ACCESS_SECRET: SECRET };
 const TOKEN = newToken();
 const NOW = new Date("2026-10-10T09:00:00.000Z");
 const accepted = {
   id: "q1",
   quoteNumber: "Q-2026-0001",
+  revision: 1,
   status: "accepted",
   currency: "GHS",
   title: "Store",
@@ -24,11 +28,23 @@ const accepted = {
   tokenHash: hashToken(TOKEN),
 };
 
-function setup({ quote = accepted, payments = [], initialize, charge } = {}) {
+// The unlock cookie a browser holds after a code or link code.
+const unlocked = (quote = accepted) =>
+  A.sessionCookie(SECRET, quote, 0, NOW.getTime()).split(";")[0];
+
+function setup({
+  quote = accepted,
+  payments = [],
+  initialize,
+  charge,
+  env = ENV,
+  admin = false,
+  locks = createFakeLocks(),
+} = {}) {
   const repo = createFakeRepo({ quotes: [quote], payments });
   const services = {
     repo,
-    locks: createFakeLocks(),
+    locks,
     now: () => NOW,
     initialize:
       initialize ||
@@ -40,13 +56,21 @@ function setup({ quote = accepted, payments = [], initialize, charge } = {}) {
   };
   const handleQuoteCharge =
     charge || vi.fn().mockResolvedValue({ state: "success", payment: { paystackReference: "R1" } });
-  const handler = createHandler({ services: () => services, handleQuoteCharge });
-  const call = async (req) => {
+  const requireAdmin = vi.fn(async () =>
+    admin ? { user: { email: "owner@oceaniccoder.dev" } } : { status: 401, error: "Sign in" },
+  );
+  const handler = createHandler({
+    env,
+    requireAdmin,
+    services: () => services,
+    handleQuoteCharge,
+  });
+  const call = async (req, { cookie = unlocked(quote) } = {}) => {
     const context = { log: { error: vi.fn() } };
-    await handler(context, { headers: {}, ...req });
-    return { status: context.res.status, body: JSON.parse(context.res.body) };
+    await handler(context, { headers: cookie ? { cookie } : {}, ...req });
+    return { status: context.res.status, body: JSON.parse(context.res.body), context };
   };
-  return { repo, services, handleQuoteCharge, call };
+  return { repo, services, handleQuoteCharge, requireAdmin, call };
 }
 
 const start = (over = {}) => ({
@@ -175,5 +199,67 @@ describe("quote-pay GET", () => {
     expect(
       (await t.call({ method: "GET", query: { token: TOKEN, reference: "R1" } })).body,
     ).toEqual({ state: "pending", receiptPath: null });
+  });
+});
+
+describe("quote-pay access gate", () => {
+  const pending = [
+    { id: "p1", kind: "quote", quoteId: "q1", paystackReference: "R1", status: "pending" },
+  ];
+  const checkR1 = { method: "GET", query: { token: TOKEN, reference: "R1" } };
+
+  beforeEach(() => {
+    process.env.RECEIPT_SIGNING_SECRET = "s";
+  });
+
+  it("refuses to start a payment without an unlock", async () => {
+    const t = setup();
+    const r = await t.call(start(), { cookie: null });
+    expect(r).toMatchObject({ status: 401, body: { locked: true } });
+    expect(r.body.accessCode).toBeUndefined();
+    expect(t.services.initialize).not.toHaveBeenCalled();
+    expect(t.repo.payments.size).toBe(0);
+  });
+
+  it("has no admin bypass for starting a payment", async () => {
+    const t = setup({ admin: true });
+    const r = await t.call({ ...start(), query: { admin: "1" } }, { cookie: null });
+    expect(r.status).toBe(401);
+    expect(t.requireAdmin).not.toHaveBeenCalled();
+  });
+
+  it("still settles a payment without an unlock, but returns no receipt path", async () => {
+    const t = setup({ payments: pending });
+    const r = await t.call(checkR1, { cookie: null });
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ state: "paid", receiptPath: null });
+    expect(t.handleQuoteCharge).toHaveBeenCalledWith("R1", expect.anything());
+  });
+
+  it("returns the receipt path to the admin", async () => {
+    const t = setup({ payments: pending, admin: true });
+    const r = await t.call(
+      { method: "GET", query: { ...checkR1.query, admin: "1" } },
+      { cookie: null },
+    );
+    expect(r.body.receiptPath).toMatch(/^\/receipt\/R1\?s=/);
+  });
+
+  it("still settles when the access secret is missing", async () => {
+    const t = setup({ payments: pending, env: {} });
+    const r = await t.call(checkR1, { cookie: null });
+    expect(r.body).toEqual({ state: "paid", receiptPath: null });
+    expect(t.handleQuoteCharge).toHaveBeenCalled();
+  });
+
+  it("still settles when the locks can't be read, and logs it", async () => {
+    const locks = createFakeLocks();
+    locks.has = async () => {
+      throw new Error("locks down");
+    };
+    const t = setup({ payments: pending, locks });
+    const r = await t.call(checkR1);
+    expect(r.body).toEqual({ state: "paid", receiptPath: null });
+    expect(r.context.log.error).toHaveBeenCalledWith(expect.stringContaining("locks down"));
   });
 });

@@ -8,7 +8,9 @@ const {
   multiline,
   shell,
   heading,
+  p,
   card,
+  codeBlock,
   button,
   buttons,
   steps,
@@ -23,10 +25,23 @@ const ADMIN_REASON = "Sent to you as the OceanicCoder admin.";
 function invoiceBlock(inv) {
   return card({
     title: "Amount due",
+    status: { label: "Due", tone: "warn" },
     highlightLabel: inv.label,
     highlight: inv.amount,
     rows: [["Due", inv.dueDate]],
   });
+}
+
+// How the quote link opens (api/shared/quotes/access.js). v.linkOpens: this
+// copy carries the one-time link code, so it opens straight away here.
+// v.codeByEmail: it doesn't (an extra Email again address), so the page asks
+// for a code, which goes to the client. Neither: the gate is off; say nothing.
+function accessNote(v) {
+  if (v.linkOpens)
+    return "This link usually opens straight away. If you open it on another device, we'll email you a short code first.";
+  if (v.codeByEmail)
+    return `This link asks for a short code that we email to ${v.clientFirstName}.`;
+  return "";
 }
 
 function quoteSent(v) {
@@ -57,7 +72,7 @@ function quoteSent(v) {
         "Accept it by typing your name",
         v.singleStage ? "Pay in full to book your slot" : "Pay the deposit to book your slot",
       ]) +
-      small("Questions? Reply to this email."),
+      small([accessNote(v), "Questions? Reply to this email."].filter(Boolean).join("\n\n")),
   });
   const text = lines(
     `Hi ${v.clientFirstName},`,
@@ -66,6 +81,7 @@ function quoteSent(v) {
     `Payment plan: ${v.planSummary}`,
     `Valid until: ${v.validUntil}`,
     `View and accept it here: ${v.link}`,
+    accessNote(v),
     "Questions? Reply to this email.",
   );
   return { subject, html, text };
@@ -219,6 +235,7 @@ function paymentReceipt(v) {
       }) +
       card({
         title: "Payment summary",
+        status: { label: "Paid", tone: "ok" },
         highlightLabel: v.stageLabel,
         highlight: v.amount,
         rows: [
@@ -290,8 +307,8 @@ function paymentAlert(v) {
 
 const PER = { month: "per month", year: "per year" };
 
-// One maintenance plan: name, price per period, and what it includes as a
-// tight list. Same white-on-slate card as the other summaries.
+// One maintenance plan: name and price per period on the card header, and
+// what it includes as a tight list below.
 function planCard(plan) {
   const items = plan.includes
     .map(
@@ -299,12 +316,14 @@ function planCard(plan) {
         `<tr><td style="vertical-align:top;padding:0 8px 6px 0;color:${C.tealDark};font-size:14px;line-height:1.5">&bull;</td><td style="padding:0 0 6px;font-size:14px;line-height:1.5;color:${C.ink2}">${esc(line)}</td></tr>`,
     )
     .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.footer};border:1px solid ${C.line};border-radius:12px;margin:0 0 16px">
-<tr><td style="padding:18px 22px 12px">
-<div style="font-size:17px;font-weight:700;color:${C.ink}">${esc(plan.name)}</div>
-<div style="font-size:15px;color:${C.ink3};margin:2px 0 ${items ? 12 : 4}px"><span style="font-size:22px;font-weight:700;color:${C.ink};font-variant-numeric:tabular-nums">${esc(plan.price)}</span> ${esc(PER[plan.period] || PER.month)}</div>
-${items ? `<table role="presentation" cellpadding="0" cellspacing="0">${items}</table>` : ""}
-</td></tr></table>`;
+  return card({
+    title: plan.name,
+    highlightLabel: PER[plan.period] || PER.month,
+    highlight: plan.price,
+    body: items
+      ? `<table role="presentation" cellpadding="0" cellspacing="0">${items}</table>`
+      : "",
+  });
 }
 
 function maintenanceOffer(v) {
@@ -355,7 +374,85 @@ function maintenanceOffer(v) {
   return { subject, html, text };
 }
 
+// The code sent when the quote is opened in a browser that isn't signed in
+// and the link's one-time link code is spent or missing. No link in it, so a
+// forwarded or intercepted copy can't open the quote by itself.
+function accessCode(v) {
+  const subject = `${v.code} is your code for quote ${v.quoteNumber}`;
+  // A plain sentence first, so Gmail's "Copy code" and Apple's one-time-code
+  // autofill find the code.
+  const verification = `Your verification code is ${v.code}.`;
+  const opened = "Someone opened your quote in a new browser. Here's your code:";
+  const ignore = "If it wasn't you, you can ignore this email.";
+  const html = shell({
+    preview: `${verification} It works for ${v.minutes} minutes.`,
+    meta: { label: "Quote", number: v.quoteNumber },
+    reason: CLIENT_REASON,
+    body:
+      heading({ eyebrow: "Your code", title: "Open your quote", intro: verification }) +
+      p(`Hi ${v.clientFirstName}, ${opened.charAt(0).toLowerCase()}${opened.slice(1)}`) +
+      codeBlock({ label: "Code", code: v.code }) +
+      p(`It works for ${v.minutes} minutes.`) +
+      small(ignore),
+  });
+  const text = [
+    verification,
+    `Hi ${v.clientFirstName},\n${opened}`,
+    v.code,
+    `It works for ${v.minutes} minutes.\n${ignore}`,
+  ].join("\n\n");
+  return { subject, html, text };
+}
+
+// Two cases: one code locked after five wrong tries, or (blocked) the quote's
+// fifteenth wrong code, after which no code is sent or checked until New link
+// or Revise.
+function accessLockedAlert(v) {
+  const subject = v.blocked
+    ? `Codes blocked after 15 wrong tries on ${v.quoteNumber}`
+    : `Code locked after 5 wrong tries on ${v.quoteNumber}`;
+  const what = v.blocked
+    ? `Fifteen wrong codes have been entered for ${v.quoteNumber}.`
+    : `Five wrong codes were entered for ${v.quoteNumber}.`;
+  const effect = v.blocked
+    ? "No more codes will be sent or accepted on this link until you use New link or Revise."
+    : "That code no longer works, and a new one goes only to the client's email.";
+  const advice =
+    "If the client didn't ask for a code, the link may have been shared. Use New link on the quote to lock out every browser, then send the client the new link.";
+  const html = shell({
+    preview: what,
+    meta: { label: "Quote", number: v.quoteNumber },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Quote access",
+        tone: v.blocked ? "danger" : "warn",
+        title: v.blocked ? "Codes are blocked on a quote" : "A quote code was locked",
+        intro: `${what} ${effect}`,
+      }) +
+      card({
+        title: "Quote",
+        rows: [
+          ["Client", v.clientName],
+          ["Quote", v.title],
+          ["Date", v.lockedOn],
+        ],
+      }) +
+      notice({ tone: "warn", text: advice }) +
+      buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
+  });
+  const text = lines(
+    `${what.slice(0, -1)} (${v.title}, ${v.clientName}) on ${v.lockedOn}.`,
+    effect,
+    advice,
+    v.adminLink,
+  );
+  return { subject, html, text };
+}
+
 module.exports = {
+  accessCode,
+  accessLockedAlert,
   maintenanceOffer,
   quoteSent,
   quoteAccepted,

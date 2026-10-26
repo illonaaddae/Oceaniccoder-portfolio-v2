@@ -1,54 +1,50 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID, Query } from "./client";
+import { COLLECTIONS } from "./collections";
 import type { Comment } from "../../types";
-import { getJson, listRows, submitRow, usesCosmos, type DocumentList } from "./dataApi";
+import {
+  listRows,
+  manageDelete,
+  manageList,
+  manageUpdate,
+  readsAsAdmin,
+  submitRow,
+} from "./dataApi";
 
 /**
- * Approved comments on a post, newest first, without commenter emails. Goes
- * through the server in both backends; reading the Appwrite collection from
- * the browser would hand every visitor every commenter's email.
+ * Approved comments on a post, newest first, without commenter emails
+ * (/api/data leaves them out).
  */
 export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
-  const response = usesCosmos
-    ? await listRows<Comment>(COLLECTIONS.COMMENTS, {
-        where: { postId, isApproved: true },
-        orderBy: "$createdAt",
-        dir: "desc",
-      })
-    : await getJson<DocumentList<Comment>>(`/api/comments?postId=${encodeURIComponent(postId)}`);
+  const response = await listRows<Comment>(COLLECTIONS.COMMENTS, {
+    where: { postId, isApproved: true },
+    orderBy: "$createdAt",
+    dir: "desc",
+  });
   return response.documents;
 }
 
-/** Every comment, with emails. Admin only: needs the admin's Appwrite session. */
+/** Every comment, with emails. Admin only. */
 export async function getAllComments(): Promise<Comment[]> {
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.COMMENTS, [
-    Query.orderDesc("$createdAt"),
-    Query.limit(100),
-  ]);
-  return response.documents as unknown as Comment[];
+  // Commenter emails: the read-only /dashboard shows no comments.
+  if (!readsAsAdmin()) return [];
+  const response = await manageList<Comment>(COLLECTIONS.COMMENTS, {
+    orderBy: "$createdAt",
+    dir: "desc",
+    limit: 100,
+  });
+  return response.documents;
 }
 
 export async function updateComment(commentId: string, data: Partial<Comment>): Promise<Comment> {
-  return databases.updateDocument(
-    DATABASE_ID,
-    COLLECTIONS.COMMENTS,
-    commentId,
-    data as Record<string, unknown>,
-  ) as unknown as Comment;
+  return manageUpdate<Comment>(COLLECTIONS.COMMENTS, commentId, data);
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.COMMENTS, commentId);
+  await manageDelete(COLLECTIONS.COMMENTS, commentId);
 }
 
 export async function createComment(
   comment: Omit<Comment, "$id">,
   turnstileToken?: string | null,
 ): Promise<Comment> {
-  if (usesCosmos) return submitRow<Comment>(COLLECTIONS.COMMENTS, comment, turnstileToken);
-  return databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.COMMENTS,
-    ID.unique(),
-    comment as Record<string, unknown>,
-  ) as unknown as Comment;
+  return submitRow<Comment>(COLLECTIONS.COMMENTS, comment, turnstileToken);
 }

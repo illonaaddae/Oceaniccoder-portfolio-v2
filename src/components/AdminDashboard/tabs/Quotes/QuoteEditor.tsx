@@ -8,7 +8,7 @@ import {
   FaPaperPlane,
   FaWhatsapp,
 } from "react-icons/fa";
-import { quoteAdmin, QuoteApiError } from "@/services/api/quotes";
+import { adminPreviewLink, quoteAdmin, QuoteApiError } from "@/services/api/quotes";
 import {
   computeTotals,
   formatMinor,
@@ -625,7 +625,7 @@ function SentPanel({
               {copied ? "Copied" : "Copy link"}
             </button>
             <a
-              href={`${sent.link}?preview=1`}
+              href={adminPreviewLink(sent.link)}
               target="_blank"
               rel="noopener noreferrer"
               className={quietBtn}

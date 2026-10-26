@@ -1,3 +1,5 @@
+import { IMAGES } from "@/utils/imageUrls";
+
 // Fallback blog posts data — used when Appwrite posts haven't loaded yet.
 // This is a pure-data file; line count reflects blog content, not logic.
 
@@ -76,8 +78,7 @@ Happy coding!`,
     tags: ["React", "JavaScript", "Frontend", "Web Development"],
     publishedAt: "2025-01-15",
     readTime: "5 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
+    image: IMAGES.blogPlaceholder1,
     featured: true,
   },
   {
@@ -152,8 +153,7 @@ Whether you're just starting your journey or you're an established leader, there
     tags: ["Women in Tech", "Leadership", "Diversity", "Inclusion"],
     publishedAt: "2025-01-10",
     readTime: "6 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf000057a457f95/blog-placeholder-2.svg",
+    image: IMAGES.blogPlaceholder2,
     featured: true,
   },
   {
@@ -253,8 +253,7 @@ But when you see someone land their first job because of a connection they made 
     tags: ["Community Building", "Tech", "Mentorship", "Inclusion"],
     publishedAt: "2025-01-05",
     readTime: "7 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cf00032bc7780ff/blog-placeholder-3.svg",
+    image: IMAGES.blogPlaceholder3,
     featured: false,
   },
   {
@@ -394,8 +393,7 @@ Now go create something beautiful!`,
     tags: ["CSS", "UI Design", "Frontend", "Tutorial"],
     publishedAt: "2024-12-20",
     readTime: "4 min read",
-    image:
-      "https://oceaniccodermedia.blob.core.windows.net/media/69444cef000da2150f34/blog-placeholder-1.svg",
+    image: IMAGES.blogPlaceholder1,
     featured: false,
   },
 ];

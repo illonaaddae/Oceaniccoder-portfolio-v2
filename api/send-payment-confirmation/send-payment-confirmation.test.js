@@ -8,7 +8,6 @@ const base = {
   clientName: "Kofi Mensah",
   total: 3413.03,
   currency: "GHS",
-  currencySymbol: "GH₵",
   paidDate: "10 October 2026",
 };
 
@@ -24,15 +23,16 @@ describe("renderPaymentConfirmation", () => {
   it("shows the client, amount, date and paid status", () => {
     const html = renderPaymentConfirmation(base);
     expect(html).toContain("Thank you, Kofi Mensah");
-    expect(html).toContain("GH₵3413.03 GHS");
+    expect(html).toContain("GHS 3,413.03");
     expect(html).toContain("10 October 2026");
-    expect(html).toContain(">Paid<");
+    expect(html).toContain('stamp-paid@3x.png" width="65" height="26" alt="Paid"');
     expect(html).toContain("hello@oceaniccoder.dev");
   });
 
-  it("falls back to the currency code when there is no symbol", () => {
-    const html = renderPaymentConfirmation({ ...base, currencySymbol: undefined });
-    expect(html).toContain("GHS3413.03 GHS");
+  it("groups thousands and names the currency once", () => {
+    const html = renderPaymentConfirmation(base);
+    expect(html).not.toContain("₵");
+    expect(html).not.toMatch(/\d GHS/);
   });
 
   it("escapes client-supplied text", () => {

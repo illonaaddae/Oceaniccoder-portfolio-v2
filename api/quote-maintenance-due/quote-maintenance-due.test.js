@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 const { createHandler } = await import("./index.js");
-const { createFakeRepo } = await import("../shared/quotes/fakes.js");
+const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
 
 const SECRET = "cron-secret-value";
@@ -47,19 +47,25 @@ function paidStages(n, launch) {
   ];
 }
 
-function setup({ quotes, payments, secret = SECRET, now = "2026-12-04T08:00:00.000Z" } = {}) {
+function setup({
+  quotes,
+  payments,
+  secret = SECRET,
+  now = "2026-12-04T08:00:00.000Z",
+  locks = createFakeLocks({ now: () => Date.parse(now) - 2 * 24 * 3600 * 1000 }),
+} = {}) {
   const repo = createFakeRepo({ quotes, payments });
   const notify = { maintenanceOffer: vi.fn().mockResolvedValue({ ok: true }) };
   const handler = createHandler({
     secret: () => secret,
-    services: () => ({ repo, notify, now: () => new Date(now) }),
+    services: () => ({ repo, locks, notify, now: () => new Date(now) }),
   });
   const call = async ({ key = SECRET, method = "POST" } = {}) => {
     const context = { log: { error: vi.fn() } };
     await handler(context, { method, headers: key == null ? {} : { "x-cron-key": key } });
     return { status: context.res.status, body: JSON.parse(context.res.body), context };
   };
-  return { repo, notify, call };
+  return { repo, locks, notify, call };
 }
 
 describe("quote-maintenance-due", () => {
@@ -105,7 +111,11 @@ describe("quote-maintenance-due", () => {
     expect(t.repo.quotes.get("q3").maintenanceOfferSentAt).toBe("2026-12-03T08:00:00.000Z");
 
     // Run again: nothing left to send.
-    expect((await t.call()).body).toEqual({ sent: 0, failed: 0 });
+    expect((await t.call()).body).toEqual({
+      sent: 0,
+      failed: 0,
+      pruned: { deleted: 0, kept: 0, skipped: 0 },
+    });
   });
 
   it("is due exactly at launch + freeDays - 7", async () => {
@@ -131,10 +141,42 @@ describe("quote-maintenance-due", () => {
       return { ok: true };
     });
     const r = await t.call();
-    expect(r.body).toEqual({ sent: 1, failed: 2 });
+    expect(r.body).toMatchObject({ sent: 1, failed: 2 });
     expect(t.repo.quotes.get("q1").maintenanceOfferSentAt).toBeTruthy();
     expect(t.repo.quotes.get("q2").maintenanceOfferSentAt).toBeUndefined();
     expect(t.repo.quotes.get("q3").maintenanceOfferSentAt).toBeUndefined();
     expect(r.context.log.error).toHaveBeenCalled();
+  });
+
+  it("deletes quote-access lock rows past their retention in the same run", async () => {
+    const t = setup({ quotes: [] });
+    await t.locks.take("qa:try:cid:1");
+    await t.locks.take("settle:REF-1");
+    const r = await t.call();
+    expect(r.body).toEqual({ sent: 0, failed: 0, pruned: { deleted: 1, kept: 0, skipped: 1 } });
+    expect([...t.locks.held]).toEqual(["settle:REF-1"]);
+  });
+
+  it.each([
+    ["no CRON_SECRET", { secret: "" }, {}],
+    ["a wrong key", {}, { key: "wrong" }],
+    ["a GET", {}, { method: "GET" }],
+  ])("never cleans up on %s", async (_name, options, request) => {
+    const t = setup({ quotes: [], ...options });
+    await t.locks.take("qa:try:cid:1");
+    t.locks.listBefore = vi.fn(t.locks.listBefore);
+    expect((await t.call(request)).status).not.toBe(200);
+    expect(t.locks.listBefore).not.toHaveBeenCalled();
+    expect(t.locks.held.has("qa:try:cid:1")).toBe(true);
+  });
+
+  it("still answers when the clean-up fails, and logs it", async () => {
+    const locks = createFakeLocks();
+    locks.listBefore = async () => {
+      throw new Error("locks down");
+    };
+    const r = await setup({ quotes: [], locks }).call();
+    expect(r).toMatchObject({ status: 200, body: { sent: 0, failed: 0, pruned: null } });
+    expect(r.context.log.error.mock.calls[0][0]).toContain("lock clean-up: Error: locks down");
   });
 });

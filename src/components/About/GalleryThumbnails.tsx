@@ -1,9 +1,8 @@
 import React from "react";
-
-const FALLBACK_SRC =
-  "https://oceaniccodermedia.blob.core.windows.net/media/69444ceb001c1eda1331/profile.webp";
-
 import type { GalleryImage } from "../../types";
+import { IMAGES } from "@/utils/imageUrls";
+
+const FALLBACK_SRC = IMAGES.profile;
 
 interface GalleryThumbnailsProps {
   galleryImages: GalleryImage[];

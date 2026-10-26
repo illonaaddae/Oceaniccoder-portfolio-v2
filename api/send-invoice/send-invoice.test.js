@@ -1,7 +1,13 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 const { renderInvoiceEmail } = await import("./index.js");
+const { verifyInvoice } = await import("../shared/tokens.js");
+
+const SECRET = "test-signing-secret";
 
 const NOW = new Date("2026-10-10T12:00:00.000Z");
 const base = {
@@ -14,7 +20,6 @@ const base = {
     { description: "Hosting setup", quantity: 1, unitPrice: 250.5 },
   ],
   currency: "GHS",
-  currencySymbol: "GH₵",
   subtotal: 3250.5,
   tax: 162.53,
   taxRate: 5,
@@ -25,11 +30,18 @@ const base = {
 };
 
 describe("renderInvoiceEmail", () => {
+  beforeEach(() => {
+    process.env.RECEIPT_SIGNING_SECRET = SECRET;
+  });
+  afterEach(() => {
+    delete process.env.RECEIPT_SIGNING_SECRET;
+  });
+
   it("derives subtotal and total from the items when they are missing", () => {
     const { subtotal: _s, tax: _t, total: _total, ...rest } = base;
     const html = renderInvoiceEmail({ ...rest, taxRate: 0 }, NOW);
     expect(html).not.toContain("NaN");
-    expect(html).toContain("GH₵3250.50");
+    expect(html).toContain("GHS 3,250.50");
   });
 
   it("uses the branded kit shell with the invoice number in the letterhead", () => {
@@ -42,7 +54,7 @@ describe("renderInvoiceEmail", () => {
 
   it("shows the amount due, dates, parties, line items and totals", () => {
     const html = renderInvoiceEmail(base, NOW);
-    expect(html).toContain("GH₵3413.03 GHS");
+    expect(html).toContain("GHS 3,413.03");
     expect(html).toContain("10 October 2026");
     expect(html).toContain("24 October 2026");
     expect(html).toContain("15 November 2026");
@@ -51,19 +63,27 @@ describe("renderInvoiceEmail", () => {
     expect(html).toContain("kofi@example.com");
     expect(html).toContain("+233200000000");
     expect(html).toContain("Store build");
-    expect(html).toContain("GH₵1500.00");
-    expect(html).toContain("GH₵3000.00");
-    expect(html).toContain("GH₵250.50");
-    expect(html).toContain("GH₵3250.50");
+    expect(html).toContain("GHS 1,500.00");
+    expect(html).toContain("GHS 3,000.00");
+    expect(html).toContain("GHS 250.50");
+    expect(html).toContain("GHS 3,250.50");
     expect(html).toContain("Tax (5%)");
-    expect(html).toContain("GH₵162.53");
+    expect(html).toContain("GHS 162.53");
     expect(html).toContain("Deposit covers design.<br>Balance on launch.");
   });
 
-  it("links to the pay page and the reply address", () => {
+  it("links to the signed pay page and the reply address", () => {
     const html = renderInvoiceEmail(base, NOW);
-    expect(html).toContain('href="https://oceaniccoder.dev/pay/INV-2026-0042"');
+    const sig = html.match(/href="https:\/\/oceaniccoder\.dev\/pay\/INV-2026-0042\?s=([^"]+)"/);
+    expect(sig).not.toBeNull();
+    expect(verifyInvoice("INV-2026-0042", sig[1], SECRET)).toBe(true);
+    expect(html).not.toContain('href="https://oceaniccoder.dev/pay/INV-2026-0042"');
     expect(html).toContain('href="mailto:hello@oceaniccoder.dev"');
+  });
+
+  it("refuses to build the email without a signing secret", () => {
+    delete process.env.RECEIPT_SIGNING_SECRET;
+    expect(() => renderInvoiceEmail(base, NOW)).toThrow(/RECEIPT_SIGNING_SECRET/);
   });
 
   it("leaves out optional parts that were not given", () => {
@@ -85,9 +105,10 @@ describe("renderInvoiceEmail", () => {
     expect(html).not.toContain("+233");
   });
 
-  it("falls back to the currency code when there is no symbol", () => {
-    const html = renderInvoiceEmail({ ...base, currencySymbol: undefined }, NOW);
-    expect(html).toContain("GHS3413.03 GHS");
+  it("groups thousands and names the currency once", () => {
+    const html = renderInvoiceEmail(base, NOW);
+    expect(html).not.toContain("₵");
+    expect(html).not.toMatch(/\d GHS/);
   });
 
   it("escapes client-supplied text, including notes", () => {
@@ -108,5 +129,42 @@ describe("renderInvoiceEmail", () => {
     expect(html).not.toContain('INV"/><x');
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("https://oceaniccoder.dev/pay/INV%22%2F%3E%3Cx");
+  });
+});
+
+describe("send-invoice handler configuration", () => {
+  // index.js reads requireAdmin when it loads, so stub it and load a fresh copy.
+  function loadHandler() {
+    const adminAuth = require("../shared/adminAuth.js");
+    const real = adminAuth.requireAdmin;
+    adminAuth.requireAdmin = async () => ({ user: { $id: "admin" } });
+    delete require.cache[require.resolve("./index.js")];
+    const handler = require("./index.js");
+    adminAuth.requireAdmin = real;
+    return handler;
+  }
+
+  const send = async (handler) => {
+    const context = { res: null, log: Object.assign(() => {}, { error: () => {} }) };
+    await handler(context, { method: "POST", headers: {}, body: base });
+    return { status: context.res.status, body: JSON.parse(context.res.body) };
+  };
+
+  afterEach(() => {
+    delete process.env.RESEND_API_KEY;
+    delete process.env.RECEIPT_SIGNING_SECRET;
+  });
+
+  it("names the missing signing secret instead of a generic error", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    expect(await send(loadHandler())).toEqual({
+      status: 503,
+      body: { error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set." },
+    });
+  });
+
+  it("still answers Not configured when the Resend key is missing", async () => {
+    process.env.RECEIPT_SIGNING_SECRET = SECRET;
+    expect(await send(loadHandler())).toEqual({ status: 503, body: { error: "Not configured" } });
   });
 });

@@ -1,11 +1,21 @@
 import { apiUrl } from "@/utils/apiUrl";
 
 /**
- * Which database the site reads from. Set VITE_DATA_BACKEND=cosmos at build
- * time to read through /api/data (Cosmos DB); anything else keeps Appwrite.
- * Goes away once the Appwrite → Azure cutover is done.
+ * In the signed-in admin dashboard, reads go through /api/manage so drafts,
+ * hidden images and pending comments show up there. Everywhere else, the
+ * read-only /dashboard included, reads go through /api/data.
+ *
+ * The dashboard turns this on; it's also tied to the /admin path so that
+ * leaving the dashboard goes back to public reads without relying on an
+ * effect cleanup (StrictMode runs cleanups between its double effect runs).
  */
-export const usesCosmos = import.meta.env.VITE_DATA_BACKEND === "cosmos";
+let adminReads = false;
+export function setAdminReads(enabled: boolean): void {
+  adminReads = enabled;
+}
+/** True only in the signed-in admin dashboard, the one place private rows are read. */
+export const readsAsAdmin = () => adminReads && window.location.pathname.startsWith("/admin");
+const readBase = () => (readsAsAdmin() ? "/api/manage" : "/api/data");
 
 export interface ListOptions {
   /** Equality filters. `$id`, `$createdAt` and `$updatedAt` work too. */
@@ -41,15 +51,25 @@ export function listRows<T = Record<string, unknown>>(
   if (dir) params.set("dir", dir);
   if (limit) params.set("limit", String(limit));
   const query = params.toString();
-  return getJson(`/api/data/${collection}${query ? `?${query}` : ""}`);
+  return getJson(`${readBase()}/${collection}${query ? `?${query}` : ""}`);
+}
+
+export interface RequestOptions {
+  /** Aborts the request, e.g. AbortSignal.timeout(ms). */
+  signal?: AbortSignal;
 }
 
 /** POSTs JSON; rejects with the server's error message on failure. */
-export async function postJson<T>(path: string, body: unknown): Promise<T> {
+export async function postJson<T>(
+  path: string,
+  body: unknown,
+  { signal }: RequestOptions = {},
+): Promise<T> {
   const res = await fetch(apiUrl(path), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) throw new Error(data.error || `POST ${path} failed (${res.status})`);
@@ -66,14 +86,59 @@ export function submitRow<T>(
   fields: object,
   turnstileToken: string | null | undefined,
   extra: Record<string, unknown> = {},
+  options: RequestOptions = {},
 ): Promise<T> {
   if (!turnstileToken) {
     return Promise.reject(new Error("Please wait for the spam check to finish, then try again."));
   }
-  return postJson(`/api/submit/${collection}`, { ...fields, ...extra, turnstileToken });
+  return postJson(`/api/submit/${collection}`, { ...fields, ...extra, turnstileToken }, options);
 }
 
 /** One row by id. Rejects if it doesn't exist or isn't public. */
 export function getRow<T = Record<string, unknown>>(collection: string, id: string): Promise<T> {
-  return getJson(`/api/data/${collection}/${encodeURIComponent(id)}`);
+  return getJson(`${readBase()}/${collection}/${encodeURIComponent(id)}`);
+}
+
+// ── Admin writes (/api/manage, admin role only) ─────────────────────────────
+
+async function manage<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(apiUrl(`/api/manage/${path}`), {
+    method,
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 204) return undefined as T;
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error || `${method} ${path} failed (${res.status})`);
+  return data;
+}
+
+/** Every row of a collection, hidden ones included (admin only). */
+export function manageList<T = Record<string, unknown>>(
+  collection: string,
+  options: ListOptions = {},
+): Promise<DocumentList<T>> {
+  const params = new URLSearchParams();
+  if (options.where && Object.keys(options.where).length > 0) {
+    params.set("where", JSON.stringify(options.where));
+  }
+  if (options.orderBy) params.set("orderBy", options.orderBy);
+  if (options.dir) params.set("dir", options.dir);
+  if (options.limit) params.set("limit", String(options.limit));
+  const query = params.toString();
+  return manage("GET", `${collection}${query ? `?${query}` : ""}`);
+}
+
+/** Creates a row; the server assigns $id and timestamps. */
+export function manageCreate<T>(collection: string, fields: object): Promise<T> {
+  return manage("POST", collection, fields);
+}
+
+/** Merges `fields` into a row and returns the updated row. */
+export function manageUpdate<T>(collection: string, id: string, fields: object): Promise<T> {
+  return manage("PATCH", `${collection}/${encodeURIComponent(id)}`, fields);
+}
+
+export function manageDelete(collection: string, id: string): Promise<void> {
+  return manage("DELETE", `${collection}/${encodeURIComponent(id)}`);
 }

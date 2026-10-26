@@ -50,6 +50,30 @@ vi.mock("../utils/apiUrl", () => ({
   apiUrl: (path: string) => path,
 }));
 
+// Stands in for Cloudflare. Most tests start with the token already there; a
+// test that sets `initialToken` to null delivers it when it chooses, the way
+// Cloudflare does a few seconds after the widget mounts.
+const turnstileMock = vi.hoisted(() => ({
+  initialToken: "token-0" as string | null,
+  deliverToken: null as ((token: string) => void) | null,
+}));
+vi.mock("@/hooks/useTurnstile", async () => {
+  const { useState } = await import("react");
+  return {
+    useTurnstile: () => {
+      const [token, setToken] = useState<string | null>(turnstileMock.initialToken);
+      turnstileMock.deliverToken = setToken;
+      return {
+        ref: () => {},
+        token,
+        error: null,
+        // Tokens are single-use: the real hook clears it on reset.
+        reset: () => setToken(null),
+      };
+    },
+  };
+});
+
 import BookingSection from "./BookingSection";
 import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
 
@@ -59,6 +83,7 @@ const mockGetBookedTimes = getBookedTimesForDate as ReturnType<typeof vi.fn>;
 beforeEach(() => {
   // clearAllMocks preserves implementations; restoreAllMocks would reset vi.fn() to undefined.
   vi.clearAllMocks();
+  turnstileMock.initialToken = "token-0";
   mockCreateBooking.mockResolvedValue({ $id: "abcdef12345678" });
   mockGetBookedTimes.mockResolvedValue(new Set());
   global.fetch = vi.fn().mockResolvedValue({
@@ -198,7 +223,7 @@ describe("BookingSection — submit flow", () => {
       expect(screen.getByText(/09:00 AM on 2099-06-15 is already booked/i)).toBeInTheDocument();
     });
     expect(screen.queryByText("Booking Received!")).not.toBeInTheDocument();
-    // createBooking must NOT be called — the 409 blocks execution before Appwrite
+    // createBooking must NOT be called — the 409 blocks execution before the save
     expect(mockCreateBooking).not.toHaveBeenCalled();
   });
 
@@ -225,9 +250,9 @@ describe("BookingSection — submit flow", () => {
     expect(screen.getByLabelText(/preferred date/i)).toBeInTheDocument();
   });
 
-  test("shows generic error when API and Appwrite are both unreachable", async () => {
+  test("shows generic error when the calendar and the save both fail", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
-    mockCreateBooking.mockRejectedValue(new Error("Appwrite down"));
+    mockCreateBooking.mockRejectedValue(new Error("Save failed"));
 
     render(<BookingSection />);
     await advanceToStep2();
@@ -238,6 +263,51 @@ describe("BookingSection — submit flow", () => {
     await waitFor(() => {
       expect(screen.getByText(/booking failed/i)).toBeInTheDocument();
     });
+  });
+
+  test("waits for the spam-check token before Confirm can create the calendar event", async () => {
+    turnstileMock.initialToken = null;
+    render(<BookingSection />);
+    await advanceToStep2();
+    await advanceToStep3();
+
+    // No token yet: a click here used to create the calendar event, then fail
+    // to save because /api/submit needs the token.
+    expect(button(/confirm booking/i)).toBeDisabled();
+    expect(button(/confirm booking/i)).toHaveAccessibleDescription(/running a quick spam check/i);
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/running a quick spam check/i),
+    );
+    fireEvent.click(button(/confirm booking/i));
+    expect(global.fetch).not.toHaveBeenCalledWith("/api/create-booking", expect.anything());
+
+    act(() => turnstileMock.deliverToken?.("token-1"));
+    await waitFor(() => expect(button(/confirm booking/i)).not.toBeDisabled());
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/you can confirm your booking/i),
+    );
+    fireEvent.click(button(/confirm booking/i));
+
+    await waitFor(() => expect(screen.getByText("Booking Received!")).toBeInTheDocument());
+    expect(mockCreateBooking).toHaveBeenCalledWith(expect.anything(), "token-1");
+  });
+
+  test("says what to do when the spam-check token is slow to arrive", async () => {
+    turnstileMock.initialToken = null;
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<BookingSection />);
+      await advanceToStep2();
+      await advanceToStep3();
+      expect(screen.getByRole("status")).not.toHaveTextContent(/taking longer/i);
+
+      act(() => vi.advanceTimersByTime(20000));
+
+      expect(screen.getByRole("status")).toHaveTextContent(/taking longer than usual/i);
+      expect(button(/confirm booking/i)).toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("continue button starts disabled and enables once name and email are filled", async () => {

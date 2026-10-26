@@ -1,7 +1,7 @@
 import React from "react";
 import {
   FaEnvelope,
-  FaPhone,
+  FaCalendarCheck,
   FaMapMarkerAlt,
   FaLinkedin,
   FaGithub,
@@ -16,11 +16,12 @@ export const contactInfo = [
     value: "hello@oceaniccoder.dev",
     href: "mailto:hello@oceaniccoder.dev",
   },
+  // A booked call instead of a phone number, so the number stays private.
   {
-    icon: <FaPhone className="text-oceanic-400" />,
-    label: "Phone",
-    value: "+233 54 449 7456",
-    href: "tel:+233544497456",
+    icon: <FaCalendarCheck className="text-oceanic-400" />,
+    label: "Book a call",
+    value: "Pick a time that suits you",
+    to: "/booking",
   },
   {
     icon: <FaMapMarkerAlt className="text-oceanic-400" />,

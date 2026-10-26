@@ -13,12 +13,7 @@ const ContactForm = () => {
     <div className="glass-card p-8">
       <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Send a Message</h3>
 
-      <form
-        action="https://api.web3forms.com/submit"
-        method="POST"
-        className="space-y-6"
-        onSubmit={handleSubmit}
-      >
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <FormFields formData={formData} handleInputChange={handleInputChange} />
 
         {/* Show inline status messages (success / error) */}

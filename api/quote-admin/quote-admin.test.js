@@ -1,11 +1,25 @@
 // @vitest-environment node
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { createHandler } = await import("./index.js");
+const { verifyInvoice, paymentIdFor } = await import("../shared/tokens.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
+const access = await import("../shared/quotes/access.js");
+const { createCosmosQuoteRepo } = await import("../shared/quotes/repo.cosmos.js");
+const { createCosmosLocks } = await import("../shared/locks.js");
+const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
 
 const NOW = new Date("2026-10-10T09:00:00.000Z");
+const LINK_SECRET = "k".repeat(40);
+
+beforeEach(() => {
+  vi.stubEnv("QUOTE_ACCESS_SECRET", LINK_SECRET);
+  vi.stubEnv("QUOTE_ACCESS_GATE", "");
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 const draft = {
   clientName: "Kofi Mensah",
   clientEmail: "kofi@example.com",
@@ -278,6 +292,88 @@ describe("quote-admin", () => {
     expect(t.repo.quotes.get(id).tokenHash).not.toBe(before);
   });
 
+  describe("browsers unlocked with a code", () => {
+    const SECRET = "s".repeat(32);
+
+    async function unlockedQuote(t, status = "accepted") {
+      const sent = await sentQuote(t);
+      const id = sent.body.quote.id;
+      await t.repo.update(id, { status, respondedAt: NOW.toISOString() });
+      const quote = await t.repo.get(id);
+      const epoch = await access.currentEpoch(t.locks, quote);
+      const header = access.sessionCookie(SECRET, quote, epoch, NOW.getTime());
+      const req = { headers: { cookie: header.split(";")[0] } };
+      const stillOpen = async () =>
+        access.hasAccess({
+          secret: SECRET,
+          locks: t.locks,
+          req,
+          quote: await t.repo.get(id),
+          nowMs: NOW.getTime(),
+        });
+      expect(await stillOpen()).toBe(true);
+      return { id, stillOpen };
+    }
+
+    it("are locked out by New link (rotate)", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t);
+      expect((await t.call({ action: "rotate", id })).status).toBe(200);
+      expect(await stillOpen()).toBe(false);
+    });
+
+    it("are locked out by revise", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t, "sent");
+      expect((await t.call({ action: "revise", id })).status).toBe(200);
+      expect(await stillOpen()).toBe(false);
+    });
+
+    it("stay unlocked through a payment request's fresh link", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t);
+      const r = await t.call({ action: "requestStage", id, stageId: "balance" });
+      expect(r.status).toBe(200);
+      expect(await stillOpen()).toBe(true);
+    });
+
+    it("stay unlocked through Email again to the same address, not a new one", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t, "sent");
+      expect((await t.call({ action: "emailAgain", id })).status).toBe(200);
+      expect(await stillOpen()).toBe(true);
+      const moved = { action: "emailAgain", id, to: "new@example.com", saveAddress: true };
+      expect((await t.call(moved)).status).toBe(200);
+      expect(await stillOpen()).toBe(false);
+    });
+
+    it("keep the old link when the lockout can't be written", async () => {
+      const t = setup();
+      const sent = await sentQuote(t);
+      const id = sent.body.quote.id;
+      const before = t.repo.quotes.get(id).tokenHash;
+      t.locks.take = async () => {
+        throw new Error("locks down");
+      };
+      expect((await t.call({ action: "rotate", id })).status).toBe(500);
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+    });
+
+    it("are locked out even when the new link can't be written, and the old link still works", async () => {
+      const t = setup();
+      const { id, stillOpen } = await unlockedQuote(t);
+      const before = t.repo.quotes.get(id).tokenHash;
+      const realUpdate = t.repo.update;
+      t.repo.update = async () => {
+        throw new Error("database down");
+      };
+      expect((await t.call({ action: "rotate", id })).status).toBe(500);
+      t.repo.update = realUpdate;
+      expect(t.repo.quotes.get(id).tokenHash).toBe(before);
+      expect(await stillOpen()).toBe(false);
+    });
+  });
+
   describe("emailAgain", () => {
     const addresses = (t) => t.notify.quoteEmailAgain.mock.calls.map((c) => c[3]);
 
@@ -532,6 +628,42 @@ describe("quote-admin archive and restore", () => {
     expect(t.repo.payments.get("p1").archivedAt).toBeNull();
   });
 
+  describe("invoicePayLink", () => {
+    afterEach(() => {
+      delete process.env.RECEIPT_SIGNING_SECRET;
+    });
+
+    it("returns a signed pay path for a one-off invoice", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042" }] });
+      const r = await t.call({ action: "invoicePayLink", id: "inv1" });
+      expect(r.status).toBe(200);
+      const [, number, sig] = r.body.link.match(/^\/pay\/([^?]+)\?s=(.+)$/);
+      expect(number).toBe("INV-2026-0042");
+      expect(verifyInvoice("INV-2026-0042", sig, "test-secret")).toBe(true);
+    });
+
+    it("answers 503 when the signing secret is missing", async () => {
+      const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042" }] });
+      const r = await t.call({ action: "invoicePayLink", id: "inv1" });
+      expect(r.status).toBe(503);
+      expect(r.body.error).toMatch(/RECEIPT_SIGNING_SECRET/);
+    });
+
+    it("answers 409 for an invoice with no number", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup({ invoices: [{ id: "inv1", status: "sent" }] });
+      expect((await t.call({ action: "invoicePayLink", id: "inv1" })).status).toBe(409);
+    });
+
+    it("answers 404 for an unknown invoice and 400 for an unsafe id", async () => {
+      process.env.RECEIPT_SIGNING_SECRET = "test-secret";
+      const t = setup();
+      expect((await t.call({ action: "invoicePayLink", id: "nope" })).status).toBe(404);
+      expect((await t.call({ action: "invoicePayLink", id: "../x" })).status).toBe(400);
+    });
+  });
+
   it("archives and restores a one-off invoice", async () => {
     const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042", status: "sent" }] });
     const archived = await t.call({ action: "archiveInvoice", id: "inv1" });
@@ -549,12 +681,36 @@ describe("quote-admin archive and restore", () => {
       const getPayment = vi.spyOn(t.repo, "getPayment");
       const getInvoice = vi.spyOn(t.repo, "getInvoice");
       expect((await t.call({ action, id: "nope" })).status).toBe(404);
-      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(37), 42];
+      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(129), 42];
       for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
       // Only the well-formed id reached the repo.
       expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
     },
   );
+
+  it("archives and restores a Cosmos payment whose id is derived from its reference", async () => {
+    const db = createFakeCosmos();
+    const repo = createCosmosQuoteRepo(db, { locks: createCosmosLocks(db) });
+    const id = paymentIdFor("PAY-Q-2026-0001-deposit-1760086800000");
+    db.container("payments").seed(attempt({ id }));
+    const handler = createHandler({
+      requireAdmin: async () => ({ user: { email: "illona@oceaniccoder.dev" } }),
+      services: () => ({ repo, now: () => NOW }),
+    });
+    const call = async (body) => {
+      const context = { log: { error: vi.fn(), info: vi.fn() } };
+      await handler(context, { method: "POST", body, headers: {} });
+      return { status: context.res.status, body: JSON.parse(context.res.body) };
+    };
+
+    const archived = await call({ action: "archivePayment", id });
+    expect(archived.status).toBe(200);
+    expect(archived.body.payment).toEqual({ id, archivedAt: NOW.toISOString() });
+    const restored = await call({ action: "restorePayment", id });
+    expect(restored.status).toBe(200);
+    expect(restored.body.payment).toEqual({ id, archivedAt: null });
+    expect((await repo.getPayment(id)).archivedAt).toBeNull();
+  });
 
   it("keeps stage state unchanged after archiving an attempt", async () => {
     const t = setup();
@@ -567,5 +723,121 @@ describe("quote-admin archive and restore", () => {
     await t.call({ action: "archivePayment", id: paymentId });
     const after = await t.call({ action: "get", id });
     expect(after.body.stages).toEqual(before.body.stages);
+  });
+});
+
+describe("quote-admin link codes", () => {
+  // Checks a link code against the quote as stored now, without claiming it.
+  const check = async (t, id, linkCode) =>
+    access.checkLinkCode({
+      secret: LINK_SECRET,
+      locks: t.locks,
+      quote: await t.repo.get(id),
+      linkCode,
+      nowMs: NOW.getTime(),
+    });
+  const accepted = async (t) => {
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    await t.repo.update(id, { status: "accepted", respondedAt: NOW.toISOString() });
+    return id;
+  };
+
+  it("send emails a link code for the new link", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const [, , code] = t.notify.quoteSent.mock.calls[0];
+    expect(code).toEqual(expect.any(String));
+    expect(await check(t, sent.body.quote.id, code)).toMatchObject({ ok: true, epoch: 0 });
+    // The link the admin sees has none; it isn't an email.
+    expect(sent.body.link).not.toContain("#");
+  });
+
+  it("refuses to send without the access secret, before anything is written", async () => {
+    const t = setup();
+    const created = await t.call({ action: "create", draft });
+    vi.stubEnv("QUOTE_ACCESS_SECRET", "");
+    const r = await t.call({ action: "send", id: created.body.quote.id });
+    expect(r.status).toBe(503);
+    expect(t.repo.quotes.get(created.body.quote.id).status).toBe("draft");
+    expect(t.notify.quoteSent).not.toHaveBeenCalled();
+  });
+
+  it("sends bare links while the gate is off", async () => {
+    vi.stubEnv("QUOTE_ACCESS_GATE", "off");
+    const t = setup();
+    const sent = await sentQuote(t);
+    expect(t.notify.quoteSent.mock.calls[0][2]).toBeNull();
+    const id = sent.body.quote.id;
+    expect((await t.call({ action: "rotate", id })).body.link).not.toContain("#");
+  });
+
+  it("gives every email its own code, and the code from an older link stops working", async () => {
+    const t = setup();
+    const sent = await sentQuote(t);
+    const id = sent.body.quote.id;
+    const first = t.notify.quoteSent.mock.calls[0][2];
+    await t.call({ action: "emailAgain", id });
+    await t.call({ action: "emailAgain", id });
+    const [a, b] = t.notify.quoteEmailAgain.mock.calls.map((c) => c[4]);
+    expect(new Set([first, a, b]).size).toBe(3);
+    expect(await check(t, id, b)).toMatchObject({ ok: true });
+    expect(await check(t, id, a)).toMatchObject({ ok: false });
+  });
+
+  it("Email again gives a code only to the client's address, not to the extra one", async () => {
+    const t = setup();
+    const id = (await sentQuote(t)).body.quote.id;
+    await t.call({ action: "emailAgain", id, to: "other@example.com" });
+    const byAddress = Object.fromEntries(
+      t.notify.quoteEmailAgain.mock.calls.map((c) => [c[3], c[4]]),
+    );
+    expect(byAddress["other@example.com"]).toBeNull();
+    expect(await check(t, id, byAddress["kofi@example.com"])).toMatchObject({ ok: true });
+    // The extra copy says the link asks for a code; the client's own doesn't.
+    const codeByEmail = Object.fromEntries(
+      t.notify.quoteEmailAgain.mock.calls.map((c) => [c[3], c[5]]),
+    );
+    expect(codeByEmail).toEqual({ "kofi@example.com": false, "other@example.com": true });
+  });
+
+  it("Email again with the gate off mentions no code on any copy", async () => {
+    vi.stubEnv("QUOTE_ACCESS_GATE", "off");
+    const t = setup();
+    const id = (await sentQuote(t)).body.quote.id;
+    await t.call({ action: "emailAgain", id, to: "other@example.com" });
+    for (const c of t.notify.quoteEmailAgain.mock.calls) {
+      expect(c[4]).toBeNull();
+      expect(c[5]).toBe(false);
+    }
+  });
+
+  it("Email again to a saved new address gives the code to the new address", async () => {
+    const t = setup();
+    const id = (await sentQuote(t)).body.quote.id;
+    await t.call({ action: "emailAgain", id, to: "new@example.com", saveAddress: true });
+    const byAddress = Object.fromEntries(
+      t.notify.quoteEmailAgain.mock.calls.map((c) => [c[3], c[4]]),
+    );
+    expect(byAddress["kofi@example.com"]).toBeNull();
+    expect(await check(t, id, byAddress["new@example.com"])).toMatchObject({ ok: true });
+  });
+
+  it("a payment request emails a code for its fresh link", async () => {
+    const t = setup();
+    const id = await accepted(t);
+    await t.call({ action: "requestStage", id, stageId: "balance" });
+    const code = t.notify.paymentRequest.mock.calls[0][4];
+    expect(await check(t, id, code)).toMatchObject({ ok: true, epoch: 0 });
+  });
+
+  it("New link returns a bare link and voids every code emailed before it", async () => {
+    const t = setup();
+    const id = await accepted(t);
+    await t.call({ action: "requestStage", id, stageId: "balance" });
+    const emailed = t.notify.paymentRequest.mock.calls[0][4];
+    const r = await t.call({ action: "rotate", id });
+    expect(r.body.link).not.toContain("#");
+    expect(await check(t, id, emailed)).toMatchObject({ ok: false });
   });
 });

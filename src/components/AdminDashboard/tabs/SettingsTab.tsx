@@ -1,5 +1,4 @@
 import React from "react";
-import { ChangePasswordCard } from "./Settings/ChangePasswordCard";
 import { ComingSoonCard } from "./Settings/ComingSoonCard";
 
 interface SettingsTabProps {
@@ -26,7 +25,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ theme }) => {
         </p>
       </div>
 
-      <ChangePasswordCard theme={theme} />
+      {/* Signed in through GitHub: the password lives there. */}
+      <p className={`text-sm ${theme === "dark" ? "text-slate-200/90" : "text-slate-700/80"}`}>
+        You sign in with GitHub. Change your password and two-factor settings on GitHub.
+      </p>
       <ComingSoonCard theme={theme} />
     </div>
   );

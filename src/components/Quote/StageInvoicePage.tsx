@@ -1,12 +1,16 @@
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
-import { useClientQuote } from "./useClientQuote";
+import { LockedQuote } from "./QuoteAccessGate";
+import { previewQuery, useClientQuote } from "./useClientQuote";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 
 export default function StageInvoicePage() {
   const { token = "", stageId = "" } = useParams();
-  const { state, reload } = useClientQuote(token, true);
+  const [params] = useSearchParams();
+  const admin = params.get("preview") === "admin";
+  const query = previewQuery(admin);
+  const { state, reload, unlocked } = useClientQuote(token, { preview: true, admin });
   if (state.kind === "loading")
     return (
       <QuoteShell title="Invoice" width="narrow">
@@ -19,6 +23,16 @@ export default function StageInvoicePage() {
         <InactiveLink />
       </QuoteShell>
     );
+  if (state.kind === "locked")
+    return (
+      <LockedQuote
+        token={token}
+        onUnlocked={unlocked}
+        onRetry={reload}
+        admin={admin}
+        cookieBlocked={state.cookieBlocked}
+      />
+    );
   if (state.kind === "error")
     return (
       <QuoteShell title="Invoice" width="narrow">
@@ -28,7 +42,7 @@ export default function StageInvoicePage() {
 
   const { quote } = state;
   const stage = quote.stages.find((s) => s.id === stageId);
-  if (!stage || stage.state === "later") return <Navigate to={`/q/${token}`} replace />;
+  if (!stage || stage.state === "later") return <Navigate to={`/q/${token}${query}`} replace />;
   const money = (m: number) => formatMinor(m, quote.currency);
 
   return (
@@ -113,7 +127,7 @@ export default function StageInvoicePage() {
         <div className="flex flex-wrap gap-3 mt-6 print:hidden">
           {stage.state === "due" && (
             <Link
-              to={`/q/${token}/pay/${stage.id}`}
+              to={`/q/${token}/pay/${stage.id}${query}`}
               className="px-5 py-3 rounded-xl font-semibold text-white"
               style={{ background: "var(--quote-cta)" }}
             >
@@ -138,7 +152,7 @@ export default function StageInvoicePage() {
             Print or save PDF
           </button>
           <Link
-            to={`/q/${token}`}
+            to={`/q/${token}${query}`}
             className="px-5 py-3 text-sm underline"
             style={{ color: "var(--text-secondary)" }}
           >

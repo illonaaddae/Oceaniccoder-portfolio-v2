@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FaCheck } from "react-icons/fa";
-import { respondToQuote } from "@/services/api/quotes";
+import { isLockedError, respondToQuote } from "@/services/api/quotes";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
 import type { ClientQuote } from "@/types/quote";
 
@@ -11,10 +11,13 @@ export default function QuoteActions({
   token,
   quote,
   onChange,
+  onLocked,
 }: {
   token: string;
   quote: ClientQuote;
   onChange: (q: ClientQuote) => void;
+  /** The unlock ended while the page was open: show the code screen. */
+  onLocked?: () => void;
 }) {
   const [name, setName] = useState("");
   const [agree, setAgree] = useState(false);
@@ -30,6 +33,10 @@ export default function QuoteActions({
       const { quote: updated } = await respondToQuote(token, body);
       onChange(updated);
     } catch (err) {
+      if (onLocked && isLockedError(err)) {
+        onLocked();
+        return;
+      }
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setBusy(false);

@@ -196,13 +196,60 @@ describe("InvoicesTab", () => {
     ]);
   });
 
-  it("opens the pay page in a new tab", async () => {
-    const open = vi.spyOn(window, "open").mockImplementation(() => null);
-    await renderTab();
-    const menu = await openMenu("INV-2026-0042");
-    await userEvent.click(within(menu).getByRole("menuitem", { name: "View pay page" }));
-    expect(open).toHaveBeenCalledWith("/pay/INV-2026-0042", "_blank", "noopener,noreferrer");
-    open.mockRestore();
+  describe("View pay page", () => {
+    const signed = "/pay/INV-2026-0042?s=signature";
+    const fakeTab = () => ({ opener: {}, location: { href: "" }, close: vi.fn() });
+    const clickViewPayPage = async () => {
+      await renderTab();
+      const menu = await openMenu("INV-2026-0042");
+      await userEvent.click(within(menu).getByRole("menuitem", { name: "View pay page" }));
+    };
+
+    it("opens a tab in the click and sends it to the signed link from the server", async () => {
+      routeQuoteAdmin(async () => ({ link: signed }));
+      const tab = fakeTab();
+      const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as typeof window);
+      await clickViewPayPage();
+      await waitFor(() => expect(tab.location.href).toBe(signed));
+      expect(quoteAdmin).toHaveBeenCalledWith("invoicePayLink", { id: "inv1" });
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(tab.opener).toBeNull();
+      open.mockRestore();
+    });
+
+    it("shows the signed link to open or copy when the browser blocked the tab", async () => {
+      routeQuoteAdmin(async () => ({ link: signed }));
+      const open = vi.spyOn(window, "open").mockReturnValue(null);
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+      await clickViewPayPage();
+      const absolute = `${window.location.origin}${signed}`;
+      const name = "Open the pay page for INV-2026-0042";
+      const link = await screen.findByRole("link", { name });
+      expect(link).toHaveAttribute("href", absolute);
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      await waitFor(() => expect(link).toHaveFocus());
+      expect(link).toHaveAccessibleDescription("Your browser blocked the new tab.");
+      expect(open).toHaveBeenCalledTimes(1);
+      await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
+      expect(writeText).toHaveBeenCalledWith(absolute);
+      await userEvent.click(screen.getByRole("button", { name: "Dismiss pay link" }));
+      expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
+      open.mockRestore();
+    });
+
+    it("closes the tab and shows the error when the link can't be signed", async () => {
+      routeQuoteAdmin(async () => {
+        throw new Error("Pay links need RECEIPT_SIGNING_SECRET to be set.");
+      });
+      const tab = fakeTab();
+      const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as typeof window);
+      await clickViewPayPage();
+      expect(await screen.findByText(/RECEIPT_SIGNING_SECRET/)).toBeInTheDocument();
+      expect(tab.close).toHaveBeenCalled();
+      expect(tab.location.href).toBe("");
+      open.mockRestore();
+    });
   });
 
   it("marks a one-off invoice paid and records the payment", async () => {

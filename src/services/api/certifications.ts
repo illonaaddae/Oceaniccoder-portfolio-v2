@@ -1,6 +1,6 @@
-import { databases, DATABASE_ID, COLLECTIONS, ID } from "./client";
+import { COLLECTIONS } from "./collections";
 import type { Certification } from "../../types";
-import { listRows, usesCosmos } from "./dataApi";
+import { listRows, manageCreate, manageDelete, manageUpdate } from "./dataApi";
 
 const MONTH_INDEX: Record<string, number> = {
   january: 1,
@@ -28,9 +28,7 @@ function certDateRank(date?: string): number {
 }
 
 export async function getCertifications(): Promise<Certification[]> {
-  const response = usesCosmos
-    ? await listRows(COLLECTIONS.CERTIFICATIONS)
-    : await databases.listDocuments(DATABASE_ID, COLLECTIONS.CERTIFICATIONS);
+  const response = await listRows(COLLECTIONS.CERTIFICATIONS);
   const certs = response.documents as unknown as Certification[];
   // Newest first: by date obtained, falling back to creation time for ties.
   return certs.sort((a, b) => {
@@ -38,24 +36,6 @@ export async function getCertifications(): Promise<Certification[]> {
     if (byDate !== 0) return byDate;
     return (b.$createdAt ?? "").localeCompare(a.$createdAt ?? "");
   });
-}
-
-/**
- * Appwrite rejects writes for attributes the collection doesn't have yet, and
- * the raw message is opaque in the dashboard. Name the missing attribute so
- * the fix (add it in the Appwrite Console) is obvious.
- */
-function handleAttributeError(error: unknown): never {
-  const msg = error instanceof Error ? error.message : String(error);
-  if (msg.includes("Unknown attribute") || msg.includes("attribute")) {
-    const match = msg.match(/"([^"]+)"/);
-    const attr = match ? match[1] : "unknown";
-    throw new Error(
-      `The attribute "${attr}" doesn't exist in your Appwrite database. ` +
-        `Please add it to the "certifications" collection in Appwrite Console.`,
-    );
-  }
-  throw error;
 }
 
 export async function createCertification(
@@ -76,16 +56,7 @@ export async function createCertification(
   if (cert.platformIconUrl) cleanedData.platformIconUrl = cert.platformIconUrl;
   if (cert.image) cleanedData.image = cert.image;
 
-  try {
-    return (await databases.createDocument(
-      DATABASE_ID,
-      COLLECTIONS.CERTIFICATIONS,
-      ID.unique(),
-      cleanedData,
-    )) as unknown as Certification;
-  } catch (error: unknown) {
-    handleAttributeError(error);
-  }
+  return manageCreate<Certification>(COLLECTIONS.CERTIFICATIONS, cleanedData);
 }
 
 export async function updateCertification(
@@ -108,18 +79,9 @@ export async function updateCertification(
   if (cert.verifyLink !== undefined) cleanedData.verifyLink = cert.verifyLink || null;
   if (cert.image !== undefined) cleanedData.image = cert.image || null;
 
-  try {
-    return (await databases.updateDocument(
-      DATABASE_ID,
-      COLLECTIONS.CERTIFICATIONS,
-      certId,
-      cleanedData,
-    )) as unknown as Certification;
-  } catch (error: unknown) {
-    handleAttributeError(error);
-  }
+  return manageUpdate<Certification>(COLLECTIONS.CERTIFICATIONS, certId, cleanedData);
 }
 
 export async function deleteCertification(certId: string): Promise<void> {
-  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.CERTIFICATIONS, certId);
+  await manageDelete(COLLECTIONS.CERTIFICATIONS, certId);
 }

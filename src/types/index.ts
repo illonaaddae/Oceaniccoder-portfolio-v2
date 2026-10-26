@@ -121,15 +121,6 @@ export interface BlogReaction {
 }
 
 // Blog View Types
-export interface BlogView {
-  $id: string;
-  postId: string;
-  visitorId: string;
-  /** How many times this visitor has opened the post (always at least 1). */
-  reads?: number;
-  lastReadAt?: string;
-}
-
 /** Unique readers vs total reads for one post. */
 export interface BlogViewStats {
   readers: number;
@@ -291,5 +282,7 @@ export interface Testimonial {
   rating?: number;
   featured?: boolean;
   order?: number;
+  /** false for a visitor submission awaiting approval; missing = approved. */
+  approved?: boolean;
   $createdAt?: string;
 }

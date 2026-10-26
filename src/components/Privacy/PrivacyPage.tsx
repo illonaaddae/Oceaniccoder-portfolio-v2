@@ -6,22 +6,12 @@ import { Helmet } from "react-helmet-async";
  * code does today; check the matching code before changing a claim, and update
  * this page (and LAST_UPDATED) when data handling changes.
  *
- * Production builds leave VITE_DATA_BACKEND unset, so visitor forms, comments
- * and blog counts are written to Appwrite, Turnstile is off and the visitor
- * testimonial form is hidden.
- *
  * TODO(OC-0): when lead attribution ships (first-visit source kept in the
  * browser for 30 days and sent with forms), describe it under "Forms".
- * TODO(OC-0): when VITE_DATA_BACKEND=cosmos ships, re-add the Cloudflare
- * Turnstile spam check (forms section and processor list) and update where
- * form data is stored.
- * TODO(OC-0): at the Azure cutover, when the testimonial form is back, restore
- * its form text: name, role, company (optional), text, rating and an optional
- * photo; submitted testimonials and photos stay hidden until approved.
  */
 
 const CONTACT_EMAIL = "hello@oceaniccoder.dev";
-const LAST_UPDATED = "13 October 2026";
+const LAST_UPDATED = "24 October 2026";
 const DESCRIPTION =
   "What oceaniccoder.dev collects, why, who processes it, how long it is kept and how to ask for a copy or deletion.";
 
@@ -82,8 +72,10 @@ const PrivacyPage: React.FC = () => (
         </h1>
         <p className="text-lg">
           This page explains what oceaniccoder.dev collects, why, who helps us handle it and what
-          you can ask us to do with it. The short version: no cookies, no advertising trackers, and
-          we only keep what we need to answer you and run the business.
+          you can ask us to do with it. The short version: we set a sign-in cookie for each quote
+          you open; Paystack sets its own cookies only when you open its checkout to pay; there are
+          no tracking or advertising cookies, and we only keep what we need to answer you and run
+          the business.
         </p>
       </header>
 
@@ -116,7 +108,11 @@ const PrivacyPage: React.FC = () => (
 
         <SubHeading>What we don&apos;t do</SubHeading>
         <List>
-          <li>We use no cookies.</li>
+          <li>
+            We use no tracking or advertising cookies. The only cookies we set are the quote sign-in
+            cookies described under &quot;Quotes and payments&quot;. When you pay, Paystack&apos;s
+            checkout sets its own cookies.
+          </li>
           <li>
             We don&apos;t store your IP address or your browser&apos;s full identifying string. Our
             server uses them briefly, in memory only, to make the daily code described below and to
@@ -148,7 +144,7 @@ const PrivacyPage: React.FC = () => (
         <SubHeading>Do Not Track and Global Privacy Control</SubHeading>
         <p>
           If your browser sends a Do Not Track or Global Privacy Control signal, we honour it fully:
-          the site sends nothing at all, not even an anonymous count.
+          our analytics record nothing at all, not even an anonymous count.
         </p>
 
         <SubHeading>How long we keep it</SubHeading>
@@ -158,16 +154,30 @@ const PrivacyPage: React.FC = () => (
         <p>
           The site also uses your browser&apos;s local storage for your light or dark theme choice,
           whether you have seen the intro animation or closed a banner, and a cached list of home
-          page images. These stay on your device.
+          page images. When we email you a code to open a quote, the page keeps a temporary
+          reference to that code in session storage until you enter it or close the tab. None of
+          these leave your device except that reference, which is sent back with the code.
         </p>
       </Section>
 
       <Section id="forms" title="Forms you fill in">
-        <p>We only receive what you type into a form, and use it for the reason given.</p>
+        <p>
+          Apart from the spam check below, we only receive what you type into a form, and use it for
+          the reason given.
+        </p>
+        <p>
+          To block spam, the contact, booking, inquiry, comment and testimonial forms use Cloudflare
+          Turnstile. Before you send one of these forms, your browser loads Turnstile from
+          Cloudflare, which sees your IP address and checks details about your browser and device to
+          tell people from bots. When you send a form, our server sends the result and your IP
+          address to Cloudflare to confirm it. Our server also uses your IP address in memory to
+          limit how many contact-message alerts one address can trigger, and never saves it.
+        </p>
         <List>
           <li>
             <strong className="text-[var(--text-primary)]">Contact:</strong> your name, email,
-            subject and message, so we can reply.
+            subject and message, so we can reply to the address you gave. We save them and email
+            them to ourselves through Resend. We don&apos;t send you anything automatically.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Booking a call:</strong> your name,
@@ -189,9 +199,9 @@ const PrivacyPage: React.FC = () => (
             to reply to you.
           </li>
           <li>
-            <strong className="text-[var(--text-primary)]">Testimonials:</strong> the site
-            isn&apos;t collecting testimonials through a form right now. The testimonials you see
-            are added by us, with the client&apos;s permission.
+            <strong className="text-[var(--text-primary)]">Testimonials:</strong> your name, role,
+            company (optional), testimonial text, rating and an optional photo. Submitted
+            testimonials and photos stay off the site until we approve them.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Newsletter:</strong> your email address
@@ -201,6 +211,17 @@ const PrivacyPage: React.FC = () => (
       </Section>
 
       <Section id="quotes-payments" title="Quotes and payments">
+        <p>
+          When you open a quote in a new browser, we email a 6-digit code to the address on the
+          quote. Once you enter it, or open the quote from our email, a sign-in cookie keeps that
+          browser signed in to that quote for 30 days. It is used only for that, and it stops
+          working early if the quote is revised or its link is replaced. Your IP address is used in
+          memory to limit how often codes can be asked for or tried, and is never saved. Records of
+          code requests and code entries are deleted within two days; counts of wrong codes are kept
+          until the quote is revised or its link is replaced. A used sign-in link leaves a random
+          marker, kept for up to 47 days so the link can&apos;t be used twice; it holds nothing
+          about you except when the link was used.
+        </p>
         <p>
           When you accept a quote, we keep a record of the agreement: the name you type, the time, a
           one-way scrambled (hashed) copy of your IP address, your browser&apos;s identifying string
@@ -213,13 +234,21 @@ const PrivacyPage: React.FC = () => (
           payment method (and the mobile money network, if used), the invoice number and the date
           paid. If you pay by bank transfer, no payment provider is involved.
         </p>
+        <p>
+          Paystack&apos;s checkout loads from Paystack only when you choose to pay, either in a
+          window on our page or on Paystack&apos;s own site. Paystack, and Cloudflare, which
+          protects Paystack&apos;s servers, set their own cookies when it opens; Paystack&apos;s
+          privacy policy covers them.
+        </p>
       </Section>
 
       <Section id="email" title="Emails and text messages">
         <p>
-          Our emails (replies, booking confirmations, quotes, invoices, receipts and the newsletter)
-          are sent through Resend, which also holds the newsletter mailing list. You can unsubscribe
-          from the newsletter at any time by emailing <EmailLink />.
+          Our emails (replies, booking confirmations, quotes, invoices, receipts, the newsletter,
+          and the alerts of new messages we send to ourselves) are sent through Resend, which also
+          holds the newsletter mailing list. We don&apos;t track whether you open our emails or
+          click the links in them. You can unsubscribe from the newsletter at any time by emailing{" "}
+          <EmailLink />.
         </p>
         <p>
           If you give us a phone number with an invoice, we may send you a text message when the
@@ -247,18 +276,23 @@ const PrivacyPage: React.FC = () => (
 
       <Section id="processors" title="Where your data is stored and who processes it">
         <p>
-          Your data is stored with Appwrite and Microsoft Azure. We are moving it from Appwrite to
-          Azure, so while that happens a record may be held with either.
+          Your data is stored with Microsoft Azure. What you send through the site&apos;s forms
+          (messages, bookings, inquiries, comments and testimonials), blog read and reaction counts,
+          quotes, invoices, payment records and page-view records are kept in Azure Cosmos DB in its
+          Central US region, in the United States. The site&apos;s images and uploaded photos are
+          kept in Azure Blob Storage in its West Europe region, in the Netherlands. This data used
+          to be stored with Appwrite in Frankfurt, Germany. We still hold that copy there until we
+          delete it, which we will do once we have checked the move.
         </p>
         <List>
           <li>
-            <strong className="text-[var(--text-primary)]">Appwrite</strong> stores what you send
-            through the site&apos;s forms (messages, bookings, inquiries and comments),
-            testimonials, blog read and reaction counts, quotes, invoices and payment records.
+            <strong className="text-[var(--text-primary)]">Microsoft Azure</strong> hosts the site
+            on its global network, runs our server code in its Central US region, and stores the
+            data described above.
           </li>
           <li>
-            <strong className="text-[var(--text-primary)]">Microsoft Azure</strong> hosts the site
-            and our server code, and stores the site&apos;s images and the page-view records.
+            <strong className="text-[var(--text-primary)]">Cloudflare</strong> runs the spam check
+            (Turnstile) on the site&apos;s forms.
           </li>
           <li>
             <strong className="text-[var(--text-primary)]">Paystack</strong> processes payments.
@@ -289,7 +323,13 @@ const PrivacyPage: React.FC = () => (
             (youtube-nocookie.com).
           </li>
         </List>
-        <p>Some of these providers handle data outside Ghana.</p>
+        <p>
+          Every provider listed here can handle your data outside Ghana. Until the old copy is
+          deleted, Appwrite holds some of it in Germany. Microsoft Azure stores it in the United
+          States and the Netherlands. Cloudflare, Resend, OpenAI, Google, YouTube, Loom and Zoom are
+          based in the United States, Paystack in Nigeria and Africa&apos;s Talking in Kenya. Email{" "}
+          <EmailLink /> to ask how these transfers are protected.
+        </p>
       </Section>
 
       <Section id="rights" title="How long we keep data, and your rights">

@@ -6,22 +6,17 @@ import adminRoutes from "@/routes/adminRoutes";
 
 interface AnimatedRoutesProps {
   isAdminLoggedIn: boolean;
-  onAdminLogin: (password: string) => void;
   onAdminLogout: () => void;
 }
 
-const AnimatedRoutes: FC<AnimatedRoutesProps> = ({
-  isAdminLoggedIn,
-  onAdminLogin,
-  onAdminLogout,
-}) => {
+const AnimatedRoutes: FC<AnimatedRoutesProps> = ({ isAdminLoggedIn, onAdminLogout }) => {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         {publicRoutes}
-        {adminRoutes({ isAdminLoggedIn, onAdminLogin, onAdminLogout })}
+        {adminRoutes({ isAdminLoggedIn, onAdminLogout })}
       </Routes>
     </AnimatePresence>
   );

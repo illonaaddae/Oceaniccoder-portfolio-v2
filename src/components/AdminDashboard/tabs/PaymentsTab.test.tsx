@@ -8,7 +8,6 @@ const quoteAdmin = vi.fn();
 const confirm = vi.fn();
 vi.mock("@/services/api/payments", () => ({
   getPayments: () => getPayments(),
-  subscribeToPayments: () => () => {},
 }));
 vi.mock("@/services/api/quotes", () => ({
   quoteAdmin: (...a: unknown[]) => quoteAdmin(...a),
@@ -23,7 +22,9 @@ async function pick(label: RegExp, option: string) {
   await userEvent.click(screen.getByRole("option", { name: option }));
 }
 
-const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+// Read the clock once. Reading it per row lets a millisecond tick reorder rows that should tie.
+const NOW = Date.now();
+const minutesAgo = (m: number) => new Date(NOW - m * 60_000).toISOString();
 
 let seq = 0;
 const pay = (over: Partial<Payment> = {}) =>
@@ -199,7 +200,11 @@ describe("PaymentsTab", () => {
   });
 
   it("pages at 15 rows and goes back to page 1 when the filter changes", async () => {
-    await renderTab(Array.from({ length: 20 }, (_, i) => pay({ clientName: `Client ${i + 1}` })));
+    await renderTab(
+      Array.from({ length: 20 }, (_, i) =>
+        pay({ clientName: `Client ${i + 1}`, $createdAt: minutesAgo(5 + i) }),
+      ),
+    );
     expect(screen.getByText(/showing/i)).toHaveTextContent("Showing 1-15 of 20");
     expect(within(table()).queryByText("Client 16")).toBeNull();
 

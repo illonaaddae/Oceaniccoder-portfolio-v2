@@ -51,7 +51,7 @@ export function useContactForm() {
     setStatus("sending");
 
     try {
-      const result = await submitContactForm(formDataToSend, formData, turnstile.token);
+      const result = await submitContactForm(formData, turnstile.token);
       turnstile.reset(); // tokens are single-use
       lastSubmissionRef.current = Date.now();
       setStatus("success");
@@ -68,6 +68,9 @@ export function useContactForm() {
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
       console.error("Form submit error:", err);
+      // The server may have spent the token; get a fresh one for the retry. With no token
+      // yet the widget is still working, and a reset would only restart it.
+      if (turnstile.token) turnstile.reset();
       setStatus("error");
 
       let errorMessage = "Something went wrong. Please try again later.";
