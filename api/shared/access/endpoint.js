@@ -34,6 +34,11 @@ const NEW_CODE = {
   stale: "That code is for an older version of this link. Ask for a new one.",
 };
 
+const ACTION_NAMES = ["status", "claim", "send", "verify"];
+
+/** Whether the endpoint knows this action, for a router that checks it before the kind. */
+const isAccessAction = (action) => typeof action === "string" && ACTION_NAMES.includes(action);
+
 // Resend's error text can quote the recipient; keep addresses out of the logs.
 const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]");
 
@@ -288,4 +293,4 @@ function createAccessEndpoint(deps) {
   };
 }
 
-module.exports = { createAccessEndpoint };
+module.exports = { createAccessEndpoint, isAccessAction };
