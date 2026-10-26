@@ -42,7 +42,10 @@ const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]
  *   access    createAccess(scheme) for the kind
  *   locator   check(body) throws the "not found" error for a malformed
  *             locator, before any switch, secret or lookup; find(svc, body)
- *             loads the record or throws that same error
+ *             loads the record or throws that same error; guessable(body),
+ *             optional, is true for a locator anyone could type (an unsigned
+ *             invoice link): status and send then never show the masked
+ *             address, and code emails get the tighter guessable quota
  *   emails    code(record, code, minutes) and lockedAlert(record, atIso,
  *             blocked) give { subject, html, text }
  *   labels    ref (the record's name in log lines) and the kind's texts
@@ -64,7 +67,7 @@ function createAccessEndpoint(deps) {
   });
   const name = (record) => `${labels.ref}=${access.subject(record).logName}`;
 
-  async function status({ svc, secret, record, req, nowMs }) {
+  async function status({ svc, secret, record, req, guessable, nowMs }) {
     const unlocked = await access.hasAccess({ secret, locks: svc.locks, req, record, nowMs });
     const maskedEmail = maskEmail(access.subject(record).clientEmail);
     const blocked =
@@ -77,12 +80,12 @@ function createAccessEndpoint(deps) {
         locked: !unlocked,
         canUnlock: Boolean(maskedEmail) && !blocked,
         blocked,
-        maskedEmail,
+        maskedEmail: guessable ? null : maskedEmail,
       },
     };
   }
 
-  async function sendCode({ context, svc, secret, record, ip, nowMs }) {
+  async function sendCode({ context, svc, secret, record, ip, guessable, nowMs }) {
     if (!allowSendFromIp(ip || "unknown", 1, nowMs))
       throw new HttpError(429, "Too many codes asked for. Try again later.");
     const { clientEmail } = access.subject(record);
@@ -92,7 +95,7 @@ function createAccessEndpoint(deps) {
       context.log(`${labels.log} blocked ${name(record)}`);
       throw new HttpError(403, labels.blocked, { blocked: true });
     }
-    const slots = await access.takeSendSlots(svc.locks, record, epoch, nowMs);
+    const slots = await access.takeSendSlots(svc.locks, record, epoch, nowMs, { guessable });
     if (!slots.ok) {
       context.log(`${labels.log} limit ${name(record)}`);
       throw new HttpError(
@@ -136,7 +139,7 @@ function createAccessEndpoint(deps) {
       status: 200,
       body: {
         challenge: issued.challenge,
-        maskedEmail: maskEmail(clientEmail),
+        maskedEmail: guessable ? null : maskEmail(clientEmail),
         expiresInSeconds: CODE_TTL_MS / 1000,
         retryAfterSeconds: slots.retryAfterSeconds,
       },
@@ -273,6 +276,7 @@ function createAccessEndpoint(deps) {
         record,
         body,
         req,
+        guessable: Boolean(locator.guessable && locator.guessable(body)),
         ip: clientIp(req),
         nowMs: svc.now().getTime(),
       });
