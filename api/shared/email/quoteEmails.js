@@ -453,9 +453,6 @@ const LOCKED_ALERTS = {
   },
 };
 
-// Two cases: one code locked after five wrong tries, or (blocked) the
-// document's fifteenth wrong code, after which no code is sent or checked
-// until it is reset.
 // An invoice's unsigned (guessable) link reached its own five wrong codes:
 // only that link is blocked (shared/access/core.js GUESSABLE_MAX_MISSES), so
 // the owner is told the signed link still works and how to get it to the client.
@@ -481,10 +478,14 @@ function unsignedLinkBlockedAlert(v) {
       notice({ tone: "warn", text: advice }) +
       buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
   });
-  const text = lines(what, effect, advice, `${v.clientName}, ${v.lockedOn}.`, v.adminLink);
+  const when = [v.clientName, v.lockedOn].filter(Boolean).join(", ");
+  const text = lines(what, effect, advice, `${when}.`, v.adminLink);
   return { subject, html, text };
 }
 
+// Two cases: one code locked after five wrong tries, or (blocked) the
+// document's fifteenth wrong code, after which no code is sent or checked
+// until it is reset.
 function accessLockedAlert(v) {
   if (v.kind === "invoice" && v.linkBlocked) return unsignedLinkBlockedAlert(v);
   const kind = v.kind === "invoice" ? "invoice" : "quote";

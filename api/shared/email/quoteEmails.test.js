@@ -258,6 +258,13 @@ describe("quote email templates", () => {
     expect(mail.html).not.toContain("Fifteen");
   });
 
+  it("leaves an empty client name out of the unsigned-link alert", () => {
+    const view = { ...SAMPLE_VIEWS.invoiceAccessLinkBlockedAlert.view, clientName: "" };
+    const mail = T.accessLockedAlert(view);
+    expect(mail.text).toContain(`\n${view.lockedOn}.\n`);
+    expect(mail.text).not.toContain(`\n, ${view.lockedOn}`);
+  });
+
   it("names the receipt in a quote's alert when the codes were for one of its receipts", () => {
     const view = { ...SAMPLE_VIEWS.accessLockedAlert.view, reference: "Q-2026-0007-1-K7Q2X9PL" };
     const mail = T.accessLockedAlert(view);
