@@ -136,6 +136,20 @@ const CATALOG = [
     render: quote("accessCode"),
   },
   {
+    id: "invoiceAccessCode",
+    group: "clients",
+    name: "Invoice code",
+    when: "An invoice link is opened in a browser that is not signed in",
+    render: quote("invoiceAccessCode"),
+  },
+  {
+    id: "receiptAccessCode",
+    group: "clients",
+    name: "Receipt code",
+    when: "A receipt link is opened in a browser that is not signed in",
+    render: quote("receiptAccessCode"),
+  },
+  {
     id: "invoiceSent",
     group: "clients",
     name: "Invoice",
@@ -347,8 +361,15 @@ const CATALOG = [
     id: "accessLockedAlert",
     group: "admin",
     name: "Quote code locked",
-    when: "Five wrong codes on one code, or fifteen on a quote link",
+    when: "Five wrong codes on one code, or fifteen on a quote link or its receipts",
     render: quote("accessLockedAlert"),
+  },
+  {
+    id: "invoiceAccessLockedAlert",
+    group: "admin",
+    name: "Invoice code locked",
+    when: "Five wrong codes on one code, or fifteen on an invoice link",
+    render: quote("invoiceAccessLockedAlert"),
   },
   {
     id: "invoicePaidAlert",

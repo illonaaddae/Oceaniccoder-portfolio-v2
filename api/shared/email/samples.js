@@ -137,6 +137,37 @@ const SAMPLE_VIEWS = {
       adminLink: "https://oceaniccoder.dev/admin/dashboard",
     },
   },
+  invoiceAccessCode: {
+    template: "accessCode",
+    view: {
+      kind: "invoice",
+      clientFirstName: "Kofi",
+      number: "INV-2026-0042",
+      code: "482915",
+      minutes: 10,
+    },
+  },
+  receiptAccessCode: {
+    template: "accessCode",
+    view: {
+      kind: "receipt",
+      clientFirstName: "Kofi",
+      number: "Q-2026-0007-1-K7Q2X9PL",
+      code: "482915",
+      minutes: 10,
+    },
+  },
+  invoiceAccessLockedAlert: {
+    template: "accessLockedAlert",
+    view: {
+      kind: "invoice",
+      blocked: false,
+      clientName: "Kofi Mensah",
+      number: "INV-2026-0042",
+      lockedOn: "20 Oct 2026",
+      adminLink: "https://oceaniccoder.dev/admin/dashboard",
+    },
+  },
   paymentAlert: {
     template: "paymentAlert",
     view: {

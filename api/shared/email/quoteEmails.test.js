@@ -205,6 +205,59 @@ describe("quote email templates", () => {
     });
   });
 
+  describe("access code for an invoice or a receipt", () => {
+    it("names the invoice in the subject, the heading and the header", () => {
+      const mail = T.accessCode(SAMPLE_VIEWS.invoiceAccessCode.view);
+      expect(mail.subject).toBe("482915 is your code for invoice INV-2026-0042");
+      expect(mail.html).toContain("Open your invoice");
+      expect(mail.html).toContain("Hi Kofi, someone opened your invoice in a new browser.");
+      expect(mail.html).toContain("INV-2026-0042");
+      expect(mail.html).not.toContain("quote");
+      expect(mail.text.split("\n")[0]).toBe("Your verification code is 482915.");
+      expect(mail.html).not.toContain("/pay/");
+      expect(mail.text).not.toMatch(/https?:/);
+    });
+
+    it("says only 'your receipt' in the subject", () => {
+      const mail = T.accessCode(SAMPLE_VIEWS.receiptAccessCode.view);
+      expect(mail.subject).toBe("482915 is your code for your receipt");
+      expect(mail.html).toContain("Open your receipt");
+      expect(mail.text).toContain("Someone opened your receipt in a new browser.");
+      expect(mail.html).not.toContain("quote");
+      expect(mail.html).not.toContain("/receipt/");
+      expect(mail.text).not.toMatch(/https?:/);
+    });
+  });
+
+  it("tells the owner which invoice locked and how to sign every browser out", () => {
+    const mail = T.accessLockedAlert(SAMPLE_VIEWS.invoiceAccessLockedAlert.view);
+    expect(mail.subject).toBe("Code locked after 5 wrong tries on INV-2026-0042");
+    expect(mail.html).toContain("An invoice code was locked");
+    expect(mail.html).toContain("Use Reset access on the invoice");
+    expect(mail.html).not.toContain("New link");
+    expect(mail.text).toContain("https://oceaniccoder.dev/admin/dashboard");
+    const blocked = T.accessLockedAlert({
+      ...SAMPLE_VIEWS.invoiceAccessLockedAlert.view,
+      blocked: true,
+    });
+    expect(blocked.subject).toBe("Codes blocked after 15 wrong tries on INV-2026-0042");
+    expect(blocked.text).toContain(
+      "No more codes will be sent or accepted on this link until you use Reset access.",
+    );
+  });
+
+  it("names the receipt in a quote's alert when the codes were for one of its receipts", () => {
+    const view = { ...SAMPLE_VIEWS.accessLockedAlert.view, reference: "Q-2026-0007-1-K7Q2X9PL" };
+    const mail = T.accessLockedAlert(view);
+    expect(mail.subject).toBe("Code locked after 5 wrong tries on Q-2026-0007");
+    expect(mail.html).toContain("Q-2026-0007-1-K7Q2X9PL");
+    expect(mail.text).toContain(
+      "(Online store with Paystack checkout, Kofi Mensah, receipt Q-2026-0007-1-K7Q2X9PL)",
+    );
+    expect(mail.html).toContain("Use New link on the quote");
+    expect(T.accessLockedAlert(poison(view)).html).not.toContain("<script>");
+  });
+
   it("tells the owner which quote locked and how to cut off a shared link", () => {
     const mail = T.accessLockedAlert(SAMPLE_VIEWS.accessLockedAlert.view);
     expect(mail.subject).toBe("Code locked after 5 wrong tries on Q-2026-0007");
@@ -229,6 +282,9 @@ describe("quote email templates", () => {
       [
         "accessCode",
         "accessLockedAlert",
+        "invoiceAccessCode",
+        "invoiceAccessLockedAlert",
+        "receiptAccessCode",
         "maintenanceOffer",
         "paymentAlert",
         "paymentAlertProblem",
