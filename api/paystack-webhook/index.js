@@ -68,8 +68,9 @@ const SIGNATURE_FORMAT = /^[0-9a-f]{128}$/i;
 // Alerts this process has mailed, or is mailing, where Cosmos cannot keep
 // track: an invalid WRITE_HOLD (it fails every delivery the same way until
 // someone fixes the setting), a reference whose claim could not be recorded,
-// and a signature mismatch (for an hour; see claimUnverifiedAlert). Added before the send so concurrent invocations mail once;
-// removed if the send fails, so a later attempt mails.
+// and a signature mismatch (for an hour; see claimUnverifiedAlert). Added
+// before the send so concurrent invocations mail once; removed if the send
+// fails, so a later attempt mails.
 const processAlerts = new Set();
 const claimInProcess = (key) => {
   if (processAlerts.has(key)) return false;
@@ -87,6 +88,8 @@ let unverifiedAlertAt = -Infinity;
 let heldBackFailures = 0;
 const claimUnverifiedAlert = () => {
   const now = Date.now();
+  // Freeing the key cannot race a send still in flight from an hour ago:
+  // EMAIL_TIMEOUT_MS ends every send within seconds.
   if (now - unverifiedAlertAt >= UNVERIFIED_ALERT_INTERVAL_MS) {
     processAlerts.delete(UNVERIFIED_ALERT_KEY);
   }
@@ -436,7 +439,7 @@ module.exports = async function (context, req) {
    * came from Paystack, so it is only logged.
    */
   const ignoreUnverified = (reason, detail) => {
-    context.log.error(
+    context.log.warn(
       `paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""} (not from Paystack; no email)`,
     );
     ok();
@@ -459,7 +462,7 @@ module.exports = async function (context, req) {
           heldBackFailures += 1;
           const at = new Date(unverifiedAlertAt).toISOString();
           context.log.warn(
-            `paystack-webhook: no email; the admin was alerted at ${at} and gets at most one an hour`,
+            `paystack-webhook: no email; an alert was sent or is being sent at ${at}, and the admin gets at most one an hour`,
           );
           return false;
         },
@@ -532,7 +535,8 @@ module.exports = async function (context, req) {
   if (typeof rawBody !== "string" || !rawBody) {
     await refuseSignature(
       "request had no body to verify the signature against",
-      "the x-paystack-signature header is well formed, so the platform may have dropped the body of a real delivery.",
+      "the x-paystack-signature header is well formed, so the platform may have dropped the body of a real delivery. " +
+        "If Paystack Dashboard → Settings → Webhooks shows failed deliveries, real payments are not being recorded; otherwise it was a forged request.",
     );
     return;
   }
@@ -549,8 +553,7 @@ module.exports = async function (context, req) {
       "signature verification failed",
       `PAYSTACK_SECRET_KEY is a ${keyMode} key; ` +
         `signature was computed over ${usedRawBody ? "the raw request body" : "a re-serialised body because req.rawBody was empty, which alone can cause this"}. ` +
-        `If the transaction was in the other mode, that is the cause — check the mode of this charge in Paystack. ` +
-        `Otherwise treat it as an unverified request and ignore it.`,
+        `If Paystack Dashboard → Settings → Webhooks shows failed deliveries, the key or mode is wrong and real payments are not being recorded; otherwise it was a forged request.`,
     );
     return;
   }

@@ -81,9 +81,8 @@ describe("paystack-webhook with an unverified request", () => {
     for (let i = 0; i < 3; i++) {
       const { res, log } = await post(headers);
       expect(res.status).toBe(200);
-      expect(log.error).toHaveBeenCalledWith(
-        expect.stringContaining("not from Paystack; no email"),
-      );
+      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("not from Paystack; no email"));
+      expect(log.error).not.toHaveBeenCalled();
     }
     expect(sent).toEqual([]);
   });
@@ -126,6 +125,11 @@ describe("paystack-webhook with an unverified request", () => {
     expect(first.res.status).toBe(500);
     expect(sent.map((m) => m.subject)).toEqual([SUBJECT]);
     expect(sent[0].html).toContain("PAYSTACK_SECRET_KEY is a test key");
+    expect(sent[0].html).toContain("computed over the raw request body");
+    expect(sent[0].html).toContain(
+      "If Paystack Dashboard → Settings → Webhooks shows failed deliveries, the key or mode is wrong and real payments are not being recorded; otherwise it was a forged request.",
+    );
+    expect(sent[0].html).not.toContain("ignore it");
     expect(sent[0].html).toContain("Further mismatches in the next hour are only logged.");
 
     for (let i = 0; i < 5; i++) {
@@ -135,7 +139,9 @@ describe("paystack-webhook with an unverified request", () => {
       expect(log.error).toHaveBeenCalledWith(
         expect.stringContaining("signature verification failed"),
       );
-      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("at most one an hour"));
+      expect(log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("an alert was sent or is being sent at"),
+      );
     }
     expect(sent).toHaveLength(1);
   });
