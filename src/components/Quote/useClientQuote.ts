@@ -5,7 +5,7 @@ import {
   isLockedError,
   QuoteApiError,
 } from "@/services/api/quotes";
-import { takeLinkCode } from "@/utils/quoteLinkCode";
+import { takeLinkCode } from "@/utils/linkCode";
 import type { ClientQuote } from "@/types/quote";
 
 export type ClientQuoteState =
@@ -31,7 +31,7 @@ export type ClientQuoteState =
 const claims = new Map<string, Promise<boolean>>();
 
 function claimLinkOnce(token: string): Promise<boolean> {
-  const code = takeLinkCode(token);
+  const code = takeLinkCode("quote", token);
   if (code) {
     const claim = claimQuoteLink(token, code).then(
       () => true,
