@@ -60,7 +60,8 @@ export class QuoteApiError extends Error {
 export const isLockedError = (err: unknown) =>
   err instanceof QuoteApiError && err.access.locked === true;
 
-async function call<T>(path: string, init?: FetchInit): Promise<T> {
+/** Fetches an /api path; a failed answer throws QuoteApiError with its access details. Shared with access.ts. */
+export async function call<T>(path: string, init?: FetchInit): Promise<T> {
   let res: Response;
   try {
     res = await fetch(apiUrl(path), init);
@@ -92,7 +93,7 @@ async function call<T>(path: string, init?: FetchInit): Promise<T> {
   return body as T;
 }
 
-const postJson = (body: unknown): FetchInit => ({
+export const postJson = (body: unknown): FetchInit => ({
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
