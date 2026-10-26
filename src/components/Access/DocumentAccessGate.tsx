@@ -8,7 +8,8 @@ import type { DocumentKind } from "@/utils/linkCode";
 // opened in a browser with no unlock (docs/plans/2026-10-20-quote-access-code.md,
 // docs/plans/2026-10-25-invoice-receipt-access-codes.md 8.6). It asks for a
 // code by itself once the page is visible, so the client only has to type it
-// in. It shows no client name or amounts.
+// in, unless the address is hidden (see the auto-send effect). It shows no
+// client name or amounts.
 
 const CONTACT = "hello@oceaniccoder.dev";
 const BLOCKED = `Too many wrong codes were entered on this link, so no more codes will be sent. Contact ${CONTACT} for a new link.`;
@@ -153,6 +154,9 @@ export default function DocumentAccessGate({
   const [screen, setScreen] = useState<Screen>({ kind: "checking" });
   const [attempt, setAttempt] = useState(0);
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
+  // From the status answer only: a send that shows an address later must not
+  // turn automatic sending back on for an unsigned link.
+  const [addressHidden, setAddressHidden] = useState(false);
   const [challenge, setChallenge] = useState<string | null>(() => readChallenge(target));
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
@@ -196,6 +200,7 @@ export default function DocumentAccessGate({
           setScreen({ kind: "contact", message: copy.noEmail, announce: false });
         else {
           setMaskedEmail(status.maskedEmail ?? null);
+          setAddressHidden(!status.maskedEmail);
           setScreen({ kind: "entry" });
         }
       },
@@ -239,9 +244,11 @@ export default function DocumentAccessGate({
   // Ask for a code once the page is actually in front of someone, so a tab
   // opened in the background (or prerendered) doesn't email a code. Not when
   // the address is hidden (an unsigned link, guessable until its grace ends):
-  // the visitor presses Send a code, so a guess alone emails nobody.
+  // the visitor presses Send a code, so opening a guessed link in a browser
+  // emails nobody. The server's unsigned send quota is the real limit; this
+  // only keeps page loads from spending it.
   useEffect(() => {
-    if (screen.kind !== "entry" || !maskedEmail || challenge || autoSent.has(sentKey)) return;
+    if (screen.kind !== "entry" || addressHidden || challenge || autoSent.has(sentKey)) return;
     const go = () => {
       if (document.visibilityState !== "visible" || autoSent.has(sentKey)) return;
       autoSent.add(sentKey);
@@ -250,7 +257,7 @@ export default function DocumentAccessGate({
     document.addEventListener("visibilitychange", go);
     go();
     return () => document.removeEventListener("visibilitychange", go);
-  }, [screen.kind, maskedEmail, challenge, sentKey, sendCode]);
+  }, [screen.kind, addressHidden, challenge, sentKey, sendCode]);
 
   // The resend countdown ticks once a second while it runs.
   useEffect(() => {

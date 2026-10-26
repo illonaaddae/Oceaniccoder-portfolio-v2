@@ -193,6 +193,23 @@ describe("DocumentAccessGate across kinds", () => {
     expect(target.send).toHaveBeenCalledTimes(1);
   });
 
+  it("still waits for the visitor on an unsigned link after send shows an address and the code expires", async () => {
+    const target = fakeTarget("invoice");
+    target.status.mockResolvedValue({ locked: true, canUnlock: true, maskedEmail: null });
+    target.verify.mockRejectedValue(
+      new QuoteApiError("That code has expired.", 400, undefined, undefined, {
+        newCodeNeeded: true,
+      }),
+    );
+    setup(target);
+    await userEvent.click(await screen.findByRole("button", { name: "Send a code" }));
+    await screen.findByText("We sent a code to k•••••@e•••••.com.");
+    await enter("123456", "Open invoice");
+    await screen.findByText("That code has expired.");
+    await act(async () => {});
+    expect(target.send).toHaveBeenCalledTimes(1);
+  });
+
   it("opens the document when the status says this browser is already unlocked", async () => {
     const target = fakeTarget("receipt");
     target.status.mockResolvedValue({ locked: false });
