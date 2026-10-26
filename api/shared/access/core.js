@@ -184,11 +184,11 @@ const SCHEME_NAME_RE = /^[a-z]{2,8}$/;
 // Every scheme created in this process. rows are left out of the uniqueness
 // check on purpose (receipts share the quote's rows); only their pruning is.
 const usedLabels = new Set();
+const usedCookies = new Set();
+const prunedRows = new Set();
 // createAccess result -> its prune rule, for pruneAcrossSchemes. Kept off the
 // returned object so callers see one way to prune.
 const pruneRules = new WeakMap();
-const usedCookies = new Set();
-const prunedRows = new Set();
 
 function validateScheme(scheme) {
   const fail = (why) => {
