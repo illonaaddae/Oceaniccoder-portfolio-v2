@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
@@ -270,6 +270,40 @@ describe("PaymentPage behind the access code", () => {
       renderAt("/pay/INV-123456?s=abc");
       expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
       expect(accessCalls(fetchMock)).toEqual([]);
+    });
+  });
+
+  describe("when the claim is slow", () => {
+    // The claim never answers (a cold start, or a hung function).
+    const hangingClaim = (lookup: Reply) =>
+      vi
+        .spyOn(globalThis, "fetch")
+        .mockImplementation((input) =>
+          String(input).includes("/api/doc-access") ? new Promise(() => {}) : json(lookup),
+        );
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true });
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("says the server is waking up while the claim waits", async () => {
+      arriveWithLinkCode("/pay/INV-500001?s=sigS");
+      hangingClaim({ status: 200, body: invoice });
+      renderAt("/pay/INV-500001?s=sigS");
+      await act(() => vi.advanceTimersByTimeAsync(4000));
+      expect(screen.getByText(/Server is waking up/)).toBeInTheDocument();
+    });
+
+    it("gives up on a claim that hangs and goes on to the lookup", async () => {
+      arriveWithLinkCode("/pay/INV-500002?s=sigT");
+      const fetchMock = hangingClaim({ status: 401, body: LOCKED_BODY });
+      renderAt("/pay/INV-500002?s=sigT");
+      await act(() => vi.advanceTimersByTimeAsync(9000));
+      expect(lookupsOf(fetchMock)).toHaveLength(0);
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+      expect(lookupsOf(fetchMock)).toHaveLength(1);
     });
   });
 

@@ -59,16 +59,29 @@ function whenVisible(): Promise<void> {
   });
 }
 
+// A claim that hasn't answered by then (a cold start, a hung function) is
+// given up: the lookup goes on, and the code screen asks for a code instead.
+const CLAIM_TIMEOUT_MS = 10000;
+
+function claimWithin(claim: Promise<unknown>, ms: number): Promise<boolean> {
+  let timer = 0;
+  const giveUp = new Promise<boolean>((resolve) => {
+    timer = window.setTimeout(() => resolve(false), ms);
+  });
+  const claimed = claim.then(
+    () => true,
+    () => false,
+  );
+  return Promise.race([claimed, giveUp]).finally(() => clearTimeout(timer));
+}
+
 function claimLinkOnce(number: string, signature: string | null): Promise<boolean> {
   const code = takeLinkCode("invoice", number);
   if (code) {
     const target = docAccessTarget(invoiceLocator(number, signature));
-    const claim = whenVisible()
-      .then(() => target.claim(code))
-      .then(
-        () => true,
-        () => false,
-      );
+    // The time limit starts once the page is visible: waiting to be seen
+    // isn't the server being slow.
+    const claim = whenVisible().then(() => claimWithin(target.claim(code), CLAIM_TIMEOUT_MS));
     claims.set(number, claim);
     void claim.then(() => claims.delete(number));
   }
@@ -354,12 +367,14 @@ const PaymentPage: React.FC = () => {
     setSlowWarning(false);
     let signedIn = justUnlocked.current;
     justUnlocked.current = false;
+
+    // The waking note covers a slow claim too (a cold start answers it first).
+    const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
     // The preview never claims the client's link code. The claim waits for the
-    // page to be visible, so the timers below start after it.
+    // page to be visible and has its own time limit, so the lookup's starts after it.
     if (!admin && (await claimLinkOnce(invoiceNumber, signature))) signedIn = true;
 
     const controller = new AbortController();
-    const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
     const killTimer = window.setTimeout(() => controller.abort(), 15000);
 
     const query = new URLSearchParams({ number: invoiceNumber });
