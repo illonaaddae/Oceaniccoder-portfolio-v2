@@ -256,6 +256,7 @@ As built in PR 4:
 
 - `get-invoice` finds the invoice through `invoiceLocator` (`check` then `find`), the same code `doc-access` runs, so both refuse the same links: a number over 40 characters or a signature that isn't 32 characters is the usual 404 too, and so is a number two rows share (logging `invoice-access duplicate number=<n>`). The 404 body stays `{ error }` with the text from `INVOICE_NOT_FOUND`; it doesn't gain `inactive`.
 - The 503 body is `{ error }` only, with the scheme's "unavailable" text.
+- Order, as `doc-access`: the locator's shape, then (unless the switch is `off`) the switch and the secret (503), then the signature or grace and the lookup.
 
 #### `GET /api/quote-receipt?reference=&s=[&admin=1]`
 
@@ -275,6 +276,7 @@ As built in PR 4:
 - The body only has to name `invoiceNumber`; every field of the email (name, email, phone, items, amounts, dates, notes) comes from the row. The row stores the tax amount, not the rate, so the rate is worked out from the row as the dashboard does.
 - A number two rows share is refused with 409 "Two invoices share the number INV-…, so its pay link can't open. Nothing was sent.", logging `send-invoice duplicate number=<n>`. A row with no `clientEmail` is refused with 409 too.
 - The order is: admin, `invoiceNumber`, Resend key, signing secret, then the switch and the access secret (503), then the row (409), then the email. The link code is minted at the invoice's current epoch, so an email sent after Reset access opens.
+- The dashboard writes the row through `/api/manage` just before it calls `send-invoice`, and another instance can read a replica that hasn't caught up. So a missing row, or a row whose `total` isn't the body's `total`, is read once more after 300 ms. A total that still differs is a 409 "The invoice changed while it was being sent, so nothing was sent. Try again." (refused, not logged and sent). A number two rows share is refused at once, never retried. Each read has a 5 s deadline that cancels the query.
 - Resend failures are logged as status plus the body run through `redact` (exported from `shared/access/endpoint.js`).
 - The `invoiceSent` catalog preview carries the throwaway link code `sample`, so it shows the line about the link opening.
 
@@ -372,7 +374,8 @@ As built in PR 4:
 
 - `PaymentPage` renders the locked view as `QuoteShell title="Open your invoice"` around `LockedDocument`, keyed by number and signature. A failure other than 404 or 429 is titled "Something went wrong" instead of "Invoice Not Found".
 - The cookie-blocked card (`QuoteError` with the new `announce`) is an alert and takes focus, as the contact message does; this also fixes it on quote pages.
-- `InvoiceModal` explains a 409 (the server's reason, no "resend") and a 503 (sending is unavailable for now, the client wasn't told); its error line is an alert.
+- `InvoiceModal` explains a 409 (the server's reason) and a 503 (sending is unavailable for now, the client wasn't told), both pointing to Edit & Resend in Client Work; its error line is an alert. Once it has created an invoice it updates that one from then on, so trying again after a failed email never creates a second invoice.
+- `PaymentPage` claims a link code only once `document.visibilityState` is `visible` (8.9), and hides the payment options when either `preview=admin` or the server's `preview: true` says preview.
 
 ### 8.7 Email copy and catalog
 
@@ -422,7 +425,7 @@ erDiagram
 - **Replay.** Link codes single use (`ia:lk:`), challenges single use (`ia:used:`), both stored past their lifetime. A stolen cookie works until it expires (30 days, not sliding) or until Reset access / email change; it is HttpOnly, Secure, SameSite=Strict, `__Secure-` prefixed. Link codes travel in the fragment, so they never reach our logs, a proxy or a Referer header, and are removed from history before any third-party script loads.
 - **Enumeration.** Locator checks happen before any lock read or email, with one 404 body for every cause (as `get-invoice` today). Signed locators can't be guessed (HMAC-SHA256 cut to 32 base64url characters, 192 bits). The locked 401 carries no field. The remaining oracle is unsigned grace links (next bullet).
 - **Unsigned grace links (to 2026-11-21).** Today an unsigned `/pay/INV-123456` shows full invoice data for an unpaid invoice created before 2026-10-28, and invoice numbers are `INV-` + last 6 digits of `Date.now()` (`InvoiceModal.tsx:108-110`), so they are guessable. After this change an unsigned hit shows only the code screen, which is strictly better, but two residual risks stay until the grace ends: (a) `status` answers differently for a real grace invoice (locked) and a guess (404), so the set of grace invoices is enumerable at 30 requests per 10 minutes per IP per instance; (b) a guesser can make a real client receive code emails. Mitigations in this design: no masked email on unsigned locators, tighter send quota on unsigned locators (1 per 10 minutes, 3 per day per invoice epoch, in addition to the per-IP limit), and the grace end date is unchanged. Owner may also choose to end the grace early (Q3).
-- **Email bombing.** Codes only go to the address on the record, never to an address in the request. Per invoice epoch: 60 s gap, 5 per hour, 10 per day (3 per day unsigned); per IP 10 per hour per instance. Receipts share the quote's quotas, so many receipt links don't multiply them. Auto-send happens once per page load and only when the tab is visible (`QuoteAccessGate.tsx:191-203`). Mail scanners only GET; every access action is a POST from page script.
+- **Email bombing.** Codes only go to the address on the record, never to an address in the request. Per invoice epoch: 60 s gap, 5 per hour, 10 per day (3 per day unsigned); per IP 10 per hour per instance. Receipts share the quote's quotas, so many receipt links don't multiply them. Auto-send happens once per page load and only when the tab is visible (`QuoteAccessGate.tsx:191-203`). Every access action is a POST from page script, so a scanner that only GETs the link does nothing. Some rewriters and sandboxes do run the page's script; for them the pay page claims the link code only once the page is visible (as PR 4 built it), so a scanner that never shows the page doesn't spend it. A scanner that reports itself visible still could, and the client then gets the code step.
 
 - **Shared receipt counters (info).** A forwarded receipt link can use up its quote's send quota and, with wrong codes, its 15-miss block, which also stops codes on the quote page. This is by design: receipts share the quote's counters so several receipt links give no extra sends or guesses. New link or Revise on the quote resets them.
 - **Cross-record unlock.** Separate HMAC labels per kind (`qa-`, `ia-`, `ra-`), separate cookie names, payload id checked against the subject, mail tag keyed by kind and id. A quote unlock opens that quote's receipts by design (subset of what it already shows) and nothing else; a receipt unlock opens one receipt; an invoice unlock opens one invoice.
@@ -464,12 +467,15 @@ For PR 3 the owner sets `INVOICE_ACCESS_GATE=off` and `RECEIPT_ACCESS_GATE=off` 
 
 Rollback: set the variable to `off` in Application settings (no redeploy). `/pay/` then behaves exactly as today (signature plus grace); receipts open with `?s=` alone. Link codes already emailed are harmless with the gate off (the page drops the fragment; claim answers `gateOff`). Reverting a PR is also safe: no stored format changes.
 
+With `INVOICE_ACCESS_GATE=off` after PR 4, two things stay as PR 4 made them, not as before it: a number two invoice rows share still gets the 404 on `/pay/` (and `doc-access`), and `send-invoice` still reads the row and sends from it (409 if there is no row or the number is shared). Only the code step and the link code go.
+
 ### 9.2 Migration of existing invoices and links
 
 - No backfill. Link codes need no per-invoice secret; an invoice with no `ia:epoch:` rows is at epoch 0.
 - Every invoice email sent before PR 4 has no `#k=`. Those links (signed, or unsigned within grace) reach the code step; decision 3 accepted this.
 - Receipt links already sent have no `#k=`; they reach the code step, with the code going to the quote's client email.
 - Invoices with no `clientEmail` show "This invoice can't be opened with a code. Contact hello@oceaniccoder.dev." Run before PR 4: `SELECT VALUE COUNT(1) FROM c WHERE NOT IS_DEFINED(c.clientEmail) OR c.clientEmail = ""` on `invoices` and on `quotes` with accepted status. If any unpaid one-off invoice has none, the owner fixes it in the dashboard first.
+- Duplicate invoice numbers: after PR 4 a number two rows share can't be opened or sent at all. Run before merging, on `invoices`: `SELECT c.invoiceNumber, COUNT(1) AS n FROM c GROUP BY c.invoiceNumber`, and keep the rows with `n > 1` (Cosmos can't filter a GROUP BY with HAVING, so filter the result). If any is found, the owner decides what to do with it before merging; both rows stay unopenable until one is renumbered.
 - Grace date logic (`invoiceLinks.js`) is untouched.
 
 ### 9.3 Build plan (PRs under about 24 files, tests in each)
