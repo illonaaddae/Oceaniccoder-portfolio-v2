@@ -2,6 +2,7 @@
 /* Web fonts load from index.html, so they do not wait for this file. */
 @import "./animations.css";
 @import "./components.css";
+@import "./ai-journey.css";
 
 /* Tailwind directives must come after all @import statements */
 @tailwind base;
