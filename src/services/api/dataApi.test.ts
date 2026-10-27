@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import {
   getRow,
   listRows,
@@ -12,14 +12,12 @@ import {
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-type FetchArgs = Parameters<typeof fetch>;
-let fetchMock: ReturnType<typeof vi.fn<FetchArgs, Promise<Response>>>;
+type FetchFn = (...args: Parameters<typeof fetch>) => Promise<Response>;
+let fetchMock: Mock<FetchFn>;
 const requestedUrl = () => fetchMock.mock.calls[0][0] as string;
 
 beforeEach(() => {
-  fetchMock = vi.fn<FetchArgs, Promise<Response>>(async () =>
-    jsonResponse(200, { total: 0, documents: [] }),
-  );
+  fetchMock = vi.fn<FetchFn>(async () => jsonResponse(200, { total: 0, documents: [] }));
   vi.stubGlobal("fetch", fetchMock);
 });
 

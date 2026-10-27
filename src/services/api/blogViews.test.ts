@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { getAllBlogViewStats, getPostViewStats, recordBlogView } from "./blogViews";
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-type FetchArgs = Parameters<typeof fetch>;
-let fetchMock: ReturnType<typeof vi.fn<FetchArgs, Promise<Response>>>;
+type FetchFn = (...args: Parameters<typeof fetch>) => Promise<Response>;
+let fetchMock: Mock<FetchFn>;
 
 beforeEach(() => {
-  fetchMock = vi.fn<FetchArgs, Promise<Response>>();
+  fetchMock = vi.fn<FetchFn>();
   vi.stubGlobal("fetch", fetchMock);
 });
 

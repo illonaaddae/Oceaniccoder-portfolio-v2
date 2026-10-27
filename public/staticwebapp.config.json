@@ -44,5 +44,8 @@
     ".svg": "image/svg+xml",
     ".woff": "font/woff",
     ".woff2": "font/woff2"
+  },
+  "platform": {
+    "apiRuntime": "node:22"
   }
 }

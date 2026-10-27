@@ -106,12 +106,9 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, ".claude/**", ".agents/**"],
     testTimeout: 15000,
     // invoiceView.test.ts sets process.env.TZ to check a browser west of
-    // UTC. Node only applies that in a child process (and the node
-    // environment), not in a worker thread. The second glob is for agent
-    // worktrees under .claude/, since ** doesn't cross dot folders.
-    poolMatchGlobs: [
-      ["**/Invoices/invoiceView.test.ts", "forks"],
-      ["**/.claude/**/Invoices/invoiceView.test.ts", "forks"],
-    ],
+    // UTC. Node only applies that in a child process, not in a worker
+    // thread, so tests must not run in the "threads" pool. "forks" is the
+    // Vitest 4 default; it is set here so that requirement stays visible.
+    pool: "forks",
   },
 });
