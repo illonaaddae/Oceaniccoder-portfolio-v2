@@ -75,7 +75,12 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <AnimatedCard />
+      <AnimatedCard
+        variant="brand"
+        amount={`${sym}${invoice.total.toFixed(2)}`}
+        holder={invoice.clientName}
+        reference={{ label: "Invoice", value: invoice.invoiceNumber }}
+      />
 
       <div className="flex flex-col items-center gap-1">
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
