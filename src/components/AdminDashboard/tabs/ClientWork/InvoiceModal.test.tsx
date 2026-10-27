@@ -69,4 +69,57 @@ describe("InvoiceModal", () => {
     expect(updateInvoice.mock.calls[0][1]).not.toHaveProperty("invoiceNumber");
     expect(sentInvoiceNumber()).toBe("INV-948213");
   });
+
+  describe("when send-invoice refuses", () => {
+    const existing = {
+      $id: "inv1",
+      invoiceNumber: "INV-948213",
+      items: JSON.stringify([{ description: "Online store", quantity: 1, unitPrice: 500 }]),
+      currency: "GHS",
+      subtotal: 500,
+      tax: 0,
+      total: 500,
+      status: "sent",
+    } as Invoice;
+    const resend = async (status: number, error: string) => {
+      updateInvoice.mockResolvedValue({});
+      global.fetch = vi
+        .fn()
+        .mockResolvedValue({ ok: false, status, json: async () => ({ error }) });
+      render(
+        <InvoiceModal
+          inquiry={inquiry}
+          onClose={vi.fn()}
+          theme="dark"
+          existingInvoice={existing}
+        />,
+      );
+      await userEvent.click(screen.getByRole("button", { name: /update & resend/i }));
+      return screen.findByRole("alert");
+    };
+
+    it("passes on why the saved invoice can't be sent (409), without telling the admin to resend", async () => {
+      const error =
+        "Two invoices share the number INV-948213, so its pay link can't open. Nothing was sent.";
+      const alert = await resend(409, error);
+      expect(alert).toHaveTextContent(`Invoice INV-948213 was saved but not emailed. ${error}`);
+      expect(alert).not.toHaveTextContent(/resend/i);
+      expect(screen.queryByText("Invoice sent!")).toBeNull();
+    });
+
+    it("says sending is unavailable for now (503) and that the client wasn't told", async () => {
+      const error = "Invoice links are unavailable right now. Please try again later.";
+      const alert = await resend(503, error);
+      expect(alert).toHaveTextContent(
+        `Invoice INV-948213 was saved but not emailed, because sending is unavailable right now: ${error} The client has NOT been notified; send it again later.`,
+      );
+    });
+
+    it("keeps the general message for other failures", async () => {
+      const alert = await resend(502, "Failed to send invoice");
+      expect(alert).toHaveTextContent(
+        "Invoice INV-948213 was saved, but the email failed to send (502: Failed to send invoice).",
+      );
+    });
+  });
 });

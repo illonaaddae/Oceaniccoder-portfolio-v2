@@ -167,13 +167,25 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
 
       if (!emailRes.ok) {
         const body = (await emailRes.json().catch(() => ({}))) as { error?: string };
+        const reason = body.error ?? "unknown error";
         // The invoice record itself saved, so say so — otherwise the admin
-        // re-sends and creates a duplicate.
-        setError(
-          `Invoice ${invoiceNumber} was saved, but the email failed to send ` +
-            `(${emailRes.status}: ${body.error ?? "unknown error"}). ` +
-            `The client has NOT been notified. Fix that, then resend from the invoice.`,
-        );
+        // re-sends and creates a duplicate. 409: the saved invoice can't be
+        // sent as it is (its number is shared, it has no client email), and
+        // the server says why. 503: sending is off for now (a missing key or
+        // secret, or the access gate), so nothing went out.
+        if (emailRes.status === 409)
+          setError(`Invoice ${invoiceNumber} was saved but not emailed. ${reason}`);
+        else if (emailRes.status === 503)
+          setError(
+            `Invoice ${invoiceNumber} was saved but not emailed, because sending is unavailable ` +
+              `right now: ${reason} The client has NOT been notified; send it again later.`,
+          );
+        else
+          setError(
+            `Invoice ${invoiceNumber} was saved, but the email failed to send ` +
+              `(${emailRes.status}: ${reason}). ` +
+              `The client has NOT been notified. Fix that, then resend from the invoice.`,
+          );
         return;
       }
 
@@ -466,7 +478,11 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
               />
             </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && (
+              <p role="alert" className="text-sm text-red-400">
+                {error}
+              </p>
+            )}
 
             <button
               onClick={handleSend}
