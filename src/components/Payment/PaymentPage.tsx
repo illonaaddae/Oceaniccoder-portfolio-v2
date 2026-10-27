@@ -449,12 +449,12 @@ const PaymentPage: React.FC = () => {
       </QuoteShell>
     );
 
+  // QuoteShell gives the page the client documents' small header (logo home
+  // link, email, theme toggle); the site's navbar and footer are left out on
+  // /pay/ (MainLayout).
   return (
-    <div
-      className="min-h-dvh flex flex-col items-center justify-start px-4 pt-24 pb-12"
-      style={{ background: "var(--bg-primary)" }}
-    >
-      <div className="w-full max-w-lg">
+    <QuoteShell title={invoice ? `Invoice ${invoice.invoiceNumber}` : "Invoice"} width="narrow">
+      <div className="w-full max-w-lg mx-auto">
         {/* Loading skeleton */}
         {loading && (
           <div className="flex flex-col gap-4">
@@ -540,6 +540,8 @@ const PaymentPage: React.FC = () => {
               </div>
             ) : (
               <>
+                {/* The summary shows the number visually, in its header bar. */}
+                <h1 className="sr-only">Invoice {invoice.invoiceNumber}</h1>
                 {preview && (
                   <section
                     aria-labelledby="pay-preview-title"
@@ -670,7 +672,7 @@ const PaymentPage: React.FC = () => {
           not store your card details.
         </p>
       </div>
-    </div>
+    </QuoteShell>
   );
 };
 

@@ -4,7 +4,17 @@ import userEvent from "@testing-library/user-event";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import PaymentPage from "./PaymentPage";
+import MainLayout, { isClientDocumentPath } from "@/components/MainLayout";
 import { captureLinkCode } from "@/utils/linkCode";
+
+// The site chrome, as stand-ins: only whether MainLayout renders it matters here.
+vi.mock("@/components/Navbar", () => ({ default: () => <nav aria-label="Site" /> }));
+vi.mock("@/components/Footer", () => ({ default: () => <footer>Site footer</footer> }));
+vi.mock("@/components/SupportButton", () => ({
+  default: () => <button type="button">Support</button>,
+}));
+vi.mock("@/components/EventBanner", () => ({ default: () => null }));
+vi.mock("@/components/ScrollToTop", () => ({ default: () => null }));
 
 const invoice = {
   invoiceNumber: "INV-123456",
@@ -399,5 +409,70 @@ describe("PaymentPage behind the access code", () => {
       ).toBeInTheDocument();
       expect(accessCalls(fetchMock)).toEqual([]);
     });
+  });
+});
+
+// /pay/ is a client document like /q/ and /receipt/: its own small header
+// (logo home link, email, theme toggle) instead of the site's chrome.
+describe("PaymentPage inside the site layout", () => {
+  function renderInLayout(path: string) {
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <MainLayout theme="light" toggleTheme={vi.fn()}>
+            <Routes>
+              <Route path="/pay/:invoiceNumber" element={<PaymentPage />} />
+              <Route path="/" element={<p>Home</p>} />
+            </Routes>
+          </MainLayout>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+  }
+  const expectNoSiteChrome = () => {
+    expect(screen.queryByRole("navigation", { name: "Site" })).toBeNull();
+    expect(screen.queryByText("Site footer")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
+    expect(screen.getAllByRole("main")).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /^Switch to (dark|light) mode$/ })).toHaveLength(
+      1,
+    );
+    expect(screen.getByRole("link", { name: "Go to homepage" })).toBeInTheDocument();
+  };
+
+  it("shows no site chrome on the opened invoice, and one h1", async () => {
+    mockApi([{ status: 200, body: { ...invoice, status: "sent" } }]);
+    renderInLayout("/pay/INV-600001?s=sigL");
+    expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+    expectNoSiteChrome();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Invoice INV-123456");
+  });
+
+  it("shows no site chrome on the locked invoice", async () => {
+    mockApi([{ status: 401, body: LOCKED_BODY }], {
+      status: { status: 200, body: { ...LOCKED_STATUS, blocked: true } },
+    });
+    renderInLayout("/pay/INV-600002?s=sigM");
+    expect(await screen.findByRole("heading", { name: "Open your invoice" })).toBeInTheDocument();
+    expectNoSiteChrome();
+  });
+
+  it("keeps the site chrome on other pages", () => {
+    renderInLayout("/");
+    expect(screen.getByRole("navigation", { name: "Site" })).toBeInTheDocument();
+    expect(screen.getByText("Site footer")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Support" })).toBeInTheDocument();
+  });
+
+  // App's SiteChatbot hides the chat bubble on the same paths.
+  it.each([
+    ["/pay/INV-600001", true],
+    ["/q/token", true],
+    ["/receipt/ref", true],
+    ["/", false],
+    ["/payments", false],
+    ["/projects", false],
+  ])("treats %s as a client document: %s", (path, expected) => {
+    expect(isClientDocumentPath(path)).toBe(expected);
   });
 });

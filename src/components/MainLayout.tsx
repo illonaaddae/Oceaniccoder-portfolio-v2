@@ -13,15 +13,18 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+/** Client documents (quotes, invoice pay pages, receipts), which bring their own small header. */
+export const isClientDocumentPath = (pathname: string) =>
+  pathname.startsWith("/q/") || pathname.startsWith("/pay/") || pathname.startsWith("/receipt/");
+
 const MainLayout: FC<MainLayoutProps> = ({ theme, toggleTheme, children }) => {
   const location = useLocation();
-  // Admin pages and client documents (quotes, invoices, receipts) bring their
-  // own frame; the marketing navbar, banner and footer would only distract.
+  // Admin pages and client documents bring their own frame; the marketing
+  // navbar, banner and footer would only distract.
   const isAdminRoute =
     location.pathname.startsWith("/admin") ||
     location.pathname === "/dashboard" ||
-    location.pathname.startsWith("/q/") ||
-    location.pathname.startsWith("/receipt/");
+    isClientDocumentPath(location.pathname);
 
   return (
     <>
