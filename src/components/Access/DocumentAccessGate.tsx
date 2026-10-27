@@ -12,7 +12,6 @@ import type { DocumentKind } from "@/utils/linkCode";
 // client name or amounts.
 
 const CONTACT = "hello@oceaniccoder.dev";
-const BLOCKED = `Too many wrong codes were entered on this link, so no more codes will be sent. Contact ${CONTACT} for a new link.`;
 const COOKIE_BLOCKED =
   "Your browser didn't keep the sign-in. Allow cookies for oceaniccoder.dev and try again.";
 
@@ -26,9 +25,11 @@ interface AccessCopy {
   mailSubject: string;
   /** Where the code went when the server shows no masked address. */
   recipient: string;
+  /** After too many wrong codes; the server's words for the kind. */
+  blocked: string;
 }
 
-const copyFor = (noun: string, Noun: string): AccessCopy => ({
+const copyFor = (noun: string, Noun: string, blocked: string): AccessCopy => ({
   title: `Open your ${noun}`,
   intro: `To keep your ${noun} private, it opens with a code we email to you.`,
   submit: `Open ${noun}`,
@@ -37,13 +38,29 @@ const copyFor = (noun: string, Noun: string): AccessCopy => ({
   loading: `Loading your ${noun}…`,
   mailSubject: `${Noun} link`,
   recipient: `the email address we sent the ${noun} to`,
+  blocked,
 });
 
 /** The words for each kind of document; the quote's are the ones its page has always used. */
 export const ACCESS_COPY: Record<DocumentKind, AccessCopy> = {
-  quote: copyFor("quote", "Quote"),
-  invoice: copyFor("invoice", "Invoice"),
-  receipt: copyFor("receipt", "Receipt"),
+  // A new quote link ends the block.
+  quote: copyFor(
+    "quote",
+    "Quote",
+    `Too many wrong codes were entered on this link, so no more codes will be sent. Contact ${CONTACT} for a new link.`,
+  ),
+  // Reset access ends it and keeps the same link (owner decision Q4).
+  invoice: copyFor(
+    "invoice",
+    "Invoice",
+    `Too many wrong codes were entered on this link, so no more codes will be sent. Contact ${CONTACT} to open it.`,
+  ),
+  // Receipts count against their quote.
+  receipt: copyFor(
+    "receipt",
+    "Receipt",
+    `Too many wrong codes were entered on this quote's links, so no more codes will be sent. Contact ${CONTACT} to open it.`,
+  ),
 };
 
 // One automatic code email per link per page load, however often the screen
@@ -192,7 +209,8 @@ export default function DocumentAccessGate({
       (status) => {
         if (!live) return;
         if (!status.locked) onUnlocked();
-        else if (status.blocked) setScreen({ kind: "contact", message: BLOCKED, announce: false });
+        else if (status.blocked)
+          setScreen({ kind: "contact", message: copy.blocked, announce: false });
         // A record with no address can't unlock. An unsigned invoice link
         // can, but the server hides the address (maskedEmail null); quotes
         // have no such link.
@@ -231,7 +249,7 @@ export default function DocumentAccessGate({
       const message = err instanceof Error ? err.message : "We couldn't send the code.";
       // The kill switch went on after the page loaded: the document opens as it is.
       if (access.gateOff) return onUnlocked();
-      if (access.blocked) return contact(BLOCKED);
+      if (access.blocked) return contact(copy.blocked);
       if (access.noEmail) return contact(copy.noEmail);
       if (access.retryAfterSeconds) waitUntil(access.retryAfterSeconds);
       showError(message);
@@ -289,7 +307,7 @@ export default function DocumentAccessGate({
     } catch (err) {
       const access = err instanceof QuoteApiError ? err.access : {};
       const message = err instanceof Error ? err.message : "We couldn't check the code.";
-      if (access.blocked) return contact(BLOCKED);
+      if (access.blocked) return contact(copy.blocked);
       if (access.newCodeNeeded) {
         saveChallenge(target, null);
         setChallenge(null);
@@ -470,6 +488,7 @@ export function LockedDocument({
         title={ACCESS_COPY[target.kind].title}
         message={COOKIE_BLOCKED}
         onRetry={onRetry}
+        announce
       />
     );
   return <DocumentAccessGate target={target} onUnlocked={onUnlocked} />;

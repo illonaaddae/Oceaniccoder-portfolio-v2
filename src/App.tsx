@@ -3,7 +3,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import { PortfolioProvider } from "./Context";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
-import MainLayout from "./components/MainLayout";
+import MainLayout, { isClientDocumentPath } from "./components/MainLayout";
 import AnimatedRoutes from "./components/AnimatedRoutes";
 import RouteChangeHandler from "./components/RouteChangeHandler";
 import PageViewTracker from "./components/PageViewTracker";
@@ -19,7 +19,7 @@ import { optOutOfTracking } from "./utils/analytics/consent";
 // floating chat bubble sat beside their actions and pulled focus from them.
 function SiteChatbot() {
   const { pathname } = useLocation();
-  if (pathname.startsWith("/q/") || pathname.startsWith("/receipt/")) return null;
+  if (isClientDocumentPath(pathname)) return null;
   return <Chatbot />;
 }
 

@@ -66,7 +66,7 @@ describe("PrivacyPage", () => {
       expect(within(processors).getByText(name)).toBeInTheDocument();
     }
     expect(within(processors).queryByText("Appwrite")).not.toBeInTheDocument();
-    expect(screen.getByText("Last updated: 24 October 2026")).toBeInTheDocument();
+    expect(screen.getByText("Last updated: 27 October 2026")).toBeInTheDocument();
   });
 
   it("does not claim registration with the Data Protection Commission", () => {
@@ -187,6 +187,52 @@ describe("PrivacyPage", () => {
     expect(
       within(visiting).getByText(/reference to that code in session storage/),
     ).toBeInTheDocument();
+  });
+
+  it("describes the invoice sign-in cookie, the code emails and the IP use", () => {
+    renderPage();
+    expect(document.body.textContent).toMatch(
+      /we set a sign-in cookie for each quote or\s+invoice you open/,
+    );
+    const visiting = screen.getByRole("region", { name: "When you visit the site" });
+    expect(
+      within(visiting).getByText(/The only cookies we set are the quote and invoice sign-in/),
+    ).toBeInTheDocument();
+    expect(
+      within(visiting).getByText(/code to open a quote or an invoice, the page keeps/),
+    ).toBeInTheDocument();
+    const quotes = screen.getByRole("region", { name: "Quotes and payments" });
+    const invoices = within(quotes).getByText(/Invoice payment pages work the same way/);
+    for (const claim of [
+      /we send a 6-digit code to the email address on the invoice/,
+      /signed in to that invoice for 30 days/,
+      /reset access to the invoice or its email address changes/,
+      /IP address is used the same way, in memory only/,
+      /code request and entry records within two days/,
+      /wrong-code counts until access to the invoice is reset/,
+      /used sign-in link markers for up to 47 days/,
+      /open the page from the link in a recent invoice email/,
+    ])
+      expect(invoices.textContent).toMatch(claim);
+  });
+
+  it("says the sign-in cookies are needed for the pages to work, so no consent is asked", () => {
+    renderPage();
+    const quotes = screen.getByRole("region", { name: "Quotes and payments" });
+    const needed = /is needed for the page to work, so we don't ask for consent to set it/g;
+    expect(quotes.textContent?.match(needed)).toHaveLength(2);
+    expect(within(quotes).getByText(/signed in to that quote for 30 days/).textContent).toMatch(
+      needed,
+    );
+    expect(within(quotes).getByText(/signed in to that invoice for 30 days/).textContent).toMatch(
+      needed,
+    );
+  });
+
+  it("lists the one-time access codes among the emails sent through Resend", () => {
+    renderPage();
+    const email = screen.getByRole("region", { name: "Emails and text messages" });
+    expect(email.textContent).toMatch(/receipts, one-time access codes, the newsletter/);
   });
 
   it("sets the document title", async () => {
