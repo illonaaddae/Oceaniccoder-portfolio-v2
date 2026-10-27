@@ -22,6 +22,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   EUR: "€",
   GBP: "£",
   NGN: "₦",
+  KES: "KSh",
 };
 
 const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
@@ -76,13 +77,17 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <AnimatedCard
-        variant="brand"
-        amount={amount}
-        currencyCode={invoice.currency}
-        holder={invoice.clientName}
-        reference={{ label: "Invoice", value: invoice.invoiceNumber }}
-      />
+      {/* Decorative: the summary above already gives the amount and client. */}
+      <div className="w-full" aria-hidden>
+        <AnimatedCard
+          variant="brand"
+          amount={amount}
+          // A currency with no symbol already shows its code in the amount.
+          currencyCode={sym === invoice.currency ? undefined : invoice.currency}
+          holder={invoice.clientName}
+          reference={{ label: "Invoice", value: invoice.invoiceNumber }}
+        />
+      </div>
 
       <div className="flex flex-col items-center gap-1">
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>

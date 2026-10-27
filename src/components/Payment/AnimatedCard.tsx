@@ -79,8 +79,16 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
         .card-shimmer:hover {
           animation-duration: 1.5s;
         }
+        .animated-card-inner.brand:hover {
+          box-shadow:
+            0 22px 44px -12px rgba(4, 51, 59, 0.55),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+        }
         @media (prefers-reduced-motion: reduce) {
+          /* .brand is listed too: its own animation rule is more specific. */
           .animated-card-inner,
+          .animated-card-inner.brand,
           .card-shimmer {
             animation: none;
           }
@@ -108,7 +116,6 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
           // Real cards keep about 6-7% clear space to the edge.
           padding: brand ? "clamp(16px, 6.5cqw, 26px)" : "20px 24px",
           color: "#ffffff",
-          fontFamily: brand ? "inherit" : undefined,
         }}
       >
         {/* Holographic shimmer overlay */}
@@ -295,7 +302,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
               style={{
                 fontSize: "9px",
                 letterSpacing: "1px",
-                color: "rgba(255,255,255,0.6)",
+                color: "rgba(255,255,255,0.82)",
                 textTransform: "uppercase",
                 marginBottom: "2px",
               }}
@@ -318,7 +325,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
               style={{
                 fontSize: "9px",
                 letterSpacing: "1px",
-                color: "rgba(255,255,255,0.6)",
+                color: "rgba(255,255,255,0.82)",
                 textTransform: "uppercase",
                 marginBottom: "2px",
               }}
