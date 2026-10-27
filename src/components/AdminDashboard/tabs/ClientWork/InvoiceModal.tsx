@@ -33,8 +33,16 @@ const DOMAIN_PRICES: Record<string, number> = {
   ".io": 45,
 };
 
+// Server reasons don't all end in a full stop ("Not configured").
+const sentence = (text: string) => (/[.!?]$/.test(text) ? text : `${text}.`);
+const RESEND_HINT = "with Edit & Resend in Client Work";
+
 export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice }: Props) {
-  const isUpdate = !!existingInvoice;
+  // The saved invoice: the one being edited, or the one this dialog created.
+  // Once created it is updated from then on, so trying again after a failed
+  // email never creates a second invoice with a new number.
+  const [saved, setSaved] = useState<Invoice | undefined>(existingInvoice);
+  const isUpdate = !!saved;
 
   const parseExistingItems = (): InvoiceItem[] => {
     if (!existingInvoice) {
@@ -105,11 +113,11 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
     setSending(true);
     setError("");
 
-    let invoiceNumber = existingInvoice?.invoiceNumber ?? "";
+    let invoiceNumber = saved?.invoiceNumber ?? "";
 
     try {
-      if (isUpdate) {
-        await updateInvoice(existingInvoice!.$id, {
+      if (saved) {
+        await updateInvoice(saved.$id, {
           items: JSON.stringify(items),
           currency,
           subtotal,
@@ -118,7 +126,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
           notes,
           dueDate,
           estimatedDelivery,
-          status: existingInvoice!.status,
+          status: saved.status,
         });
       } else {
         const created = await createInvoice({
@@ -137,6 +145,7 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
           status: "sent",
         });
         invoiceNumber = created.invoiceNumber;
+        setSaved(created);
       }
 
       // fetch only rejects on a network failure — an HTTP 502/503 resolves
@@ -167,23 +176,27 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
 
       if (!emailRes.ok) {
         const body = (await emailRes.json().catch(() => ({}))) as { error?: string };
-        const reason = body.error ?? "unknown error";
+        const reason = sentence(body.error ?? "unknown error");
         // The invoice record itself saved, so say so — otherwise the admin
         // re-sends and creates a duplicate. 409: the saved invoice can't be
         // sent as it is (its number is shared, it has no client email), and
         // the server says why. 503: sending is off for now (a missing key or
         // secret, or the access gate), so nothing went out.
         if (emailRes.status === 409)
-          setError(`Invoice ${invoiceNumber} was saved but not emailed. ${reason}`);
+          setError(
+            `Invoice ${invoiceNumber} was saved but not emailed. ${reason} ` +
+              `Fix that, then send it again ${RESEND_HINT}.`,
+          );
         else if (emailRes.status === 503)
           setError(
             `Invoice ${invoiceNumber} was saved but not emailed, because sending is unavailable ` +
-              `right now: ${reason} The client has NOT been notified; send it again later.`,
+              `right now: ${reason} The client has NOT been notified. ` +
+              `Send it again later ${RESEND_HINT}.`,
           );
         else
           setError(
             `Invoice ${invoiceNumber} was saved, but the email failed to send ` +
-              `(${emailRes.status}: ${reason}). ` +
+              `(${emailRes.status}: ${reason.replace(/\.$/, "")}). ` +
               `The client has NOT been notified. Fix that, then resend from the invoice.`,
           );
         return;
@@ -248,11 +261,11 @@ export default function InvoiceModal({ inquiry, onClose, theme, existingInvoice 
               <FaPaperPlane className="text-2xl text-green-400" />
             </div>
             <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-              {isUpdate ? "Invoice updated!" : "Invoice sent!"}
+              {existingInvoice ? "Invoice updated!" : "Invoice sent!"}
             </h3>
             <p className="text-[var(--text-secondary)] mb-6">
-              {inquiry.name} will receive the {isUpdate ? "updated " : ""}invoice at {inquiry.email}
-              .
+              {inquiry.name} will receive the {existingInvoice ? "updated " : ""}invoice at{" "}
+              {inquiry.email}.
             </p>
             <button
               onClick={onClose}
