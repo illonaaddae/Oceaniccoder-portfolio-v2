@@ -35,8 +35,8 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
       await onDelete(certId);
     } catch (err) {
       console.error("Failed to delete certification:", err);
+      // Stays until dismissed: a timed message can vanish before it's read.
       setDeleteError("Failed to delete certification. Please try again.");
-      setTimeout(() => setDeleteError(null), 4000);
     }
   };
 
@@ -55,9 +55,10 @@ export const CertificationsTab: React.FC<CertificationsTabProps> = ({
             {deleteError}
           </p>
           <button
+            type="button"
             onClick={() => setDeleteError(null)}
             className="p-1 rounded-lg hover:bg-black/10 transition-colors"
-            aria-label="Dismiss"
+            aria-label="Dismiss error"
           >
             <FaTimes className="text-xs" aria-hidden="true" />
           </button>
