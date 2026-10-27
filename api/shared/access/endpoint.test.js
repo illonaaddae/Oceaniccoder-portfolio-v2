@@ -58,9 +58,12 @@ function setup({
       if (!docs[body.ref]) throw NOT_FOUND();
       return docs[body.ref];
     }),
+    // Stands in for an unsigned link: anyone could type it.
+    guessable: (body) => body.typed === true,
   };
   const mails = [];
   const logs = [];
+  const clock = { ms: START };
   const handler = createAccessEndpoint({
     env,
     access,
@@ -81,7 +84,7 @@ function setup({
       return { ok: true };
     },
     alertWaitMs: 50,
-    services: () => ({ locks: watched, now: () => new Date(START) }),
+    services: () => ({ locks: watched, now: () => new Date(clock.ms) }),
   });
   const call = async (body) => {
     const log = Object.assign((...a) => logs.push(a.join(" ")), {
@@ -96,7 +99,7 @@ function setup({
       cookie: context.res.headers["Set-Cookie"],
     };
   };
-  return { call, mails, logs, locator, lockCalls };
+  return { call, mails, logs, locator, lockCalls, clock };
 }
 
 describe("createAccessEndpoint", () => {
@@ -168,6 +171,58 @@ describe("createAccessEndpoint", () => {
     expect(await t.call({ action: "send", ref: "D-7" })).toMatchObject({
       status: 409,
       body: { error: "No email on this document.", noEmail: true },
+    });
+  });
+
+  describe("a guessable locator", () => {
+    it("hides the address on status but still offers a code", async () => {
+      const t = setup();
+      expect((await t.call({ action: "status", ref: "D-7", typed: true })).body).toEqual({
+        locked: true,
+        canUnlock: true,
+        blocked: false,
+        maskedEmail: null,
+      });
+      expect((await t.call({ action: "status", ref: "D-7" })).body.maskedEmail).toBe(
+        "a•••••@gmail.com",
+      );
+    });
+
+    it("hides the address on send too, and still sends to the record's address", async () => {
+      const t = setup();
+      const r = await t.call({ action: "send", ref: "D-7", typed: true });
+      expect(r.status).toBe(200);
+      expect(r.body.maskedEmail).toBeNull();
+      expect(r.body.retryAfterSeconds).toBe(15 * 60);
+      expect(t.mails[0].to).toBe("ama@gmail.com");
+    });
+
+    it("can't unlock a record with no address", async () => {
+      const t = setup({ doc: { ...DOC, email: "" } });
+      expect((await t.call({ action: "status", ref: "D-7", typed: true })).body).toEqual({
+        locked: true,
+        canUnlock: false,
+        blocked: false,
+        maskedEmail: null,
+      });
+    });
+
+    it("gets one code per 10 minutes and three a day", async () => {
+      const t = setup();
+      const send = async () => (await t.call({ action: "send", ref: "D-7", typed: true })).status;
+      expect(await send()).toBe(200);
+      t.clock.ms += 5 * 60 * 1000;
+      expect(await send()).toBe(429);
+      t.clock.ms += 10 * 60 * 1000;
+      expect(await send()).toBe(200);
+      t.clock.ms += 15 * 60 * 1000;
+      expect(await send()).toBe(200);
+      t.clock.ms += 15 * 60 * 1000;
+      const fourth = await t.call({ action: "send", ref: "D-7", typed: true });
+      expect(fourth.status).toBe(429);
+      // The signed link still has the rest of the usual quota.
+      expect((await t.call({ action: "send", ref: "D-7" })).status).toBe(200);
+      expect(t.mails).toHaveLength(4);
     });
   });
 });

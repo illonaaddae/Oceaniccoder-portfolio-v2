@@ -47,11 +47,23 @@ const SENDS_PER_DAY = 10;
 // Counting guesses, not locked-out challenges, means four wrong tries per
 // challenge can't dodge it.
 const MAX_MISSES = 15;
+// Wrong codes typed through a guessable link (an unsigned invoice link) also
+// count in a scope of their own, capped at one challenge's worth. Reaching it
+// blocks only guessable links, and since every guess also takes one of the
+// MAX_MISSES slots, a guesser can spend at most 5 of the 15 and never block
+// the signed link the client was emailed.
+const GUESSABLE_MAX_MISSES = MAX_TRIES;
 // The gap between code emails is rolling, not per clock minute: each send
 // reserves GAP_BUCKETS buckets of GAP_BUCKET_MS starting at its own, so the
 // next one gets through 60 to 90 seconds later.
 const GAP_BUCKET_MS = 30 * 1000;
 const GAP_BUCKETS = 3;
+// A link that can be guessed (an unsigned invoice link in its grace period)
+// lets anyone make the client receive code emails, so it gets a tighter quota
+// on top of the usual one (owner decision Q3, 2026-10-26): 10 to 15 minutes
+// apart (three 5-minute buckets) and three a UTC day.
+const GUESSABLE_GAP_BUCKET_MS = 5 * MINUTE_MS;
+const GUESSABLE_SENDS_PER_DAY = 3;
 const MIN_SECRET_LENGTH = 32;
 // One secret for every kind; each scheme's HMAC labels keep their tokens
 // apart (design 8.1).
@@ -180,6 +192,10 @@ const SCHEME_NAME_RE = /^[a-z]{2,8}$/;
 const usedLabels = new Set();
 const usedCookies = new Set();
 const prunedRows = new Set();
+// createAccess result -> its prune rule, for pruneAcrossSchemes. Kept off the
+// returned object: pruneAccessLocks is the single-scheme form of
+// pruneAcrossSchemes, and both go through it.
+const pruneRules = new WeakMap();
 
 function validateScheme(scheme) {
   const fail = (why) => {
@@ -372,13 +388,14 @@ function createAccess(input) {
   // back a quota that a leaked-link holder used up.
   const sendScope = (s, epoch) => `${rows}:send:${s.scopeId}:${s.revision}:${epoch}`;
 
-  // Takes the gap buckets in ascending order, so of two overlapping sends the
-  // later one is refused. Returns the keys, or null after handing back any it took.
-  async function takeGap(locks, scope, nowMs) {
-    const first = Math.floor(nowMs / GAP_BUCKET_MS);
+  // Takes the gap buckets ("<prefix>:<b>") in ascending order, so of two
+  // overlapping sends the later one is refused. Returns the keys, or null
+  // after handing back any it took.
+  async function takeGap(locks, prefix, bucketMs, nowMs) {
+    const first = Math.floor(nowMs / bucketMs);
     const taken = [];
     for (let b = first; b < first + GAP_BUCKETS; b += 1) {
-      const key = `${scope}:g:${b}`;
+      const key = `${prefix}:${b}`;
       if (!(await locks.take(key))) {
         await releaseAll(locks, taken);
         return null;
@@ -389,24 +406,48 @@ function createAccess(input) {
   }
 
   // Seconds until the first gap bucket nobody holds.
-  async function gapRetryAfter(locks, scope, nowMs) {
-    let b = Math.floor(nowMs / GAP_BUCKET_MS);
+  async function gapRetryAfter(locks, prefix, bucketMs, nowMs) {
+    let b = Math.floor(nowMs / bucketMs);
     const last = b + GAP_BUCKETS;
-    while (b < last && (await locks.has(`${scope}:g:${b}`))) b += 1;
-    return Math.max(1, Math.ceil((b * GAP_BUCKET_MS - nowMs) / 1000));
+    while (b < last && (await locks.has(`${prefix}:${b}`))) b += 1;
+    return Math.max(1, Math.ceil((b * bucketMs - nowMs) / 1000));
   }
+
+  const gapEnd = (bucketMs, nowMs) => (Math.floor(nowMs / bucketMs) + GAP_BUCKETS) * bucketMs;
 
   /**
    * Reserves one code email for this record's revision and epoch: at least 60
-   * seconds apart, five an hour, ten a UTC day, across every instance. Returns
-   * { ok: true, retryAfterSeconds, releaseGap } or { ok: false,
-   * retryAfterSeconds }. releaseGap() hands the gap back when the email then
-   * fails; the hour and day slots stay spent on purpose.
+   * seconds apart, five an hour, ten a UTC day, across every instance. With
+   * guessable (a link anyone could type, such as an unsigned invoice link),
+   * also at least 10 minutes apart and three a UTC day. Returns { ok: true,
+   * retryAfterSeconds, releaseGap } or { ok: false, retryAfterSeconds }.
+   * releaseGap() hands the gaps back when the email then fails; the hour and
+   * day slots stay spent on purpose.
    */
-  async function takeSendSlots(locks, record, epoch, nowMs) {
+  async function takeSendSlots(locks, record, epoch, nowMs, { guessable = false } = {}) {
     const scope = sendScope(subject(record), epoch);
-    const gapKeys = await takeGap(locks, scope, nowMs);
-    if (!gapKeys) return { ok: false, retryAfterSeconds: await gapRetryAfter(locks, scope, nowMs) };
+    const gapKeys = await takeGap(locks, `${scope}:g`, GAP_BUCKET_MS, nowMs);
+    if (!gapKeys)
+      return {
+        ok: false,
+        retryAfterSeconds: await gapRetryAfter(locks, `${scope}:g`, GAP_BUCKET_MS, nowMs),
+      };
+    if (guessable) {
+      const strictGap = await takeGap(locks, `${scope}:ug`, GUESSABLE_GAP_BUCKET_MS, nowMs);
+      if (!strictGap) {
+        await releaseAll(locks, gapKeys);
+        return {
+          ok: false,
+          retryAfterSeconds: await gapRetryAfter(
+            locks,
+            `${scope}:ug`,
+            GUESSABLE_GAP_BUCKET_MS,
+            nowMs,
+          ),
+        };
+      }
+      gapKeys.push(...strictGap);
+    }
     const hourKey = await takeFirstFree(
       locks,
       `${scope}:h:${Math.floor(nowMs / HOUR_MS)}`,
@@ -416,16 +457,19 @@ function createAccess(input) {
       await releaseAll(locks, gapKeys);
       return { ok: false, retryAfterSeconds: secondsUntil(nowMs, HOUR_MS) };
     }
-    const dayKey = await takeFirstFree(
-      locks,
-      `${scope}:d:${Math.floor(nowMs / DAY_MS)}`,
-      SENDS_PER_DAY,
-    );
-    if (!dayKey) {
-      await releaseAll(locks, [...gapKeys, hourKey]);
+    const day = Math.floor(nowMs / DAY_MS);
+    const dayKey = await takeFirstFree(locks, `${scope}:d:${day}`, SENDS_PER_DAY);
+    const strictDayKey =
+      dayKey && guessable
+        ? await takeFirstFree(locks, `${scope}:ud:${day}`, GUESSABLE_SENDS_PER_DAY)
+        : dayKey;
+    if (!dayKey || !strictDayKey) {
+      await releaseAll(locks, [...gapKeys, hourKey, ...(dayKey ? [dayKey] : [])]);
       return { ok: false, retryAfterSeconds: secondsUntil(nowMs, DAY_MS) };
     }
-    const reservedUntil = (Math.floor(nowMs / GAP_BUCKET_MS) + GAP_BUCKETS) * GAP_BUCKET_MS;
+    const reservedUntil = guessable
+      ? gapEnd(GUESSABLE_GAP_BUCKET_MS, nowMs)
+      : gapEnd(GAP_BUCKET_MS, nowMs);
     return {
       ok: true,
       retryAfterSeconds: Math.ceil((reservedUntil - nowMs) / 1000),
@@ -433,21 +477,44 @@ function createAccess(input) {
     };
   }
 
-  const missPrefix = (s, epoch) => `${rows}:miss:${s.scopeId}:${s.revision}:${epoch}`;
+  // "umiss" rows count the guessable links' share (GUESSABLE_MAX_MISSES). Same
+  // key shape as "miss", so the prune parses both.
+  const missPrefix = (s, epoch, guessable = false) =>
+    `${rows}:${guessable ? "umiss" : "miss"}:${s.scopeId}:${s.revision}:${epoch}`;
+  const slotNumber = (key) => (key ? Number(key.slice(key.lastIndexOf(":") + 1)) : 0);
 
   /**
    * Counts one wrong code against this revision and epoch. Returns its number,
    * 1..MAX_MISSES, or 0 when every slot was already taken (a parallel guess got
    * the last one). Exactly one request ever gets MAX_MISSES.
+   *
+   * With guessable, the code first takes a guessable slot, then one of the
+   * usual ones. Returns 0 when either is full (blocked already), MAX_MISSES
+   * when it took the last usual slot (everything is now blocked), otherwise
+   * its guessable number, 1..GUESSABLE_MAX_MISSES.
    */
-  async function recordMiss(locks, record, epoch) {
-    const key = await takeFirstFree(locks, missPrefix(subject(record), epoch), MAX_MISSES);
-    return key ? Number(key.slice(key.lastIndexOf(":") + 1)) : 0;
+  async function recordMiss(locks, record, epoch, { guessable = false } = {}) {
+    const s = subject(record);
+    if (guessable) {
+      const own = slotNumber(
+        await takeFirstFree(locks, missPrefix(s, epoch, true), GUESSABLE_MAX_MISSES),
+      );
+      if (!own) return 0;
+      const shared = slotNumber(await takeFirstFree(locks, missPrefix(s, epoch), MAX_MISSES));
+      if (!shared) return 0;
+      return shared === MAX_MISSES ? MAX_MISSES : own;
+    }
+    return slotNumber(await takeFirstFree(locks, missPrefix(s, epoch), MAX_MISSES));
   }
 
-  /** Whether codes are blocked until the access is reset. */
-  function sendsBlocked(locks, record, epoch) {
-    return locks.has(`${missPrefix(subject(record), epoch)}:${MAX_MISSES}`);
+  /**
+   * Whether codes are blocked until the access is reset. A guessable link is
+   * blocked by its own share or by the usual count; any other only by the usual.
+   */
+  async function sendsBlocked(locks, record, epoch, { guessable = false } = {}) {
+    const s = subject(record);
+    if (await locks.has(`${missPrefix(s, epoch)}:${MAX_MISSES}`)) return true;
+    return guessable && locks.has(`${missPrefix(s, epoch, true)}:${GUESSABLE_MAX_MISSES}`);
   }
 
   // Link codes: the one-time "#k=" part of a link the admin emails, which
@@ -504,28 +571,13 @@ function createAccess(input) {
 
   const SHORT_LIVED = [`${rows}:send:`, `${rows}:try:`, `${rows}:used:`];
 
-  /**
-   * Deletes this scheme's lock rows past their retention. Run once a day from
-   * the maintenance cron. Only the scheme that owns its rows prunes them
-   * (prunes, above); any other throws before touching a row.
-   *
-   * getScope(scopeId) loads the record a miss row counts against, or null
-   * when it is gone, and must return a record of this scheme's own shape:
-   * subject() is applied to it to read the revision and the epoch. A record
-   * of another shape reads as a different revision, so live wrong-code
-   * counters would be deleted and the 15-miss block reset.
-   *
-   * Returns { deleted, kept, skipped }: skipped counts other rows, which are
-   * never touched but still fill the listing, so a run with a large skipped
-   * and no deleted means the listing cap is spent on rows this never deletes.
-   */
-  async function pruneAccessLocks({ locks, getScope, nowMs }) {
+  // For pruneAcrossSchemes: decides, row by row, whether one of this scheme's
+  // rows is past its retention. Scope records are loaded once per run.
+  function pruneRule({ locks, getScope, nowMs }) {
     if (!prunes)
       throw new Error(
         `${logTag}: this scheme doesn't own the "${rows}:" rows; prune them through the scheme that does`,
       );
-    // listBefore is strict, so +1 ms takes rows exactly one day old too.
-    const listed = await locks.listBefore(new Date(nowMs - SHORT_RETENTION_MS + 1).toISOString());
     const scopes = new Map();
     const superseded = async ({ scopeId, rev, epoch }) => {
       if (!scopes.has(scopeId)) scopes.set(scopeId, await getScope(scopeId));
@@ -535,26 +587,24 @@ function createAccess(input) {
       if (s.revision !== rev) return true;
       return (await epochOf(locks, s)) > epoch;
     };
-    let deleted = 0;
-    let kept = 0;
-    let skipped = 0;
-    for (const { key, createdAt } of listed) {
-      if (typeof key !== "string" || !key.startsWith(`${rows}:`)) {
-        skipped += 1;
-        continue;
-      }
+    return async function shouldDrop({ key, createdAt }) {
       const ageMs = nowMs - Date.parse(createdAt);
-      let drop = false;
-      if (SHORT_LIVED.some((prefix) => key.startsWith(prefix))) drop = true;
-      else if (key.startsWith(`${rows}:lk:`)) drop = ageMs >= LINK_RETENTION_MS;
-      else if (key.startsWith(`${rows}:miss:`)) {
+      if (SHORT_LIVED.some((prefix) => key.startsWith(prefix))) return true;
+      if (key.startsWith(`${rows}:lk:`)) return ageMs >= LINK_RETENTION_MS;
+      if (key.startsWith(`${rows}:miss:`) || key.startsWith(`${rows}:umiss:`)) {
         const miss = parseMissKey(key);
-        drop = miss !== null && (await superseded(miss));
+        return miss !== null && (await superseded(miss));
       }
-      if (!drop) kept += 1;
-      else if (await locks.release(key)) deleted += 1;
-    }
-    return { deleted, kept, skipped };
+      return false;
+    };
+  }
+
+  /**
+   * Deletes this scheme's lock rows past their retention: pruneAcrossSchemes
+   * with this scheme alone. getScope is as described there.
+   */
+  function pruneAccessLocks({ locks, getScope, nowMs }) {
+    return pruneAcrossSchemes({ locks, nowMs, owners: [{ access, getScope }] });
   }
 
   /** Per record id, not per link, so a fresh link to the same record keeps the unlock. */
@@ -606,7 +656,7 @@ function createAccess(input) {
     throw new HttpError(401, locked, { locked: true });
   }
 
-  return {
+  const access = {
     scheme: Object.freeze({ ...scheme, prunes }),
     subject,
     gateEnabled,
@@ -631,6 +681,53 @@ function createAccess(input) {
     pruneAccessLocks,
     requireAccess,
   };
+  pruneRules.set(access, pruneRule);
+  return access;
+}
+
+/**
+ * Deletes lock rows past their retention for several schemes in one listing
+ * pass, handing each row to the scheme whose rows prefix it carries. Run once
+ * a day from the maintenance cron. owners is [{ access, getScope }], one per
+ * scheme that owns its rows (prunes); a scheme that only shares another's
+ * rows throws before any row is listed.
+ *
+ * getScope(scopeId) loads the record a miss row counts against, or null when
+ * it is gone, and must return a record of that scheme's own shape: subject()
+ * is applied to it to read the revision and the epoch. A record of another
+ * shape reads as a different revision, so live wrong-code counters would be
+ * deleted and the 15-miss block reset.
+ *
+ * Returns { deleted, kept, skipped } over all owners: skipped counts rows no
+ * owner has, which are never touched but still fill the listing, so a run
+ * with a large skipped and no deleted means the listing cap is spent on rows
+ * this never deletes.
+ */
+async function pruneAcrossSchemes({ locks, nowMs, owners }) {
+  const byPrefix = new Map();
+  for (const { access, getScope } of owners) {
+    const rule = pruneRules.get(access);
+    if (!rule)
+      throw new Error("pruneAcrossSchemes: an owner's access was not made by createAccess");
+    const prefix = `${access.scheme.rows}:`;
+    if (byPrefix.has(prefix))
+      throw new Error(`pruneAcrossSchemes: the "${prefix}" rows are listed twice`);
+    byPrefix.set(prefix, rule({ locks, getScope, nowMs }));
+  }
+  // listBefore is strict, so +1 ms takes rows exactly one day old too.
+  const listed = await locks.listBefore(new Date(nowMs - SHORT_RETENTION_MS + 1).toISOString());
+  let deleted = 0;
+  let kept = 0;
+  let skipped = 0;
+  for (const row of listed) {
+    const { key } = row;
+    const colon = typeof key === "string" ? key.indexOf(":") : -1;
+    const shouldDrop = colon > 0 ? byPrefix.get(key.slice(0, colon + 1)) : undefined;
+    if (!shouldDrop) skipped += 1;
+    else if (!(await shouldDrop(row))) kept += 1;
+    else if (await locks.release(key)) deleted += 1;
+  }
+  return { deleted, kept, skipped };
 }
 
 /**
@@ -648,11 +745,13 @@ function adminCheck(requireAdmin, context, req, flag) {
 
 module.exports = {
   createAccess,
+  pruneAcrossSchemes,
   adminCheck,
   maskEmail,
   normalEmail,
   CODE_TTL_MS,
   MAX_TRIES,
   MAX_MISSES,
+  GUESSABLE_MAX_MISSES,
   LINK_CODE_TTL_MS,
 };
