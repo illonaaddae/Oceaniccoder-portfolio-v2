@@ -16,7 +16,8 @@ describe("CardPayment card preview", () => {
     // The holder and invoice number appear only on the card; the amount is
     // also on the Pay button, so it is checked alongside them.
     const card = container.textContent;
-    expect(card).toContain("₵1500.00");
+    expect(card).toContain("₵1,500.00");
+    expect(card).toContain("Amount due");
     expect(card).toContain("Ama Owusu");
     expect(card).toContain("Invoice");
     expect(card).toContain("INV-2026-0042");

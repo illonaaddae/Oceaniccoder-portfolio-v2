@@ -29,6 +29,7 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
   const [error, setError] = useState<string | null>(null);
 
   const sym = CURRENCY_SYMBOLS[invoice.currency] ?? invoice.currency;
+  const amount = `${sym}${invoice.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const handlePay = async () => {
     setLoading(true);
@@ -77,7 +78,8 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
     <div className="flex flex-col items-center gap-6">
       <AnimatedCard
         variant="brand"
-        amount={`${sym}${invoice.total.toFixed(2)}`}
+        amount={amount}
+        currencyCode={invoice.currency}
         holder={invoice.clientName}
         reference={{ label: "Invoice", value: invoice.invoiceNumber }}
       />
@@ -149,7 +151,7 @@ const CardPayment: React.FC<CardPaymentProps> = ({ invoice, onSuccess }) => {
             Opening payment…
           </span>
         ) : (
-          `Pay ${sym}${invoice.total.toFixed(2)} ${invoice.currency} with Card`
+          `Pay ${amount} ${invoice.currency} with Card`
         )}
       </button>
     </div>
