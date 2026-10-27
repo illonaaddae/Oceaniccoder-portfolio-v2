@@ -112,16 +112,19 @@ function createHandler(deps) {
     const number = query.number || "";
     if (!number) return reply(context, 400, { error: "Missing invoice number" });
 
-    // doc-access's rules for finding the invoice: the signature (or the
-    // unsigned grace) is checked before any lookup, and two rows with the
-    // number fail closed. Every failure is the same 404.
+    // doc-access's rules and order for finding the invoice: the locator's
+    // shape, then the switch and the secret (503), then the signature (or the
+    // unsigned grace) before any lookup; two rows with the number fail
+    // closed. Every locator failure is the same 404.
     const locator = I.invoiceLocator({ env, logWarn: (line) => context.log.warn(line) });
+    const logError = (line) => context.log.error(line);
     const body = { number, s: query.s };
     try {
       const svc = deps.services();
       let doc;
       try {
         locator.check(body);
+        if (I.invoiceAccess.gateEnabled(env, logError)) I.invoiceAccess.accessSecret(env, logError);
         doc = await locator.find(svc, body);
       } catch (err) {
         if (err instanceof HttpError && err.status === 404) return reply(context, 404, NOT_FOUND);
@@ -129,7 +132,7 @@ function createHandler(deps) {
       }
       const via = await I.invoiceAccess.requireAccess({
         env,
-        logError: (line) => context.log.error(line),
+        logError,
         locks: svc.locks,
         req,
         record: doc,

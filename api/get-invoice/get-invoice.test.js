@@ -511,6 +511,17 @@ describe("get-invoice access gate", () => {
     expect(r.body).toEqual(UNAVAILABLE);
   });
 
+  // doc-access's order: the switch and the secret come before the lookup.
+  it.each([
+    ["the access secret is missing", { RECEIPT_SIGNING_SECRET: SECRET }],
+    ["the switch holds an unknown value", { ...ON, INVOICE_ACCESS_GATE: "yes" }],
+  ])("answers 503 before looking the invoice up when %s", async (_, env) => {
+    const t = setup({ env });
+    expect((await t.get({})).status).toBe(503);
+    expect((await t.get({ s: "A".repeat(32) })).status).toBe(503);
+    expect(t.findInvoicesByNumber).not.toHaveBeenCalled();
+  });
+
   it("answers 500 without details when the lock store fails", async () => {
     const t = setup();
     t.has.mockRejectedValue(new Error("lock store down"));
