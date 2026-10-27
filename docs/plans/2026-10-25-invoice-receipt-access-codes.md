@@ -252,6 +252,11 @@ New, after the row is found and the locator passes:
 - 503 when the gate is on and the secret is missing or bad (fail closed), as quotes.
   Refactor to `createHandler(deps)` (env, locks, clock, requireAdmin, finder) so the gate is testable, as `quote-view` is.
 
+As built in PR 4:
+
+- `get-invoice` finds the invoice through `invoiceLocator` (`check` then `find`), the same code `doc-access` runs, so both refuse the same links: a number over 40 characters or a signature that isn't 32 characters is the usual 404 too, and so is a number two rows share (logging `invoice-access duplicate number=<n>`). The 404 body stays `{ error }` with the text from `INVOICE_NOT_FOUND`; it doesn't gain `inactive`.
+- The 503 body is `{ error }` only, with the scheme's "unavailable" text.
+
 #### `GET /api/quote-receipt?reference=&s=[&admin=1]`
 
 After the locator and lookups (`quote-receipt/index.js:16-24`): `RECEIPT_ACCESS_GATE` off: today. On: quote session OR receipt session OR admin, else `401 { error: "Enter the code we email you to open this receipt.", locked: true }` with no receipt fields.
@@ -265,9 +270,18 @@ After the locator and lookups (`quote-receipt/index.js:16-24`): `RECEIPT_ACCESS_
 - Copy under the Pay button, reusing the quote wording: "This link usually opens straight away. If you open it on another device, we'll email you a short code first." (owner question Q6).
 - The SMS (`send-invoice/index.js:295-301`) carries no link; unchanged.
 
+As built in PR 4:
+
+- The body only has to name `invoiceNumber`; every field of the email (name, email, phone, items, amounts, dates, notes) comes from the row. The row stores the tax amount, not the rate, so the rate is worked out from the row as the dashboard does.
+- A number two rows share is refused with 409 "Two invoices share the number INV-…, so its pay link can't open. Nothing was sent.", logging `send-invoice duplicate number=<n>`. A row with no `clientEmail` is refused with 409 too.
+- The order is: admin, `invoiceNumber`, Resend key, signing secret, then the switch and the access secret (503), then the row (409), then the email. The link code is minted at the invoice's current epoch, so an email sent after Reset access opens.
+- Resend failures are logged as status plus the body run through `redact` (exported from `shared/access/endpoint.js`).
+- The `invoiceSent` catalog preview carries the throwaway link code `sample`, so it shows the line about the link opening.
+
 #### `quote-admin` actions
 
 - `invoicePayLink` (`actions.js:428-436`): unchanged link (bare, signed). The dashboard opens it with `&preview=admin` appended; copy-to-clipboard stays bare. Admin-visible links never carry a link code (same rule as `rotate`).
+- `invoicePayLink` stays as it is (8.1's "returns the preview flag" was dropped for this): the dashboard adds `preview=admin` itself. When the browser blocks the new tab, the panel's link opens the preview and Copy link copies the bare client link, since a preview link only asks for the dashboard session.
 - New `resetInvoiceAccess { id }`: bumps the invoice epoch (`ia:epoch:<id>:0:<n>`). Ends every invoice unlock, every unclaimed invoice link code, the send quotas and the 15-miss block for that invoice. Returns `{ ok: true }`. The URL stays the same (it is an HMAC of the number); whoever opens it next is emailed a code at the client's address. Whether Reset should also change the URL is owner question Q4.
 - Receipts are revoked through the quote: New link or Revise already bump the quote epoch. The New link confirmation copy should say it also signs browsers out of the quote's receipts.
 
@@ -353,6 +367,12 @@ Failure paths covered:
 - `PaymentPage.tsx`: new `locked` state on 401 `locked`; claim the link code if present; else render the gate inside the existing page container; refetch on unlock. Admin preview banner and hidden tabs when `preview=admin`. The page renders nothing about the invoice before unlock (not the number in a heading either, beyond the URL). The gate's colours (`--quote-cta` and the rest) are defined only under `.quote-ui` (`src/styles/index.css`), so the locked view must render inside a `.quote-ui` wrapper (or `QuoteShell`), or the buttons lose their background.
 - `ReceiptPage.tsx`: same, inside `QuoteShell title="Open your receipt"`. Its loading state today is `<QuoteLoading />`, which says "Loading your quote…"; pass `label="Loading your receipt…"` (the gate already does this for its own checking state).
 - `InvoicesTab.tsx`: "View pay page" appends `preview=admin`; new "Reset access" row action with a confirmation that says what it does ("Signs every browser out of this invoice. The link stays the same; opening it again needs a code sent to <client>."). Wording is the owner's (Q7).
+
+As built in PR 4:
+
+- `PaymentPage` renders the locked view as `QuoteShell title="Open your invoice"` around `LockedDocument`, keyed by number and signature. A failure other than 404 or 429 is titled "Something went wrong" instead of "Invoice Not Found".
+- The cookie-blocked card (`QuoteError` with the new `announce`) is an alert and takes focus, as the contact message does; this also fixes it on quote pages.
+- `InvoiceModal` explains a 409 (the server's reason, no "resend") and a 503 (sending is unavailable for now, the client wasn't told); its error line is an alert.
 
 ### 8.7 Email copy and catalog
 
@@ -482,7 +502,7 @@ Each PR: scoped Vitest run (`npx vitest run --maxWorkers=2 api/shared/access api
 
 ### 10.2 Open questions only the owner can answer
 
-The owner answered Q1, Q2, Q3, Q7, Q8 and Q10 on 2026-10-26; each answer is under its question. Q4, Q5, Q6 and Q9 are still open.
+The owner answered Q1, Q2, Q3, Q7, Q8 and Q10 on 2026-10-26, and Q4, Q5, Q6, Q9 and the rest of Q7 on 2026-10-27; each answer is under its question.
 
 1. **Receipt code address.** The code for a receipt goes to the quote's client email (recommended, it is the address you verified). The alternative is the payer's typed email on the payment row, which can be anyone who had the quote page open. Which?
    **Decided 2026-10-26:** the quote's client email.
@@ -491,13 +511,18 @@ The owner answered Q1, Q2, Q3, Q7, Q8 and Q10 on 2026-10-26; each answer is unde
 3. **Unsigned grace links.** Accept the defaults (no masked email, at most 3 code emails a day per invoice), or end the grace before 2026-11-21 now that the code step exists?
    **Decided 2026-10-26:** keep the defaults. Unsigned grace locators get `maskedEmail: null` on `status` and on `send`, and `canUnlock: true`. Their send quota is 1 per 10 minutes and 3 per day per invoice epoch, on top of the per-IP limit. The grace still ends 2026-11-21.
 4. **Revoking an invoice link.** Is "Reset access" (signs everyone out, same URL, next open needs a code) enough, or should it also issue a new URL so the old one shows "not valid"? The latter needs a link version on the invoice row and changes the signing input.
+   **Decided 2026-10-27:** Reset access signs every browser out and voids unused link codes. The same URL keeps working but asks for a fresh code. No new URL and no schema change.
 5. **Admin preview of a pay page.** Hide the payment buttons and show a "Preview" banner (default), or show the page exactly as the client sees it?
+   **Decided 2026-10-27:** the admin preview shows a "Preview" banner and hides the payment buttons.
 6. **Invoice email wording.** Add "This link usually opens straight away. If you open it on another device, we'll email you a short code first." under the Pay button, as on quotes?
+   **Decided 2026-10-27:** yes, that line under the Pay button. As on quotes, it is shown only when the email carries a link code (gate on).
 7. **Names and copy.** "Reset access" for the dashboard action and its confirmation text; code email subjects "123456 is your code for invoice INV-123456" and "... for your receipt"; screen titles "Open your invoice" and "Open your receipt".
-   **Decided 2026-10-26:** subjects "123456 is your code for invoice INV-…" and "… for your receipt"; titles "Open your invoice" and "Open your receipt". The name and confirmation text of "Reset access" are not decided yet.
+   **Decided 2026-10-26:** subjects "123456 is your code for invoice INV-…" and "… for your receipt"; titles "Open your invoice" and "Open your receipt".
+   **Decided 2026-10-27:** the action is named "Reset access", with the titles already in this plan. Its confirmation (PR 4): "Reset access to INV-…?", "Signs every browser out of this invoice. The link stays the same; opening it again needs a code sent to <client email>."
 8. **Link-code lifetime.** 45 days as on quotes for invoice and receipt emails, after which the emailed link asks for a code? Receipts are often opened months later.
    **Decided 2026-10-26:** 45 days for invoice and receipt link codes.
 9. **Paid and archived invoices.** Stay behind the code like unpaid ones (default, they still show the client's name and amount)?
+   **Decided 2026-10-27:** paid and archived invoices are behind the code too. Reset access is offered on them as well.
 10. **Separate secret.** Reuse `QUOTE_ACCESS_SECRET` for invoices and receipts (default), or set a new secret so they can be rotated alone?
     **Decided 2026-10-26:** reuse `QUOTE_ACCESS_SECRET`.
 
