@@ -4,16 +4,21 @@
 // paid, has at least one plan, has no maintenanceOfferSentAt yet and its
 // offer date (a week before the free period ends) has passed.
 //
-// The same daily run deletes quote-access lock rows past their retention
-// (pruneAccessLocks in shared/quotes/access.js). A clean-up failure is logged
-// and never stops or fails the offers.
+// The same daily run deletes quote and invoice access lock rows past their
+// retention, in one pass over the locks (pruneAcrossSchemes in
+// shared/access/core.js; receipts share the quote rows). A clean-up failure
+// is logged and never stops or fails the offers.
 
 const crypto = require("crypto");
 const { send, handleError } = require("../shared/http");
 const M = require("../shared/quotes/model");
 const { createServices } = require("../shared/quotes/service");
 const { sendMaintenanceOffer } = require("../shared/quotes/maintenance");
-const { pruneAccessLocks } = require("../shared/quotes/access");
+const { pruneAcrossSchemes } = require("../shared/access/core");
+const { quoteAccess } = require("../shared/quotes/accessScheme");
+const { invoiceAccess } = require("../shared/invoices/access");
+const { getDatabase } = require("../shared/cosmos");
+const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
 
 // Hashing both sides first gives equal-length buffers, so the comparison
 // takes the same time whatever the caller sent.
@@ -69,7 +74,17 @@ function createHandler(deps) {
       }
       let pruned = null;
       try {
-        pruned = await pruneAccessLocks({ locks: svc.locks, repo: svc.repo, nowMs });
+        // Each getScope returns its own kind's record (a deleted one is null).
+        // A getScope that throws (a Cosmos 429 on readInvoice, say) ends the
+        // whole pass; the catch below logs it and tomorrow's run tries again.
+        pruned = await pruneAcrossSchemes({
+          locks: svc.locks,
+          nowMs,
+          owners: [
+            { access: quoteAccess, getScope: (quoteId) => svc.repo.get(quoteId) },
+            { access: invoiceAccess, getScope: (invoiceId) => svc.invoices.readInvoice(invoiceId) },
+          ],
+        });
       } catch (err) {
         context.log.error(
           `quote-maintenance-due: lock clean-up: ${err && (err.stack || err.message)}`,
@@ -83,7 +98,7 @@ function createHandler(deps) {
 }
 
 module.exports = createHandler({
-  services: createServices,
+  services: () => ({ ...createServices(), invoices: createCosmosInvoiceStore(getDatabase()) }),
   secret: () => process.env.CRON_SECRET,
 });
 module.exports.createHandler = createHandler;

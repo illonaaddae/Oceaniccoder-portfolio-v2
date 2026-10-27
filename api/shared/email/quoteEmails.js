@@ -374,22 +374,37 @@ function maintenanceOffer(v) {
   return { subject, html, text };
 }
 
-// The code sent when the quote is opened in a browser that isn't signed in
-// and the link's one-time link code is spent or missing. No link in it, so a
-// forwarded or intercepted copy can't open the quote by itself.
+// The documents a client opens with an emailed code (shared/access). v.kind
+// picks one; a view without it is a quote, whose views carry quoteNumber.
+// Invoice and receipt views carry number. The receipt subject names no number
+// (owner's wording, 2026-10-26).
+const ACCESS_DOCS = {
+  quote: { noun: "quote", label: "Quote", number: (v) => v.quoteNumber },
+  invoice: { noun: "invoice", label: "Invoice", number: (v) => v.number },
+  receipt: { noun: "receipt", label: "Receipt", number: (v) => v.number },
+};
+const accessDoc = (v) =>
+  Object.hasOwn(ACCESS_DOCS, v.kind) ? ACCESS_DOCS[v.kind] : ACCESS_DOCS.quote;
+
+// The code sent when a quote, invoice or receipt is opened in a browser that
+// isn't signed in and the link's one-time link code is spent or missing. No
+// link in it, so a forwarded or intercepted copy can't open the document by
+// itself.
 function accessCode(v) {
-  const subject = `${v.code} is your code for quote ${v.quoteNumber}`;
+  const doc = accessDoc(v);
+  const about = doc === ACCESS_DOCS.receipt ? "your receipt" : `${doc.noun} ${doc.number(v)}`;
+  const subject = `${v.code} is your code for ${about}`;
   // A plain sentence first, so Gmail's "Copy code" and Apple's one-time-code
   // autofill find the code.
   const verification = `Your verification code is ${v.code}.`;
-  const opened = "Someone opened your quote in a new browser. Here's your code:";
+  const opened = `Someone opened your ${doc.noun} in a new browser. Here's your code:`;
   const ignore = "If it wasn't you, you can ignore this email.";
   const html = shell({
     preview: `${verification} It works for ${v.minutes} minutes.`,
-    meta: { label: "Quote", number: v.quoteNumber },
+    meta: { label: doc.label, number: doc.number(v) },
     reason: CLIENT_REASON,
     body:
-      heading({ eyebrow: "Your code", title: "Open your quote", intro: verification }) +
+      heading({ eyebrow: "Your code", title: `Open your ${doc.noun}`, intro: verification }) +
       p(`Hi ${v.clientFirstName}, ${opened.charAt(0).toLowerCase()}${opened.slice(1)}`) +
       codeBlock({ label: "Code", code: v.code }) +
       p(`It works for ${v.minutes} minutes.`) +
@@ -404,47 +419,107 @@ function accessCode(v) {
   return { subject, html, text };
 }
 
-// Two cases: one code locked after five wrong tries, or (blocked) the quote's
-// fifteenth wrong code, after which no code is sent or checked until New link
-// or Revise.
-function accessLockedAlert(v) {
-  const subject = v.blocked
-    ? `Codes blocked after 15 wrong tries on ${v.quoteNumber}`
-    : `Code locked after 5 wrong tries on ${v.quoteNumber}`;
-  const what = v.blocked
-    ? `Fifteen wrong codes have been entered for ${v.quoteNumber}.`
-    : `Five wrong codes were entered for ${v.quoteNumber}.`;
-  const effect = v.blocked
-    ? "No more codes will be sent or accepted on this link until you use New link or Revise."
-    : "That code no longer works, and a new one goes only to the client's email.";
+// How a locked quote or invoice is reset, and what the alert shows about it.
+// Receipts have no alert of their own: their codes count against the quote,
+// so they use the quote's, with v.reference naming the receipt.
+const LOCKED_ALERTS = {
+  quote: {
+    number: (v) => v.quoteNumber,
+    title: (blocked) => (blocked ? "Codes are blocked on a quote" : "A quote code was locked"),
+    reset: "New link or Revise",
+    advice:
+      "If the client didn't ask for a code, the link may have been shared. Use New link on the quote to lock out every browser, then send the client the new link.",
+    rows: (v) => [
+      ["Client", v.clientName],
+      ["Quote", v.title],
+      ...(v.reference ? [["Receipt", v.reference]] : []),
+      ["Date", v.lockedOn],
+    ],
+    about: (v) => [v.title, v.clientName, ...(v.reference ? [`receipt ${v.reference}`] : [])],
+  },
+  invoice: {
+    number: (v) => v.number,
+    title: (blocked) =>
+      blocked ? "Codes are blocked on an invoice" : "An invoice code was locked",
+    reset: "Reset access",
+    advice:
+      "If the client didn't ask for a code, the link may have been shared. Use Reset access on the invoice to sign out every browser; whoever opens the link next needs a code sent to the client.",
+    rows: (v) => [
+      ["Client", v.clientName],
+      ["Invoice", v.number],
+      ["Date", v.lockedOn],
+    ],
+    about: (v) => [v.clientName],
+  },
+};
+
+// An invoice's unsigned (guessable) link reached its own five wrong codes:
+// only that link is blocked (shared/access/core.js GUESSABLE_MAX_MISSES), so
+// the owner is told the signed link still works and how to get it to the client.
+function unsignedLinkBlockedAlert(v) {
+  const a = LOCKED_ALERTS.invoice;
+  const subject = `Codes blocked after 5 wrong tries on the unsigned link for ${v.number}`;
+  const what = `Five wrong codes were entered on the unsigned link for invoice ${v.number}, so codes for that link are blocked for now.`;
+  const effect = "The client's signed link still works.";
   const advice =
-    "If the client didn't ask for a code, the link may have been shared. Use New link on the quote to lock out every browser, then send the client the new link.";
+    "To be sure they can pay, resend the invoice from the dashboard so they get the signed link. Reset access also clears the block, but anyone guessing the number could block it again.";
   const html = shell({
     preview: what,
-    meta: { label: "Quote", number: v.quoteNumber },
+    meta: { label: "Invoice", number: v.number },
     reason: ADMIN_REASON,
     body:
       heading({
-        eyebrow: "Quote access",
-        tone: v.blocked ? "danger" : "warn",
-        title: v.blocked ? "Codes are blocked on a quote" : "A quote code was locked",
+        eyebrow: "Invoice access",
+        tone: "warn",
+        title: "The unsigned link to an invoice is blocked",
         intro: `${what} ${effect}`,
       }) +
-      card({
-        title: "Quote",
-        rows: [
-          ["Client", v.clientName],
-          ["Quote", v.title],
-          ["Date", v.lockedOn],
-        ],
-      }) +
+      card({ title: "Invoice", rows: a.rows(v) }) +
       notice({ tone: "warn", text: advice }) +
       buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
   });
+  const when = [v.clientName, v.lockedOn].filter(Boolean).join(", ");
+  const text = lines(what, effect, advice, `${when}.`, v.adminLink);
+  return { subject, html, text };
+}
+
+// Two cases: one code locked after five wrong tries, or (blocked) the
+// document's fifteenth wrong code, after which no code is sent or checked
+// until it is reset.
+function accessLockedAlert(v) {
+  if (v.kind === "invoice" && v.linkBlocked) return unsignedLinkBlockedAlert(v);
+  const kind = v.kind === "invoice" ? "invoice" : "quote";
+  const a = LOCKED_ALERTS[kind];
+  const doc = ACCESS_DOCS[kind];
+  const number = a.number(v);
+  const subject = v.blocked
+    ? `Codes blocked after 15 wrong tries on ${number}`
+    : `Code locked after 5 wrong tries on ${number}`;
+  const what = v.blocked
+    ? `Fifteen wrong codes have been entered for ${number}.`
+    : `Five wrong codes were entered for ${number}.`;
+  const effect = v.blocked
+    ? `No more codes will be sent or accepted on this link until you use ${a.reset}.`
+    : "That code no longer works, and a new one goes only to the client's email.";
+  const html = shell({
+    preview: what,
+    meta: { label: doc.label, number },
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: `${doc.label} access`,
+        tone: v.blocked ? "danger" : "warn",
+        title: a.title(v.blocked),
+        intro: `${what} ${effect}`,
+      }) +
+      card({ title: doc.label, rows: a.rows(v) }) +
+      notice({ tone: "warn", text: a.advice }) +
+      buttons(button({ href: v.adminLink, label: "Open the dashboard" })),
+  });
   const text = lines(
-    `${what.slice(0, -1)} (${v.title}, ${v.clientName}) on ${v.lockedOn}.`,
+    `${what.slice(0, -1)} (${a.about(v).join(", ")}) on ${v.lockedOn}.`,
     effect,
-    advice,
+    a.advice,
     v.adminLink,
   );
   return { subject, html, text };
