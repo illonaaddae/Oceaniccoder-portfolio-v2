@@ -1,0 +1,366 @@
+/* AI journey card, beside the skills card. It is a dark ocean stage in both
+   themes, because the glowing robot and network wash out on white. It does that
+   by pinning the dark theme's values locally, so every rule below reads the same
+   variables either way. */
+
+.ai-journey {
+  /* Same values as the dark theme in index.css; keep them in step if that palette changes. */
+  --bg-primary: #0a1628;
+  --bg-tertiary: #1a365d;
+  --brand-ocean-2: #26a9c5;
+  --brand-ocean-3: #52bfd7;
+  --brand-ocean-4: #8dd7e7;
+  --text-primary: #f7fafc;
+  --text-accent: #d6dde6;
+  --glass-bg: rgba(38, 169, 197, 0.1);
+  --glass-border: rgba(38, 169, 197, 0.22);
+  background: linear-gradient(135deg, #0a1628 0%, #0d253f 60%, #04333b 100%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 50px -24px rgba(4, 51, 59, 0.55);
+  container-type: inline-size;
+}
+
+.ai-journey__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.ai-journey__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.ai-journey__title-accent {
+  color: var(--brand-ocean-4);
+}
+.ai-journey__intro {
+  margin-top: 0.35rem;
+  color: var(--text-accent);
+}
+
+.aij-scene {
+  display: block;
+  height: auto;
+  overflow: visible;
+}
+
+.aij-metal {
+  fill: var(--bg-tertiary);
+  stroke: var(--brand-ocean-2);
+  stroke-opacity: 0.55;
+  stroke-width: 2;
+}
+.aij-screen {
+  fill: var(--bg-primary);
+}
+.aij-limb {
+  fill: var(--brand-ocean-2);
+  fill-opacity: 0.55;
+}
+.aij-hand {
+  fill: var(--bg-tertiary);
+  stroke: var(--brand-ocean-2);
+  stroke-opacity: 0.55;
+}
+.aij-accent {
+  fill: var(--brand-ocean-4);
+}
+.aij-stroke {
+  stroke: var(--brand-ocean-4);
+  stroke-linecap: round;
+}
+.aij-beacon {
+  fill: var(--brand-ocean-4);
+  opacity: 0.25;
+}
+.aij-bar {
+  fill: var(--brand-ocean-4);
+}
+.aij-dot-a {
+  fill: var(--brand-ocean-2);
+}
+.aij-dot-b {
+  fill: var(--brand-ocean-3);
+}
+.aij-dot-c {
+  fill: var(--brand-ocean-4);
+}
+.aij-shadow {
+  fill: var(--text-primary);
+  opacity: 0.12;
+}
+
+.aij-bubble-box {
+  fill: var(--glass-bg);
+  stroke: var(--brand-ocean-2);
+  stroke-opacity: 0.4;
+}
+.aij-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 17px;
+  fill: var(--text-primary);
+}
+.aij-muted {
+  font-size: 14px;
+  fill: var(--text-accent);
+}
+.aij-typing {
+  fill: var(--brand-ocean-4);
+}
+
+.aij-edges line {
+  stroke: var(--brand-ocean-2);
+  stroke-opacity: 0.22;
+  stroke-width: 1.5;
+}
+.aij-signal {
+  stroke: var(--brand-ocean-4);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 10 90;
+}
+.aij-node {
+  fill: var(--brand-ocean-4);
+  stroke: var(--brand-ocean-2);
+  stroke-width: 2;
+}
+
+.ai-journey__path {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 0.25rem;
+  margin-top: 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+.ai-journey__step {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.ai-journey__chip {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+.ai-journey__arrow {
+  color: var(--brand-ocean-2);
+  padding: 0 0.25rem;
+}
+
+.ai-journey__toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.ai-journey__toggle:hover {
+  border-color: var(--brand-ocean-2);
+}
+.ai-journey__toggle:focus-visible {
+  outline: 2px solid var(--brand-ocean-4);
+  outline-offset: 2px;
+}
+
+/* Motion. Runs only while the section is on screen and the visitor has not
+   paused it with the card's button; off entirely for reduced motion. */
+.ai-journey:not(.is-animating) * {
+  animation-play-state: paused;
+}
+
+.aij-float {
+  animation: aij-float 4s ease-in-out infinite;
+}
+.aij-shadow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aij-shadow 4s ease-in-out infinite;
+}
+.aij-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aij-blink 5s infinite;
+}
+.aij-wave {
+  transform-origin: 193px 182px;
+  transform: rotate(-150deg);
+  animation: aij-wave 1.6s ease-in-out infinite;
+}
+.aij-beacon {
+  animation: aij-beacon 1.8s ease-in-out infinite;
+}
+.aij-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: aij-bar 1.1s ease-in-out infinite;
+}
+.aij-bar:nth-child(2) {
+  animation-delay: -0.2s;
+}
+.aij-bar:nth-child(3) {
+  animation-delay: -0.5s;
+}
+.aij-bar:nth-child(4) {
+  animation-delay: -0.8s;
+}
+.aij-bar:nth-child(5) {
+  animation-delay: -0.35s;
+}
+.aij-typing {
+  animation: aij-typing 1.2s ease-in-out infinite;
+}
+.aij-d2 {
+  animation-delay: 0.2s;
+}
+.aij-d3 {
+  animation-delay: 0.4s;
+}
+.aij-signal {
+  animation: aij-signal 2.4s linear infinite;
+}
+.aij-s2 {
+  animation-delay: -0.6s;
+}
+.aij-s3 {
+  animation-delay: -1.2s;
+}
+.aij-s4 {
+  animation-delay: -1.8s;
+}
+.aij-node {
+  animation: aij-node 2.4s ease-in-out infinite;
+}
+.aij-l2 {
+  animation-delay: 0.6s;
+}
+.aij-l3 {
+  animation-delay: 1.2s;
+}
+.aij-l4 {
+  animation-delay: 1.8s;
+}
+.ai-journey__chip {
+  animation: aij-chip 12s ease-in-out infinite;
+  animation-delay: calc(var(--step) * 2s);
+}
+
+@keyframes aij-float {
+  50% {
+    transform: translateY(-12px);
+  }
+}
+@keyframes aij-shadow {
+  50% {
+    transform: scaleX(0.8);
+    opacity: 0.06;
+  }
+}
+@keyframes aij-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes aij-wave {
+  0%,
+  100% {
+    transform: rotate(-150deg);
+  }
+  50% {
+    transform: rotate(-115deg);
+  }
+}
+@keyframes aij-beacon {
+  50% {
+    opacity: 0.08;
+  }
+}
+@keyframes aij-bar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes aij-typing {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes aij-signal {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes aij-node {
+  0%,
+  100% {
+    fill-opacity: 0.15;
+  }
+  40% {
+    fill-opacity: 1;
+  }
+}
+@keyframes aij-chip {
+  0%,
+  18%,
+  100% {
+    border-color: var(--glass-border);
+    background: transparent;
+  }
+  3%,
+  15% {
+    border-color: var(--brand-ocean-2);
+    background: var(--glass-bg);
+  }
+}
+
+/* The speech bubbles are too small to read once the card is phone-narrow. */
+@container (max-width: 519px) {
+  .aij-bubble {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-journey * {
+    animation: none;
+  }
+  /* Nothing moves, so there is nothing to pause. */
+  .ai-journey__toggle {
+    display: none;
+  }
+  .aij-signal {
+    stroke-dasharray: none;
+    stroke-opacity: 0.4;
+  }
+}
