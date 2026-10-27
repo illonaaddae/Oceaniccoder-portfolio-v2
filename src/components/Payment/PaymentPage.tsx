@@ -22,6 +22,8 @@ interface PublicInvoice {
   status: string;
   dueDate: string | null;
   estimatedDelivery: string | null;
+  /** Set when get-invoice let the admin session in instead of an unlock. */
+  preview?: boolean;
 }
 
 type PaymentTab = "card" | "momo" | "bank" | "applepay";
@@ -42,11 +44,27 @@ const invoiceLocator = (number: string, signature: string | null) =>
 // browser in. Same rules as useClientQuote's for quotes.
 const claims = new Map<string, Promise<boolean>>();
 
+// Resolves once the page is in front of someone. A mail scanner that opens
+// the link (and even runs its script) without showing it never gets here, so
+// it can't spend the link code. Same rule as the code screen's auto-send.
+function whenVisible(): Promise<void> {
+  return new Promise((resolve) => {
+    const go = () => {
+      if (document.visibilityState !== "visible") return;
+      document.removeEventListener("visibilitychange", go);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", go);
+    go();
+  });
+}
+
 function claimLinkOnce(number: string, signature: string | null): Promise<boolean> {
   const code = takeLinkCode("invoice", number);
   if (code) {
-    const claim = docAccessTarget(invoiceLocator(number, signature))
-      .claim(code)
+    const target = docAccessTarget(invoiceLocator(number, signature));
+    const claim = whenVisible()
+      .then(() => target.claim(code))
       .then(
         () => true,
         () => false,
@@ -312,6 +330,8 @@ const PaymentPage: React.FC = () => {
   const [paid, setPaid] = useState(false);
 
   const isSuccess = isSuccessParam || paid;
+  // The banner shows and nothing can be paid when either side says preview.
+  const preview = admin || invoice?.preview === true;
 
   // Payment record creation + invoice "paid" status update are owned by
   // `/api/paystack-webhook` (server-side, atomic). Client only flips UI to
@@ -334,6 +354,9 @@ const PaymentPage: React.FC = () => {
     setSlowWarning(false);
     let signedIn = justUnlocked.current;
     justUnlocked.current = false;
+    // The preview never claims the client's link code. The claim waits for the
+    // page to be visible, so the timers below start after it.
+    if (!admin && (await claimLinkOnce(invoiceNumber, signature))) signedIn = true;
 
     const controller = new AbortController();
     const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
@@ -344,8 +367,6 @@ const PaymentPage: React.FC = () => {
     if (admin) query.set("admin", "1");
 
     try {
-      // The preview never claims the client's link code.
-      if (!admin && (await claimLinkOnce(invoiceNumber, signature))) signedIn = true;
       const res = await fetch(apiUrl(`/api/get-invoice?${query.toString()}`), {
         signal: controller.signal,
       });
@@ -373,7 +394,7 @@ const PaymentPage: React.FC = () => {
         setFetchError("timeout");
       } else {
         setFetchError({
-          title: "Invoice Not Found",
+          title: "Something went wrong",
           message: "Could not load invoice. Please check the link and try again.",
         });
       }
@@ -396,8 +417,9 @@ const PaymentPage: React.FC = () => {
   }, [doFetch]);
 
   // Nothing about the invoice before an unlock, not even its number. The
-  // code screen's colours live under QuoteShell's .quote-ui. Keyed by the
-  // link, so another invoice opened in this page gets a fresh code screen.
+  // code screen's colours live under QuoteShell's .quote-ui. Opening another
+  // invoice reloads, which unmounts this; the key keeps the screen fresh if
+  // the link ever changes without a reload.
   if (locked)
     return (
       <QuoteShell title="Open your invoice" width="narrow">
@@ -503,7 +525,7 @@ const PaymentPage: React.FC = () => {
               </div>
             ) : (
               <>
-                {admin && (
+                {preview && (
                   <section
                     aria-labelledby="pay-preview-title"
                     className="rounded-xl px-4 py-3 mb-4 text-sm"
@@ -539,7 +561,7 @@ const PaymentPage: React.FC = () => {
                 )}
 
                 {/* Payment tabs */}
-                {invoice.status !== "paid" && !admin && (
+                {invoice.status !== "paid" && !preview && (
                   <div
                     className="rounded-2xl p-6"
                     style={{

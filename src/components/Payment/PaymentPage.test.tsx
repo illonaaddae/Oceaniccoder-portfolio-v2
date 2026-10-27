@@ -150,6 +150,21 @@ describe("PaymentPage", () => {
     expect(screen.queryByText("Invoice Not Found")).toBeNull();
   });
 
+  it.each([
+    ["the network fails", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ["the answer isn't JSON", () => Promise.resolve(new Response("<html>", { status: 502 }))],
+  ])("doesn't call it a missing invoice when %s", async (_, answer) => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(answer);
+    renderAt("/pay/INV-123456?s=abc");
+    expect(
+      await screen.findByRole("heading", { name: "Something went wrong" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Could not load invoice. Please check the link and try again."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Invoice Not Found")).toBeNull();
+  });
+
   it("doesn't call a server failure a missing invoice", async () => {
     renderWith("/pay/INV-123456?s=abc", {
       ok: false,
@@ -226,6 +241,38 @@ describe("PaymentPage behind the access code", () => {
     expect(order).toEqual(["/api/doc-access", "/api/get-invoice"]);
   });
 
+  describe("in a tab nobody has looked at yet", () => {
+    let visibility: typeof document.visibilityState = "hidden";
+    beforeEach(() => {
+      visibility = "hidden";
+      vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
+    });
+
+    // A mail scanner that opens the link without showing it mustn't spend the code.
+    it("claims the link code only once the page is visible", async () => {
+      arriveWithLinkCode("/pay/INV-200009?s=sig9");
+      const fetchMock = mockApi(
+        [{ status: 200, body: { ...invoice, invoiceNumber: "INV-200009" } }],
+        { claim: { status: 200, body: { ok: true } } },
+      );
+      renderAt("/pay/INV-200009?s=sig9");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      visibility = "visible";
+      document.dispatchEvent(new Event("visibilitychange"));
+      expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+      expect(accessCalls(fetchMock).map((c) => c.action)).toEqual(["claim"]);
+    });
+
+    it("looks the invoice up at once when there's no link code to claim", async () => {
+      const fetchMock = mockApi([{ status: 200, body: invoice }]);
+      renderAt("/pay/INV-123456?s=abc");
+      expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+      expect(accessCalls(fetchMock)).toEqual([]);
+    });
+  });
+
   it("falls back to the code screen when the link code is refused", async () => {
     arriveWithLinkCode("/pay/INV-200002?s=sig3");
     mockApi([{ status: 401, body: LOCKED_BODY }], {
@@ -300,6 +347,14 @@ describe("PaymentPage behind the access code", () => {
       expect(requested(fetchMock).get("admin")).toBe("1");
       // A preview never spends the client's link code.
       expect(accessCalls(fetchMock)).toEqual([]);
+    });
+
+    it("hides the payment options whenever the server says it answered a preview", async () => {
+      mockApi([{ status: 200, body: { ...invoice, status: "sent", preview: true } }]);
+      renderAt("/pay/INV-400003?s=sig7");
+      expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Preview" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Pay by Card" })).toBeNull();
     });
 
     it("asks for the dashboard session and sends no code when the admin check fails", async () => {
