@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { FaPause, FaPlay } from "react-icons/fa";
 import AIJourneyScene from "./AIJourneyScene";
 
-export const JOURNEY_STEPS = [
+const JOURNEY_STEPS = [
   "Python",
   "Data Engineering",
   "Data Science",
@@ -11,13 +12,14 @@ export const JOURNEY_STEPS = [
 ] as const;
 
 /**
- * Home-page section showing the path from Python to robotics. Animations only
- * run while the section is on screen, so it costs nothing while the visitor is
- * reading the hero above it.
+ * Home-page section showing the path from Python to robotics. Animations are
+ * paused while the section is off screen, and the visitor can pause them with
+ * the button on the card (WCAG 2.2.2: looping motion needs an on-page control).
  */
 const AIJourneySection: React.FC = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const [onScreen, setOnScreen] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -33,12 +35,14 @@ const AIJourneySection: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
+  const animating = onScreen && !paused;
+
   return (
     <section
       ref={sectionRef}
       id="ai-journey"
       aria-labelledby="ai-journey-heading"
-      className={`ai-journey py-20 relative scroll-mt-24 sm:scroll-mt-28 ${onScreen ? "is-on-screen" : ""}`}
+      className={`ai-journey py-20 relative ${animating ? "is-animating" : ""}`}
       style={{
         background:
           "linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)",
@@ -51,14 +55,24 @@ const AIJourneySection: React.FC = () => {
             <span className="text-oceanic-600 dark:text-oceanic-500">Machine Learning</span>
           </h2>
           <p className="text-lg md:text-xl leading-relaxed max-w-3xl mx-auto text-gray-700 dark:text-gray-200">
-            The next chapter I&apos;m building towards: growing from Python into data engineering,
-            data science, machine learning, applied AI and robotics.
+            The next chapter I&apos;m building towards, from Python all the way to robotics.
           </p>
         </div>
 
-        <div className="ai-journey__card rounded-3xl p-4 sm:p-8">
+        <div className="ai-journey__card relative rounded-3xl p-4 sm:p-8">
+          <button
+            type="button"
+            className="ai-journey__toggle"
+            aria-pressed={paused}
+            onClick={() => setPaused((p) => !p)}
+          >
+            {paused ? <FaPlay aria-hidden="true" /> : <FaPause aria-hidden="true" />}
+            <span className="sr-only">{paused ? "Play animation" : "Pause animation"}</span>
+          </button>
           <AIJourneyScene />
-          <ol className="ai-journey__path" aria-label="My learning path">
+          {/* role="list" keeps list semantics in Safari, which drops them when list-style is none. */}
+          {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
+          <ol className="ai-journey__path" role="list" aria-label="My learning path">
             {JOURNEY_STEPS.map((step, i) => (
               <li
                 key={step}

@@ -4,6 +4,7 @@
    so every rule below reads the same variables either way. */
 
 .ai-journey__card {
+  /* Same values as the dark theme in index.css; keep them in step if that palette changes. */
   --bg-primary: #0a1628;
   --bg-tertiary: #1a365d;
   --brand-ocean-2: #26a9c5;
@@ -132,30 +133,36 @@
   padding: 0 0.25rem;
 }
 
-/* Motion. Paused until the section is on screen; off for reduced motion. */
-.ai-journey .aij-float,
-.ai-journey .aij-shadow,
-.ai-journey .aij-eye,
-.ai-journey .aij-wave,
-.ai-journey .aij-beacon,
-.ai-journey .aij-bar,
-.ai-journey .aij-typing,
-.ai-journey .aij-signal,
-.ai-journey .aij-node,
-.ai-journey .ai-journey__chip {
-  animation-play-state: paused;
+.ai-journey__toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
-.ai-journey.is-on-screen .aij-float,
-.ai-journey.is-on-screen .aij-shadow,
-.ai-journey.is-on-screen .aij-eye,
-.ai-journey.is-on-screen .aij-wave,
-.ai-journey.is-on-screen .aij-beacon,
-.ai-journey.is-on-screen .aij-bar,
-.ai-journey.is-on-screen .aij-typing,
-.ai-journey.is-on-screen .aij-signal,
-.ai-journey.is-on-screen .aij-node,
-.ai-journey.is-on-screen .ai-journey__chip {
-  animation-play-state: running;
+.ai-journey__toggle:hover {
+  border-color: var(--brand-ocean-2);
+}
+.ai-journey__toggle:focus-visible {
+  outline: 2px solid var(--brand-ocean-4);
+  outline-offset: 2px;
+}
+
+/* Motion. Runs only while the section is on screen and the visitor has not
+   paused it with the card's button; off entirely for reduced motion. */
+.ai-journey:not(.is-animating) .ai-journey__card * {
+  animation-play-state: paused;
 }
 
 .aij-float {
@@ -326,16 +333,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-journey .aij-float,
-  .ai-journey .aij-shadow,
-  .ai-journey .aij-eye,
-  .ai-journey .aij-beacon,
-  .ai-journey .aij-bar,
-  .ai-journey .aij-typing,
-  .ai-journey .aij-signal,
-  .ai-journey .aij-node,
-  .ai-journey .ai-journey__chip,
-  .ai-journey .aij-wave {
+  .ai-journey .ai-journey__card * {
     animation: none;
   }
   .aij-signal {

@@ -90,13 +90,13 @@ const AIJourneyScene: React.FC = () => (
       </g>
     </g>
 
-    <g className="aij-bubble" transform="translate(250 56)">
+    <g className="aij-bubble" transform="translate(272 56)">
       <rect className="aij-bubble-box" width="226" height="48" rx="16" />
       <text className="aij-code" x="18" y="30">
         print(&quot;Hello, AI&quot;)
       </text>
     </g>
-    <g className="aij-bubble" transform="translate(250 118)">
+    <g className="aij-bubble" transform="translate(272 118)">
       <rect className="aij-bubble-box" width="150" height="34" rx="12" />
       <text className="aij-muted" x="16" y="22">
         learning

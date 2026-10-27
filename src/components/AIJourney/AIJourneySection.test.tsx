@@ -1,7 +1,7 @@
 import React from "react";
-import { render, screen, within, cleanup, act } from "@testing-library/react";
+import { render, screen, within, cleanup, act, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import AIJourneySection, { JOURNEY_STEPS } from "./AIJourneySection";
+import AIJourneySection from "./AIJourneySection";
 
 afterEach(() => {
   cleanup();
@@ -12,10 +12,10 @@ describe("AIJourneySection", () => {
   it("names the section with its heading", () => {
     render(<AIJourneySection />);
 
-    expect(screen.getByRole("region", { name: /AI & Machine Learning/ })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "AI & Machine Learning" })).toBeInTheDocument();
   });
 
-  it("lists the learning path in order, with Data Science before Machine Learning", () => {
+  it("lists the learning path in the agreed order", () => {
     render(<AIJourneySection />);
 
     const path = screen.getByRole("list", { name: "My learning path" });
@@ -23,17 +23,43 @@ describe("AIJourneySection", () => {
       .getAllByRole("listitem")
       .map((li) => li.textContent?.replace("→", "").trim());
 
-    expect(steps).toEqual([...JOURNEY_STEPS]);
-    expect(steps[steps.length - 1]).toBe("Robotics");
+    expect(steps).toEqual([
+      "Python",
+      "Data Engineering",
+      "Data Science",
+      "Machine Learning",
+      "Applied AI",
+      "Robotics",
+    ]);
   });
 
   it("hides the decorative drawing and the arrows from assistive technology", () => {
     const { container } = render(<AIJourneySection />);
 
     expect(container.querySelector("svg.aij-scene")).toHaveAttribute("aria-hidden", "true");
-    container
-      .querySelectorAll(".ai-journey__arrow")
-      .forEach((arrow) => expect(arrow).toHaveAttribute("aria-hidden", "true"));
+    const arrows = container.querySelectorAll(".ai-journey__arrow");
+    expect(arrows).toHaveLength(5);
+    arrows.forEach((arrow) => expect(arrow).toHaveAttribute("aria-hidden", "true"));
+  });
+
+  it("lets the visitor pause and resume the animation", () => {
+    const { container } = render(<AIJourneySection />);
+    const section = container.querySelector("#ai-journey");
+    expect(section).toHaveClass("is-animating");
+
+    fireEvent.click(screen.getByRole("button", { name: "Pause animation" }));
+    expect(section).not.toHaveClass("is-animating");
+    expect(screen.getByRole("button", { name: "Play animation" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Play animation" }));
+    expect(section).toHaveClass("is-animating");
+    expect(screen.getByRole("button", { name: "Pause animation" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("runs the animation only while the section is on screen", () => {
@@ -52,13 +78,13 @@ describe("AIJourneySection", () => {
 
     const { container, unmount } = render(<AIJourneySection />);
     const section = container.querySelector("#ai-journey");
-    expect(section).not.toHaveClass("is-on-screen");
+    expect(section).not.toHaveClass("is-animating");
 
     act(() => report([{ isIntersecting: true }]));
-    expect(section).toHaveClass("is-on-screen");
+    expect(section).toHaveClass("is-animating");
 
     act(() => report([{ isIntersecting: false }]));
-    expect(section).not.toHaveClass("is-on-screen");
+    expect(section).not.toHaveClass("is-animating");
 
     unmount();
     expect(disconnect).toHaveBeenCalled();
