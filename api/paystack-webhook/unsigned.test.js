@@ -16,9 +16,13 @@ const WRONG_SIG = { "x-paystack-signature": "ab".repeat(64) };
 
 // Records every email attempt instead of calling Resend. Push statuses onto
 // sent.answers to have the next attempts answered with them (default 200).
+// Set sent.hold to keep Resend's answer back until sent.held.shift()() is
+// called, so a test can act while a send is in flight.
 function captureEmails() {
   const sent = [];
   Object.defineProperty(sent, "answers", { value: [] });
+  Object.defineProperty(sent, "hold", { value: false, writable: true });
+  Object.defineProperty(sent, "held", { value: [] });
   vi.spyOn(https, "request").mockImplementation((options, onResponse) => {
     let raw = "";
     return {
@@ -30,7 +34,9 @@ function captureEmails() {
       end: () => {
         const statusCode = sent.answers.length ? sent.answers.shift() : 200;
         sent.push({ status: statusCode, ...JSON.parse(raw) });
-        onResponse({ statusCode, on: (ev, fn) => ev === "end" && fn() });
+        const answer = () => onResponse({ statusCode, on: (ev, fn) => ev === "end" && fn() });
+        if (sent.hold) sent.held.push(answer);
+        else answer();
       },
     };
   });
@@ -43,9 +49,7 @@ function captureEmails() {
 // a real key mode mix-up, and a 500 makes Paystack retry the real deliveries
 // so they are recorded once the key is fixed.
 describe("paystack-webhook with an unverified request", () => {
-  // The throttle lives in index.js for the life of the module, so every test
-  // starts more than an hour after the last one.
-  let now = 1_800_000_000_000;
+  let now;
   let sent;
   const body = { event: "charge.success", data: { reference: "x" } };
   const post = async (headers, req = { rawBody: JSON.stringify(body), body }) => {
@@ -61,7 +65,8 @@ describe("paystack-webhook with an unverified request", () => {
     process.env.PAYSTACK_SECRET_KEY = "sk_test_webhook";
     process.env.RESEND_API_KEY = "re_test";
     process.env.RESEND_TO_EMAIL = "admin@example.com";
-    now += 2 * HOUR;
+    handler.resetSignatureAlert();
+    now = 1_800_000_000_000;
     vi.spyOn(Date, "now").mockImplementation(() => now);
     sent = captureEmails();
   });
@@ -124,6 +129,8 @@ describe("paystack-webhook with an unverified request", () => {
     const first = await post(WRONG_SIG);
     expect(first.res.status).toBe(500);
     expect(sent.map((m) => m.subject)).toEqual([SUBJECT]);
+    // Earlier tests held failures back; none of them may show up here.
+    expect(sent[0].html).not.toMatch(/more signature failures? since the last alert/);
     expect(sent[0].html).toContain("PAYSTACK_SECRET_KEY is a test key");
     expect(sent[0].html).toContain("computed over the raw request body");
     expect(sent[0].html).toContain(
@@ -192,7 +199,7 @@ describe("paystack-webhook with an unverified request", () => {
     expect(sent[2].html).not.toMatch(held);
   });
 
-  it("keeps the count of held-back failures when the alert fails to send", async () => {
+  it("counts the failure whose alert failed to send, with those held back", async () => {
     await post(WRONG_SIG);
     await post(WRONG_SIG);
     now += HOUR;
@@ -200,7 +207,21 @@ describe("paystack-webhook with an unverified request", () => {
     await post(WRONG_SIG);
     await post(WRONG_SIG);
     expect(sent.map((m) => m.status)).toEqual([200, 500, 200]);
-    expect(sent[2].html).toContain("1 more signature failure since the last alert");
+    expect(sent[2].html).toContain("2 more signature failures since the last alert");
+  });
+
+  it("keeps a failure that arrives while an alert is sending for the next alert", async () => {
+    sent.hold = true;
+    const first = post(WRONG_SIG);
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    await post(WRONG_SIG);
+    sent.hold = false;
+    sent.held.shift()();
+    await first;
+    now += HOUR;
+    await post(WRONG_SIG);
+    expect(sent).toHaveLength(2);
+    expect(sent[1].html).toContain("1 more signature failure since the last alert");
   });
 
   it("gives the hour back when the email fails, so the next mismatch emails", async () => {

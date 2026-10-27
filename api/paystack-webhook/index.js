@@ -85,7 +85,8 @@ const claimInProcess = (key) => {
 const UNVERIFIED_ALERT_INTERVAL_MS = 60 * 60 * 1000;
 const UNVERIFIED_ALERT_KEY = "unverified-signature";
 let unverifiedAlertAt = -Infinity;
-// Failures held back while the claim is held, reported in the next alert.
+// Failures not yet reported by an alert that was sent: those held back while
+// the claim is held, and those whose own alert failed to send.
 let heldBackFailures = 0;
 const claimUnverifiedAlert = () => {
   const now = Date.now();
@@ -481,6 +482,7 @@ module.exports = async function (context, req) {
             context.log,
           );
           if (sent) heldBackFailures -= held;
+          else heldBackFailures += 1;
           return sent;
         },
         log: context.log,
@@ -747,4 +749,12 @@ module.exports = async function (context, req) {
     }
     retry();
   }
+};
+
+// Test-only: the hourly signature alert lives for the life of the module, so
+// tests clear it to start from a fresh process.
+module.exports.resetSignatureAlert = () => {
+  processAlerts.delete(UNVERIFIED_ALERT_KEY);
+  unverifiedAlertAt = -Infinity;
+  heldBackFailures = 0;
 };
