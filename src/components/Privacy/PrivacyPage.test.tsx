@@ -211,8 +211,28 @@ describe("PrivacyPage", () => {
       /code request and entry records within two days/,
       /wrong-code counts until access to the invoice is reset/,
       /used sign-in link markers for up to 47 days/,
+      /open the page from the link in a recent invoice email/,
     ])
       expect(invoices.textContent).toMatch(claim);
+  });
+
+  it("says the sign-in cookies are needed for the pages to work, so no consent is asked", () => {
+    renderPage();
+    const quotes = screen.getByRole("region", { name: "Quotes and payments" });
+    const needed = /is needed for the page to work, so we don't ask for consent to set it/g;
+    expect(quotes.textContent?.match(needed)).toHaveLength(2);
+    expect(within(quotes).getByText(/signed in to that quote for 30 days/).textContent).toMatch(
+      needed,
+    );
+    expect(within(quotes).getByText(/signed in to that invoice for 30 days/).textContent).toMatch(
+      needed,
+    );
+  });
+
+  it("lists the one-time access codes among the emails sent through Resend", () => {
+    renderPage();
+    const email = screen.getByRole("region", { name: "Emails and text messages" });
+    expect(email.textContent).toMatch(/receipts, one-time access codes, the newsletter/);
   });
 
   it("sets the document title", async () => {

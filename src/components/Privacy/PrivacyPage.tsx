@@ -214,19 +214,21 @@ const PrivacyPage: React.FC = () => (
         <p>
           When you open a quote in a new browser, we email a 6-digit code to the address on the
           quote. Once you enter it, or open the quote from our email, a sign-in cookie keeps that
-          browser signed in to that quote for 30 days. It is used only for that, and it stops
-          working early if the quote is revised or its link is replaced. Your IP address is used in
-          memory to limit how often codes can be asked for or tried, and is never saved. Records of
-          code requests and code entries are deleted within two days; counts of wrong codes are kept
-          until the quote is revised or its link is replaced. A used sign-in link leaves a random
-          marker, kept for up to 47 days so the link can&apos;t be used twice; it holds nothing
-          about you except when the link was used.
+          browser signed in to that quote for 30 days. It is used only for that and is needed for
+          the page to work, so we don&apos;t ask for consent to set it; it stops working early if
+          the quote is revised or its link is replaced. Your IP address is used in memory to limit
+          how often codes can be asked for or tried, and is never saved. Records of code requests
+          and code entries are deleted within two days; counts of wrong codes are kept until the
+          quote is revised or its link is replaced. A used sign-in link leaves a random marker, kept
+          for up to 47 days so the link can&apos;t be used twice; it holds nothing about you except
+          when the link was used.
         </p>
         <p>
           Invoice payment pages work the same way. When you open one in a new browser, we send a
           6-digit code to the email address on the invoice; once you enter it, or open the page from
-          our invoice email, a sign-in cookie keeps that browser signed in to that invoice for 30
-          days. It is used only for that, and it stops working early if we reset access to the
+          the link in a recent invoice email, a sign-in cookie keeps that browser signed in to that
+          invoice for 30 days. It is used only for that and is needed for the page to work, so we
+          don&apos;t ask for consent to set it; it stops working early if we reset access to the
           invoice or its email address changes. Your IP address is used the same way, in memory
           only, to limit how often codes can be asked for or tried. We keep the same records for the
           same time: code request and entry records within two days, wrong-code counts until access
@@ -254,11 +256,11 @@ const PrivacyPage: React.FC = () => (
 
       <Section id="email" title="Emails and text messages">
         <p>
-          Our emails (replies, booking confirmations, quotes, invoices, receipts, the newsletter,
-          and the alerts of new messages we send to ourselves) are sent through Resend, which also
-          holds the newsletter mailing list. We don&apos;t track whether you open our emails or
-          click the links in them. You can unsubscribe from the newsletter at any time by emailing{" "}
-          <EmailLink />.
+          Our emails (replies, booking confirmations, quotes, invoices, receipts, one-time access
+          codes, the newsletter, and the alerts of new messages we send to ourselves) are sent
+          through Resend, which also holds the newsletter mailing list. We don&apos;t track whether
+          you open our emails or click the links in them. You can unsubscribe from the newsletter at
+          any time by emailing <EmailLink />.
         </p>
         <p>
           If you give us a phone number with an invoice, we may send you a text message when the
