@@ -90,10 +90,10 @@ describe("ConfirmProvider dialog", () => {
   it("locks page scroll while open and unlocks it once closed", () => {
     const { open } = setup();
     open();
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement).toHaveClass("confirm-open");
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement).not.toHaveClass("confirm-open");
   });
 
   it("keeps the scroll lock of a Modal underneath after it closes", () => {
@@ -104,6 +104,45 @@ describe("ConfirmProvider dialog", () => {
       fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
       expect(document.body.style.overflow).toBe("hidden");
+    } finally {
+      document.body.style.overflow = "";
+    }
+  });
+
+  // The dialog used to save body overflow on open and restore it on close. A
+  // Modal that closed in between had its lock written back.
+  it("leaves the page unlocked when a Modal under it closes first and it is then cancelled", async () => {
+    const EditorWithDelete = () => {
+      const confirm = useConfirm();
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(false)}>
+            Close editor
+          </button>
+          <Modal isOpen={open} onClose={() => setOpen(false)} title="Edit project" theme="dark">
+            <button type="button" onClick={() => void confirm("Delete project?")}>
+              Delete project
+            </button>
+          </Modal>
+        </>
+      );
+    };
+    render(
+      <ConfirmProvider>
+        <EditorWithDelete />
+      </ConfirmProvider>,
+    );
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
+      fireEvent.click(screen.getByRole("button", { name: "Close editor" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      });
+
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(document.body.style.overflow).not.toBe("hidden");
+      expect(document.documentElement).not.toHaveClass("confirm-open");
     } finally {
       document.body.style.overflow = "";
     }

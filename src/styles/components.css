@@ -47,6 +47,11 @@ html[data-theme="light"] .bg-oceanic-900.text-white {
   color: #ffffff !important;
 }
 
+/* Set on <html> by the admin confirm dialog while it is open (ConfirmContext). */
+html.confirm-open {
+  overflow: hidden;
+}
+
 /* Solid status buttons (the admin confirm dialog's Delete / Confirm). Dark
    text on these shades is under 4.5:1; white is 5.0:1 or better. */
 [data-theme="light"] .bg-error-700.text-white,

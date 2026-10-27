@@ -124,9 +124,9 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       (el) => el !== overlayRef.current && !el.hasAttribute("inert"),
     );
     background.forEach((el) => el.setAttribute("inert", ""));
-    // Restore what was there, not "unset": a Modal underneath has its own lock.
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // A class of its own, not body.style.overflow: Modal writes that too, and
+    // saving and restoring it around a Modal's cleanup wrote a stale lock back.
+    document.documentElement.classList.add("confirm-open");
 
     // Capture phase, and stopped there: a Modal underneath also closes on
     // Escape from a document listener, and one key press should only cancel
@@ -142,7 +142,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
       background.forEach((el) => el.removeAttribute("inert"));
-      document.body.style.overflow = previousOverflow;
+      document.documentElement.classList.remove("confirm-open");
       restoreFocus(returnFocusRef.current);
       returnFocusRef.current = null;
     };
