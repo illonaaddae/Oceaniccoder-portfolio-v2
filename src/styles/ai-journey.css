@@ -1,9 +1,21 @@
-/* AI journey section (home page). Colours come from the theme variables, so
-   the robot and network follow light and dark mode with no extra rules. */
+/* AI journey section (home page). The heading follows the site theme; the card
+   is a dark ocean stage in both themes, because the glowing robot and network
+   wash out on white. It does that by pinning the dark theme's values locally,
+   so every rule below reads the same variables either way. */
 
 .ai-journey__card {
-  background: var(--glass-bg);
+  --bg-primary: #0a1628;
+  --bg-tertiary: #1a365d;
+  --brand-ocean-2: #26a9c5;
+  --brand-ocean-3: #52bfd7;
+  --brand-ocean-4: #8dd7e7;
+  --text-primary: #f7fafc;
+  --text-accent: #d6dde6;
+  --glass-bg: rgba(38, 169, 197, 0.1);
+  --glass-border: rgba(38, 169, 197, 0.22);
+  background: linear-gradient(135deg, #0a1628 0%, #0d253f 60%, #04333b 100%);
   border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 50px -24px rgba(4, 51, 59, 0.55);
 }
 
 .aij-scene {
