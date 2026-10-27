@@ -1,11 +1,15 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { createRequire } from "module";
 
 const { createHandler } = await import("./index.js");
 const { verifyInvoice, paymentIdFor } = await import("../shared/tokens.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
 const access = await import("../shared/quotes/access.js");
+// required, not imported: the same module object actions.js gets, since a
+// second copy would register the invoice scheme twice.
+const { invoiceAccess } = createRequire(import.meta.url)("../shared/invoices/access.js");
 const { createCosmosQuoteRepo } = await import("../shared/quotes/repo.cosmos.js");
 const { createCosmosLocks } = await import("../shared/locks.js");
 const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
@@ -664,6 +668,62 @@ describe("quote-admin archive and restore", () => {
     });
   });
 
+  describe("resetInvoiceAccess", () => {
+    const row = {
+      id: "inv1",
+      invoiceNumber: "INV-2026-0042",
+      clientEmail: "ama@example.com",
+      status: "sent",
+    };
+    const nowMs = NOW.getTime();
+    const cookieOf = (epoch) => ({
+      headers: {
+        cookie: invoiceAccess.sessionCookie(LINK_SECRET, row, epoch, nowMs).split(";")[0],
+      },
+    });
+
+    it("signs every browser out and voids unclaimed link codes, keeping the link", async () => {
+      const t = setup({ invoices: [row] });
+      const linkCode = invoiceAccess.mintLinkCode(LINK_SECRET, row, 0, nowMs);
+      const opened = { secret: LINK_SECRET, locks: t.locks, record: row, nowMs };
+      expect(await invoiceAccess.hasAccess({ ...opened, req: cookieOf(0) })).toBe(true);
+
+      const r = await t.call({ action: "resetInvoiceAccess", id: "inv1" });
+
+      expect(r).toEqual({ status: 200, body: { ok: true } });
+      expect(await invoiceAccess.currentEpoch(t.locks, row)).toBe(1);
+      expect(await invoiceAccess.hasAccess({ ...opened, req: cookieOf(0) })).toBe(false);
+      expect(await invoiceAccess.checkLinkCode({ ...opened, linkCode })).toMatchObject({
+        ok: false,
+      });
+      // No schema change: the row, and so its number and pay link, stay as they were.
+      expect(t.repo.invoices.get("inv1")).toEqual(row);
+    });
+
+    it.each([
+      ["paid", { status: "paid" }],
+      ["archived", { archivedAt: "2026-10-01T00:00:00.000Z" }],
+    ])("resets a %s invoice too, which stays behind the code", async (_, over) => {
+      const t = setup({ invoices: [{ ...row, ...over }] });
+      expect((await t.call({ action: "resetInvoiceAccess", id: "inv1" })).status).toBe(200);
+      expect(await invoiceAccess.currentEpoch(t.locks, row)).toBe(1);
+    });
+
+    it("works while the switch is off, so a reset before turning it on still counts", async () => {
+      vi.stubEnv("INVOICE_ACCESS_GATE", "off");
+      vi.stubEnv("QUOTE_ACCESS_SECRET", "");
+      const t = setup({ invoices: [row] });
+      expect((await t.call({ action: "resetInvoiceAccess", id: "inv1" })).status).toBe(200);
+      expect(await invoiceAccess.currentEpoch(t.locks, row)).toBe(1);
+    });
+
+    it("refuses without the admin session and touches nothing", async () => {
+      const t = setup({ admin: false, invoices: [row] });
+      expect((await t.call({ action: "resetInvoiceAccess", id: "inv1" })).status).toBe(401);
+      expect(t.locks.held.size).toBe(0);
+    });
+  });
+
   it("archives and restores a one-off invoice", async () => {
     const t = setup({ invoices: [{ id: "inv1", invoiceNumber: "INV-2026-0042", status: "sent" }] });
     const archived = await t.call({ action: "archiveInvoice", id: "inv1" });
@@ -674,19 +734,22 @@ describe("quote-admin archive and restore", () => {
     expect(t.repo.invoices.get("inv1")).toMatchObject({ status: "sent", archivedAt: null });
   });
 
-  it.each(["archivePayment", "restorePayment", "archiveInvoice", "restoreInvoice"])(
-    "%s returns 404 for an unknown id and 400 for a missing or unsafe one",
-    async (action) => {
-      const t = setup();
-      const getPayment = vi.spyOn(t.repo, "getPayment");
-      const getInvoice = vi.spyOn(t.repo, "getInvoice");
-      expect((await t.call({ action, id: "nope" })).status).toBe(404);
-      const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(129), 42];
-      for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
-      // Only the well-formed id reached the repo.
-      expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
-    },
-  );
+  it.each([
+    "archivePayment",
+    "restorePayment",
+    "archiveInvoice",
+    "restoreInvoice",
+    "resetInvoiceAccess",
+  ])("%s returns 404 for an unknown id and 400 for a missing or unsafe one", async (action) => {
+    const t = setup();
+    const getPayment = vi.spyOn(t.repo, "getPayment");
+    const getInvoice = vi.spyOn(t.repo, "getInvoice");
+    expect((await t.call({ action, id: "nope" })).status).toBe(404);
+    const bad = [undefined, "", "../quotes/q1", "a/b", "x?y=1", "-lead", "a".repeat(129), 42];
+    for (const id of bad) expect((await t.call({ action, id })).status).toBe(400);
+    // Only the well-formed id reached the repo.
+    expect(getPayment.mock.calls.length + getInvoice.mock.calls.length).toBe(1);
+  });
 
   it("archives and restores a Cosmos payment whose id is derived from its reference", async () => {
     const db = createFakeCosmos();
