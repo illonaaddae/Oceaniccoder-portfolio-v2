@@ -375,7 +375,9 @@ As built in PR 4:
 - `PaymentPage` renders the locked view as `QuoteShell title="Open your invoice"` around `LockedDocument`, keyed by number and signature. A failure other than 404 or 429 is titled "Something went wrong" instead of "Invoice Not Found".
 - The cookie-blocked card (`QuoteError` with the new `announce`) is an alert and takes focus, as the contact message does; this also fixes it on quote pages.
 - `InvoiceModal` explains a 409 (the server's reason) and a 503 (sending is unavailable for now, the client wasn't told), both pointing to Edit & Resend in Client Work; its error line is an alert. Once it has created an invoice it updates that one from then on, so trying again after a failed email never creates a second invoice.
-- `PaymentPage` claims a link code only once `document.visibilityState` is `visible` (8.9), and hides the payment options when either `preview=admin` or the server's `preview: true` says preview.
+- `PaymentPage` claims a link code only once `document.visibilityState` is `visible` (8.9), and hides the payment options when either `preview=admin` or the server's `preview: true` says preview. The claim has a 10 s limit from the moment the page is visible, and the "Server is waking up" note starts before it.
+- `/pay/` leaves out the site chrome (navbar, banner, footer, support button, chat bubble) like `/q/` and `/receipt/` (owner decision 2026-10-27, WCAG 2.4.11); the opened invoice renders inside `QuoteShell` too.
+- The blocked message is per kind in `ACCESS_COPY`: invoices say "Contact … to open it." (Reset access keeps the link), receipts use their scheme's text, quotes are unchanged.
 
 ### 8.7 Email copy and catalog
 
