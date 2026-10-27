@@ -92,7 +92,8 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
         style={{
           width: "100%",
           aspectRatio: "1.586",
-          borderRadius: brand ? "20px" : "16px",
+          // ISO ID-1 cards (85.6 mm wide) have 3.18 mm corners, about 3.7% of the width.
+          borderRadius: brand ? "clamp(10px, 3.7cqw, 14px)" : "16px",
           background: brand
             ? "radial-gradient(90% 80% at 100% 0%, rgba(38,169,197,0.45) 0%, transparent 60%), radial-gradient(70% 60% at 0% 100%, rgba(12,133,153,0.30) 0%, transparent 65%), linear-gradient(150deg, #04333B 0%, #06454f 45%, #085866 100%)"
             : "linear-gradient(135deg, #0f4c75 0%, #0C8599 50%, #085866 100%)",
@@ -104,7 +105,8 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
           display: flipped ? "none" : "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: brand ? "22px 24px" : "20px 24px",
+          // Real cards keep about 6-7% clear space to the edge.
+          padding: brand ? "clamp(16px, 6.5cqw, 26px)" : "20px 24px",
           color: "#ffffff",
           fontFamily: brand ? "inherit" : undefined,
         }}
@@ -115,7 +117,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
           style={{
             position: "absolute",
             inset: 0,
-            borderRadius: "16px",
+            borderRadius: "inherit",
             pointerEvents: "none",
             zIndex: 1,
           }}
