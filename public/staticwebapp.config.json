@@ -46,6 +46,6 @@
     ".woff2": "font/woff2"
   },
   "platform": {
-    "apiRuntime": "node:20"
+    "apiRuntime": "node:22"
   }
 }
