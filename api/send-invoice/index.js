@@ -1,7 +1,20 @@
 /* global require, module, Buffer */
+// POST /api/send-invoice (admin) — emails a saved one-off invoice to its
+// client. The body names the invoice; the email is built from the saved row,
+// so it goes to the client email on the record, which is where the access
+// code for its pay page goes too. With the invoice access gate on, the pay
+// link carries a one-time link code (#k=) so it opens at once.
+// Design: docs/plans/2026-10-25-invoice-receipt-access-codes.md (8.4).
 const https = require("https");
 const { requireAdmin } = require("../shared/adminAuth");
 const { invoicePayPath } = require("../shared/invoiceLinks");
+const { getDatabase } = require("../shared/cosmos");
+const { createCosmosLocks } = require("../shared/locks");
+const { createCosmosInvoiceStore } = require("../shared/invoices/store.cosmos");
+const { invoiceAccess } = require("../shared/invoices/access");
+const { normalEmail } = require("../shared/access/core");
+const { redact } = require("../shared/access/endpoint");
+const { HttpError } = require("../shared/http");
 const {
   C,
   esc,
@@ -76,9 +89,18 @@ function notesBlock(notes) {
   return `<div style="border-top:1px solid ${C.line};padding:16px 0 0;margin:0 0 24px"><div style="${LABEL};color:${C.ink3};margin:0 0 8px">Notes</div><div style="font-size:14px;color:${C.ink2}">${multiline(notes)}</div></div>`;
 }
 
-// Pure: builds the invoice email HTML from the request body fields. The pay
-// link is signed, so it throws when `secret` is missing.
-function renderInvoiceEmail(d, now = new Date(), secret = process.env.RECEIPT_SIGNING_SECRET) {
+const OPENS_NOTE =
+  "This link usually opens straight away. If you open it on another device, we'll email you a short code first.";
+
+// Pure: builds the invoice email HTML from the invoice fields. The pay link is
+// signed, so it throws when `secret` is missing. linkCode, when given, goes in
+// the link's fragment and the email says the link opens straight away.
+function renderInvoiceEmail(
+  d,
+  now = new Date(),
+  secret = process.env.RECEIPT_SIGNING_SECRET,
+  { linkCode = null } = {},
+) {
   const money = (n) => formatMoney(n, d.currency);
   const items = d.items || [];
   // Older callers sent items only; work the sums out rather than print NaN.
@@ -94,7 +116,10 @@ function renderInvoiceEmail(d, now = new Date(), secret = process.env.RECEIPT_SI
   const dueDate = d.dueDate ? formatDate(new Date(d.dueDate)) : null;
   const delivery = d.estimatedDelivery ? formatDate(new Date(d.estimatedDelivery)) : null;
   const amountDue = money(d.total);
-  const payLink = `https://oceaniccoder.dev${invoicePayPath(d.invoiceNumber, secret)}`;
+  // The fragment goes last, after the query, and never reaches a server.
+  const payLink = `https://oceaniccoder.dev${invoicePayPath(d.invoiceNumber, secret)}${
+    linkCode ? `#k=${linkCode}` : ""
+  }`;
 
   return shell({
     preview: `Invoice ${d.invoiceNumber}: ${amountDue}${dueDate ? `, due ${dueDate}` : ""}`,
@@ -120,7 +145,11 @@ function renderInvoiceEmail(d, now = new Date(), secret = process.env.RECEIPT_SI
       itemsTable({ ...d, items, money }) +
       (d.notes ? notesBlock(d.notes) : "") +
       buttons(button({ href: payLink, label: "Pay now" }), mailtoButton("Reply to this invoice")) +
-      small("Have questions about this invoice? Get in touch."),
+      small(
+        [linkCode ? OPENS_NOTE : "", "Have questions about this invoice? Get in touch."]
+          .filter(Boolean)
+          .join("\n\n"),
+      ),
   });
 }
 
@@ -197,130 +226,178 @@ async function sendSMS(to, message, log) {
   }
 }
 
-module.exports = async function (context, req) {
-  if (req.method === "OPTIONS") {
-    context.res = { status: 204, headers: CORS, body: "" };
-    return;
-  }
-
-  // Sends email from our domain to an address in the request, so only the
-  // signed-in admin (the dashboard) may call it.
-  const auth = await requireAdmin(context, req);
-  if (!auth.user) {
-    context.res = {
-      status: auth.status,
-      headers: CORS,
-      body: JSON.stringify({ error: auth.error }),
-    };
-    return;
-  }
-
-  const {
-    invoiceNumber,
-    clientName,
-    clientEmail,
-    clientPhone,
-    items = [],
-    currency,
-    subtotal,
-    tax,
-    taxRate,
-    total,
-    dueDate,
-    estimatedDelivery,
-    notes,
-  } = req.body || {};
-
-  if (!clientEmail || !invoiceNumber) {
-    context.res = {
-      status: 400,
-      headers: CORS,
-      body: JSON.stringify({ error: "clientEmail and invoiceNumber required" }),
-    };
-    return;
-  }
-
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
-
-  if (!apiKey) {
-    context.res = {
-      status: 503,
-      headers: CORS,
-      body: JSON.stringify({ error: "Not configured" }),
-    };
-    return;
-  }
-  // Without the signing secret the email could carry no working pay link.
-  if (!process.env.RECEIPT_SIGNING_SECRET) {
-    context.res = {
-      status: 503,
-      headers: CORS,
-      body: JSON.stringify({ error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set." }),
-    };
-    return;
-  }
-
-  const html = renderInvoiceEmail({
-    invoiceNumber,
-    clientName,
-    clientEmail,
-    clientPhone,
-    items,
-    currency,
-    subtotal,
-    tax,
-    taxRate,
-    total,
-    dueDate,
-    estimatedDelivery,
-    notes,
-  });
-
+// The saved row's items are a JSON string (the dashboard writes them so).
+function rowItems(items) {
+  if (Array.isArray(items)) return items;
   try {
-    const result = await httpsPost(
-      "api.resend.com",
-      "/emails",
-      { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      {
-        from: `Illona @ OceanicCoder <${fromEmail}>`,
-        to: [clientEmail],
-        subject: `Invoice ${invoiceNumber} from OceanicCoder`,
-        html,
-      },
-    );
+    const parsed = JSON.parse(items || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
-    if (result.status === 200 || result.status === 201) {
+// The row keeps the tax amount, not the rate; the dashboard works the rate
+// out the same way when it opens a saved invoice.
+function taxRateOf(row) {
+  const subtotal = Number(row.subtotal);
+  const tax = Number(row.tax);
+  return subtotal > 0 && tax > 0 ? Number(((tax / subtotal) * 100).toFixed(2)) : 0;
+}
+
+/** The email's fields, all from the saved row. */
+const fromRow = (row) => ({
+  invoiceNumber: row.invoiceNumber,
+  clientName: row.clientName,
+  clientEmail: row.clientEmail,
+  clientPhone: row.clientPhone,
+  items: rowItems(row.items),
+  currency: row.currency,
+  subtotal: row.subtotal,
+  tax: row.tax,
+  taxRate: taxRateOf(row),
+  total: row.total,
+  dueDate: row.dueDate,
+  estimatedDelivery: row.estimatedDelivery,
+  notes: row.notes,
+});
+
+/**
+ * The saved invoice for this number. Two rows with one number fail closed,
+ * as on the pay page and doc-access: either could answer a lookup, so its
+ * pay link would only ever reach "not valid".
+ */
+async function loadRow(svc, number, context) {
+  const rows = await svc.invoices.findInvoicesByNumber(number);
+  if (rows.length > 1) {
+    context.log.warn(`send-invoice duplicate number=${number}`);
+    throw new HttpError(
+      409,
+      `Two invoices share the number ${number}, so its pay link can't open. Nothing was sent.`,
+    );
+  }
+  if (!rows[0]) throw new HttpError(409, "Save the invoice before sending it.");
+  if (!rows[0].clientEmail)
+    throw new HttpError(
+      409,
+      "This invoice has no client email, so it can't be sent. Add one, then send it again.",
+    );
+  return rows[0];
+}
+
+/**
+ * The link code for this email, or null while the gate is off. Checks the
+ * switch and the secret first (503), so nothing is sent with a link the
+ * client couldn't open.
+ */
+function linkCodeMinter(env, context) {
+  const logError = (line) => context.log.error(line);
+  if (!invoiceAccess.gateEnabled(env, logError)) return null;
+  const secret = invoiceAccess.accessSecret(env, logError);
+  return async (svc, row) => {
+    const epoch = await invoiceAccess.currentEpoch(svc.locks, row);
+    return invoiceAccess.mintLinkCode(secret, row, epoch, svc.now().getTime());
+  };
+}
+
+function createServices() {
+  const db = getDatabase();
+  return {
+    invoices: createCosmosInvoiceStore(db),
+    locks: createCosmosLocks(db),
+    now: () => new Date(),
+  };
+}
+
+const sendWithResend = (apiKey, payload) =>
+  httpsPost(
+    "api.resend.com",
+    "/emails",
+    { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    payload,
+  );
+
+/**
+ * deps: services() gives { invoices: { findInvoicesByNumber }, locks, now };
+ * env, requireAdmin, sendEmail(apiKey, payload) and sendSms(to, text, log)
+ * replace the real ones in tests.
+ */
+function createHandler(deps) {
+  const env = deps.env || process.env;
+  const checkAdmin = deps.requireAdmin || requireAdmin;
+  const sendEmail = deps.sendEmail || sendWithResend;
+  const sendSms = deps.sendSms || sendSMS;
+  const reply = (context, status, body) => {
+    context.res = { status, headers: CORS, body: JSON.stringify(body) };
+  };
+
+  return async function (context, req) {
+    if (req.method === "OPTIONS") {
+      context.res = { status: 204, headers: CORS, body: "" };
+      return;
+    }
+
+    // Sends email from our domain, so only the signed-in admin (the
+    // dashboard) may call it.
+    const auth = await checkAdmin(context, req);
+    if (!auth.user) return reply(context, auth.status, { error: auth.error });
+
+    const body = req.body || {};
+    const number = typeof body.invoiceNumber === "string" ? body.invoiceNumber : "";
+    if (!number) return reply(context, 400, { error: "invoiceNumber required" });
+
+    const apiKey = env.RESEND_API_KEY;
+    const fromEmail = env.RESEND_FROM_EMAIL || "invoices@send.oceaniccoder.dev";
+    if (!apiKey) return reply(context, 503, { error: "Not configured" });
+    // Without the signing secret the email could carry no working pay link.
+    if (!env.RECEIPT_SIGNING_SECRET)
+      return reply(context, 503, {
+        error: "Invoice pay links need RECEIPT_SIGNING_SECRET to be set.",
+      });
+
+    try {
+      const mint = linkCodeMinter(env, context);
+      const svc = deps.services();
+      const row = await loadRow(svc, number, context);
+      // The dashboard sends the inquiry's address, which can differ from the
+      // one saved on the invoice. The row's wins: the pay page's codes go there.
+      if (body.clientEmail && normalEmail(body.clientEmail) !== normalEmail(row.clientEmail))
+        context.log(`send-invoice recipient from the saved invoice number=${number}`);
+      const linkCode = mint ? await mint(svc, row) : null;
+      if (linkCode) context.log(`send-invoice linkcode number=${number}`);
+      const d = fromRow(row);
+      const html = renderInvoiceEmail(d, svc.now(), env.RECEIPT_SIGNING_SECRET, { linkCode });
+
+      const result = await sendEmail(apiKey, {
+        from: `Illona @ OceanicCoder <${fromEmail}>`,
+        to: [d.clientEmail],
+        subject: `Invoice ${number} from OceanicCoder`,
+        html,
+      });
+      if (result.status !== 200 && result.status !== 201) {
+        context.log.error(
+          `Resend invoice error number=${number}: ${result.status} ${redact(result.body)}`,
+        );
+        return reply(context, 502, { error: "Failed to send invoice" });
+      }
+
       // SMS to client (fire-and-forget)
-      if (clientPhone) {
-        sendSMS(
-          clientPhone,
-          `Hi ${clientName}, your invoice ${invoiceNumber} for ${formatMoney(total, currency)} from OceanicCoder has been sent to ${clientEmail}.`,
+      if (d.clientPhone) {
+        sendSms(
+          d.clientPhone,
+          `Hi ${d.clientName}, your invoice ${number} for ${formatMoney(d.total, d.currency)} from OceanicCoder has been sent to ${d.clientEmail}.`,
           context.log,
         );
       }
-
-      context.res = {
-        status: 200,
-        headers: CORS,
-        body: JSON.stringify({ success: true }),
-      };
-    } else {
-      context.log.error("Resend invoice error:", result.status, result.body);
-      context.res = {
-        status: 502,
-        headers: CORS,
-        body: JSON.stringify({ error: "Failed to send invoice" }),
-      };
+      return reply(context, 200, { success: true });
+    } catch (err) {
+      if (err instanceof HttpError) return reply(context, err.status, { error: err.message });
+      context.log.error("send-invoice error:", redact(err && err.message));
+      return reply(context, 500, { error: "Internal error" });
     }
-  } catch (err) {
-    context.log.error("send-invoice error:", err.message);
-    context.res = {
-      status: 500,
-      headers: CORS,
-      body: JSON.stringify({ error: "Internal error" }),
-    };
-  }
-};
+  };
+}
 
+module.exports = createHandler({ services: createServices, requireAdmin });
+module.exports.createHandler = createHandler;
 module.exports.renderInvoiceEmail = renderInvoiceEmail;

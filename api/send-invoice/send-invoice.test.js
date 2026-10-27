@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -166,5 +166,221 @@ describe("send-invoice handler configuration", () => {
   it("still answers Not configured when the Resend key is missing", async () => {
     process.env.RECEIPT_SIGNING_SECRET = SECRET;
     expect(await send(loadHandler())).toEqual({ status: 503, body: { error: "Not configured" } });
+  });
+});
+
+describe("send-invoice from the saved invoice", () => {
+  const { createHandler } = require("./index.js");
+  const I = require("../shared/invoices/access.js");
+  const { createFakeLocks } = require("../shared/quotes/fakes.js");
+
+  const ACCESS_SECRET = "a".repeat(40);
+  const ENV = {
+    RESEND_API_KEY: "re_test",
+    RECEIPT_SIGNING_SECRET: SECRET,
+    QUOTE_ACCESS_SECRET: ACCESS_SECRET,
+  };
+  const OFF = { ...ENV, INVOICE_ACCESS_GATE: "off" };
+  // The row as the dashboard saved it: items as a JSON string, no tax rate.
+  const row = {
+    id: "inv42",
+    invoiceNumber: base.invoiceNumber,
+    clientName: "Kofi Mensah",
+    clientEmail: "kofi@example.com",
+    clientPhone: "+233200000000",
+    items: JSON.stringify(base.items),
+    currency: "GHS",
+    subtotal: 3250.5,
+    tax: 162.53,
+    total: 3413.03,
+    dueDate: base.dueDate,
+    estimatedDelivery: base.estimatedDelivery,
+    notes: base.notes,
+    status: "sent",
+  };
+  // As escaped in the HTML.
+  const OPENS =
+    "This link usually opens straight away. If you open it on another device, we&#39;ll email you a short code first.";
+
+  function setup({ rows = [row], env = ENV, mail = { status: 200, body: "{}" } } = {}) {
+    const locks = createFakeLocks();
+    const findInvoicesByNumber = vi.fn(async (number) =>
+      rows.filter((r) => r.invoiceNumber === number),
+    );
+    const sendEmail = vi.fn(async () => mail);
+    const sendSms = vi.fn();
+    const handler = createHandler({
+      env,
+      requireAdmin: async () => ({ user: { $id: "admin" } }),
+      services: () => ({ invoices: { findInvoicesByNumber }, locks, now: () => NOW }),
+      sendEmail,
+      sendSms,
+    });
+    const send = async (body = base) => {
+      const log = Object.assign(vi.fn(), { error: vi.fn(), warn: vi.fn() });
+      const context = { res: null, log };
+      await handler(context, { method: "POST", headers: {}, body });
+      return { status: context.res.status, body: JSON.parse(context.res.body), log };
+    };
+    const email = () => sendEmail.mock.calls[0][1];
+    return { locks, findInvoicesByNumber, sendEmail, sendSms, send, email };
+  }
+  const payHref = (html) =>
+    html.match(/href="(https:\/\/oceaniccoder\.dev\/pay\/[^"]+)"/)[1].replace(/&amp;/g, "&");
+
+  it("emails the client on the row, with the row's details, when the body disagrees", async () => {
+    const t = setup();
+    const r = await t.send({
+      ...base,
+      clientName: "Someone Else",
+      clientEmail: "attacker@example.net",
+      clientPhone: "+233999999999",
+      total: 1,
+      items: [{ description: "Cheap thing", quantity: 1, unitPrice: 1 }],
+    });
+    expect(r).toMatchObject({ status: 200, body: { success: true } });
+    expect(t.findInvoicesByNumber).toHaveBeenCalledWith("INV-2026-0042");
+    const mail = t.email();
+    expect(mail.to).toEqual(["kofi@example.com"]);
+    expect(mail.html).toContain("Kofi Mensah");
+    expect(mail.html).toContain("GHS 3,413.03");
+    expect(mail.html).toContain("Store build");
+    expect(mail.html).toContain("Tax (5%)");
+    expect(mail.html).not.toContain("Someone Else");
+    expect(mail.html).not.toContain("attacker@example.net");
+    expect(mail.html).not.toContain("Cheap thing");
+    expect(t.sendSms).toHaveBeenCalledWith(
+      "+233200000000",
+      expect.stringContaining("Kofi Mensah"),
+      expect.anything(),
+    );
+    // Logged without either address.
+    const logged = JSON.stringify([r.log.mock.calls, r.log.warn.mock.calls]);
+    expect(logged).toContain("INV-2026-0042");
+    expect(logged).not.toMatch(/@example\./);
+  });
+
+  it("needs only the invoice number in the body", async () => {
+    const t = setup();
+    expect((await t.send({ invoiceNumber: row.invoiceNumber })).status).toBe(200);
+    expect(t.email().to).toEqual(["kofi@example.com"]);
+    expect((await t.send({ clientEmail: "kofi@example.com" })).status).toBe(400);
+  });
+
+  it("puts a link code that opens this invoice in the fragment, after the signature", async () => {
+    const t = setup();
+    await t.send();
+    const href = payHref(t.email().html);
+    const m = href.match(/^https:\/\/oceaniccoder\.dev\/pay\/INV-2026-0042\?s=([^#&]+)#k=(.+)$/);
+    expect(m).not.toBeNull();
+    expect(verifyInvoice("INV-2026-0042", m[1], SECRET)).toBe(true);
+    const check = await I.invoiceAccess.checkLinkCode({
+      secret: ACCESS_SECRET,
+      locks: t.locks,
+      record: row,
+      linkCode: m[2],
+      nowMs: NOW.getTime(),
+    });
+    expect(check).toMatchObject({ ok: true, epoch: 0 });
+    expect(t.email().html).toContain(OPENS);
+  });
+
+  it("mints the link code for the current epoch, after a reset", async () => {
+    const t = setup();
+    await I.invoiceAccess.bumpEpoch(t.locks, row);
+    await t.send();
+    const code = payHref(t.email().html).split("#k=")[1];
+    const check = await I.invoiceAccess.checkLinkCode({
+      secret: ACCESS_SECRET,
+      locks: t.locks,
+      record: row,
+      linkCode: code,
+      nowMs: NOW.getTime(),
+    });
+    expect(check).toMatchObject({ ok: true, epoch: 1 });
+  });
+
+  it("sends the bare signed link, without the code line, while the switch is off", async () => {
+    const t = setup({ env: OFF });
+    await t.send();
+    expect(payHref(t.email().html)).toMatch(
+      /^https:\/\/oceaniccoder\.dev\/pay\/INV-2026-0042\?s=[^#]+$/,
+    );
+    expect(t.email().html).not.toContain("usually opens straight away");
+  });
+
+  it("refuses with 409 before sending when the invoice isn't saved", async () => {
+    const t = setup({ rows: [] });
+    const r = await t.send();
+    expect(r).toEqual({
+      status: 409,
+      body: { error: "Save the invoice before sending it." },
+      log: expect.anything(),
+    });
+    expect(t.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("refuses with 409 when two invoices share the number, and sends nothing", async () => {
+    const t = setup({ rows: [row, { ...row, id: "inv43", clientEmail: "other@example.com" }] });
+    const r = await t.send();
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe(
+      "Two invoices share the number INV-2026-0042, so its pay link can't open. Nothing was sent.",
+    );
+    expect(t.sendEmail).not.toHaveBeenCalled();
+    expect(r.log.warn).toHaveBeenCalledWith("send-invoice duplicate number=INV-2026-0042");
+  });
+
+  it("refuses with 409 when the saved invoice has no client email", async () => {
+    const t = setup({ rows: [{ ...row, clientEmail: "" }] });
+    const r = await t.send();
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/no client email/);
+    expect(t.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the access secret is missing", { ...ENV, QUOTE_ACCESS_SECRET: "" }],
+    ["the switch holds an unknown value", { ...ENV, INVOICE_ACCESS_GATE: "yes" }],
+  ])("answers 503 before any lookup or email when %s", async (_, env) => {
+    const t = setup({ env });
+    const r = await t.send();
+    expect(r).toMatchObject({
+      status: 503,
+      body: { error: "Invoice links are unavailable right now. Please try again later." },
+    });
+    expect(t.findInvoicesByNumber).not.toHaveBeenCalled();
+    expect(t.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("sends with the switch off even without the access secret", async () => {
+    const t = setup({ env: { ...OFF, QUOTE_ACCESS_SECRET: "" } });
+    expect((await t.send()).status).toBe(200);
+  });
+
+  it("logs Resend's failure without the addresses it quotes", async () => {
+    const t = setup({
+      mail: { status: 422, body: '{"message":"Invalid `to` field: kofi@example.com"}' },
+    });
+    const r = await t.send();
+    expect(r).toMatchObject({ status: 502, body: { error: "Failed to send invoice" } });
+    expect(JSON.stringify(r.log.error.mock.calls)).not.toContain("kofi@example.com");
+    expect(t.sendSms).not.toHaveBeenCalled();
+  });
+});
+
+describe("renderInvoiceEmail link code", () => {
+  it("adds the link code after the signature and says how the link opens", () => {
+    const html = renderInvoiceEmail(base, NOW, SECRET, { linkCode: "abc.def.ghi" });
+    expect(html).toMatch(
+      /href="https:\/\/oceaniccoder\.dev\/pay\/INV-2026-0042\?s=[^"#]+#k=abc\.def\.ghi"/,
+    );
+    expect(html).toContain("This link usually opens straight away.");
+  });
+
+  it("leaves both out without a link code", () => {
+    const html = renderInvoiceEmail(base, NOW, SECRET);
+    expect(html).not.toContain("#k=");
+    expect(html).not.toContain("usually opens straight away");
   });
 });
