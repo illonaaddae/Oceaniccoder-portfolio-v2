@@ -28,6 +28,12 @@ type PaymentTab = "card" | "momo" | "bank" | "applepay";
 
 type FetchError = "timeout" | "busy" | { title: string; message: string };
 
+// An unsigned link (grace period) sends no s, so doc-access hides the address.
+const invoiceLocator = (number: string, signature: string | null) =>
+  signature
+    ? { kind: "invoice" as const, number, s: signature }
+    : { kind: "invoice" as const, number };
+
 // A link code works once, so a page load claims it once, even when the page
 // mounts twice (StrictMode) or loads the invoice again. A refused claim (used
 // already, an older email, another browser got there first) or a network
@@ -50,12 +56,6 @@ function claimLinkOnce(number: string, signature: string | null): Promise<boolea
   }
   return claims.get(number) ?? Promise.resolve(false);
 }
-
-// An unsigned link (grace period) sends no s, so doc-access hides the address.
-const invoiceLocator = (number: string, signature: string | null) =>
-  signature
-    ? { kind: "invoice" as const, number, s: signature }
-    : { kind: "invoice" as const, number };
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GHS: "₵",
