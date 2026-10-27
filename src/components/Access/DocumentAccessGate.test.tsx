@@ -134,6 +134,11 @@ describe.each([
       </MemoryRouter>,
     );
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+    // It replaces the code screen after an answer, so it is announced and
+    // takes focus, as the contact message does.
+    const message = screen.getByRole("alert");
+    expect(message).toHaveTextContent(/didn't keep the sign-in/);
+    await waitFor(() => expect(message).toHaveFocus());
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalled();
     expect(target.status).not.toHaveBeenCalled();

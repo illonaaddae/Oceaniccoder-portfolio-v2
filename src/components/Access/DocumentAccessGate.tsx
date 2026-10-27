@@ -470,6 +470,7 @@ export function LockedDocument({
         title={ACCESS_COPY[target.kind].title}
         message={COOKIE_BLOCKED}
         onRetry={onRetry}
+        announce
       />
     );
   return <DocumentAccessGate target={target} onUnlocked={onUnlocked} />;
