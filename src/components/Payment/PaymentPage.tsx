@@ -1,6 +1,10 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { apiUrl } from "@/utils/apiUrl";
+import { takeLinkCode } from "@/utils/linkCode";
+import { docAccessTarget } from "@/services/api/access";
+import { LockedDocument } from "@/components/Access/DocumentAccessGate";
+import QuoteShell from "@/components/Quote/QuoteShell";
 import CardPayment from "./CardPayment";
 import MomoPayment from "./MomoPayment";
 import BankTransfer from "./BankTransfer";
@@ -21,6 +25,37 @@ interface PublicInvoice {
 }
 
 type PaymentTab = "card" | "momo" | "bank" | "applepay";
+
+type FetchError = "timeout" | "busy" | { title: string; message: string };
+
+// A link code works once, so a page load claims it once, even when the page
+// mounts twice (StrictMode) or loads the invoice again. A refused claim (used
+// already, an older email, another browser got there first) or a network
+// failure is not an error here: the lookup answers 401 and the code screen
+// asks for an emailed code instead. Resolves true when the claim signed the
+// browser in. Same rules as useClientQuote's for quotes.
+const claims = new Map<string, Promise<boolean>>();
+
+function claimLinkOnce(number: string, signature: string | null): Promise<boolean> {
+  const code = takeLinkCode("invoice", number);
+  if (code) {
+    const claim = docAccessTarget(invoiceLocator(number, signature))
+      .claim(code)
+      .then(
+        () => true,
+        () => false,
+      );
+    claims.set(number, claim);
+    void claim.then(() => claims.delete(number));
+  }
+  return claims.get(number) ?? Promise.resolve(false);
+}
+
+// An unsigned link (grace period) sends no s, so doc-access hides the address.
+const invoiceLocator = (number: string, signature: string | null) =>
+  signature
+    ? { kind: "invoice" as const, number, s: signature }
+    : { kind: "invoice" as const, number };
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GHS: "₵",
@@ -253,11 +288,23 @@ const PaymentPage: React.FC = () => {
   const isSuccessParam = searchParams.get("payment") === "success";
   // The pay link's signature; get-invoice answers 404 without a valid one.
   const signature = searchParams.get("s");
+  // The dashboard's preview link: the server checks the admin session instead
+  // of an unlock, and the page takes no payment.
+  const admin = searchParams.get("preview") === "admin";
 
   const [invoice, setInvoice] = useState<PublicInvoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [slowWarning, setSlowWarning] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<FetchError | null>(null);
+  // No unlock for this invoice in this browser. cookieBlocked: it was just
+  // signed in and is still locked, so the browser dropped the cookie.
+  const [locked, setLocked] = useState<{ cookieBlocked: boolean } | null>(null);
+  // Set when the code screen has just signed this browser in.
+  const justUnlocked = useRef(false);
+  const target = useMemo(
+    () => docAccessTarget(invoiceLocator(invoiceNumber ?? "", signature)),
+    [invoiceNumber, signature],
+  );
   const [activeTab, setActiveTab] = useState<PaymentTab>("card");
   // Stays false until Paystack confirms the Apple Pay button actually mounted,
   // so the tab never appears on Chrome/Android or before the channel is live.
@@ -282,7 +329,11 @@ const PaymentPage: React.FC = () => {
     if (!invoiceNumber) return;
     setLoading(true);
     setFetchError(null);
+    setLocked(null);
+    setInvoice(null);
     setSlowWarning(false);
+    let signedIn = justUnlocked.current;
+    justUnlocked.current = false;
 
     const controller = new AbortController();
     const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
@@ -290,19 +341,29 @@ const PaymentPage: React.FC = () => {
 
     const query = new URLSearchParams({ number: invoiceNumber });
     if (signature) query.set("s", signature);
+    if (admin) query.set("admin", "1");
 
     try {
+      // The preview never claims the client's link code.
+      if (!admin && (await claimLinkOnce(invoiceNumber, signature))) signedIn = true;
       const res = await fetch(apiUrl(`/api/get-invoice?${query.toString()}`), {
         signal: controller.signal,
       });
-      const data = (await res.json()) as PublicInvoice & { error?: string };
+      const data = (await res.json()) as PublicInvoice & { error?: string; locked?: boolean };
 
       if (res.status === 429) {
         setFetchError("busy");
         return;
       }
+      if (res.status === 401 && data.locked) {
+        setLocked({ cookieBlocked: signedIn });
+        return;
+      }
       if (!res.ok) {
-        setFetchError(data.error ?? "Invoice not found.");
+        setFetchError({
+          title: res.status === 404 ? "Invoice Not Found" : "Something went wrong",
+          message: data.error ?? "Invoice not found.",
+        });
         return;
       }
 
@@ -311,7 +372,10 @@ const PaymentPage: React.FC = () => {
       if (err instanceof Error && err.name === "AbortError") {
         setFetchError("timeout");
       } else {
-        setFetchError("Could not load invoice. Please check the link and try again.");
+        setFetchError({
+          title: "Invoice Not Found",
+          message: "Could not load invoice. Please check the link and try again.",
+        });
       }
     } finally {
       clearTimeout(slowTimer);
@@ -319,11 +383,34 @@ const PaymentPage: React.FC = () => {
       setLoading(false);
       setSlowWarning(false);
     }
-  }, [invoiceNumber, signature]);
+  }, [invoiceNumber, signature, admin]);
 
   useEffect(() => {
     void doFetch();
   }, [doFetch]);
+
+  /** The code screen signed the browser in: load the invoice. */
+  const unlocked = useCallback(() => {
+    justUnlocked.current = true;
+    void doFetch();
+  }, [doFetch]);
+
+  // Nothing about the invoice before an unlock, not even its number. The
+  // code screen's colours live under QuoteShell's .quote-ui. Keyed by the
+  // link, so another invoice opened in this page gets a fresh code screen.
+  if (locked)
+    return (
+      <QuoteShell title="Open your invoice" width="narrow">
+        <LockedDocument
+          key={`${invoiceNumber}:${signature ?? ""}`}
+          target={target}
+          onUnlocked={unlocked}
+          onRetry={() => void doFetch()}
+          admin={admin}
+          cookieBlocked={locked.cookieBlocked}
+        />
+      </QuoteShell>
+    );
 
   return (
     <div
@@ -391,10 +478,10 @@ const PaymentPage: React.FC = () => {
               <>
                 <div className="text-4xl mb-4">🧾</div>
                 <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-                  Invoice Not Found
+                  {fetchError.title}
                 </h2>
                 <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  {fetchError}
+                  {fetchError.message}
                 </p>
               </>
             )}
@@ -416,6 +503,25 @@ const PaymentPage: React.FC = () => {
               </div>
             ) : (
               <>
+                {admin && (
+                  <section
+                    aria-labelledby="pay-preview-title"
+                    className="rounded-xl px-4 py-3 mb-4 text-sm"
+                    style={{
+                      background: "var(--bg-secondary)",
+                      border: "1px solid var(--border-subtle)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <h2 id="pay-preview-title" className="font-bold">
+                      Preview
+                    </h2>
+                    <p style={{ color: "var(--text-secondary)" }}>
+                      This is the pay page your client sees. The payment options are hidden in the
+                      preview.
+                    </p>
+                  </section>
+                )}
                 <InvoiceSummary invoice={invoice} />
 
                 {/* Already paid badge */}
@@ -433,7 +539,7 @@ const PaymentPage: React.FC = () => {
                 )}
 
                 {/* Payment tabs */}
-                {invoice.status !== "paid" && (
+                {invoice.status !== "paid" && !admin && (
                   <div
                     className="rounded-2xl p-6"
                     style={{
