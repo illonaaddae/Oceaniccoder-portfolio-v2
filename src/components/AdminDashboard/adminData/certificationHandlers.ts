@@ -4,7 +4,10 @@ import type { LoadDataFn } from "./types";
 
 export function createCertificationHandlers(
   loadData: LoadDataFn,
-  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean | string>,
+  confirm: (
+    opts: { message: string; description?: string; confirmLabel?: string } | string,
+  ) => Promise<boolean | string>,
+  certifications: Pick<Certification, "$id" | "title">[],
 ) {
   const handleAddCertification = async (certForm: Omit<Certification, "$id" | "$createdAt">) => {
     try {
@@ -30,8 +33,10 @@ export function createCertificationHandlers(
   };
 
   const handleDeleteCertification = async (certId: string) => {
+    const title = certifications.find((item) => item.$id === certId)?.title;
     const ok = await confirm({
-      message: "Delete certification?",
+      message: title ? `Delete "${title}"?` : "Delete certification?",
+      confirmLabel: "Delete certification",
       description: "This will permanently remove the certification.",
     });
     if (!ok) return;

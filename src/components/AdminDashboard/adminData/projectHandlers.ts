@@ -4,7 +4,10 @@ import type { LoadDataFn } from "./types";
 
 export function createProjectHandlers(
   loadData: LoadDataFn,
-  confirm: (opts: { message: string; description?: string } | string) => Promise<boolean | string>,
+  confirm: (
+    opts: { message: string; description?: string; confirmLabel?: string } | string,
+  ) => Promise<boolean | string>,
+  projects: Pick<Project, "$id" | "title">[],
 ) {
   const handleAddProject = async (projectForm: Omit<Project, "$id" | "$createdAt">) => {
     try {
@@ -30,8 +33,10 @@ export function createProjectHandlers(
   };
 
   const handleDeleteProject = async (projectId: string) => {
+    const title = projects.find((item) => item.$id === projectId)?.title;
     const ok = await confirm({
-      message: "Delete project?",
+      message: title ? `Delete "${title}"?` : "Delete project?",
+      confirmLabel: "Delete project",
       description: "This will permanently remove the project.",
     });
     if (!ok) throw new Error("cancelled");

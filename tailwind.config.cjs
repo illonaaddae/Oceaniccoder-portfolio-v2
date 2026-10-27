@@ -48,9 +48,9 @@ module.exports = {
         // except over images, where the tint lets the photo through: use a solid
         // bg-gray-900 instead (see Projects/projectsUtils.js).
         // Design system: brand = oceanic, neutrals = slate, decoration = none.
-        success: { 100: "#dcfce7", 400: "#4ade80", 500: "#22c55e", 700: "#15803d" },
+        success: { 100: "#dcfce7", 400: "#4ade80", 500: "#22c55e", 700: "#15803d", 800: "#166534" },
         warning: { 100: "#fef9c3", 400: "#facc15", 500: "#eab308", 700: "#a16207" },
-        error: { 100: "#fee2e2", 400: "#f87171", 500: "#ef4444", 700: "#b91c1c" },
+        error: { 100: "#fee2e2", 400: "#f87171", 500: "#ef4444", 700: "#b91c1c", 800: "#991b1b" },
         info: { 100: "#c1ecf4", 400: "#26a9c5", 500: "#0C8599", 700: "#085866" }, // oceanic family
       },
       fontFamily: {
