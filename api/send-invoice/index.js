@@ -15,6 +15,7 @@ const { invoiceAccess } = require("../shared/invoices/access");
 const { normalEmail } = require("../shared/access/core");
 const { redact } = require("../shared/access/endpoint");
 const { HttpError } = require("../shared/http");
+const { withDeadline } = require("../shared/deadline");
 const {
   C,
   esc,
@@ -227,18 +228,22 @@ async function sendSMS(to, message, log) {
 }
 
 // The saved row's items are a JSON string (the dashboard writes them so).
-function rowItems(items) {
-  if (Array.isArray(items)) return items;
+// Unreadable items send the email without lines rather than not at all.
+function rowItems(row, context) {
+  if (Array.isArray(row.items)) return row.items;
   try {
-    const parsed = JSON.parse(items || "[]");
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(row.items || "[]");
+    if (Array.isArray(parsed)) return parsed;
   } catch {
-    return [];
+    // Logged below.
   }
+  context.log.warn(`send-invoice items unreadable number=${row.invoiceNumber}`);
+  return [];
 }
 
-// The row keeps the tax amount, not the rate; the dashboard works the rate
-// out the same way when it opens a saved invoice.
+// The row keeps the tax amount, not the rate. The dashboard rounds the rate
+// to a whole percent when it opens a saved invoice; the email keeps two
+// decimals, so a 2.5% rate reads as 2.5%, not 3%.
 function taxRateOf(row) {
   const subtotal = Number(row.subtotal);
   const tax = Number(row.tax);
@@ -246,12 +251,12 @@ function taxRateOf(row) {
 }
 
 /** The email's fields, all from the saved row. */
-const fromRow = (row) => ({
+const fromRow = (row, context) => ({
   invoiceNumber: row.invoiceNumber,
   clientName: row.clientName,
   clientEmail: row.clientEmail,
   clientPhone: row.clientPhone,
-  items: rowItems(row.items),
+  items: rowItems(row, context),
   currency: row.currency,
   subtotal: row.subtotal,
   tax: row.tax,
@@ -262,27 +267,57 @@ const fromRow = (row) => ({
   notes: row.notes,
 });
 
+// Answer the dashboard with an error rather than leave it waiting on a
+// Cosmos endpoint that accepted the connection and never replied.
+const READ_TIMEOUT_MS = 5000;
+// The dashboard saves the row through /api/manage just before it calls this,
+// and another instance can read from a replica that hasn't caught up yet.
+const REREAD_AFTER_MS = 300;
+
+// The total the dashboard saved, when the body says (both sides compute it the same way).
+const totalDiffers = (row, total) =>
+  typeof total === "number" && Math.abs(Number(row.total) - total) > 0.005;
+
 /**
- * The saved invoice for this number. Two rows with one number fail closed,
- * as on the pay page and doc-access: either could answer a lookup, so its
- * pay link would only ever reach "not valid".
+ * The saved invoice for this number. A missing row, or one whose total isn't
+ * the one the dashboard just saved, is read once more after a short wait.
+ * Two rows with one number fail closed at once, as on the pay page and
+ * doc-access: either could answer a lookup, so its pay link would only ever
+ * reach "not valid".
  */
-async function loadRow(svc, number, context) {
-  const rows = await svc.invoices.findInvoicesByNumber(number);
-  if (rows.length > 1) {
-    context.log.warn(`send-invoice duplicate number=${number}`);
+async function loadRow(svc, number, expectedTotal, { context, sleep }) {
+  const read = async () => {
+    const rows = await withDeadline(READ_TIMEOUT_MS, (abortSignal) =>
+      svc.invoices.findInvoicesByNumber(number, { abortSignal }),
+    );
+    if (rows.length > 1) {
+      context.log.warn(`send-invoice duplicate number=${number}`);
+      throw new HttpError(
+        409,
+        `Two invoices share the number ${number}, so its pay link can't open. Nothing was sent.`,
+      );
+    }
+    return rows[0] || null;
+  };
+  let row = await read();
+  if (!row || totalDiffers(row, expectedTotal)) {
+    await sleep(REREAD_AFTER_MS);
+    row = await read();
+  }
+  if (!row) throw new HttpError(409, "Save the invoice before sending it.");
+  if (totalDiffers(row, expectedTotal)) {
+    context.log.warn(`send-invoice total differs number=${number}`);
     throw new HttpError(
       409,
-      `Two invoices share the number ${number}, so its pay link can't open. Nothing was sent.`,
+      "The invoice changed while it was being sent, so nothing was sent. Try again.",
     );
   }
-  if (!rows[0]) throw new HttpError(409, "Save the invoice before sending it.");
-  if (!rows[0].clientEmail)
+  if (!row.clientEmail)
     throw new HttpError(
       409,
       "This invoice has no client email, so it can't be sent. Add one, then send it again.",
     );
-  return rows[0];
+  return row;
 }
 
 /**
@@ -319,14 +354,15 @@ const sendWithResend = (apiKey, payload) =>
 
 /**
  * deps: services() gives { invoices: { findInvoicesByNumber }, locks, now };
- * env, requireAdmin, sendEmail(apiKey, payload) and sendSms(to, text, log)
- * replace the real ones in tests.
+ * env, requireAdmin, sendEmail(apiKey, payload), sendSms(to, text, log) and
+ * sleep(ms) replace the real ones in tests.
  */
 function createHandler(deps) {
   const env = deps.env || process.env;
   const checkAdmin = deps.requireAdmin || requireAdmin;
   const sendEmail = deps.sendEmail || sendWithResend;
   const sendSms = deps.sendSms || sendSMS;
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const reply = (context, status, body) => {
     context.res = { status, headers: CORS, body: JSON.stringify(body) };
   };
@@ -358,14 +394,14 @@ function createHandler(deps) {
     try {
       const mint = linkCodeMinter(env, context);
       const svc = deps.services();
-      const row = await loadRow(svc, number, context);
+      const row = await loadRow(svc, number, body.total, { context, sleep });
       // The dashboard sends the inquiry's address, which can differ from the
       // one saved on the invoice. The row's wins: the pay page's codes go there.
       if (body.clientEmail && normalEmail(body.clientEmail) !== normalEmail(row.clientEmail))
         context.log(`send-invoice recipient from the saved invoice number=${number}`);
       const linkCode = mint ? await mint(svc, row) : null;
       if (linkCode) context.log(`send-invoice linkcode number=${number}`);
-      const d = fromRow(row);
+      const d = fromRow(row, context);
       const html = renderInvoiceEmail(d, svc.now(), env.RECEIPT_SIGNING_SECRET, { linkCode });
 
       const result = await sendEmail(apiKey, {

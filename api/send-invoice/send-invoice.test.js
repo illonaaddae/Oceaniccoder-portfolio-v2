@@ -202,19 +202,29 @@ describe("send-invoice from the saved invoice", () => {
   const OPENS =
     "This link usually opens straight away. If you open it on another device, we&#39;ll email you a short code first.";
 
-  function setup({ rows = [row], env = ENV, mail = { status: 200, body: "{}" } } = {}) {
+  // reads: what each lookup returns in turn (the last repeats), for a
+  // replica that hasn't caught up with the dashboard's write yet.
+  function setup({
+    rows = [row],
+    reads = [rows],
+    env = ENV,
+    mail = { status: 200, body: "{}" },
+  } = {}) {
     const locks = createFakeLocks();
+    let n = 0;
     const findInvoicesByNumber = vi.fn(async (number) =>
-      rows.filter((r) => r.invoiceNumber === number),
+      reads[Math.min(n++, reads.length - 1)].filter((r) => r.invoiceNumber === number),
     );
     const sendEmail = vi.fn(async () => mail);
     const sendSms = vi.fn();
+    const sleep = vi.fn(async () => {});
     const handler = createHandler({
       env,
       requireAdmin: async () => ({ user: { $id: "admin" } }),
       services: () => ({ invoices: { findInvoicesByNumber }, locks, now: () => NOW }),
       sendEmail,
       sendSms,
+      sleep,
     });
     const send = async (body = base) => {
       const log = Object.assign(vi.fn(), { error: vi.fn(), warn: vi.fn() });
@@ -223,7 +233,7 @@ describe("send-invoice from the saved invoice", () => {
       return { status: context.res.status, body: JSON.parse(context.res.body), log };
     };
     const email = () => sendEmail.mock.calls[0][1];
-    return { locks, findInvoicesByNumber, sendEmail, sendSms, send, email };
+    return { locks, findInvoicesByNumber, sendEmail, sendSms, sleep, send, email };
   }
   const payHref = (html) =>
     html.match(/href="(https:\/\/oceaniccoder\.dev\/pay\/[^"]+)"/)[1].replace(/&amp;/g, "&");
@@ -235,11 +245,10 @@ describe("send-invoice from the saved invoice", () => {
       clientName: "Someone Else",
       clientEmail: "attacker@example.net",
       clientPhone: "+233999999999",
-      total: 1,
       items: [{ description: "Cheap thing", quantity: 1, unitPrice: 1 }],
     });
     expect(r).toMatchObject({ status: 200, body: { success: true } });
-    expect(t.findInvoicesByNumber).toHaveBeenCalledWith("INV-2026-0042");
+    expect(t.findInvoicesByNumber).toHaveBeenCalledWith("INV-2026-0042", expect.anything());
     const mail = t.email();
     expect(mail.to).toEqual(["kofi@example.com"]);
     expect(mail.html).toContain("Kofi Mensah");
@@ -318,6 +327,89 @@ describe("send-invoice from the saved invoice", () => {
       log: expect.anything(),
     });
     expect(t.sendEmail).not.toHaveBeenCalled();
+  });
+
+  describe("reading the row just after the dashboard wrote it", () => {
+    it("reads once more after 300 ms when the new invoice isn't there yet", async () => {
+      const t = setup({ reads: [[], [row]] });
+      expect((await t.send()).status).toBe(200);
+      expect(t.findInvoicesByNumber).toHaveBeenCalledTimes(2);
+      expect(t.sleep).toHaveBeenCalledWith(300);
+      expect(t.email().to).toEqual(["kofi@example.com"]);
+    });
+
+    it("gives up with 409 after that one retry", async () => {
+      const t = setup({ reads: [[]] });
+      const r = await t.send();
+      expect(r).toMatchObject({
+        status: 409,
+        body: { error: "Save the invoice before sending it." },
+      });
+      expect(t.findInvoicesByNumber).toHaveBeenCalledTimes(2);
+      expect(t.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it("reads once more when the saved total isn't the one the dashboard just saved", async () => {
+      const t = setup({ reads: [[{ ...row, total: 100 }], [row]] });
+      expect((await t.send()).status).toBe(200);
+      expect(t.findInvoicesByNumber).toHaveBeenCalledTimes(2);
+      expect(t.email().html).toContain("GHS 3,413.03");
+    });
+
+    it("refuses with 409 and sends nothing when the total still differs", async () => {
+      const t = setup({ reads: [[{ ...row, total: 100 }]] });
+      const r = await t.send();
+      expect(r.status).toBe(409);
+      expect(r.body.error).toBe(
+        "The invoice changed while it was being sent, so nothing was sent. Try again.",
+      );
+      expect(t.sendEmail).not.toHaveBeenCalled();
+      expect(r.log.warn).toHaveBeenCalledWith("send-invoice total differs number=INV-2026-0042");
+    });
+
+    it("doesn't compare totals when the body has none", async () => {
+      const t = setup({ rows: [{ ...row, total: 100 }] });
+      expect((await t.send({ invoiceNumber: row.invoiceNumber })).status).toBe(200);
+      expect(t.findInvoicesByNumber).toHaveBeenCalledTimes(1);
+    });
+
+    it("never retries a number two rows share", async () => {
+      const t = setup({ rows: [row, { ...row, id: "inv43" }] });
+      expect((await t.send()).status).toBe(409);
+      expect(t.findInvoicesByNumber).toHaveBeenCalledTimes(1);
+      expect(t.sleep).not.toHaveBeenCalled();
+    });
+
+    it("refuses a duplicate that only shows on the retry", async () => {
+      const t = setup({ reads: [[], [row, { ...row, id: "inv43" }]] });
+      const r = await t.send();
+      expect(r.status).toBe(409);
+      expect(r.body.error).toMatch(/Two invoices share the number/);
+      expect(t.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it("answers 500 after 5 s and cancels the read when Cosmos never replies", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const t = setup();
+        t.findInvoicesByNumber.mockImplementation(() => new Promise(() => {}));
+        const done = t.send();
+        await vi.advanceTimersByTimeAsync(5000);
+        const r = await done;
+        expect(r).toMatchObject({ status: 500, body: { error: "Internal error" } });
+        expect(t.findInvoicesByNumber.mock.calls[0][1].abortSignal.aborted).toBe(true);
+        expect(t.sendEmail).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  it("warns, naming the number, when the saved items can't be read", async () => {
+    const t = setup({ rows: [{ ...row, items: "not json" }] });
+    const r = await t.send();
+    expect(r.status).toBe(200);
+    expect(r.log.warn).toHaveBeenCalledWith("send-invoice items unreadable number=INV-2026-0042");
   });
 
   it("refuses with 409 when two invoices share the number, and sends nothing", async () => {
