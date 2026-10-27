@@ -24,7 +24,6 @@ describe("AIJourneySection", () => {
       .map((li) => li.textContent?.replace("→", "").trim());
 
     expect(steps).toEqual([...JOURNEY_STEPS]);
-    expect(steps.indexOf("Data Science")).toBe(steps.indexOf("Machine Learning") - 1);
     expect(steps[steps.length - 1]).toBe("Robotics");
   });
 

@@ -47,7 +47,7 @@ const NODES: Array<[number, number, number, string]> = [
 /**
  * Decorative robot and neural network. The meaning lives in the section's text,
  * so the drawing is hidden from assistive technology. Colours come from the
- * theme variables in ai-journey.css, so it follows light and dark mode.
+ * dark values the card pins in ai-journey.css, so it looks the same in both themes.
  */
 const AIJourneyScene: React.FC = () => (
   <svg
