@@ -4,10 +4,12 @@
 // Verifies signature using PAYSTACK_SECRET_KEY, records the payment against
 // its invoice in Cosmos DB (see invoiceCharge.js), and sends confirmation
 // emails via Resend.
-// Answers 200 for anything a retry would not fix. Answers 500 for a failure a
-// retry can finish (quote and invoice payments) or one that fixing a setting
-// will (an invalid WRITE_HOLD), and 503 while WRITE_HOLD is on, because
-// Paystack retries any non-2xx.
+// Answers 200 for anything a retry would not fix, including a request with no
+// signature or a malformed one. Answers 500 for a signature that does not
+// verify (a wrong key fails real deliveries too, and they are recorded once it
+// is fixed), a failure a retry can finish (quote and invoice payments) or one
+// that fixing a setting will (an invalid WRITE_HOLD), and 503 while WRITE_HOLD
+// is on, because Paystack retries any non-2xx.
 
 const crypto = require("crypto");
 const https = require("https");
@@ -33,6 +35,7 @@ const {
   recordedConflictEmail,
   webhookEscalationEmail,
   invalidSettingEmail,
+  signatureFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
 } = require("./emails");
@@ -65,13 +68,35 @@ const SIGNATURE_FORMAT = /^[0-9a-f]{128}$/i;
 
 // Alerts this process has mailed, or is mailing, where Cosmos cannot keep
 // track: an invalid WRITE_HOLD (it fails every delivery the same way until
-// someone fixes the setting) and a reference whose claim could not be
-// recorded. Added before the send so concurrent invocations mail once;
-// removed if the send fails, so a later attempt mails.
+// someone fixes the setting), a reference whose claim could not be recorded,
+// and a signature mismatch (for an hour; see claimUnverifiedAlert). Added
+// before the send so concurrent invocations mail once; removed if the send
+// fails, so a later attempt mails.
 const processAlerts = new Set();
 const claimInProcess = (key) => {
   if (processAlerts.has(key)) return false;
   processAlerts.add(key);
+  return true;
+};
+
+// A signature mismatch mails the admin at most this often per process. Anyone
+// can POST here, so one email per mismatch would let a loop of junk requests
+// flood the inbox and use up the Resend quota that receipts rely on.
+const UNVERIFIED_ALERT_INTERVAL_MS = 60 * 60 * 1000;
+const UNVERIFIED_ALERT_KEY = "unverified-signature";
+let unverifiedAlertAt = -Infinity;
+// Failures not yet reported by an alert that was sent: those held back while
+// the claim is held, and those whose own alert failed to send.
+let heldBackFailures = 0;
+const claimUnverifiedAlert = () => {
+  const now = Date.now();
+  // Freeing the key cannot race a send still in flight from an hour ago:
+  // EMAIL_TIMEOUT_MS ends every send within seconds.
+  if (now - unverifiedAlertAt >= UNVERIFIED_ALERT_INTERVAL_MS) {
+    processAlerts.delete(UNVERIFIED_ALERT_KEY);
+  }
+  if (!claimInProcess(UNVERIFIED_ALERT_KEY)) return false;
+  unverifiedAlertAt = now;
   return true;
 };
 
@@ -410,6 +435,62 @@ module.exports = async function (context, req) {
     retry();
   };
 
+  /**
+   * Turn away a request whose signature can't be verified, with a 200 because
+   * a retry would not help. One with no signature or a malformed one never
+   * came from Paystack, so it is only logged.
+   */
+  const ignoreUnverified = (reason, detail) => {
+    context.log.warn(
+      `paystack-webhook: ${reason}${detail ? ` — ${detail}` : ""} (not from Paystack; no email)`,
+    );
+    ok();
+  };
+
+  /**
+   * A well-formed signature that doesn't verify is what a wrong key or a key
+   * mode mix-up looks like, or the platform dropping a real body. Answer 500
+   * so Paystack retries real deliveries and they are recorded once the cause
+   * is fixed; a forged request gains nothing from the retry. The admin is
+   * emailed at most once an hour per process, so a forger can't flood the
+   * inbox. Every attempt is logged.
+   */
+  const refuseSignature = async (reason, detail) => {
+    context.log.error(`paystack-webhook: ${reason} — ${detail}`);
+    if (resendKey && adminEmail) {
+      await alertOnce({
+        claim: async () => {
+          if (claimUnverifiedAlert()) return true;
+          heldBackFailures += 1;
+          const at = new Date(unverifiedAlertAt).toISOString();
+          context.log.warn(
+            `paystack-webhook: no email; an alert was sent or is being sent at ${at}, and the admin gets at most one an hour`,
+          );
+          return false;
+        },
+        release: async () => processAlerts.delete(UNVERIFIED_ALERT_KEY),
+        send: async () => {
+          // Taken before the send so failures held back while it is in
+          // flight are kept for the next alert.
+          const held = heldBackFailures;
+          const sent = await sendEmail(
+            resendKey,
+            fromEmail,
+            adminEmail,
+            "Action needed: a Paystack webhook signature could not be verified",
+            signatureFailedEmail(reason, detail, { mode: keyMode, heldBack: held }),
+            context.log,
+          );
+          if (sent) heldBackFailures -= held;
+          else heldBackFailures += 1;
+          return sent;
+        },
+        log: context.log,
+      });
+    }
+    retry();
+  };
+
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
     await bail("PAYSTACK_SECRET_KEY is not set in Azure configuration");
@@ -435,23 +516,24 @@ module.exports = async function (context, req) {
   const signature = req.headers && req.headers["x-paystack-signature"];
 
   if (!signature) {
-    await bail("request had no x-paystack-signature header");
+    ignoreUnverified("request had no x-paystack-signature header");
     return;
   }
 
   // Anyone can POST here, so check the shape of what is about to be hashed:
   // an absent body made the HMAC throw, and the request crashed the function.
   if (typeof signature !== "string" || !SIGNATURE_FORMAT.test(signature)) {
-    await bail(
+    ignoreUnverified(
       "signature verification failed",
-      "the x-paystack-signature header is not a SHA-512 hex digest. Treat it as an unverified request and ignore it.",
+      "the x-paystack-signature header is not a SHA-512 hex digest",
     );
     return;
   }
   if (typeof rawBody !== "string" || !rawBody) {
-    await bail(
+    await refuseSignature(
       "request had no body to verify the signature against",
-      "Treat it as an unverified request and ignore it.",
+      "the x-paystack-signature header is well formed, so the platform may have dropped the body of a real delivery. " +
+        "If Paystack Dashboard → Settings → Webhooks shows failed deliveries, real payments are not being recorded; otherwise it was a forged request.",
     );
     return;
   }
@@ -464,12 +546,11 @@ module.exports = async function (context, req) {
   const sigMatch = sigBuf.length === expBuf.length && crypto.timingSafeEqual(expBuf, sigBuf);
 
   if (!sigMatch) {
-    await bail(
+    await refuseSignature(
       "signature verification failed",
       `PAYSTACK_SECRET_KEY is a ${keyMode} key; ` +
         `signature was computed over ${usedRawBody ? "the raw request body" : "a re-serialised body because req.rawBody was empty, which alone can cause this"}. ` +
-        `If the transaction was in the other mode, that is the cause — check the mode of this charge in Paystack. ` +
-        `Otherwise treat it as an unverified request and ignore it.`,
+        `If Paystack Dashboard → Settings → Webhooks shows failed deliveries, the key or mode is wrong and real payments are not being recorded; otherwise it was a forged request.`,
     );
     return;
   }
@@ -668,4 +749,12 @@ module.exports = async function (context, req) {
     }
     retry();
   }
+};
+
+// Test-only: the hourly signature alert lives for the life of the module, so
+// tests clear it to start from a fresh process.
+module.exports.resetSignatureAlert = () => {
+  processAlerts.delete(UNVERIFIED_ALERT_KEY);
+  unverifiedAlertAt = -Infinity;
+  heldBackFailures = 0;
 };
