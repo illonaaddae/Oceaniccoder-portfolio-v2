@@ -1,14 +1,23 @@
 /* global require, module */
-// GET /api/get-invoice?number=INV-123456&s=<signature>
+// GET /api/get-invoice?number=INV-123456&s=<signature>[&admin=1]
 // Fetches an invoice for its pay page. Needs the signature from the emailed or
 // admin pay link; until 2026-11-21 an unsigned link still opens an old unpaid
 // invoice (api/shared/invoiceLinks.js). Reads the invoice from Cosmos DB.
+//
+// Behind the invoice access gate (shared/invoices/access.js): once the link
+// finds the invoice, a browser with no unlock gets 401 locked and nothing
+// from the invoice. admin=1 (the dashboard's preview link) checks the admin
+// session, only when there is no unlock. INVOICE_ACCESS_GATE=off answers as
+// before the gate. Design: docs/plans/2026-10-25-invoice-receipt-access-codes.md (8.4).
 
 const cosmos = require("../shared/cosmos");
 const { errorReason } = require("../shared/errors");
 const { withDeadline } = require("../shared/deadline");
-
-const { canOpenInvoice, hasSignature, unsignedGraceCovers } = require("../shared/invoiceLinks");
+const { HttpError } = require("../shared/http");
+const { requireAdmin } = require("../shared/adminAuth");
+const { adminCheck } = require("../shared/access/core");
+const { createCosmosLocks } = require("../shared/locks");
+const I = require("../shared/invoices/access");
 const { createRateLimiter } = require("../shared/rateLimit");
 const { clientIp } = require("../shared/turnstile");
 
@@ -23,15 +32,15 @@ const CORS = {
   "Cache-Control": "no-store",
 };
 
-// One reply for a bad signature, an unsigned link out of grace and an unknown
-// number, so a guess learns nothing about which invoices exist.
-const NOT_FOUND = JSON.stringify({
-  error: "This payment link is not valid. Ask us for a new one at hello@oceaniccoder.dev.",
-});
+// One reply for a bad signature, an unsigned link out of grace, an unknown
+// number and a number two invoices share, so a guess learns nothing about
+// which invoices exist. The text is doc-access's too.
+const NOT_FOUND = { error: I.INVOICE_NOT_FOUND };
 
 // Per instance. A client opens their pay page a handful of times; this caps
 // anyone trying invoice numbers in bulk.
-const allowFromIp = createRateLimiter({ limit: 30, windowMs: 10 * 60 * 1000 });
+const LOOKUPS_PER_IP = 30;
+const LOOKUP_WINDOW_MS = 10 * 60 * 1000;
 
 const COLLECTION_ID = "invoices";
 
@@ -39,93 +48,108 @@ const COLLECTION_ID = "invoices";
 // Cosmos endpoint that accepted the connection and never replied.
 const READ_TIMEOUT_MS = 5000;
 
-async function findInCosmos(number) {
+/** Up to two invoices with that number: enough to tell one from several. */
+async function findInvoicesByNumber(number) {
   const { resources } = await withDeadline(READ_TIMEOUT_MS, (abortSignal) =>
     cosmos
       .getDatabase()
       .container(COLLECTION_ID)
       .items.query(
         {
-          query: "SELECT TOP 1 * FROM c WHERE c.invoiceNumber = @number",
+          query: "SELECT TOP 2 * FROM c WHERE c.invoiceNumber = @number",
           parameters: [{ name: "@number", value: number }],
         },
         { abortSignal },
       )
       .fetchAll(),
   );
-  return resources[0] || null;
+  return resources;
 }
 
-module.exports = async function (context, req) {
-  if (req.method === "OPTIONS") {
-    context.res = { status: 204, headers: CORS, body: "" };
-    return;
-  }
+function createServices() {
+  return {
+    invoices: { findInvoicesByNumber },
+    locks: createCosmosLocks(cosmos.getDatabase()),
+    now: () => new Date(),
+  };
+}
 
-  if (!allowFromIp(clientIp(req) || "unknown", 1, Date.now())) {
-    context.res = {
-      status: 429,
-      headers: CORS,
-      body: JSON.stringify({ error: "Too many requests. Try again in a few minutes." }),
-    };
-    return;
-  }
-
-  const number = (req.query && req.query.number) || "";
-
-  if (!number) {
-    context.res = {
-      status: 400,
-      headers: CORS,
-      body: JSON.stringify({ error: "Missing invoice number" }),
-    };
-    return;
-  }
-
-  // Same answer as an unknown number, before any lookup, so a guessed number
-  // learns nothing about whether that invoice exists.
-  if (!canOpenInvoice(number, req.query.s, process.env.RECEIPT_SIGNING_SECRET)) {
-    context.res = { status: 404, headers: CORS, body: NOT_FOUND };
-    return;
-  }
-
-  try {
-    const doc = await findInCosmos(number);
-
-    if (!doc) {
-      context.res = { status: 404, headers: CORS, body: NOT_FOUND };
-      return;
-    }
-
-    // The check above let an unsigned link through on the date alone.
-    if (!hasSignature(req.query.s) && !unsignedGraceCovers(doc)) {
-      context.res = { status: 404, headers: CORS, body: NOT_FOUND };
-      return;
-    }
-
-    // Return only safe, public-facing fields — no phone (PII not needed for payment)
-    const safe = {
-      invoiceNumber: doc.invoiceNumber,
-      clientName: doc.clientName,
-      clientEmail: doc.clientEmail,
-      total: doc.total,
-      currency: doc.currency,
-      status: doc.status,
-      dueDate: doc.dueDate || null,
-      estimatedDelivery: doc.estimatedDelivery || null,
-    };
-
-    context.res = {
-      status: 200,
-      headers: CORS,
-      body: JSON.stringify(safe),
-    };
-  } catch (err) {
-    context.log.error("get-invoice error:", errorReason(err));
-    context.res = {
-      status: 500,
-      headers: CORS,
-      body: JSON.stringify({ error: "Internal error" }),
-    };
-  }
+const reply = (context, status, body) => {
+  context.res = { status, headers: CORS, body: JSON.stringify(body) };
 };
+
+// Only the fields the pay page needs: no phone, no archive flag.
+const publicView = (doc) => ({
+  invoiceNumber: doc.invoiceNumber,
+  clientName: doc.clientName,
+  clientEmail: doc.clientEmail,
+  total: doc.total,
+  currency: doc.currency,
+  status: doc.status,
+  dueDate: doc.dueDate || null,
+  estimatedDelivery: doc.estimatedDelivery || null,
+});
+
+/**
+ * deps: services() gives { invoices: { findInvoicesByNumber }, locks, now };
+ * env and requireAdmin replace process.env and shared/adminAuth in tests.
+ */
+function createHandler(deps) {
+  const env = deps.env || process.env;
+  const checkAdmin = deps.requireAdmin || requireAdmin;
+  const allowFromIp = createRateLimiter({ limit: LOOKUPS_PER_IP, windowMs: LOOKUP_WINDOW_MS });
+
+  return async function (context, req) {
+    if (req.method === "OPTIONS") {
+      context.res = { status: 204, headers: CORS, body: "" };
+      return;
+    }
+
+    if (!allowFromIp(clientIp(req) || "unknown", 1, Date.now()))
+      return reply(context, 429, { error: "Too many requests. Try again in a few minutes." });
+
+    const query = req.query || {};
+    const number = query.number || "";
+    if (!number) return reply(context, 400, { error: "Missing invoice number" });
+
+    // doc-access's rules for finding the invoice: the signature (or the
+    // unsigned grace) is checked before any lookup, and two rows with the
+    // number fail closed. Every failure is the same 404.
+    const locator = I.invoiceLocator({ env, logWarn: (line) => context.log.warn(line) });
+    const body = { number, s: query.s };
+    try {
+      const svc = deps.services();
+      let doc;
+      try {
+        locator.check(body);
+        doc = await locator.find(svc, body);
+      } catch (err) {
+        if (err instanceof HttpError && err.status === 404) return reply(context, 404, NOT_FOUND);
+        throw err;
+      }
+      const via = await I.invoiceAccess.requireAccess({
+        env,
+        logError: (line) => context.log.error(line),
+        locks: svc.locks,
+        req,
+        record: doc,
+        nowMs: svc.now().getTime(),
+        isAdmin: adminCheck(checkAdmin, context, req, query.admin),
+      });
+      return reply(
+        context,
+        200,
+        via === "admin" ? { ...publicView(doc), preview: true } : publicView(doc),
+      );
+    } catch (err) {
+      // 401 locked carries only the error and the flag; 503 only the error.
+      if (err instanceof HttpError && (err.status === 401 || err.status === 503))
+        return reply(context, err.status, { error: err.message, ...err.extra });
+      context.log.error("get-invoice error:", errorReason(err));
+      return reply(context, 500, { error: "Internal error" });
+    }
+  };
+}
+
+module.exports = createHandler({ services: createServices });
+module.exports.createHandler = createHandler;
