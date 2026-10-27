@@ -80,11 +80,14 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
-  // The signed pay link, shown when the browser blocked the new tab. Focus
-  // moves to its link so keyboard and screen reader users land on it.
-  const [blockedPayLink, setBlockedPayLink] = useState<{ href: string; number: string } | null>(
-    null,
-  );
+  // Shown when the browser blocked the new tab: the preview to open, and the
+  // client's own link to copy. Focus moves to its link so keyboard and screen
+  // reader users land on it.
+  const [blockedPayLink, setBlockedPayLink] = useState<{
+    preview: string;
+    href: string;
+    number: string;
+  } | null>(null);
   // eslint-disable-next-line no-undef -- DOM global type, not a runtime value
   const blockedPayLinkRef = useRef<HTMLAnchorElement>(null);
   useEffect(() => {
@@ -300,24 +303,45 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
   // Only the server can sign the pay link. The tab opens inside the click,
   // because Safari blocks a window.open that comes after an await. If the
   // browser blocked even that, the link is shown to open or copy by hand.
+  // The tab is the admin preview (preview=admin): it checks the dashboard
+  // session, so it never emails the client a code and takes no payment.
   const viewPayPage = async (inv: Invoice) => {
     const tab = window.open("", "_blank");
     setActionError(null);
     setBlockedPayLink(null);
     try {
       const { link } = await quoteAdmin<{ link: string }>("invoicePayLink", { id: inv.$id });
+      const href = new URL(link, window.location.origin);
+      const preview = new URL(href);
+      preview.searchParams.set("preview", "admin");
       if (!tab) {
-        setBlockedPayLink({
-          href: new URL(link, window.location.origin).href,
-          number: inv.invoiceNumber,
-        });
+        setBlockedPayLink({ preview: preview.href, href: href.href, number: inv.invoiceNumber });
         return;
       }
       tab.opener = null;
-      tab.location.href = link;
+      tab.location.href = preview.href;
     } catch (e) {
       tab?.close();
       setActionError(e instanceof Error ? e.message : "Couldn't open the pay page.");
+    }
+  };
+
+  const handleResetAccess = async (inv: Invoice) => {
+    const ok = await confirm({
+      message: `Reset access to ${inv.invoiceNumber}?`,
+      description: `Signs every browser out of this invoice. The link stays the same; opening it again needs a code sent to ${inv.clientEmail || "the client's email address"}.`,
+      confirmLabel: "Reset access",
+    });
+    if (!ok) return;
+    setBusy(inv.$id);
+    setActionError(null);
+    try {
+      await quoteAdmin<{ ok: true }>("resetInvoiceAccess", { id: inv.$id });
+      setNotice(`Reset access to ${inv.invoiceNumber}.`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Couldn't reset access to the invoice.");
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -402,6 +426,8 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
       actions.push({ label: "Mark as paid", onSelect: () => void handleMarkPaid(inv) });
     actions.push(copy);
     if (busy === inv.$id || confirming[inv.$id]) return { actions, note: "Saving…" };
+    // Paid and archived invoices stay behind the code too, so all can be reset.
+    actions.push({ label: "Reset access", onSelect: () => void handleResetAccess(inv) });
     if (row.archived) actions.push({ label: "Restore", onSelect: () => void handleRestore(inv) });
     // Paid invoices are money received: no archive (the server refuses too).
     else if (unpaid) actions.push({ label: "Archive", onSelect: () => void handleArchive(inv) });
@@ -450,7 +476,7 @@ export default function InvoicesTab({ theme, onOpenQuote }: InvoicesTabProps) {
           <a
             ref={blockedPayLinkRef}
             aria-describedby="blocked-pay-link-note"
-            href={blockedPayLink.href}
+            href={blockedPayLink.preview}
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium underline"
