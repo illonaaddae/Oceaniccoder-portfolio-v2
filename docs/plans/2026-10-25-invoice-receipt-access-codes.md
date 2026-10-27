@@ -278,7 +278,7 @@ As built in PR 4:
 - The order is: admin, `invoiceNumber`, Resend key, signing secret, then the switch and the access secret (503), then the row (409), then the email. The link code is minted at the invoice's current epoch, so an email sent after Reset access opens.
 - The dashboard writes the row through `/api/manage` just before it calls `send-invoice`, and another instance can read a replica that hasn't caught up. So a missing row, or a row whose `total` isn't the body's `total`, is read once more after 300 ms. A total that still differs is a 409 "The invoice changed while it was being sent, so nothing was sent. Try again." (refused, not logged and sent). A number two rows share is refused at once, never retried. Each read has a 5 s deadline that cancels the query.
 - Resend failures are logged as status plus the body run through `redact` (exported from `shared/access/endpoint.js`).
-- The `invoiceSent` catalog preview carries the throwaway link code `sample`, so it shows the line about the link opening.
+- The `invoiceSent` catalog preview is unchanged in PR 4 (see 8.7).
 
 #### `quote-admin` actions
 
@@ -387,6 +387,7 @@ Every client email has a catalog entry, so:
 - New catalog entries `invoiceAccessCode` ("Invoice code", when "An invoice link is opened in a browser that is not signed in") and `receiptAccessCode` ("Receipt code"), with samples in `samples.js`.
 - `accessLockedAlert` gets the same `kind`; new catalog entry `invoiceAccessLockedAlert` (admin). Receipt lockouts count against the quote and use the quote alert, naming the receipt reference.
 - Updated `invoiceSent` sample: the preview's pay link carries a throwaway link code, built with the "email-preview" secret as today (`catalog.js:144-147`), so a preview never carries a working link code.
+  Follow-up (moved out of PR 4 for the file cap): the catalog preview doesn't carry the throwaway link code yet, so it doesn't show the line about how the link opens. `renderInvoiceEmail` already takes `{ linkCode }`; the follow-up passes a throwaway one from `catalog.js` and updates `catalog.test.js`.
 - Reuse the quote code email as is? No: it says "Open your quote" and labels the header "Quote", which would be wrong and confusing on an invoice. Reuse the template, parametrised.
 
 ### 8.8 Data model

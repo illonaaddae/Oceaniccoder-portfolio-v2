@@ -157,11 +157,8 @@ const CATALOG = [
     render: () =>
       htmlOnly(
         `Invoice ${invoiceSample.invoiceNumber} from OceanicCoder`,
-        // A throwaway secret and link code: a preview must never carry a pay
-        // link that works.
-        renderInvoiceEmail(invoiceSample, new Date("2026-10-11T12:00:00.000Z"), "email-preview", {
-          linkCode: "sample",
-        }),
+        // A throwaway secret: a preview must never carry a pay link that works.
+        renderInvoiceEmail(invoiceSample, new Date("2026-10-11T12:00:00.000Z"), "email-preview"),
       ),
   },
   {

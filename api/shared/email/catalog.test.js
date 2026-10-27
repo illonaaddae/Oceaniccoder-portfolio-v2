@@ -77,12 +77,9 @@ describe("email catalog", () => {
     process.env.RECEIPT_SIGNING_SECRET = "real-secret";
     try {
       const { html } = findEmail("invoiceSent").render();
-      const sig = html.match(/\/pay\/INV-2026-0042\?s=([A-Za-z0-9_-]{32})#k=([^"]+)"/);
+      const sig = html.match(/\/pay\/INV-2026-0042\?s=([A-Za-z0-9_-]{32})"/);
       expect(sig).not.toBeNull();
       expect(verifyInvoice("INV-2026-0042", sig[1], "real-secret")).toBe(false);
-      // Shows the link-code line, with a code that has no link code's shape.
-      expect(sig[2]).not.toMatch(/^[\w-]{22}\.[0-9a-z]{1,12}\.[\w-]{43}$/);
-      expect(html).toContain("This link usually opens straight away.");
     } finally {
       delete process.env.RECEIPT_SIGNING_SECRET;
     }
