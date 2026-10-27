@@ -10,6 +10,9 @@ vi.mock("@/services/api/quotes", async () => {
   return { ...actual, quoteAdmin: (...a: unknown[]) => quoteAdmin(...a) };
 });
 
+// Treat any confirmation as cancelled; these tests never accept one.
+vi.mock("../../ConfirmContext", () => ({ useConfirm: () => async () => false }));
+
 import QuoteEditor from "./QuoteEditor";
 import type { QuoteDraft } from "@/types/quote";
 

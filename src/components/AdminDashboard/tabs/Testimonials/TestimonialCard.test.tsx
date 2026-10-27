@@ -1,6 +1,10 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, test, expect, vi } from "vitest";
 import type { Testimonial } from "@/types";
+
+// Treat any confirmation as cancelled; these tests never accept one.
+vi.mock("../../ConfirmContext", () => ({ useConfirm: () => async () => false }));
+
 import { TestimonialCard } from "./TestimonialCard";
 
 const TESTIMONIAL: Testimonial = {
