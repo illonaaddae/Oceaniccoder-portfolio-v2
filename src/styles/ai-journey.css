@@ -1,9 +1,9 @@
-/* AI journey section (home page). The heading follows the site theme; the card
-   is a dark ocean stage in both themes, because the glowing robot and network
-   wash out on white. It does that by pinning the dark theme's values locally,
-   so every rule below reads the same variables either way. */
+/* AI journey card, beside the skills card. It is a dark ocean stage in both
+   themes, because the glowing robot and network wash out on white. It does that
+   by pinning the dark theme's values locally, so every rule below reads the same
+   variables either way. */
 
-.ai-journey__card {
+.ai-journey {
   /* Same values as the dark theme in index.css; keep them in step if that palette changes. */
   --bg-primary: #0a1628;
   --bg-tertiary: #1a365d;
@@ -17,6 +17,28 @@
   background: linear-gradient(135deg, #0a1628 0%, #0d253f 60%, #04333b 100%);
   border: 1px solid var(--glass-border);
   box-shadow: 0 20px 50px -24px rgba(4, 51, 59, 0.55);
+  container-type: inline-size;
+}
+
+.ai-journey__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.ai-journey__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.ai-journey__title-accent {
+  color: var(--brand-ocean-4);
+}
+.ai-journey__intro {
+  margin-top: 0.35rem;
+  color: var(--text-accent);
 }
 
 .aij-scene {
@@ -134,10 +156,7 @@
 }
 
 .ai-journey__toggle {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 1;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -161,7 +180,7 @@
 
 /* Motion. Runs only while the section is on screen and the visitor has not
    paused it with the card's button; off entirely for reduced motion. */
-.ai-journey:not(.is-animating) .ai-journey__card * {
+.ai-journey:not(.is-animating) * {
   animation-play-state: paused;
 }
 
@@ -325,15 +344,15 @@
   }
 }
 
-/* The speech bubbles are too small to read once the scene shrinks to phone width. */
-@media (max-width: 639px) {
+/* The speech bubbles are too small to read once the card is phone-narrow. */
+@container (max-width: 519px) {
   .aij-bubble {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-journey .ai-journey__card * {
+  .ai-journey * {
     animation: none;
   }
   /* Nothing moves, so there is nothing to pause. */

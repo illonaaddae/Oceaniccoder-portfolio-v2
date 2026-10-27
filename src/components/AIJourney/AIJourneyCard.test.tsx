@@ -1,22 +1,22 @@
 import React from "react";
 import { render, screen, within, cleanup, act, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import AIJourneySection from "./AIJourneySection";
+import AIJourneyCard from "./AIJourneyCard";
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 
-describe("AIJourneySection", () => {
+describe("AIJourneyCard", () => {
   it("names the section with its heading", () => {
-    render(<AIJourneySection />);
+    render(<AIJourneyCard />);
 
     expect(screen.getByRole("region", { name: "AI & Machine Learning" })).toBeInTheDocument();
   });
 
   it("lists the learning path in the agreed order", () => {
-    render(<AIJourneySection />);
+    render(<AIJourneyCard />);
 
     const path = screen.getByRole("list", { name: "My learning path" });
     const steps = within(path)
@@ -34,7 +34,7 @@ describe("AIJourneySection", () => {
   });
 
   it("hides the decorative drawing and the arrows from assistive technology", () => {
-    const { container } = render(<AIJourneySection />);
+    const { container } = render(<AIJourneyCard />);
 
     expect(container.querySelector("svg.aij-scene")).toHaveAttribute("aria-hidden", "true");
     const arrows = container.querySelectorAll(".ai-journey__arrow");
@@ -43,7 +43,7 @@ describe("AIJourneySection", () => {
   });
 
   it("lets the visitor pause and resume the animation", () => {
-    const { container } = render(<AIJourneySection />);
+    const { container } = render(<AIJourneyCard />);
     const section = container.querySelector("#ai-journey");
     expect(section).toHaveClass("is-animating");
 
@@ -76,7 +76,7 @@ describe("AIJourneySection", () => {
       },
     );
 
-    const { container, unmount } = render(<AIJourneySection />);
+    const { container, unmount } = render(<AIJourneyCard />);
     const section = container.querySelector("#ai-journey");
     expect(section).not.toHaveClass("is-animating");
 

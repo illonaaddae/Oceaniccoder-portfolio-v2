@@ -5,7 +5,6 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { QuoteRouteFallback } from "@/components/Quote/QuoteShell";
 import {
   Home,
-  AIJourney,
   Skills,
   Projects,
   Testimonials,
@@ -36,7 +35,6 @@ const publicRoutes = (
       element={
         <PageWrapper>
           <Home />
-          <AIJourney />
           <Skills />
           <Projects />
           <Testimonials />
