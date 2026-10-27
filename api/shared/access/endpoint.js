@@ -17,7 +17,7 @@ const { send, readJson, handleError, HttpError, str } = require("../http");
 const { clientIp } = require("../turnstile");
 const { createRateLimiter } = require("../rateLimit");
 const { sendEmail } = require("../email/send");
-const { maskEmail, CODE_TTL_MS, MAX_TRIES, MAX_MISSES } = require("./core");
+const { maskEmail, CODE_TTL_MS, MAX_TRIES, MAX_MISSES, GUESSABLE_MAX_MISSES } = require("./core");
 
 const MINUTE_MS = 60 * 1000;
 const SENDS_PER_IP_HOUR = 10;
@@ -34,6 +34,11 @@ const NEW_CODE = {
   stale: "That code is for an older version of this link. Ask for a new one.",
 };
 
+const ACTION_NAMES = ["status", "claim", "send", "verify"];
+
+/** Whether the endpoint knows this action, for a router that checks it before the kind. */
+const isAccessAction = (action) => typeof action === "string" && ACTION_NAMES.includes(action);
+
 // Resend's error text can quote the recipient; keep addresses out of the logs.
 const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]");
 
@@ -42,9 +47,15 @@ const redact = (text) => String(text || "").replace(/[^\s@]+@[^\s@]+/g, "[email]
  *   access    createAccess(scheme) for the kind
  *   locator   check(body) throws the "not found" error for a malformed
  *             locator, before any switch, secret or lookup; find(svc, body)
- *             loads the record or throws that same error
+ *             loads the record or throws that same error; guessable(body),
+ *             optional, is true for a locator anyone could type (an unsigned
+ *             invoice link): status and send then never show the masked
+ *             address, code emails get the tighter guessable quota, and
+ *             wrong codes count in a scope of their own that never blocks
+ *             the record's other links
  *   emails    code(record, code, minutes) and lockedAlert(record, atIso,
- *             blocked) give { subject, html, text }
+ *             blocked, { linkBlocked }) give { subject, html, text };
+ *             linkBlocked: only a guessable link's own share ran out
  *   labels    ref (the record's name in log lines) and the kind's texts
  *             noEmail, gateOff and blocked; log, the log tag, defaults to
  *             the scheme's logTag
@@ -64,35 +75,37 @@ function createAccessEndpoint(deps) {
   });
   const name = (record) => `${labels.ref}=${access.subject(record).logName}`;
 
-  async function status({ svc, secret, record, req, nowMs }) {
+  async function status({ svc, secret, record, req, guessable, nowMs }) {
     const unlocked = await access.hasAccess({ secret, locks: svc.locks, req, record, nowMs });
     const maskedEmail = maskEmail(access.subject(record).clientEmail);
     const blocked =
       !unlocked &&
       Boolean(maskedEmail) &&
-      (await access.sendsBlocked(svc.locks, record, await access.currentEpoch(svc.locks, record)));
+      (await access.sendsBlocked(svc.locks, record, await access.currentEpoch(svc.locks, record), {
+        guessable,
+      }));
     return {
       status: 200,
       body: {
         locked: !unlocked,
         canUnlock: Boolean(maskedEmail) && !blocked,
         blocked,
-        maskedEmail,
+        maskedEmail: guessable ? null : maskedEmail,
       },
     };
   }
 
-  async function sendCode({ context, svc, secret, record, ip, nowMs }) {
+  async function sendCode({ context, svc, secret, record, ip, guessable, nowMs }) {
     if (!allowSendFromIp(ip || "unknown", 1, nowMs))
       throw new HttpError(429, "Too many codes asked for. Try again later.");
     const { clientEmail } = access.subject(record);
     if (!maskEmail(clientEmail)) throw new HttpError(409, labels.noEmail, { noEmail: true });
     const epoch = await access.currentEpoch(svc.locks, record);
-    if (await access.sendsBlocked(svc.locks, record, epoch)) {
+    if (await access.sendsBlocked(svc.locks, record, epoch, { guessable })) {
       context.log(`${labels.log} blocked ${name(record)}`);
       throw new HttpError(403, labels.blocked, { blocked: true });
     }
-    const slots = await access.takeSendSlots(svc.locks, record, epoch, nowMs);
+    const slots = await access.takeSendSlots(svc.locks, record, epoch, nowMs, { guessable });
     if (!slots.ok) {
       context.log(`${labels.log} limit ${name(record)}`);
       throw new HttpError(
@@ -136,7 +149,7 @@ function createAccessEndpoint(deps) {
       status: 200,
       body: {
         challenge: issued.challenge,
-        maskedEmail: maskEmail(clientEmail),
+        maskedEmail: guessable ? null : maskEmail(clientEmail),
         expiresInSeconds: CODE_TTL_MS / 1000,
         retryAfterSeconds: slots.retryAfterSeconds,
       },
@@ -145,7 +158,7 @@ function createAccessEndpoint(deps) {
 
   // Awaited but capped at ALERT_WAIT_MS: the 429 must not wait on Resend, and
   // a fire-and-forget send could be frozen with the instance after return.
-  async function alertLockout(context, record, nowMs, blocked) {
+  async function alertLockout(context, record, nowMs, blocked, linkBlocked = false) {
     let timer;
     const timedOut = new Promise((resolve) => {
       timer = setTimeout(() => resolve({ ok: false, error: "timed out" }), alertWaitMs);
@@ -154,7 +167,7 @@ function createAccessEndpoint(deps) {
       .then(() =>
         sendMail({
           to: env.RESEND_TO_EMAIL,
-          ...emails.lockedAlert(record, new Date(nowMs).toISOString(), blocked),
+          ...emails.lockedAlert(record, new Date(nowMs).toISOString(), blocked, { linkBlocked }),
         }),
       )
       .catch((err) => ({ ok: false, error: err && err.message }));
@@ -164,7 +177,7 @@ function createAccessEndpoint(deps) {
       context.log.error(`${labels.log} lock alert failed ${name(record)}: ${redact(mail.error)}`);
   }
 
-  async function verifyCode({ context, svc, secret, record, body, ip, nowMs }) {
+  async function verifyCode({ context, svc, secret, record, body, ip, guessable, nowMs }) {
     if (!allowVerifyFromIp(ip || "unknown", 1, nowMs)) throw new HttpError(429, TOO_MANY);
     const code = str(body.code, 40).replace(/[\s-]/g, "");
     if (!/^\d{6}$/.test(code)) throw new HttpError(400, "Enter the 6-digit code from the email.");
@@ -177,26 +190,31 @@ function createAccessEndpoint(deps) {
     });
     if (!checked.ok) throw new HttpError(400, NEW_CODE[checked.reason], { newCodeNeeded: true });
     // Challenges fetched before the block must not keep a guesser going after it.
-    if (await access.sendsBlocked(svc.locks, record, checked.epoch))
+    if (await access.sendsBlocked(svc.locks, record, checked.epoch, { guessable }))
       throw new HttpError(403, labels.blocked, { blocked: true });
 
     const attempt = await access.takeTry(svc.locks, checked.challengeId);
     if (!attempt) throw new HttpError(429, TOO_MANY, { triesLeft: 0, newCodeNeeded: true });
     const triesLeft = MAX_TRIES - attempt;
     if (!access.codeMatches(secret, checked.challengeId, code)) {
-      const misses = await access.recordMiss(svc.locks, record, checked.epoch);
-      const blocked = misses === 0 || misses === MAX_MISSES;
+      const misses = await access.recordMiss(svc.locks, record, checked.epoch, { guessable });
+      // A guessable link's own share running out blocks that link only; for
+      // it, misses counts that share (core recordMiss).
+      const linkBlocked = guessable && misses === GUESSABLE_MAX_MISSES;
+      const blocked = misses === 0 || misses === MAX_MISSES || linkBlocked;
       const lockedOut = triesLeft === 0;
       context.log(`${labels.log} verify ${name(record)} triesLeft=${triesLeft} misses=${misses}`);
       // One alert per locked-out challenge (owner decision), and one when the
       // record blocks; never both for one guess. At most MAX_MISSES / MAX_TRIES
-      // + 1 alerts per revision and epoch. Only one request can get the last
-      // try slot of a challenge, or miss slot MAX_MISSES.
-      if (misses === MAX_MISSES || (lockedOut && !blocked)) {
+      // + 1 alerts per revision and epoch, plus one when a guessable link
+      // blocks. Only one request can get the last try slot of a challenge, or
+      // miss slot MAX_MISSES, or a guessable link's last slot. That block has
+      // its own alert (linkBlocked): the record and its signed link still work.
+      if (misses === MAX_MISSES || linkBlocked || (lockedOut && !blocked)) {
         context.log.warn(
           `${labels.log} ${misses === MAX_MISSES ? "blocked" : "lock"} ${name(record)}`,
         );
-        await alertLockout(context, record, nowMs, misses === MAX_MISSES);
+        await alertLockout(context, record, nowMs, misses === MAX_MISSES, linkBlocked);
       }
       if (blocked) throw new HttpError(403, labels.blocked, { triesLeft: 0, blocked: true });
       if (!lockedOut)
@@ -273,6 +291,7 @@ function createAccessEndpoint(deps) {
         record,
         body,
         req,
+        guessable: Boolean(locator.guessable && locator.guessable(body)),
         ip: clientIp(req),
         nowMs: svc.now().getTime(),
       });
@@ -284,4 +303,4 @@ function createAccessEndpoint(deps) {
   };
 }
 
-module.exports = { createAccessEndpoint };
+module.exports = { createAccessEndpoint, isAccessAction };

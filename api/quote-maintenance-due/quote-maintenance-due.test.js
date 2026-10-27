@@ -1,9 +1,14 @@
 // @vitest-environment node
+import { createRequire } from "module";
 import { describe, it, expect, vi } from "vitest";
 
 const { createHandler } = await import("./index.js");
 const { createFakeRepo, createFakeLocks } = await import("../shared/quotes/fakes.js");
 const M = await import("../shared/quotes/model.js");
+const { createFakeCosmos } = await import("../shared/fakeCosmos.js");
+const { createCosmosInvoiceStore } = await import("../shared/invoices/store.cosmos.js");
+// The CommonJS instance the handler requires: a scheme can be created once.
+const { invoiceAccess } = createRequire(import.meta.url)("../shared/invoices/access.js");
 
 const SECRET = "cron-secret-value";
 const plans = [{ id: "care", name: "Care", priceMinor: 40000, period: "month", includes: "" }];
@@ -53,12 +58,16 @@ function setup({
   secret = SECRET,
   now = "2026-12-04T08:00:00.000Z",
   locks = createFakeLocks({ now: () => Date.parse(now) - 2 * 24 * 3600 * 1000 }),
+  invoiceRows = [],
 } = {}) {
   const repo = createFakeRepo({ quotes, payments });
+  const db = createFakeCosmos();
+  for (const row of invoiceRows) db.container("invoices").seed(row);
+  const invoices = createCosmosInvoiceStore(db);
   const notify = { maintenanceOffer: vi.fn().mockResolvedValue({ ok: true }) };
   const handler = createHandler({
     secret: () => secret,
-    services: () => ({ repo, locks, notify, now: () => new Date(now) }),
+    services: () => ({ repo, invoices, locks, notify, now: () => new Date(now) }),
   });
   const call = async ({ key = SECRET, method = "POST" } = {}) => {
     const context = { log: { error: vi.fn() } };
@@ -155,6 +164,27 @@ describe("quote-maintenance-due", () => {
     const r = await t.call();
     expect(r.body).toEqual({ sent: 0, failed: 0, pruned: { deleted: 1, kept: 0, skipped: 1 } });
     expect([...t.locks.held]).toEqual(["settle:REF-1"]);
+  });
+
+  it("prunes invoice access rows in the same pass, keeping live miss rows", async () => {
+    const invoice = { id: "inv-1", invoiceNumber: "INV-2026-0008", clientEmail: "a@x.dev" };
+    const t = setup({ quotes: [], invoiceRows: [invoice] });
+    t.locks.listBefore = vi.fn(t.locks.listBefore);
+    await invoiceAccess.recordMiss(t.locks, invoice, 0); // superseded by the reset below
+    await invoiceAccess.bumpEpoch(t.locks, invoice); // never deleted
+    await invoiceAccess.recordMiss(t.locks, invoice, 1); // live
+    await invoiceAccess.recordMiss(t.locks, { ...invoice, id: "inv-gone" }, 0); // invoice deleted
+    await invoiceAccess.takeTry(t.locks, "cid");
+    await t.locks.take("qa:try:cid:1");
+    await t.locks.take("settle:REF-1");
+    const r = await t.call();
+    expect(r.body.pruned).toEqual({ deleted: 4, kept: 2, skipped: 1 });
+    expect(t.locks.listBefore).toHaveBeenCalledTimes(1);
+    expect([...t.locks.held].sort()).toEqual([
+      "ia:epoch:inv-1:0:1",
+      "ia:miss:inv-1:0:1:1",
+      "settle:REF-1",
+    ]);
   });
 
   it.each([

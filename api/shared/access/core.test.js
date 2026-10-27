@@ -5,7 +5,7 @@
 // in access.golden.test.js.
 import { describe, it, expect, vi } from "vitest";
 
-const { createAccess } = await import("./core.js");
+const { createAccess, pruneAcrossSchemes } = await import("./core.js");
 const { quoteAccess: quote } = await import("../quotes/accessScheme.js");
 const { createFakeLocks } = await import("../quotes/fakes.js");
 
@@ -210,6 +210,168 @@ describe("pruneAccessLocks over a scheme", () => {
     };
     expect(await run(DOC)).toBe(true);
     expect(await run({ ...QUOTE, id: "parent-1" })).toBe(false);
+  });
+});
+
+describe("takeSendSlots for a guessable link", () => {
+  const MIN = 60 * 1000;
+  // 09:00:30, so the 5-minute buckets taken are 09:00, 09:05 and 09:10.
+  const at = (minutes) => NOW + minutes * MIN;
+
+  it("allows one code email per 10 minutes and three a day, as well as the usual quota", async () => {
+    const locks = createFakeLocks();
+    const take = (minutes, options) => doc.takeSendSlots(locks, DOC, 0, at(minutes), options);
+    expect(await take(0, { guessable: true })).toMatchObject({ ok: true, retryAfterSeconds: 870 });
+    // The usual 60-second gap is long past; the guessable one isn't.
+    expect(await take(10, { guessable: true })).toEqual({ ok: false, retryAfterSeconds: 270 });
+    expect((await take(14.5, { guessable: true })).ok).toBe(true);
+    expect((await take(29.5, { guessable: true })).ok).toBe(true);
+    const fourth = await take(44.5, { guessable: true });
+    expect(fourth).toEqual({ ok: false, retryAfterSeconds: 14 * 3600 + 15 * 60 });
+    // Guessable sends spend the usual hour quota too: three of five are gone.
+    expect((await take(46, {})).ok).toBe(true);
+    expect((await take(48, {})).ok).toBe(true);
+    expect(await take(50, {})).toEqual({ ok: false, retryAfterSeconds: 10 * 60 - 30 });
+  });
+
+  it("hands back both gaps when a later quota refuses, and on releaseGap", async () => {
+    const locks = createFakeLocks();
+    const slots = await doc.takeSendSlots(locks, DOC, 0, NOW, { guessable: true });
+    expect([...locks.held].filter((key) => /:u?g:/.test(key))).toHaveLength(6);
+    await slots.releaseGap();
+    expect([...locks.held].some((key) => /:u?g:/.test(key))).toBe(false);
+    // Spend the usual hour quota without guessable sends, then try one.
+    for (let i = 0; i < 5; i += 1) await doc.takeSendSlots(locks, DOC, 0, at(2 + 2 * i), {});
+    const before = new Set(locks.held);
+    expect((await doc.takeSendSlots(locks, DOC, 0, at(20), { guessable: true })).ok).toBe(false);
+    expect(new Set(locks.held)).toEqual(before);
+  });
+
+  it("keeps the usual keys when the link isn't guessable", async () => {
+    const locks = createFakeLocks();
+    await doc.takeSendSlots(locks, DOC, 0, NOW);
+    expect([...locks.held].some((key) => /:u[gd]:/.test(key))).toBe(false);
+  });
+});
+
+describe("wrong codes through a guessable link", () => {
+  const guess = (locks, epoch = 0) => doc.recordMiss(locks, DOC, epoch, { guessable: true });
+
+  it("block only guessable links, after five", async () => {
+    const locks = createFakeLocks();
+    expect(await guess(locks)).toBe(1);
+    for (let i = 0; i < 3; i += 1) await guess(locks);
+    expect(await guess(locks)).toBe(5);
+    expect(await guess(locks)).toBe(0);
+    expect(locks.held.has("tr:umiss:parent-1:1:0:5")).toBe(true);
+    expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(false);
+  });
+
+  it("count toward the usual fifteen, so the total per epoch stays fifteen", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 5; i += 1) await guess(locks);
+    // The five guesses hold five of the usual slots; the tenth signed miss is the fifteenth.
+    for (let i = 1; i <= 9; i += 1) expect(await doc.recordMiss(locks, DOC, 0)).toBe(5 + i);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(false);
+    expect(await doc.recordMiss(locks, DOC, 0)).toBe(15);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(true);
+    expect(await doc.recordMiss(locks, DOC, 0)).toBe(0);
+  });
+
+  it("answer fifteen when a guess takes the last of the usual slots", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 14; i += 1) await doc.recordMiss(locks, DOC, 0);
+    expect(await guess(locks)).toBe(15);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(true);
+    expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
+  });
+
+  it("are blocked by the usual block too", async () => {
+    const locks = createFakeLocks();
+    for (let i = 0; i < 15; i += 1) await doc.recordMiss(locks, DOC, 0);
+    expect(await doc.sendsBlocked(locks, DOC, 0)).toBe(true);
+    expect(await doc.sendsBlocked(locks, DOC, 0, { guessable: true })).toBe(true);
+    expect(await guess(locks)).toBe(0);
+  });
+
+  it("are pruned like the usual ones: live kept, superseded dropped", async () => {
+    const clock = { ms: NOW };
+    const locks = createFakeLocks({ now: () => clock.ms });
+    await guess(locks, 0);
+    await doc.bumpEpoch(locks, DOC);
+    await guess(locks, 1);
+    clock.ms += DAY;
+    expect(
+      await doc.pruneAccessLocks({ locks, getScope: async () => DOC, nowMs: clock.ms }),
+    ).toEqual({ deleted: 2, kept: 3, skipped: 0 });
+    expect([...locks.held].sort()).toEqual([
+      "tr:epoch:parent-1:1:1",
+      "tr:miss:parent-1:1:1:1",
+      "tr:umiss:parent-1:1:1:1",
+    ]);
+  });
+});
+
+describe("pruneAcrossSchemes", () => {
+  const other = createAccess({ ...DOC_SCHEME, ...fresh() });
+  const OTHER = { ...DOC, parent: "other-parent" };
+
+  it("lists once and hands each row to the scheme that owns its prefix", async () => {
+    const clock = { ms: NOW };
+    const locks = createFakeLocks({ now: () => clock.ms });
+    await doc.recordMiss(locks, DOC, 0);
+    await doc.takeTry(locks, "cid");
+    await other.recordMiss(locks, OTHER, 0);
+    await other.takeTry(locks, "cid");
+    await locks.take("settle:REF-1");
+    clock.ms += DAY;
+    locks.listBefore = vi.fn(locks.listBefore);
+    const docScope = vi.fn(async () => DOC);
+    // The other kind's record is gone, so its miss row goes too.
+    const otherScope = vi.fn(async () => null);
+    const result = await pruneAcrossSchemes({
+      locks,
+      nowMs: clock.ms,
+      owners: [
+        { access: doc, getScope: docScope },
+        { access: other, getScope: otherScope },
+      ],
+    });
+    expect(result).toEqual({ deleted: 3, kept: 1, skipped: 1 });
+    expect(locks.listBefore).toHaveBeenCalledTimes(1);
+    expect(docScope).toHaveBeenCalledWith("parent-1");
+    expect(otherScope).toHaveBeenCalledWith("other-parent");
+    expect([...locks.held].sort()).toEqual(["settle:REF-1", "tr:miss:parent-1:1:0:1"]);
+  });
+
+  it("refuses a scheme that doesn't own its rows, before listing", async () => {
+    const sharer = createAccess({ ...DOC_SCHEME, ...fresh(), rows: "tr", prunes: false });
+    const locks = createFakeLocks();
+    locks.listBefore = vi.fn(locks.listBefore);
+    await expect(
+      pruneAcrossSchemes({
+        locks,
+        nowMs: NOW,
+        owners: [{ access: sharer, getScope: async () => DOC }],
+      }),
+    ).rejects.toThrow(/doesn't own the "tr:" rows/);
+    expect(locks.listBefore).not.toHaveBeenCalled();
+  });
+
+  it("refuses the same rows twice, and anything that isn't a createAccess result", async () => {
+    const locks = createFakeLocks();
+    const owner = { access: doc, getScope: async () => DOC };
+    await expect(pruneAcrossSchemes({ locks, nowMs: NOW, owners: [owner, owner] })).rejects.toThrow(
+      /"tr:" rows are listed twice/,
+    );
+    await expect(
+      pruneAcrossSchemes({
+        locks,
+        nowMs: NOW,
+        owners: [{ access: { ...doc }, getScope: async () => DOC }],
+      }),
+    ).rejects.toThrow(/not made by createAccess/);
   });
 });
 
