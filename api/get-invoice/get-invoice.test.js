@@ -391,6 +391,8 @@ describe("get-invoice access gate", () => {
     expect(r.status).toBe(401);
     expect(r.body).toEqual(LOCKED);
     expect(t.requireAdmin).not.toHaveBeenCalled();
+    // The number only: never the address, the cookie or the signature.
+    expect(r.context.log.mock.calls).toEqual([["get-invoice locked number=INV-2026-0042"]]);
   });
 
   it("is on when the switch is unset, empty or on", async () => {

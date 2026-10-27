@@ -143,8 +143,12 @@ function createHandler(deps) {
       );
     } catch (err) {
       // 401 locked carries only the error and the flag; 503 only the error.
-      if (err instanceof HttpError && (err.status === 401 || err.status === 503))
-        return reply(context, err.status, { error: err.message, ...err.extra });
+      if (err instanceof HttpError && err.status === 401) {
+        context.log(`get-invoice locked number=${number}`);
+        return reply(context, 401, { error: err.message, ...err.extra });
+      }
+      if (err instanceof HttpError && err.status === 503)
+        return reply(context, 503, { error: err.message });
       context.log.error("get-invoice error:", errorReason(err));
       return reply(context, 500, { error: "Internal error" });
     }
