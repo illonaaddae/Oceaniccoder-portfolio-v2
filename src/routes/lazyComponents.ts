@@ -2,6 +2,7 @@ import { lazyWithReload } from "@/utils/lazyWithReload";
 
 // Eager load critical home components for instant display
 import Home from "@/components/HeroSection";
+import AIJourney from "@/components/AIJourney/AIJourneySection";
 import Skills from "@/components/SkillsSection";
 import Projects from "@/components/ProjectsSection";
 import Testimonials from "@/components/TestimonialsSection";
@@ -72,6 +73,7 @@ export const PREFETCHABLE_ROUTES: (() => Promise<unknown>)[] = [
 
 export {
   Home,
+  AIJourney,
   Skills,
   Projects,
   Testimonials,
