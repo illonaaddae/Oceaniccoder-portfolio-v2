@@ -11,7 +11,7 @@ import { Helmet } from "react-helmet-async";
  */
 
 const CONTACT_EMAIL = "hello@oceaniccoder.dev";
-const LAST_UPDATED = "24 October 2026";
+const LAST_UPDATED = "27 October 2026";
 const DESCRIPTION =
   "What oceaniccoder.dev collects, why, who processes it, how long it is kept and how to ask for a copy or deletion.";
 
@@ -72,10 +72,10 @@ const PrivacyPage: React.FC = () => (
         </h1>
         <p className="text-lg">
           This page explains what oceaniccoder.dev collects, why, who helps us handle it and what
-          you can ask us to do with it. The short version: we set a sign-in cookie for each quote
-          you open; Paystack sets its own cookies only when you open its checkout to pay; there are
-          no tracking or advertising cookies, and we only keep what we need to answer you and run
-          the business.
+          you can ask us to do with it. The short version: we set a sign-in cookie for each quote or
+          invoice you open; Paystack sets its own cookies only when you open its checkout to pay;
+          there are no tracking or advertising cookies, and we only keep what we need to answer you
+          and run the business.
         </p>
       </header>
 
@@ -109,9 +109,9 @@ const PrivacyPage: React.FC = () => (
         <SubHeading>What we don&apos;t do</SubHeading>
         <List>
           <li>
-            We use no tracking or advertising cookies. The only cookies we set are the quote sign-in
-            cookies described under &quot;Quotes and payments&quot;. When you pay, Paystack&apos;s
-            checkout sets its own cookies.
+            We use no tracking or advertising cookies. The only cookies we set are the quote and
+            invoice sign-in cookies described under &quot;Quotes and payments&quot;. When you pay,
+            Paystack&apos;s checkout sets its own cookies.
           </li>
           <li>
             We don&apos;t store your IP address or your browser&apos;s full identifying string. Our
@@ -154,9 +154,9 @@ const PrivacyPage: React.FC = () => (
         <p>
           The site also uses your browser&apos;s local storage for your light or dark theme choice,
           whether you have seen the intro animation or closed a banner, and a cached list of home
-          page images. When we email you a code to open a quote, the page keeps a temporary
-          reference to that code in session storage until you enter it or close the tab. None of
-          these leave your device except that reference, which is sent back with the code.
+          page images. When we email you a code to open a quote or an invoice, the page keeps a
+          temporary reference to that code in session storage until you enter it or close the tab.
+          None of these leave your device except that reference, which is sent back with the code.
         </p>
       </Section>
 
@@ -221,6 +221,16 @@ const PrivacyPage: React.FC = () => (
           until the quote is revised or its link is replaced. A used sign-in link leaves a random
           marker, kept for up to 47 days so the link can&apos;t be used twice; it holds nothing
           about you except when the link was used.
+        </p>
+        <p>
+          Invoice payment pages work the same way. When you open one in a new browser, we send a
+          6-digit code to the email address on the invoice; once you enter it, or open the page from
+          our invoice email, a sign-in cookie keeps that browser signed in to that invoice for 30
+          days. It is used only for that, and it stops working early if we reset access to the
+          invoice or its email address changes. Your IP address is used the same way, in memory
+          only, to limit how often codes can be asked for or tried. We keep the same records for the
+          same time: code request and entry records within two days, wrong-code counts until access
+          to the invoice is reset, and used sign-in link markers for up to 47 days.
         </p>
         <p>
           When you accept a quote, we keep a record of the agreement: the name you type, the time, a
