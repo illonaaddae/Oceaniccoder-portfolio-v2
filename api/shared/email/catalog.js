@@ -383,6 +383,21 @@ const CATALOG = [
       ),
   },
   {
+    id: "webhookSignature",
+    group: "admin",
+    name: "Webhook signature refused",
+    when: "A Paystack webhook signature can't be verified (at most once an hour)",
+    render: () =>
+      htmlOnly(
+        "Action needed: a Paystack webhook signature could not be verified",
+        webhook.signatureFailedEmail(
+          "signature verification failed",
+          "PAYSTACK_SECRET_KEY is a live key; signature was computed over the raw request body.",
+          { mode: "live", heldBack: 37 },
+        ),
+      ),
+  },
+  {
     id: "webhookRetry",
     group: "admin",
     name: "Payment waiting to be recorded",

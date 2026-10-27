@@ -252,6 +252,43 @@ function invalidSettingEmail(setting, detail, mode) {
   });
 }
 
+// A webhook whose signature could not be verified. It is answered 500, so a
+// real delivery is retried by Paystack: like webhookRetryEmail, this must not
+// suggest marking an invoice paid by hand while the retries run, or the
+// retry records the charge a second time and sends a second receipt. Sent
+// at most once an hour; `heldBack` is how many failures were only logged
+// since the last one. `mode` is the mode of the secret key.
+function signatureFailedEmail(reason, detail, { mode, heldBack = 0 } = {}) {
+  const heldNote = heldBack
+    ? `${heldBack} more signature ${heldBack === 1 ? "failure" : "failures"} since the last alert ${heldBack === 1 ? "was" : "were"} only logged. `
+    : "";
+  return shell({
+    preview: `Paystack webhook refused: ${reason}`,
+    reason: ADMIN_REASON,
+    body:
+      heading({
+        eyebrow: "Webhook refused",
+        tone: "danger",
+        title: "A Paystack webhook signature could not be verified",
+        intro:
+          "The webhook was refused with an error. If it was a real Paystack delivery, Paystack will retry it, and a retry records the payment once the cause is fixed. If it was forged, nothing needs doing.",
+      }) +
+      notice({
+        tone: "danger",
+        text: `Do not mark invoices paid by hand while Paystack is still retrying. Fix the key, and a retry that succeeds records the payment and emails the client; marking it by hand as well records it twice and sends a second receipt. ${retryLengthText(mode)} Only after that, record by hand any payment that is still missing.`,
+      }) +
+      notice({
+        tone: "warn",
+        text: "In Paystack Dashboard → Settings → Webhooks, check whether the failed deliveries are in live or test mode. Failed live deliveries mean real payments are waiting: fix the key. If only test deliveries fail, the test-mode webhook URL points at this site: point it elsewhere.",
+      }) +
+      notice({ tone: "warn", text: `Reason: ${reason}` }) +
+      (detail ? p(`Detail: ${detail}`) : "") +
+      small(
+        `${heldNote}This email is sent at most once an hour (per running function instance). Later failures are only logged, and the next email says how many.`,
+      ),
+  });
+}
+
 function clientReceiptEmail({ clientName, invoiceNumber, amount }) {
   return shell({
     preview: `Payment received for invoice ${invoiceNumber}. Thank you.`,
@@ -309,6 +346,7 @@ module.exports = {
   recordedConflictEmail,
   webhookEscalationEmail,
   invalidSettingEmail,
+  signatureFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
 };

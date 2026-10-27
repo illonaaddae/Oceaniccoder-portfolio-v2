@@ -63,6 +63,45 @@ describe("paystack-webhook invoice emails", () => {
     expect(emails.webhookFailedEmail("no key")).not.toContain("Detail:");
   });
 
+  describe("signature alert", () => {
+    const html = (opts) =>
+      emails.signatureFailedEmail("signature verification failed", "<d>", opts);
+
+    // A refused signature answers 500 and Paystack retries it, so this alert
+    // must not send the admin to mark the invoice paid by hand.
+    it("tells the admin to wait for Paystack's retry, not to mark paid by hand", () => {
+      const live = html({ mode: "live" });
+      expect(live).not.toContain("mark the invoice paid by hand");
+      expect(live).toContain("Do not mark invoices paid by hand while Paystack is still retrying.");
+      expect(live).toContain(
+        "In live mode Paystack keeps retrying each charge for about 72 hours after its first failed delivery.",
+      );
+      expect(live).toContain("Only after that, record by hand any payment that is still missing.");
+    });
+
+    it("asks whether the failed deliveries are live or test mode", () => {
+      expect(html({ mode: "live" })).toContain(
+        "check whether the failed deliveries are in live or test mode",
+      );
+      expect(html({ mode: "live" })).toContain("test-mode webhook URL points at this site");
+    });
+
+    it("says how many failures were held back since the last alert", () => {
+      const note = /more signature failures? since the last alert/;
+      expect(html({ mode: "test" })).not.toMatch(note);
+      expect(html({ mode: "test", heldBack: 1 })).toContain(
+        "1 more signature failure since the last alert was only logged.",
+      );
+      expect(html({ mode: "test", heldBack: 37 })).toContain(
+        "37 more signature failures since the last alert were only logged.",
+      );
+    });
+
+    it("escapes the detail", () => {
+      expect(html({ mode: "live" })).toContain("Detail: &lt;d&gt;");
+    });
+  });
+
   describe("Paystack retry window", () => {
     const CHARGED = Date.parse("2026-10-20T09:15:00.000Z");
     const untracked = (window) => emails.webhookUntrackedEmail("r", "d", window);

@@ -754,7 +754,7 @@ describe("paystack-webhook under WRITE_HOLD", () => {
   it("still rejects and reports a bad signature, with a 500 so Paystack retries", async () => {
     expect((await run(signed(chargeOf(), "sk_test_other"))).status).toBe(500);
     expect(sent.map((m) => m.subject)).toEqual([
-      "Action needed: a Paystack webhook was not processed",
+      "Action needed: a Paystack webhook signature could not be verified",
     ]);
   });
 });

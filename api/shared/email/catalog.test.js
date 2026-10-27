@@ -37,6 +37,7 @@ describe("email catalog", () => {
       "invoicePaidReceipt",
       "invoicePaidAlert",
       "webhookFailed",
+      "webhookSignature",
       "webhookRetry",
       "webhookUntracked",
       "webhookEscalation",

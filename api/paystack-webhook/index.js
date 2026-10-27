@@ -35,6 +35,7 @@ const {
   recordedConflictEmail,
   webhookEscalationEmail,
   invalidSettingEmail,
+  signatureFailedEmail,
   clientReceiptEmail,
   adminPaymentEmail,
 } = require("./emails");
@@ -471,18 +472,12 @@ module.exports = async function (context, req) {
           // Taken before the send so failures held back while it is in
           // flight are kept for the next alert.
           const held = heldBackFailures;
-          const heldNote = held
-            ? ` ${held} more signature ${held === 1 ? "failure" : "failures"} since the last alert ${held === 1 ? "was" : "were"} only logged.`
-            : "";
           const sent = await sendEmail(
             resendKey,
             fromEmail,
             adminEmail,
-            "Action needed: a Paystack webhook was not processed",
-            webhookFailedEmail(
-              reason,
-              `${detail}${heldNote} Further mismatches in the next hour are only logged.`,
-            ),
+            "Action needed: a Paystack webhook signature could not be verified",
+            signatureFailedEmail(reason, detail, { mode: keyMode, heldBack: held }),
             context.log,
           );
           if (sent) heldBackFailures -= held;

@@ -11,7 +11,7 @@ const quoteService = require("../shared/quotes/service.js");
 const handler = require("./index.js");
 
 const HOUR = 60 * 60 * 1000;
-const SUBJECT = "Action needed: a Paystack webhook was not processed";
+const SUBJECT = "Action needed: a Paystack webhook signature could not be verified";
 const WRONG_SIG = { "x-paystack-signature": "ab".repeat(64) };
 
 // Records every email attempt instead of calling Resend. Push statuses onto
@@ -130,7 +130,17 @@ describe("paystack-webhook with an unverified request", () => {
       "If Paystack Dashboard → Settings → Webhooks shows failed deliveries, the key or mode is wrong and real payments are not being recorded; otherwise it was a forged request.",
     );
     expect(sent[0].html).not.toContain("ignore it");
-    expect(sent[0].html).toContain("Further mismatches in the next hour are only logged.");
+    // Paystack retries a 500, so marking paid by hand would record the
+    // charge twice and send a second receipt.
+    expect(sent[0].html).not.toContain("mark the invoice paid by hand");
+    expect(sent[0].html).toContain(
+      "Do not mark invoices paid by hand while Paystack is still retrying.",
+    );
+    expect(sent[0].html).toContain(
+      "In test mode Paystack retries each charge hourly for about 10 hours.",
+    );
+    expect(sent[0].html).toContain("check whether the failed deliveries are in live or test mode");
+    expect(sent[0].html).toContain("Later failures are only logged");
 
     for (let i = 0; i < 5; i++) {
       now += 60 * 1000;
