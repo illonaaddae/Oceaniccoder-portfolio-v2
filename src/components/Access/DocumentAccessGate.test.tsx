@@ -145,6 +145,32 @@ describe.each([
   });
 });
 
+// The server's words for each kind (shared/invoices/access.js,
+// shared/receipts/access.js): Reset access keeps an invoice's link, so the
+// invoice text doesn't promise a new one.
+describe.each([
+  [
+    "quote",
+    "Too many wrong codes were entered on this link, so no more codes will be sent. Contact hello@oceaniccoder.dev for a new link.",
+  ],
+  [
+    "invoice",
+    "Too many wrong codes were entered on this link, so no more codes will be sent. Contact hello@oceaniccoder.dev to open it.",
+  ],
+  [
+    "receipt",
+    "Too many wrong codes were entered on this quote's links, so no more codes will be sent. Contact hello@oceaniccoder.dev to open it.",
+  ],
+] as const)("DocumentAccessGate blocked for a %s", (kind, text) => {
+  it("says what to do in that kind's words", async () => {
+    const target = fakeTarget(kind);
+    target.status.mockResolvedValue({ ...LOCKED, blocked: true });
+    setup(target);
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(target.send).not.toHaveBeenCalled();
+  });
+});
+
 describe("DocumentAccessGate across kinds", () => {
   it("doesn't take a quote's saved challenge for another document with the same key", async () => {
     const target = fakeTarget("invoice", "shared-key");
