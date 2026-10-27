@@ -336,6 +336,10 @@
   .ai-journey .ai-journey__card * {
     animation: none;
   }
+  /* Nothing moves, so there is nothing to pause. */
+  .ai-journey__toggle {
+    display: none;
+  }
   .aij-signal {
     stroke-dasharray: none;
     stroke-opacity: 0.4;

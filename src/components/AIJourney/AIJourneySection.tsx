@@ -59,7 +59,7 @@ const AIJourneySection: React.FC = () => {
           </p>
         </div>
 
-        <div className="ai-journey__card relative rounded-3xl p-4 sm:p-8">
+        <div className="ai-journey__card relative rounded-3xl p-4 pt-14 sm:p-8">
           <button
             type="button"
             className="ai-journey__toggle"
