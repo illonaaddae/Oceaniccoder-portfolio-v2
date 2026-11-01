@@ -294,7 +294,7 @@ function WealthProjection({ state }: { state: FinanceState }) {
       </dl>
       <div className="h-48" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={series} margin={{ left: 8, right: 8, top: 4, bottom: 0 }}>
+          <AreaChart data={series} margin={{ left: 8, right: 24, top: 4, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
             <XAxis
               dataKey="month"
@@ -304,6 +304,7 @@ function WealthProjection({ state }: { state: FinanceState }) {
             <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} width={56} />
             <Tooltip formatter={(v: number) => cedis(Math.round(v * 100))} />
             <Area
+              isAnimationActive={false}
               type="monotone"
               dataKey="cedis"
               stroke="var(--accent-teal)"

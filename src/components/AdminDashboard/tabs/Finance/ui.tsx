@@ -214,7 +214,11 @@ export function Button({
   label?: string;
 }) {
   const styles: Record<string, React.CSSProperties> = {
-    primary: { background: "var(--accent-teal)", color: "#fff", borderColor: "var(--accent-teal)" },
+    primary: {
+      background: "var(--accent-teal)",
+      color: "var(--bg-primary)",
+      borderColor: "var(--accent-teal)",
+    },
     secondary: { borderColor: "var(--border-subtle)", color: "var(--text-primary)" },
     danger: { borderColor: "var(--status-failed-border)", color: "var(--status-failed-text)" },
   };

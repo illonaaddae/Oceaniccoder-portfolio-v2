@@ -10,7 +10,7 @@ import {
   plannedInto,
   wealthStreak,
 } from "@/utils/finance/ledger";
-import { progress, projectedMonth } from "@/utils/finance/projection";
+import { progress, projectedMonth, shortfallByDate } from "@/utils/finance/projection";
 import type { FinanceState } from "./useFinance";
 import { Card, ProgressBar, Stat, cedis, monthLabel, muted, strong } from "./ui";
 
@@ -19,6 +19,13 @@ function FundLine({ fund, balance, month }: { fund: Fund; balance: number; month
     fund.targetMinor > 0
       ? projectedMonth(balance, fund.monthlyMinor, fund.targetMinor, month)
       : null;
+  const short = shortfallByDate(
+    balance,
+    fund.monthlyMinor,
+    fund.targetMinor,
+    fund.targetDate,
+    month,
+  );
   return (
     <li className="py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -48,6 +55,14 @@ function FundLine({ fund, balance, month }: { fund: Fund; balance: number; month
                 ? `At ${cedis(fund.monthlyMinor)} a month: ${monthLabel(reach)}`
                 : "No monthly amount set, so no finish date"}
           </p>
+          {short !== null && short > 0 && (
+            <p
+              className="mt-0.5 text-xs font-semibold"
+              style={{ color: "var(--status-pending-text)" }}
+            >
+              {cedis(short)} short by {fund.targetDate} at this pace
+            </p>
+          )}
         </div>
       )}
     </li>

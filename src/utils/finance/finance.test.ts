@@ -13,7 +13,13 @@ import {
   netSavedInto,
   wealthStreak,
 } from "./ledger";
-import { monthsToTarget, neededPerMonth, progress, projectedMonth } from "./projection";
+import {
+  monthsToTarget,
+  neededPerMonth,
+  progress,
+  projectedMonth,
+  shortfallByDate,
+} from "./projection";
 
 let seq = 0;
 const stamp = { scope: "me" as const, createdAt: "", updatedAt: "" };
@@ -178,8 +184,11 @@ describe("projection", () => {
     expect(projectedMonth(100, 50, 300, "2026-11")).toBe("2027-02");
   });
 
-  it("works out the monthly amount needed by a target date, counting this month", () => {
-    expect(neededPerMonth(0, 1200, "2027-04-28", "2026-11")).toBe(200);
+  it("works out the monthly amount needed, counting this month but not the target month", () => {
+    // Nov to Mar: five contributions before an April date.
+    expect(neededPerMonth(0, 1200, "2027-04-28", "2026-11")).toBe(240);
+    // Due this month: everything still missing is needed now.
+    expect(neededPerMonth(300, 1200, "2026-11-30", "2026-11")).toBe(900);
     expect(neededPerMonth(0, 1200, "2026-10-01", "2026-11")).toBeNull();
     expect(neededPerMonth(5000, 1200, "2027-04-28", "2026-11")).toBe(0);
   });
@@ -188,5 +197,15 @@ describe("projection", () => {
     expect(progress(150, 100)).toBe(1);
     expect(progress(-5, 100)).toBe(0);
     expect(progress(5, 0)).toBe(0);
+  });
+});
+
+describe("shortfall by date", () => {
+  it("never counts on a contribution in the due month itself", () => {
+    // Rent due early January: only the November and December savings arrive in time.
+    expect(shortfallByDate(450, 100, 1000, "2027-01-01", "2026-11")).toBe(350);
+    expect(shortfallByDate(450, 300, 1000, "2027-01-01", "2026-11")).toBe(0);
+    expect(shortfallByDate(450, 100, 1000, "", "2026-11")).toBeNull();
+    expect(shortfallByDate(450, 100, 1000, "2026-10-01", "2026-11")).toBeNull();
   });
 });
