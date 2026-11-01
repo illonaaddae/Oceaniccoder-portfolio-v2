@@ -121,7 +121,7 @@ function parseFund(input) {
     institution: text(input.institution, "Held at", 60),
     notes: text(input.notes, "Notes", 500),
     archived: input.archived === true,
-    sort: Number.isInteger(input.sort) ? input.sort : 0,
+    sort: Number.isInteger(input.sort) && Math.abs(input.sort) <= 10_000 ? input.sort : 0,
     items,
   };
 }
@@ -214,13 +214,19 @@ function checkTxnAgainstLedger(txn, funds, others) {
 }
 
 /**
- * Refuses deleting a transaction when that would leave a fund below zero
- * (for example the deposit that a later withdrawal relied on).
+ * Refuses deleting transactions when that would leave a fund they touch below
+ * zero (for example the deposit that a later withdrawal relied on). Funds the
+ * deleted transactions don't touch are not checked, so one bad balance can't
+ * block every unrelated delete.
  */
-function checkDeleteAgainstLedger(txnId, txns) {
-  const remaining = txns.filter((t) => t.id !== txnId);
-  for (const [, balance] of fundBalances(remaining)) {
-    if (balance < 0)
+function checkDeleteAgainstLedger(txnIds, txns) {
+  const ids = new Set(Array.isArray(txnIds) ? txnIds : [txnIds]);
+  const touched = new Set(
+    txns.filter((t) => ids.has(t.id)).flatMap((t) => [t.fundId, t.toFundId].filter(Boolean)),
+  );
+  const remaining = txns.filter((t) => !ids.has(t.id));
+  for (const [fundId, balance] of fundBalances(remaining)) {
+    if (touched.has(fundId) && balance < 0)
       throw new HttpError(
         409,
         "Deleting this would leave a fund below zero. Delete the later withdrawal first.",

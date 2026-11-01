@@ -37,6 +37,20 @@ async function saveFund(repo, input, now) {
   if (!input.id) return { fund: await repo.create(stamp({ kind: "fund", ...fields }, now)) };
   const docs = await repo.listAll();
   const existing = findOrThrow(docs, "fund", M.id(input.id, "Fund"));
+  const { txns } = byKind(docs);
+  const hasHistory = txns.some((t) => t.fundId === existing.id || t.toFundId === existing.id);
+  // A fund's group decides which totals its past counts in (saved to wealth,
+  // savings rate, streak), so changing it would rewrite history.
+  if (fields.group !== existing.group && hasHistory)
+    throw new HttpError(
+      409,
+      "This fund has history, so its kind can't change. Create a new fund instead.",
+    );
+  // Archived funds drop out of the cards and projections; with money still in
+  // them the totals on screen would disagree.
+  const balance = M.fundBalances(txns).get(existing.id) ?? 0;
+  if (fields.archived && !existing.archived && balance !== 0)
+    throw new HttpError(409, "Move the money out of this fund before archiving it.");
   return { fund: await repo.replace(touch(existing, fields, now)) };
 }
 
@@ -69,8 +83,11 @@ async function deleteTxn(repo, input) {
   const txn = findOrThrow(docs, "txn", txnId);
   const { txns, expected } = byKind(docs);
   if (expected.some((e) => e.receivedTxnIds?.includes(txnId)))
-    throw new HttpError(409, "This came from a received payment. Undo it from Expected income.");
-  M.checkDeleteAgainstLedger(txn.id, txns);
+    throw new HttpError(
+      409,
+      "This came from a received payment. Use Undo on it under Expected instead.",
+    );
+  M.checkDeleteAgainstLedger([txn.id], txns);
   await repo.remove(txnId);
   return { deleted: txnId };
 }
@@ -139,15 +156,18 @@ async function receiveExpected(repo, input, now) {
   const depositFundId = input.depositFundId ? M.id(input.depositFundId, "Fund") : "";
   const { funds, txns } = byKind(docs);
 
+  // Ids derived from the expected item: a second, overlapping receive creates
+  // the same ids, so its batch fails instead of recording the money twice.
   const income = stamp(
     {
+      id: `rcv-${existing.id}`,
       kind: "txn",
       type: "income",
       date: receivedOn,
       amountMinor,
       fundId: "",
       toFundId: "",
-      category: M.text(input.category, "Category", 40) || "Freelance",
+      category: M.text(input.category, "Category", 40) || "Other",
       note: existing.source,
     },
     now,
@@ -156,6 +176,7 @@ async function receiveExpected(repo, input, now) {
   if (depositFundId) {
     const deposit = stamp(
       {
+        id: `rcvd-${existing.id}`,
         kind: "txn",
         type: "deposit",
         date: receivedOn,
@@ -172,11 +193,36 @@ async function receiveExpected(repo, input, now) {
   }
   const updated = touch(
     existing,
-    { status: "received", receivedOn, receivedTxnIds: create.map((t) => t.id) },
+    {
+      status: "received",
+      receivedOn,
+      receivedMinor: amountMinor,
+      receivedTxnIds: create.map((t) => t.id),
+    },
     now,
   );
   await repo.batch({ create, replace: [updated] });
   return { expected: updated, txns: create };
+}
+
+/**
+ * Undoes a receive, for when the amount, date or fund was wrong: removes its
+ * income and deposit and puts the item back to expected, in one batch.
+ */
+async function unreceiveExpected(repo, input, now) {
+  const docs = await repo.listAll();
+  const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
+  if (existing.status !== "received") throw new HttpError(409, "This hasn't been received.");
+  const { txns } = byKind(docs);
+  const ids = (existing.receivedTxnIds || []).filter((txnId) => txns.some((t) => t.id === txnId));
+  M.checkDeleteAgainstLedger(ids, txns);
+  const updated = touch(
+    existing,
+    { status: "expected", receivedOn: "", receivedMinor: null, receivedTxnIds: [] },
+    now,
+  );
+  await repo.batch({ replace: [updated], remove: ids });
+  return { expected: updated };
 }
 
 module.exports = {
@@ -190,4 +236,5 @@ module.exports = {
   saveExpected,
   setExpectedStatus,
   receiveExpected,
+  unreceiveExpected,
 };

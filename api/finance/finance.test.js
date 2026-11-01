@@ -269,4 +269,129 @@ describe("/api/finance", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("records overlapping receives of the same payment only once", async () => {
+    const { call } = setup();
+    const fund = await makeFund(call, { name: "Laptop", group: "goal" });
+    const exp = await call({ action: "saveExpected", source: "Client", amountMinor: 5000 });
+    const body = {
+      action: "receiveExpected",
+      id: exp.body.expected.id,
+      amountMinor: 5000,
+      date: "2026-12-01",
+      depositFundId: fund.id,
+    };
+    const results = await Promise.all([call(body), call(body)]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    const { txns } = (await call({ action: "list" })).body;
+    expect(txns).toHaveLength(2);
+  });
+
+  it("undoes a receive so a wrong amount can be corrected", async () => {
+    const { call } = setup();
+    const fund = await makeFund(call, { name: "Laptop", group: "goal" });
+    const exp = await call({
+      action: "saveExpected",
+      source: "Client",
+      amountMinor: 5000,
+      depositFundId: fund.id,
+    });
+    const id = exp.body.expected.id;
+    await call({
+      action: "receiveExpected",
+      id,
+      amountMinor: 4000,
+      date: "2026-12-01",
+      depositFundId: fund.id,
+      category: "Bonus",
+    });
+    let data = (await call({ action: "list" })).body;
+    expect(data.expected[0]).toMatchObject({ status: "received", receivedMinor: 4000 });
+    expect(data.txns.find((t) => t.type === "income").category).toBe("Bonus");
+
+    expect((await call({ action: "unreceiveExpected", id })).status).toBe(200);
+    data = (await call({ action: "list" })).body;
+    expect(data.txns).toHaveLength(0);
+    expect(data.expected[0]).toMatchObject({ status: "expected", receivedTxnIds: [] });
+    expect(
+      (await call({ action: "receiveExpected", id, amountMinor: 5000, date: "2026-12-02" })).status,
+    ).toBe(200);
+  });
+
+  it("won't undo a receive whose deposit was already spent", async () => {
+    const { call } = setup();
+    const fund = await makeFund(call, { name: "Laptop", group: "goal" });
+    const exp = await call({ action: "saveExpected", source: "Client", amountMinor: 5000 });
+    await call({
+      action: "receiveExpected",
+      id: exp.body.expected.id,
+      amountMinor: 5000,
+      date: "2026-12-01",
+      depositFundId: fund.id,
+    });
+    await call({
+      action: "addTxn",
+      type: "fund_spend",
+      date: "2026-12-02",
+      amountMinor: 5000,
+      fundId: fund.id,
+    });
+    expect((await call({ action: "unreceiveExpected", id: exp.body.expected.id })).status).toBe(
+      409,
+    );
+  });
+
+  it("won't archive a fund that still holds money, or change the kind of a fund with history", async () => {
+    const { call } = setup();
+    const fund = await makeFund(call);
+    await call({
+      action: "addTxn",
+      type: "deposit",
+      date: "2026-11-05",
+      amountMinor: 100,
+      fundId: fund.id,
+    });
+    const archive = await call({
+      action: "saveFund",
+      id: fund.id,
+      name: "Savings",
+      group: "wealth",
+      archived: true,
+    });
+    expect(archive.status).toBe(409);
+    const regroup = await call({ action: "saveFund", id: fund.id, name: "Savings", group: "goal" });
+    expect(regroup.status).toBe(409);
+    expect(
+      (await call({ action: "saveFund", id: fund.id, name: "Renamed", group: "wealth" })).status,
+    ).toBe(200);
+  });
+
+  it("only checks the funds a delete touches", async () => {
+    const neg = {
+      id: "neg",
+      scope: "me",
+      kind: "txn",
+      type: "withdrawal",
+      date: "2026-11-01",
+      amountMinor: 50,
+      fundId: "f-bad",
+      toFundId: "",
+      category: "",
+      note: "",
+    };
+    const spend = {
+      id: "spend",
+      scope: "me",
+      kind: "txn",
+      type: "expense",
+      date: "2026-11-02",
+      amountMinor: 10,
+      fundId: "",
+      toFundId: "",
+      category: "Food",
+      note: "",
+    };
+    const { call } = setup({ docs: [neg, spend] });
+    expect((await call({ action: "deleteTxn", id: "spend" })).status).toBe(200);
+  });
 });

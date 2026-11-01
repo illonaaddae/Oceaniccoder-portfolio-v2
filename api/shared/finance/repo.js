@@ -10,6 +10,7 @@
 // on first use if missing.
 
 const { createClient, newId } = require("../cosmos");
+const { HttpError } = require("../http");
 const { SCOPE } = require("./model");
 
 const DATABASE_ID = "personal";
@@ -28,6 +29,8 @@ function getContainer() {
     });
   return containerPromise;
 }
+
+const CONFLICT = new HttpError(409, "That was already recorded. Refresh to see the latest.");
 
 function strip(doc) {
   const { _rid, _self, _etag, _attachments, _ts, ...rest } = doc;
@@ -68,15 +71,23 @@ function createCosmosFinanceRepo() {
       const container = await getContainer();
       await container.item(id, SCOPE).delete();
     },
-    /** Creates and replaces in one all-or-nothing batch. */
-    async batch({ create = [], replace = [] }) {
+    /**
+     * Creates, replaces and deletes in one all-or-nothing batch. A create whose
+     * id already exists fails the whole batch with 409, which is what stops the
+     * same expected income being received twice by overlapping requests.
+     */
+    async batch({ create = [], replace = [], remove = [] }) {
       const container = await getContainer();
       const operations = [
         ...create.map((doc) => ({ operationType: "Create", resourceBody: doc })),
         ...replace.map((doc) => ({ operationType: "Replace", id: doc.id, resourceBody: doc })),
+        ...remove.map((id) => ({ operationType: "Delete", id })),
       ];
       const response = await container.items.batch(operations, SCOPE);
-      const failed = (response.result || []).find((r) => r.statusCode >= 400);
+      const failed = (response.result || []).find(
+        (r) => r.statusCode >= 400 && r.statusCode !== 424,
+      );
+      if (failed?.statusCode === 409) throw CONFLICT;
       if (failed) throw new Error(`Finance batch failed with status ${failed.statusCode}`);
     },
   };
@@ -103,10 +114,11 @@ function createFakeFinanceRepo(initial = []) {
     async remove(id) {
       docs.delete(id);
     },
-    async batch({ create = [], replace = [] }) {
-      if (create.some((d) => docs.has(d.id)) || replace.some((d) => !docs.has(d.id)))
-        throw new Error("batch failed");
+    async batch({ create = [], replace = [], remove = [] }) {
+      if (create.some((d) => docs.has(d.id))) throw CONFLICT;
+      if (replace.some((d) => !docs.has(d.id))) throw new Error("batch failed");
       for (const d of [...create, ...replace]) docs.set(d.id, structuredClone(d));
+      for (const id of remove) docs.delete(id);
     },
   };
 }
