@@ -170,11 +170,7 @@ export function BudgetView({ state }: { state: FinanceState }) {
     return (
       <Card title={editing === "new" ? "New plan" : "Edit plan"}>
         <BudgetEditor
-          base={
-            editing === "new" && budget
-              ? { ...budget, month: addMonths(currentMonth(), 1) }
-              : budget
-          }
+          base={editing === "new" && budget ? { ...budget, month: addMonths(month, 1) } : budget}
           state={state}
           onDone={() => setEditing("no")}
         />
@@ -213,7 +209,7 @@ export function BudgetView({ state }: { state: FinanceState }) {
           {budget ? "Edit this plan" : "Create a plan"}
         </Button>
         {budget && (
-          <Button onClick={() => setEditing("new")}>Start a new plan from next month</Button>
+          <Button onClick={() => setEditing("new")}>Start a new plan from the month after</Button>
         )}
       </div>
 

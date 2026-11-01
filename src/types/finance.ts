@@ -80,6 +80,8 @@ export interface ExpectedIncome extends Stamped {
   depositFundId: string;
   status: ExpectedStatus;
   receivedOn?: string;
+  /** What actually arrived, which can differ from `amountMinor`. */
+  receivedMinor?: number | null;
   receivedTxnIds: string[];
 }
 

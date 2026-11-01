@@ -3,6 +3,7 @@ import type { Budget, Fund, Txn, TxnType } from "@/types/finance";
 import {
   activeBudget,
   addMonths,
+  contributedInto,
   cashBalance,
   dailyEquivalent,
   essentialsOf,
@@ -14,6 +15,7 @@ import {
   wealthStreak,
 } from "./ledger";
 import {
+  contributionSeries,
   monthsToTarget,
   neededPerMonth,
   progress,
@@ -207,5 +209,35 @@ describe("shortfall by date", () => {
     expect(shortfallByDate(450, 300, 1000, "2027-01-01", "2026-11")).toBe(0);
     expect(shortfallByDate(450, 100, 1000, "", "2026-11")).toBeNull();
     expect(shortfallByDate(450, 100, 1000, "2026-10-01", "2026-11")).toBeNull();
+  });
+});
+
+describe("this month's deposit is never counted twice", () => {
+  // November, rent of 1,000 due 1 January, 100 a month, 450 held before November's deposit.
+  it("gives the same shortfall before and after the November deposit", () => {
+    expect(shortfallByDate(450, 100, 1000, "2027-01-01", "2026-11", 0)).toBe(350);
+    expect(shortfallByDate(550, 100, 1000, "2027-01-01", "2026-11", 100)).toBe(350);
+  });
+
+  it("asks December to cover everything once November is funded", () => {
+    expect(neededPerMonth(550, 1000, "2027-01-01", "2026-11", 100)).toBe(450);
+  });
+
+  it("doesn't move the finish month earlier after an on-time deposit", () => {
+    expect(projectedMonth(0, 100, 300, "2026-11", 0)).toBe("2027-01");
+    expect(projectedMonth(100, 100, 300, "2026-11", 100)).toBe("2027-01");
+    expect(contributionSeries(100, 100, 2, 100)).toEqual([100, 100, 200]);
+  });
+});
+
+describe("paying from a fund is not un-saving", () => {
+  it("keeps a rent line's actual at what was put in, even in the month rent is paid", () => {
+    const txns = [
+      txn("deposit", "2027-01-25", 1000, { fundId: "rent" }),
+      txn("fund_spend", "2027-01-26", 12000, { fundId: "rent" }),
+    ];
+    const line = { id: "r", label: "Rent", amountMinor: 1000, fundId: "rent" };
+    expect(lineActual(line, txns, "2027-01")).toBe(1000);
+    expect(contributedInto(txns, new Set(["rent"]), "2027-01")).toBe(1000);
   });
 });

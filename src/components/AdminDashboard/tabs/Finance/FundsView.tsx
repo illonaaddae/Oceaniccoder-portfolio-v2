@@ -10,13 +10,14 @@ import {
 } from "recharts";
 import type { Fund, TxnType } from "@/types/finance";
 import { financeApi } from "@/services/api/finance";
-import { addMonths, currentMonth, today } from "@/utils/finance/ledger";
+import { addMonths, contributedInto, currentMonth, today } from "@/utils/finance/ledger";
 import {
   contributionSeries,
   neededPerMonth,
   progress,
   projectedMonth,
 } from "@/utils/finance/projection";
+import { useConfirm } from "../../ConfirmContext";
 import type { FinanceState } from "./useFinance";
 import { FundForm, GROUP_OPTIONS } from "./FundForm";
 import {
@@ -60,6 +61,7 @@ function MoveMoneyForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const amountMinor = inputToMinor(amount);
+    if (amountMinor === null) return setError("Amounts must be numbers like 300 or 1,250.50.");
     if (!amountMinor) return setError("Enter an amount more than zero.");
     setSaving(true);
     setError(null);
@@ -104,10 +106,12 @@ function MoveMoneyForm({
 function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
   const [mode, setMode] = useState<"view" | "move" | "edit" | "history">("view");
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
   const month = currentMonth();
   const balance = state.balances.get(fund.id) ?? 0;
-  const reach = projectedMonth(balance, fund.monthlyMinor, fund.targetMinor, month);
-  const needed = neededPerMonth(balance, fund.targetMinor, fund.targetDate, month);
+  const saved = contributedInto(state.data.txns, new Set([fund.id]), month);
+  const reach = projectedMonth(balance, fund.monthlyMinor, fund.targetMinor, month, saved);
+  const needed = neededPerMonth(balance, fund.targetMinor, fund.targetDate, month, saved);
   const history = state.data.txns
     .filter((t) => t.fundId === fund.id || t.toFundId === fund.id)
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
@@ -117,6 +121,21 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
       await state.mutate(() => financeApi.saveFund({ ...fund, archived }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update the fund.");
+    }
+  }
+
+  async function remove() {
+    const ok = await confirm({
+      message: `Delete ${fund.name}?`,
+      description: "It has no history, so nothing else changes.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
+    try {
+      await state.mutate(() => financeApi.deleteFund(fund.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't delete the fund.");
     }
   }
 
@@ -257,6 +276,11 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
           <Button onClick={() => setArchived(!fund.archived)}>
             {fund.archived ? "Restore" : "Archive"}
           </Button>
+          {history.length === 0 && (
+            <Button variant="danger" onClick={() => void remove()}>
+              Delete
+            </Button>
+          )}
         </div>
       )}
     </Card>
@@ -267,16 +291,19 @@ const HORIZONS = [12, 36, 60];
 
 /** Personal wealth if the plan holds: today's balance plus monthly contributions, no returns. */
 function WealthProjection({ state }: { state: FinanceState }) {
-  const wealth = state.activeFunds.filter((f) => f.group === "wealth");
+  const { activeFunds, balances } = state;
+  const txns = state.data.txns;
   const start = currentMonth();
+  const wealth = useMemo(() => activeFunds.filter((f) => f.group === "wealth"), [activeFunds]);
   const series = useMemo(() => {
-    const balance = wealth.reduce((acc, f) => acc + (state.balances.get(f.id) ?? 0), 0);
+    const balance = wealth.reduce((acc, f) => acc + (balances.get(f.id) ?? 0), 0);
     const monthly = wealth.reduce((acc, f) => acc + f.monthlyMinor, 0);
-    return contributionSeries(balance, monthly, 60).map((minor, i) => ({
+    const saved = contributedInto(txns, new Set(wealth.map((f) => f.id)), start);
+    return contributionSeries(balance, monthly, 60, saved).map((minor, i) => ({
       month: monthLabel(addMonths(start, i)),
       cedis: minor / 100,
     }));
-  }, [start, state.balances, wealth]);
+  }, [balances, start, txns, wealth]);
   if (wealth.length === 0) return null;
   return (
     <Card title="Personal wealth if you keep the plan">

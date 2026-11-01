@@ -95,6 +95,20 @@ export function netSavedInto(txns: Txn[], fundIds: Set<string>, month: string): 
   return net;
 }
 
+/**
+ * Money put into the given funds in a month, as a contribution: like
+ * netSavedInto, but paying for something from the fund (rent from the rent
+ * fund, the laptop from its goal) is the fund doing its job, not un-saving, so
+ * it is left out. Used for plan-vs-actual and goal projections.
+ */
+export function contributedInto(txns: Txn[], fundIds: Set<string>, month: string): number {
+  return netSavedInto(
+    txns.filter((t) => t.type !== "fund_spend"),
+    fundIds,
+    month,
+  );
+}
+
 export function idsOf(funds: Fund[], group?: FundGroup): Set<string> {
   return new Set(funds.filter((f) => !group || f.group === group).map((f) => f.id));
 }
@@ -136,7 +150,7 @@ export function activeBudget(budgets: Budget[], month: string): Budget | null {
  * the same category as the line's label.
  */
 export function lineActual(line: BudgetLine, txns: Txn[], month: string): number {
-  if (line.fundId) return netSavedInto(txns, new Set([line.fundId]), month);
+  if (line.fundId) return contributedInto(txns, new Set([line.fundId]), month);
   return inMonth(txns, month)
     .filter((t) => (t.type === "expense" || t.type === "fund_spend") && t.category === line.label)
     .reduce((acc, t) => acc + t.amountMinor, 0);

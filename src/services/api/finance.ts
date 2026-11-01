@@ -62,4 +62,6 @@ export const financeApi = {
     depositFundId: string;
     category?: string;
   }) => call<{ expected: ExpectedIncome; txns: Txn[] }>("receiveExpected", input),
+  unreceiveExpected: (id: string) =>
+    call<{ expected: ExpectedIncome }>("unreceiveExpected", { id }),
 };

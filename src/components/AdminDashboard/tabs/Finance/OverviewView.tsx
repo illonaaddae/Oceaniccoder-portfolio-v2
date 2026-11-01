@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { Fund, FundGroup } from "@/types/finance";
 import {
   activeBudget,
+  contributedInto,
   currentMonth,
   dailyEquivalent,
   essentialsOf,
@@ -14,10 +15,20 @@ import { progress, projectedMonth, shortfallByDate } from "@/utils/finance/proje
 import type { FinanceState } from "./useFinance";
 import { Card, ProgressBar, Stat, cedis, monthLabel, muted, strong } from "./ui";
 
-function FundLine({ fund, balance, month }: { fund: Fund; balance: number; month: string }) {
+function FundLine({
+  fund,
+  balance,
+  month,
+  savedThisMonth,
+}: {
+  fund: Fund;
+  balance: number;
+  month: string;
+  savedThisMonth: number;
+}) {
   const reach =
     fund.targetMinor > 0
-      ? projectedMonth(balance, fund.monthlyMinor, fund.targetMinor, month)
+      ? projectedMonth(balance, fund.monthlyMinor, fund.targetMinor, month, savedThisMonth)
       : null;
   const short = shortfallByDate(
     balance,
@@ -25,6 +36,7 @@ function FundLine({ fund, balance, month }: { fund: Fund; balance: number; month
     fund.targetMinor,
     fund.targetDate,
     month,
+    savedThisMonth,
   );
   return (
     <li className="py-3 first:pt-0 last:pb-0">
@@ -100,7 +112,13 @@ function FundGroupCard({
       ) : (
         <ul className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
           {funds.map((f) => (
-            <FundLine key={f.id} fund={f} balance={state.balances.get(f.id) ?? 0} month={month} />
+            <FundLine
+              key={f.id}
+              fund={f}
+              balance={state.balances.get(f.id) ?? 0}
+              month={month}
+              savedThisMonth={contributedInto(state.data.txns, new Set([f.id]), month)}
+            />
           ))}
         </ul>
       )}

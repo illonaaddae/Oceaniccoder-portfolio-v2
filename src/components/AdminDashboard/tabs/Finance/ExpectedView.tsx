@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { ExpectedIncome } from "@/types/finance";
 import { financeApi } from "@/services/api/finance";
 import { today } from "@/utils/finance/ledger";
+import { useConfirm } from "../../ConfirmContext";
+import { INCOME_CATEGORIES } from "./TransactionsView";
 import type { FinanceState } from "./useFinance";
 import {
   Button,
@@ -44,6 +46,7 @@ function ExpectedForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const amountMinor = inputToMinor(amount);
+    if (amountMinor === null) return setError("Amounts must be numbers like 1200 or 1,200.50.");
     if (!amountMinor) return setError("Enter an amount more than zero.");
     setSaving(true);
     setError(null);
@@ -118,18 +121,20 @@ function ReceiveForm({
   const [amount, setAmount] = useState(minorToInput(item.amountMinor));
   const [date, setDate] = useState(today());
   const [depositFundId, setDepositFundId] = useState(item.depositFundId);
+  const [category, setCategory] = useState("Freelance");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const amountMinor = inputToMinor(amount);
+    if (amountMinor === null) return setError("Amounts must be numbers like 1200 or 1,200.50.");
     if (!amountMinor) return setError("Enter the amount that arrived.");
     setSaving(true);
     setError(null);
     try {
       await state.mutate(() =>
-        financeApi.receiveExpected({ id: item.id, amountMinor, date, depositFundId }),
+        financeApi.receiveExpected({ id: item.id, amountMinor, date, depositFundId, category }),
       );
       onDone();
     } catch (err) {
@@ -153,6 +158,12 @@ function ReceiveForm({
         />
         <TextField label="Arrived on" type="date" value={date} onChange={setDate} required />
         <Select
+          label="What it was"
+          value={category}
+          options={INCOME_CATEGORIES.map((c) => ({ value: c, label: c }))}
+          onChange={setCategory}
+        />
+        <Select
           label="Put it"
           value={depositFundId}
           options={fundChoices(state)}
@@ -173,12 +184,29 @@ function ReceiveForm({
 function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceState }) {
   const [mode, setMode] = useState<"view" | "edit" | "receive">("view");
   const fundName = state.data.funds.find((f) => f.id === item.depositFundId)?.name;
+  const confirm = useConfirm();
 
   async function setStatus(status: "expected" | "cancelled") {
     try {
       await state.mutate(() => financeApi.setExpectedStatus(item.id, status));
     } catch (err) {
       state.report(err, "Couldn't update it.");
+    }
+  }
+
+  async function undoReceive() {
+    const ok = await confirm({
+      message: `Undo receiving ${item.source}?`,
+      description:
+        "Its income and any deposit it made are removed, and it goes back to expected so you can record it again.",
+      confirmLabel: "Undo",
+      variant: "danger",
+    });
+    if (!ok) return;
+    try {
+      await state.mutate(() => financeApi.unreceiveExpected(item.id));
+    } catch (err) {
+      state.report(err, "Couldn't undo it.");
     }
   }
 
@@ -196,12 +224,16 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
           {item.source}
         </span>
         <span className="tabular-nums font-semibold" style={strong}>
-          {cedis(item.amountMinor)}
+          {cedis(
+            item.status === "received"
+              ? (item.receivedMinor ?? item.amountMinor)
+              : item.amountMinor,
+          )}
         </span>
       </div>
       <p className="text-xs" style={muted}>
         {item.status === "received"
-          ? `Received ${item.receivedOn}`
+          ? `Received ${item.receivedOn}${typeof item.receivedMinor === "number" && item.receivedMinor !== item.amountMinor ? ` · expected ${cedis(item.amountMinor)}` : ""}`
           : item.status === "cancelled"
             ? "Not coming"
             : `${item.expectedDate ? `Expected ${item.expectedDate}` : "No date yet"}${fundName ? ` · goes to ${fundName}` : ""}`}
@@ -221,6 +253,11 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
           </Button>
           <Button onClick={() => setMode("edit")}>Edit</Button>
           <Button onClick={() => void setStatus("cancelled")}>Not coming</Button>
+        </div>
+      )}
+      {item.status === "received" && (
+        <div className="mt-2">
+          <Button onClick={() => void undoReceive()}>Undo</Button>
         </div>
       )}
       {item.status === "cancelled" && (

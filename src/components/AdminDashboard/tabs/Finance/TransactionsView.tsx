@@ -28,7 +28,15 @@ export const TYPE_LABELS: Record<TxnType, string> = {
   opening: "Starting balance",
 };
 
-const INCOME_CATEGORIES = ["Salary", "Freelance", "Bonus", "Allowance", "Family", "Gift", "Other"];
+export const INCOME_CATEGORIES = [
+  "Salary",
+  "Freelance",
+  "Bonus",
+  "Allowance",
+  "Family",
+  "Gift",
+  "Other",
+];
 const NEEDS_FUND = new Set<TxnType>(["deposit", "withdrawal", "transfer", "fund_spend", "opening"]);
 const HAS_CATEGORY = new Set<TxnType>(["income", "expense", "fund_spend"]);
 
@@ -59,6 +67,7 @@ function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => void })
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const amountMinor = inputToMinor(amount);
+    if (amountMinor === null) return setError("Amounts must be numbers like 300 or 1,250.50.");
     if (!amountMinor) return setError("Enter an amount more than zero.");
     if (NEEDS_FUND.has(type) && !fundId) return setError("Create a fund first, under Funds.");
     setSaving(true);
