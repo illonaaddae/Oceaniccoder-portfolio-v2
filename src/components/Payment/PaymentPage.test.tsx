@@ -127,7 +127,7 @@ afterEach(() => {
 describe("PaymentPage", () => {
   it("sends the pay link's signature with the invoice lookup", async () => {
     const fetchMock = renderWith("/pay/INV-123456?s=abc_DEF-123", { ok: true, body: invoice });
-    expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+    expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
     expect(requested(fetchMock).get("number")).toBe("INV-123456");
     expect(requested(fetchMock).get("s")).toBe("abc_DEF-123");
     expect(requested(fetchMock).has("admin")).toBe(false);
@@ -212,7 +212,7 @@ describe("PaymentPage behind the access code", () => {
     await userEvent.type(screen.getByLabelText("6-digit code"), "123456");
     await userEvent.click(screen.getByRole("button", { name: "Open invoice" }));
 
-    expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+    expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Pay by Card" })).toBeInTheDocument();
     expect(accessCalls(fetchMock)).toEqual([
       { kind: "invoice", number: "INV-123456", s: "sig1", action: "status" },
@@ -237,7 +237,7 @@ describe("PaymentPage behind the access code", () => {
       },
     );
     renderAt("/pay/INV-200001?s=sig2");
-    expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+    expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
     expect(accessCalls(fetchMock)).toEqual([
       {
         kind: "invoice",
@@ -271,14 +271,14 @@ describe("PaymentPage behind the access code", () => {
 
       visibility = "visible";
       document.dispatchEvent(new Event("visibilitychange"));
-      expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+      expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
       expect(accessCalls(fetchMock).map((c) => c.action)).toEqual(["claim"]);
     });
 
     it("looks the invoice up at once when there's no link code to claim", async () => {
       const fetchMock = mockApi([{ status: 200, body: invoice }]);
       renderAt("/pay/INV-123456?s=abc");
-      expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+      expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
       expect(accessCalls(fetchMock)).toEqual([]);
     });
   });
@@ -382,7 +382,7 @@ describe("PaymentPage behind the access code", () => {
         { status: 200, body: { ...invoice, status: "sent", preview: true } },
       ]);
       renderAt("/pay/INV-400001?s=sig5&preview=admin");
-      expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+      expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
       expect(screen.getByRole("region", { name: "Preview" })).toHaveTextContent(
         /payment options are hidden/,
       );
@@ -396,7 +396,7 @@ describe("PaymentPage behind the access code", () => {
     it("hides the payment options whenever the server says it answered a preview", async () => {
       mockApi([{ status: 200, body: { ...invoice, status: "sent", preview: true } }]);
       renderAt("/pay/INV-400003?s=sig7");
-      expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+      expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
       expect(screen.getByRole("region", { name: "Preview" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Pay by Card" })).toBeNull();
     });
@@ -443,7 +443,7 @@ describe("PaymentPage inside the site layout", () => {
   it("shows no site chrome on the opened invoice, and one h1", async () => {
     mockApi([{ status: 200, body: { ...invoice, status: "sent" } }]);
     renderInLayout("/pay/INV-600001?s=sigL");
-    expect(await screen.findByText("Ama Owusu")).toBeInTheDocument();
+    expect(await screen.findByText("Ama Owusu", { selector: "p" })).toBeInTheDocument();
     expectNoSiteChrome();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Invoice INV-123456");
   });
