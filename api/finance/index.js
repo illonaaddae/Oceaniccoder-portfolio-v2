@@ -1,4 +1,4 @@
-// POST /api/finance — the owner's private finance ledger, behind the admin
+// POST /api/finance: the owner's private finance ledger, behind the admin
 // session. Nothing here is reachable from the public site or /api/data.
 
 const { requireAdmin } = require("../shared/adminAuth");
