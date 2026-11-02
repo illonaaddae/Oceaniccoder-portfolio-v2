@@ -1,9 +1,11 @@
 // Storage for personal finance records: the `finance` container in the
-// `personal` Cosmos database, kept apart from the site's `portfolio` database
-// so no public Function can ever read it (the `portfolio` one is also full at
-// 25 containers). Every record shares the partition key `/scope` = "me", so a
-// whole read is one single-partition query and related writes can go in one
-// transactional batch.
+// `personal` Cosmos database, apart from the site's `portfolio` database (also
+// full at 25 containers). Only /api/finance, behind the admin role, uses this
+// file; it is kept out of /api/data and every public code path. That is the
+// only thing keeping it private: the Functions share the account-wide
+// COSMOS_KEY, which can read every database on the account. Every record
+// shares the partition key `/scope` = "me", so a whole read is one
+// single-partition query and related writes can go in one transactional batch.
 //
 // The `personal` database (400 RU/s shared) is created by hand in the portal
 // or CLI, so its throughput is a deliberate choice; the container is created
