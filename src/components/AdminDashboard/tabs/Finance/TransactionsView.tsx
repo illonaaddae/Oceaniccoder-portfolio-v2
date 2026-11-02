@@ -236,24 +236,36 @@ export function TransactionsView({ state }: { state: FinanceState }) {
             Nothing recorded in {monthLabel(month)}.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
               <caption className="sr-only">Transactions in {monthLabel(month)}</caption>
               <thead>
                 <tr style={muted}>
-                  <th scope="col" className="py-2 text-left font-semibold">
+                  <th
+                    scope="col"
+                    className="px-2 py-2 first:pl-0 last:pr-0 text-left font-semibold"
+                  >
                     Date
                   </th>
-                  <th scope="col" className="py-2 text-left font-semibold">
+                  <th
+                    scope="col"
+                    className="px-2 py-2 first:pl-0 last:pr-0 text-left font-semibold"
+                  >
                     What
                   </th>
-                  <th scope="col" className="py-2 text-left font-semibold">
+                  <th
+                    scope="col"
+                    className="px-2 py-2 first:pl-0 last:pr-0 text-left font-semibold"
+                  >
                     Details
                   </th>
-                  <th scope="col" className="py-2 text-right font-semibold">
+                  <th
+                    scope="col"
+                    className="px-2 py-2 first:pl-0 last:pr-0 text-right font-semibold"
+                  >
                     Amount
                   </th>
-                  <th scope="col" className="py-2">
+                  <th scope="col" className="px-2 py-2 first:pl-0 last:pr-0">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -265,18 +277,21 @@ export function TransactionsView({ state }: { state: FinanceState }) {
                     className="border-t"
                     style={{ borderColor: "var(--border-subtle)" }}
                   >
-                    <td className="py-2 tabular-nums whitespace-nowrap" style={muted}>
+                    <td
+                      className="px-2 py-2 first:pl-0 last:pr-0 tabular-nums whitespace-nowrap"
+                      style={muted}
+                    >
                       {t.date}
                     </td>
-                    <td className="py-2" style={strong}>
+                    <td className="px-2 py-2 first:pl-0 last:pr-0" style={strong}>
                       {TYPE_LABELS[t.type]}
                     </td>
-                    <td className="py-2" style={muted}>
+                    <td className="px-2 py-2 first:pl-0 last:pr-0" style={muted}>
                       {describe(t, fundName)}
                       {t.note && <span className="block text-xs">{t.note}</span>}
                     </td>
                     <td
-                      className="py-2 text-right tabular-nums font-semibold whitespace-nowrap"
+                      className="px-2 py-2 first:pl-0 last:pr-0 text-right tabular-nums font-semibold whitespace-nowrap"
                       style={strong}
                     >
                       {CASH_IN.has(t.type) ? "+" : CASH_OUT.has(t.type) ? "−" : ""}
@@ -287,7 +302,7 @@ export function TransactionsView({ state }: { state: FinanceState }) {
                         </span>
                       )}
                     </td>
-                    <td className="py-2 pl-2 text-right">
+                    <td className="px-2 py-2 first:pl-0 last:pr-0 text-right">
                       <Button
                         variant="danger"
                         label={`Delete ${TYPE_LABELS[t.type]} of ${cedis(t.amountMinor)} on ${t.date}`}

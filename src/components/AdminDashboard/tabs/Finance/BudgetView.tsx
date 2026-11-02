@@ -226,7 +226,7 @@ export function BudgetView({ state }: { state: FinanceState }) {
         </Card>
       ) : (
         <Card title={`${monthLabel(month)} · plan from ${monthLabel(budget.month)}`}>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
               <caption className="sr-only">
                 Planned and actual amounts for {monthLabel(month)}
