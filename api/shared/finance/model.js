@@ -217,6 +217,10 @@ function checkTxnAgainstLedger(txn, funds, others) {
       409,
       `${byId.get(txn.fundId).name} already has history. Record a deposit instead.`,
     );
+  // Checks the fund's balance after every recorded transaction, whatever its
+  // date, not the balance as of this transaction's date. A backdated
+  // withdrawal can pass while the fund was short on that day, as long as a
+  // later deposit covers it.
   if (FUND_OUT_TYPES.has(txn.type)) {
     const balance = fundBalances(others).get(txn.fundId) ?? 0;
     if (txn.amountMinor > balance)
