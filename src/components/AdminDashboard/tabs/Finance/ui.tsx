@@ -228,6 +228,7 @@ export function DateField({
         }}
         theme={theme}
         labelId={id}
+        describedBy={hint ? `${id}-hint` : undefined}
         size="sm"
         placeholder="Pick a date"
       />
@@ -253,7 +254,14 @@ export function MonthField({
   return (
     <div className="flex flex-col gap-1">
       <FieldLabel id={id} label={label} />
-      <MonthPicker value={value} onChange={onChange} theme={theme} labelId={id} size="sm" />
+      <MonthPicker
+        value={value}
+        onChange={onChange}
+        theme={theme}
+        labelId={id}
+        describedBy={hint ? `${id}-hint` : undefined}
+        size="sm"
+      />
       <Hint id={`${id}-hint`} hint={hint} />
     </div>
   );

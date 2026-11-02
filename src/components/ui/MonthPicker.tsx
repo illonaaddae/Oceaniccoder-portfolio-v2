@@ -10,6 +10,8 @@ interface MonthPickerProps {
   ariaLabel?: string;
   /** Id of a visible label; the controls are then named by it. */
   labelId?: string;
+  /** Id of a hint shown with the field; the month button is then described by it. */
+  describedBy?: string;
   /** "sm" matches CustomSelect and DatePicker at size "sm" (py-2, rounded-lg). */
   size?: "md" | "sm";
   className?: string;
@@ -69,6 +71,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
   theme,
   ariaLabel,
   labelId,
+  describedBy,
   size = "md",
   className = "",
 }) => {
@@ -256,6 +259,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
           aria-expanded={open}
           aria-label={labelId ? undefined : ariaLabel}
           aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
+          aria-describedby={describedBy}
         >
           <span id={valueId} className="whitespace-nowrap">
             {display}

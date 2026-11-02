@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { FinanceData, Fund, Txn } from "@/types/finance";
 import { ConfirmProvider } from "../../ConfirmContext";
 import { addMonths, currentMonth } from "@/utils/finance/ledger";
-import { monthLabel } from "./ui";
+import { DateField, monthLabel } from "./ui";
 
 const list = vi.fn();
 const addTxn = vi.fn();
@@ -305,6 +305,22 @@ describe("FinanceTab", () => {
     finishArchive();
     await waitFor(() => expect(archive).toBeEnabled());
     expect(saveFund).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads a date or month field's hint out with the field", async () => {
+    render(<DateField label="Paid on" value="" onChange={() => {}} hint="The day it left." />);
+    expect(screen.getByRole("button", { name: /^Paid on/ })).toHaveAccessibleDescription(
+      "The day it left.",
+    );
+
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Budget" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create a plan" }));
+    // The month button opens the picker; previous and next month have their own names.
+    const monthButton = screen
+      .getAllByRole("button", { name: /^Plan starts in/ })
+      .find((b) => b.getAttribute("aria-haspopup") === "dialog");
+    expect(monthButton).toHaveAccessibleDescription(/^It applies from this month/);
   });
 
   it("says so when the ledger can't load instead of showing zeros", async () => {
