@@ -87,6 +87,9 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
   // The month that holds the grid's single tab stop (roving tabindex).
   const [focusMonth, setFocusMonth] = useState(value);
   const pendingFocus = useRef(false);
+  // Set once an arrow has stepped the month, so the live region below reads
+  // the new month out then and not when the field first renders.
+  const [stepped, setStepped] = useState(false);
 
   const close = (refocus: boolean) => {
     setOpen(false);
@@ -214,12 +217,17 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
   const current = thisMonth();
 
   const radius = size === "sm" ? "rounded-lg" : "rounded-xl";
-  const shell = `flex items-stretch ${radius} border text-sm transition-all duration-200 focus-within:ring-2 ${
+  const shell = `flex items-stretch ${radius} border text-sm transition-all duration-200 ${
     dark
-      ? "bg-gray-800/80 border-gray-700 text-white focus-within:border-oceanic-400 focus-within:ring-oceanic-400"
-      : "bg-white border-oceanic-500/20 text-slate-900 focus-within:ring-oceanic-600"
+      ? "bg-gray-800/80 border-gray-700 text-white"
+      : "bg-white border-oceanic-500/20 text-slate-900"
   }`;
-  const stepBtn = `px-3 transition focus:outline-none ${
+  // Each of the three buttons shows its own ring, inset so the shell's edge
+  // doesn't clip it; a ring round the whole shell didn't say which had focus.
+  const ownRing = `focus:outline-none focus-visible:ring-2 focus-visible:ring-inset ${
+    dark ? "focus-visible:ring-oceanic-400" : "focus-visible:ring-oceanic-600"
+  }`;
+  const stepBtn = `px-3 transition ${ownRing} ${
     dark ? "text-slate-300 hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"
   }`;
   const navBtn = `p-2 rounded-lg transition focus:outline-none focus-visible:ring-2 ${
@@ -238,7 +246,11 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
       <div className={shell}>
         <button
           type="button"
-          onClick={() => parsed && onChange(shift(value, -1))}
+          onClick={() => {
+            if (!parsed) return;
+            setStepped(true);
+            onChange(shift(value, -1));
+          }}
           className={`${stepBtn} ${size === "sm" ? "rounded-l-lg" : "rounded-l-xl"} border-r ${divider}`}
           aria-label={`Previous month${ariaLabel ? `, ${ariaLabel}` : ""}`}
           {...named(prevId)}
@@ -252,7 +264,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
           ref={triggerRef}
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className={`flex flex-1 items-center justify-center gap-2 px-3 font-semibold tabular-nums focus:outline-none ${
+          className={`flex flex-1 items-center justify-center gap-2 px-3 font-semibold tabular-nums ${ownRing} ${
             size === "sm" ? "py-2" : "py-2.5"
           }`}
           aria-haspopup="dialog"
@@ -273,7 +285,11 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => parsed && onChange(shift(value, 1))}
+          onClick={() => {
+            if (!parsed) return;
+            setStepped(true);
+            onChange(shift(value, 1));
+          }}
           className={`${stepBtn} ${size === "sm" ? "rounded-r-lg" : "rounded-r-xl"} border-l ${divider}`}
           aria-label={`Next month${ariaLabel ? `, ${ariaLabel}` : ""}`}
           {...named(nextId)}
@@ -284,6 +300,9 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
           <FaChevronRight className="text-xs" aria-hidden="true" />
         </button>
       </div>
+      <span className="sr-only" aria-live="polite">
+        {stepped ? display : ""}
+      </span>
 
       {open &&
         coords &&
@@ -293,6 +312,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
           <div
             ref={panelRef}
             role="dialog"
+            aria-modal="true"
             aria-label={labelId ? undefined : ariaLabel}
             aria-labelledby={labelId}
             onKeyDown={onPanelKeyDown}

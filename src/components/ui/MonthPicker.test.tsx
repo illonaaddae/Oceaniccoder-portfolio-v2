@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { MonthPicker } from "./MonthPicker";
 
@@ -50,5 +51,23 @@ describe("MonthPicker", () => {
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("button", { name: "Month" })).toHaveFocus();
+  });
+
+  it("reads the new month out after an arrow steps it, and not before", async () => {
+    function Field() {
+      const [value, setValue] = useState("2026-12");
+      return <MonthPicker value={value} onChange={setValue} theme="light" ariaLabel="Month" />;
+    }
+    const { container } = render(<Field />);
+    const live = container.querySelector("[aria-live='polite']")!;
+    expect(live).toHaveTextContent(/^$/);
+    await userEvent.click(screen.getByRole("button", { name: "Next month, Month" }));
+    expect(live).toHaveTextContent("January 2027");
+  });
+
+  it("opens as a modal dialog", async () => {
+    setup();
+    await userEvent.click(screen.getByRole("button", { name: "Month" }));
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
   });
 });
