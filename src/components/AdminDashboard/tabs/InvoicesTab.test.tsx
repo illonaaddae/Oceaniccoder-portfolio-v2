@@ -192,12 +192,15 @@ describe("InvoicesTab", () => {
       "View pay page",
       "Mark as paid",
       "Copy invoice number",
+      "Reset access",
       "Archive",
     ]);
   });
 
   describe("View pay page", () => {
     const signed = "/pay/INV-2026-0042?s=signature";
+    // The dashboard opens the admin preview: no code is sent, nothing can be paid.
+    const preview = `${signed}&preview=admin`;
     const fakeTab = () => ({ opener: {}, location: { href: "" }, close: vi.fn() });
     const clickViewPayPage = async () => {
       await renderTab();
@@ -205,19 +208,19 @@ describe("InvoicesTab", () => {
       await userEvent.click(within(menu).getByRole("menuitem", { name: "View pay page" }));
     };
 
-    it("opens a tab in the click and sends it to the signed link from the server", async () => {
+    it("opens a tab in the click and sends it to the preview of the signed link", async () => {
       routeQuoteAdmin(async () => ({ link: signed }));
       const tab = fakeTab();
       const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as typeof window);
       await clickViewPayPage();
-      await waitFor(() => expect(tab.location.href).toBe(signed));
+      await waitFor(() => expect(tab.location.href).toBe(`${window.location.origin}${preview}`));
       expect(quoteAdmin).toHaveBeenCalledWith("invoicePayLink", { id: "inv1" });
       expect(open).toHaveBeenCalledTimes(1);
       expect(tab.opener).toBeNull();
       open.mockRestore();
     });
 
-    it("shows the signed link to open or copy when the browser blocked the tab", async () => {
+    it("shows the preview to open, and the client's link to copy, when the browser blocked the tab", async () => {
       routeQuoteAdmin(async () => ({ link: signed }));
       const open = vi.spyOn(window, "open").mockReturnValue(null);
       const writeText = vi.fn().mockResolvedValue(undefined);
@@ -226,11 +229,12 @@ describe("InvoicesTab", () => {
       const absolute = `${window.location.origin}${signed}`;
       const name = "Open the pay page for INV-2026-0042";
       const link = await screen.findByRole("link", { name });
-      expect(link).toHaveAttribute("href", absolute);
+      expect(link).toHaveAttribute("href", `${window.location.origin}${preview}`);
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
       await waitFor(() => expect(link).toHaveFocus());
       expect(link).toHaveAccessibleDescription("Your browser blocked the new tab.");
       expect(open).toHaveBeenCalledTimes(1);
+      // The copy is the client's link: a preview link would only ask for the dashboard.
       await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
       expect(writeText).toHaveBeenCalledWith(absolute);
       await userEvent.click(screen.getByRole("button", { name: "Dismiss pay link" }));
@@ -249,6 +253,54 @@ describe("InvoicesTab", () => {
       expect(tab.close).toHaveBeenCalled();
       expect(tab.location.href).toBe("");
       open.mockRestore();
+    });
+  });
+
+  describe("Reset access", () => {
+    const reset = async () => {
+      await renderTab();
+      const menu = await openMenu("INV-2026-0042");
+      await userEvent.click(within(menu).getByRole("menuitem", { name: "Reset access" }));
+    };
+
+    it("says what it does, then resets and announces it", async () => {
+      routeQuoteAdmin(async () => ({ ok: true }));
+      await reset();
+      expect(confirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Reset access to INV-2026-0042?",
+          description:
+            "Signs every browser out of this invoice. The link stays the same; opening it again needs a code sent to ama@example.com.",
+          confirmLabel: "Reset access",
+        }),
+      );
+      await waitFor(() =>
+        expect(quoteAdmin).toHaveBeenCalledWith("resetInvoiceAccess", { id: "inv1" }),
+      );
+      expect(await screen.findByText("Reset access to INV-2026-0042.")).toBeInTheDocument();
+    });
+
+    it("does nothing when the confirmation is cancelled", async () => {
+      confirm.mockResolvedValue(false);
+      await reset();
+      await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+      expect(quoteAdmin).not.toHaveBeenCalledWith("resetInvoiceAccess", expect.anything());
+    });
+
+    it("shows the server's message when the reset fails", async () => {
+      routeQuoteAdmin(async () => {
+        throw new Error("Something went wrong on our side. Please try again.");
+      });
+      await reset();
+      expect(await screen.findByRole("alert")).toHaveTextContent(/went wrong on our side/);
+    });
+
+    it("is offered on archived invoices too", async () => {
+      getInvoices.mockResolvedValue([{ ...oneOff, archivedAt: "2026-10-11T00:00:00Z" }]);
+      await renderTab();
+      await userEvent.click(pill(/^Archived\s*1$/));
+      const menu = await openMenu("INV-2026-0042");
+      expect(menuItems(menu)).toContain("Reset access");
     });
   });
 
@@ -457,7 +509,12 @@ describe("InvoicesTab", () => {
     getInvoices.mockResolvedValue([{ ...oneOff, status: "paid" }]);
     await renderTab();
     const menu = await openMenu("INV-2026-0042");
-    expect(menuItems(menu)).toEqual(["Details", "View pay page", "Copy invoice number"]);
+    expect(menuItems(menu)).toEqual([
+      "Details",
+      "View pay page",
+      "Copy invoice number",
+      "Reset access",
+    ]);
   });
 
   it("counts a paid invoice with a stray archivedAt as paid, not archived", async () => {
