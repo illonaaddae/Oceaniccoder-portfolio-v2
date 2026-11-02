@@ -103,12 +103,17 @@ export function ProgressBar({ value, label }: { value: number; label: string }) 
   );
 }
 
-/** Matches CustomSelect and DatePicker at size "sm", as the Analytics expense log does. */
+/**
+ * Sized like CustomSelect and DatePicker at size "sm", as the Analytics
+ * expense log is. The border is darker than theirs so a text box stands out
+ * from the card at 3:1 or more (gray-500 on the dark card is 3.7:1, slate-500
+ * on white 4.8:1).
+ */
 const inputClass = (theme: Theme) =>
   `block w-full rounded-lg border px-3 py-2 text-sm font-normal transition-all duration-200 focus:outline-none focus:ring-2 ${
     theme === "dark"
-      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-400 focus:border-oceanic-400 focus:ring-oceanic-400"
-      : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500 focus:ring-oceanic-600"
+      ? "bg-gray-800/80 border-gray-500 text-white placeholder-gray-400 focus:border-oceanic-400 focus:ring-oceanic-400"
+      : "bg-white/50 border-slate-500 text-slate-900 placeholder-slate-500 focus:ring-oceanic-600"
   }`;
 
 function FieldLabel({
@@ -323,8 +328,11 @@ export function Button({
   label?: string;
 }) {
   const theme = useTheme();
-  const ring =
-    theme === "dark" ? "focus-visible:ring-oceanic-400" : "focus-visible:ring-oceanic-600";
+  // Offset in the card's colour, so the ring shows apart from a primary
+  // button's fill, which is the same teal as the light theme ring.
+  const ring = `focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--analytics-card)] ${
+    theme === "dark" ? "focus-visible:ring-oceanic-400" : "focus-visible:ring-oceanic-600"
+  }`;
   const look = {
     primary: "border-oceanic-600 bg-oceanic-600 text-white hover:bg-oceanic-700",
     secondary: "hover:bg-[var(--accent-teal-subtle)]",
