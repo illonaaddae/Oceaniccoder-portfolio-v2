@@ -53,6 +53,16 @@ export function useFinance() {
     [data.funds],
   );
 
+  /**
+   * A saved fund id as a starting value for a fund select, whose options are
+   * the active funds only. An archived or deleted fund starts as "" instead of
+   * a value the select can't show.
+   */
+  const selectableFundId = useCallback(
+    (fundId: string) => (activeFunds.some((f) => f.id === fundId) ? fundId : ""),
+    [activeFunds],
+  );
+
   /** Shows a failed change in the tab's error banner. */
   const report = useCallback((err: unknown, fallback: string) => {
     setError(err instanceof Error ? err.message : fallback);
@@ -70,6 +80,7 @@ export function useFinance() {
     balances,
     cash,
     activeFunds,
+    selectableFundId,
   };
 }
 

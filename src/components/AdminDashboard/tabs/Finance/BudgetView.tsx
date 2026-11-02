@@ -41,7 +41,11 @@ function BudgetEditor({
   const [month, setMonth] = useState(base ? base.month : currentMonth());
   const [net, setNet] = useState(minorToInput(base?.netIncomeMinor ?? 0));
   const [lines, setLines] = useState<LineDraft[]>(
-    (base?.lines ?? []).map((l) => ({ ...l, amount: minorToInput(l.amountMinor) })),
+    (base?.lines ?? []).map((l) => ({
+      ...l,
+      fundId: state.selectableFundId(l.fundId),
+      amount: minorToInput(l.amountMinor),
+    })),
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

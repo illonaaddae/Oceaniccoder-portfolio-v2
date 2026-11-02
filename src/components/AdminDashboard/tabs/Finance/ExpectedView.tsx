@@ -39,7 +39,9 @@ function ExpectedForm({
   const [source, setSource] = useState(item?.source ?? "");
   const [amount, setAmount] = useState(minorToInput(item?.amountMinor ?? 0));
   const [expectedDate, setExpectedDate] = useState(item?.expectedDate ?? "");
-  const [depositFundId, setDepositFundId] = useState(item?.depositFundId ?? "");
+  const [depositFundId, setDepositFundId] = useState(() =>
+    state.selectableFundId(item?.depositFundId ?? ""),
+  );
   const [note, setNote] = useState(item?.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -116,7 +118,9 @@ function ReceiveForm({
 }) {
   const [amount, setAmount] = useState(minorToInput(item.amountMinor));
   const [date, setDate] = useState(today());
-  const [depositFundId, setDepositFundId] = useState(item.depositFundId);
+  const [depositFundId, setDepositFundId] = useState(() =>
+    state.selectableFundId(item.depositFundId),
+  );
   const [category, setCategory] = useState("Freelance");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

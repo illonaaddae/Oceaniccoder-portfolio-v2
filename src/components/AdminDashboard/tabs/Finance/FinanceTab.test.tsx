@@ -232,6 +232,42 @@ describe("FinanceTab", () => {
     );
   });
 
+  it("starts fund selects empty when the saved fund is archived", async () => {
+    const old = { ...fund("old", "Old phone", "goal"), archived: true };
+    list.mockReset().mockResolvedValue({
+      ...data,
+      funds: [...data.funds, old],
+      expected: [{ ...data.expected[0], depositFundId: "old" }],
+      budgets: [
+        {
+          ...stamp,
+          id: "b1",
+          kind: "budget",
+          month,
+          netIncomeMinor: 100000,
+          lines: [{ id: "l1", label: "Phone", amountMinor: 5000, fundId: "old" }],
+        },
+      ],
+    });
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
+    await userEvent.click(screen.getByRole("button", { name: "It arrived" }));
+    expect(screen.getByRole("combobox", { name: /^Put it/ })).toHaveAccessibleName(
+      "Put it Keep as cash",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByRole("combobox", { name: /^When it arrives/ })).toHaveAccessibleName(
+      "When it arrives Keep as cash",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Budget" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit this plan" }));
+    expect(screen.getByRole("combobox", { name: /^Type/ })).toHaveAccessibleName(
+      "Type Spending (no fund)",
+    );
+  });
+
   it("says so when the ledger can't load instead of showing zeros", async () => {
     list.mockReset().mockRejectedValue(new Error("Sign in to the dashboard and try again."));
     renderTab();
