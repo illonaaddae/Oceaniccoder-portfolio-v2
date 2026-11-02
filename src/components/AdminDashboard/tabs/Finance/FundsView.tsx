@@ -477,7 +477,10 @@ function WealthProjection({ state }: { state: FinanceState }) {
             <XAxis
               dataKey="month"
               tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
-              interval={11}
+              // Recharts drops labels that would come closer than this, so
+              // they don't overlap on a narrow screen.
+              interval="preserveStartEnd"
+              minTickGap={24}
             />
             <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} width={56} />
             <Tooltip formatter={(v: number) => cedis(Math.round(v * 100))} />
