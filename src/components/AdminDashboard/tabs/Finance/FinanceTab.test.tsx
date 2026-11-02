@@ -261,6 +261,28 @@ describe("FinanceTab", () => {
     );
   });
 
+  it("signs only what moves cash in the transactions list", async () => {
+    list.mockReset().mockResolvedValue({
+      ...data,
+      funds: [...data.funds, fund("r", "Rent", "rent")],
+      txns: [
+        ...data.txns,
+        txn("t4", "withdrawal", 1500, "g"),
+        txn("t5", "fund_spend", 2000, "g"),
+        txn("t6", "opening", 2500, "r"),
+      ],
+    });
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Transactions" }));
+    const amountOf = (type: string) =>
+      within(screen.getByRole("row", { name: new RegExp(type) })).getAllByRole("cell")[3];
+    expect(amountOf("Money in")).toHaveTextContent(/^\+GH₵ 500\.00$/);
+    expect(amountOf("Taken out of a fund")).toHaveTextContent(/^\+GH₵ 15\.00$/);
+    expect(amountOf("Paid from a fund")).toHaveTextContent(/^GH₵ 20\.00Cash unchanged$/);
+    expect(amountOf("Starting balance")).toHaveTextContent(/^GH₵ 25\.00Cash unchanged$/);
+    expect(within(screen.getByRole("table")).getAllByText(/^−GH₵/)).toHaveLength(2);
+  });
+
   it("starts fund selects empty when the saved fund is archived", async () => {
     const old = { ...fund("old", "Old phone", "goal"), archived: true };
     list.mockReset().mockResolvedValue({

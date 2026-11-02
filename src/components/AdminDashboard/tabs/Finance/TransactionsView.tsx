@@ -171,7 +171,11 @@ function describe(t: Txn, fundName: (id: string) => string): string {
   return t.category || "";
 }
 
-const MONEY_IN = new Set<TxnType>(["income", "withdrawal", "opening"]);
+// The sign is the change to cash on hand, as Overview counts it. Starting
+// balances, payments from a fund and transfers leave cash alone, so they get
+// no sign, and a note says so.
+const CASH_IN = new Set<TxnType>(["income", "withdrawal"]);
+const CASH_OUT = new Set<TxnType>(["expense", "deposit"]);
 
 export function TransactionsView({ state }: { state: FinanceState }) {
   const [adding, setAdding] = useState(false);
@@ -274,8 +278,13 @@ export function TransactionsView({ state }: { state: FinanceState }) {
                       className="py-2 text-right tabular-nums font-semibold whitespace-nowrap"
                       style={strong}
                     >
-                      {t.type === "transfer" ? "" : MONEY_IN.has(t.type) ? "+" : "−"}
+                      {CASH_IN.has(t.type) ? "+" : CASH_OUT.has(t.type) ? "−" : ""}
                       {cedis(t.amountMinor)}
+                      {!CASH_IN.has(t.type) && !CASH_OUT.has(t.type) && (
+                        <span className="block text-xs font-normal" style={muted}>
+                          Cash unchanged
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 pl-2 text-right">
                       <Button
