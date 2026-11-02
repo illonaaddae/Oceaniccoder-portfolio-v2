@@ -56,9 +56,11 @@ function monthsBefore(targetDate: string, month: string): number | null {
 }
 
 /**
- * Monthly saving needed to reach `target` by `targetDate`. Once something
- * went in this month, this month no longer counts as one still to fund. With
- * no months left it is the whole remaining amount. Null with no date or past it.
+ * The smallest monthly saving that reaches `target` by `targetDate`, on the
+ * same terms as shortfallByDate: this month brings only what is left of it
+ * after `savedThisMonth`, then every month before the target month brings the
+ * full amount. Saving this much each month leaves no shortfall. With no
+ * months left it is the whole remaining amount. Null with no date or past it.
  */
 export function neededPerMonth(
   balance: number,
@@ -69,9 +71,15 @@ export function neededPerMonth(
 ): number | null {
   const before = monthsBefore(targetDate, month);
   if (before === null || target <= 0) return null;
-  const months = savedThisMonth > 0 ? before - 1 : before;
   const remaining = Math.max(0, target - balance);
-  return months <= 0 ? remaining : Math.ceil(remaining / months);
+  if (remaining === 0) return 0;
+  if (before === 0) return remaining;
+  const saved = Math.max(0, savedThisMonth);
+  // At x >= saved, this month adds x - saved and the rest x each: x * before - saved.
+  const withThisMonth = Math.ceil((remaining + saved) / before);
+  if (withThisMonth >= saved) return withThisMonth;
+  // Less than was already saved: this month adds nothing, the later months cover it.
+  return Math.ceil(remaining / (before - 1));
 }
 
 /**

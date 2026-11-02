@@ -245,8 +245,28 @@ describe("this month's deposit is never counted twice", () => {
     expect(shortfallByDate(550, 100, 1000, "2027-01-01", "2026-11", 100)).toBe(350);
   });
 
-  it("asks December to cover everything once November is funded", () => {
-    expect(neededPerMonth(550, 1000, "2027-01-01", "2026-11", 100)).toBe(450);
+  it("asks for the rest of November's share plus December's, not December alone", () => {
+    // 175 more in November and 275 in December make up the 450 still missing.
+    expect(neededPerMonth(550, 1000, "2027-01-01", "2026-11", 100)).toBe(275);
+  });
+
+  it("gives a monthly figure that Overview's shortfall agrees reaches the target", () => {
+    const cases: [number, number, string, number][] = [
+      [550, 1000, "2027-01-01", 100],
+      [450, 1000, "2027-01-01", 0],
+      [0, 1200, "2027-04-28", 0],
+      [200, 1200, "2027-04-28", 200],
+      [900, 1200, "2027-04-28", 900],
+      [100, 5000, "2026-12-15", 50],
+    ];
+    for (const [balance, target, date, saved] of cases) {
+      const needed = neededPerMonth(balance, target, date, "2026-11", saved)!;
+      expect(shortfallByDate(balance, needed, target, date, "2026-11", saved)).toBe(0);
+      if (needed > 0)
+        expect(
+          shortfallByDate(balance, needed - 1, target, date, "2026-11", saved),
+        ).toBeGreaterThan(0);
+    }
   });
 
   it("doesn't move the finish month earlier after an on-time deposit", () => {
