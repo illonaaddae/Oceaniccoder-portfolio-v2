@@ -126,6 +126,29 @@ describe("FinanceTab", () => {
     expect(within(cash).getByText("GH₵ 160.00")).toBeInTheDocument();
   });
 
+  it("only asks for a budget when there isn't one for the month", async () => {
+    const { unmount } = renderTab();
+    expect(await screen.findByText("Set a budget to see the plan")).toBeInTheDocument();
+    unmount();
+
+    list.mockReset().mockResolvedValue({
+      ...data,
+      budgets: [
+        {
+          ...stamp,
+          id: "b1",
+          kind: "budget",
+          month,
+          netIncomeMinor: 100000,
+          lines: [{ id: "l1", label: "Laptop", amountMinor: 5000, fundId: "g" }],
+        },
+      ],
+    });
+    renderTab();
+    expect(await screen.findByText("Your budget saves nothing into wealth")).toBeInTheDocument();
+    expect(screen.queryByText("Set a budget to see the plan")).toBeNull();
+  });
+
   it("shows the server's refusal when a withdrawal is more than the fund holds", async () => {
     addTxn.mockRejectedValueOnce(new Error("New laptop only holds GH₵ 300.00."));
     renderTab();

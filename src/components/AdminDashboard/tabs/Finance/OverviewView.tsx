@@ -192,7 +192,9 @@ export function OverviewView({ state }: { state: FinanceState }) {
             note={
               view.plannedWealth > 0
                 ? `Plan ${cedis(view.plannedWealth)}, about ${cedis(dailyEquivalent(view.plannedWealth))} a day`
-                : "Set a budget to see the plan"
+                : view.budget
+                  ? "Your budget saves nothing into wealth"
+                  : "Set a budget to see the plan"
             }
           />
           <HeroFigure
