@@ -417,6 +417,37 @@ describe("/api/finance", () => {
     expect(txns.filter((t) => t.type === "withdrawal")).toHaveLength(1);
   });
 
+  it("won't delete a transaction or undo a receive that touches an archived fund", async () => {
+    const { call, repo } = setup();
+    const fund = await makeFund(call, { name: "Laptop", group: "goal" });
+    const exp = await call({ action: "saveExpected", source: "Client", amountMinor: 5000 });
+    await call({
+      action: "receiveExpected",
+      id: exp.body.expected.id,
+      amountMinor: 5000,
+      date: "2026-12-01",
+      depositFundId: fund.id,
+    });
+    const spend = await call({
+      action: "addTxn",
+      type: "fund_spend",
+      date: "2026-12-02",
+      amountMinor: 5000,
+      fundId: fund.id,
+    });
+    const archive = { action: "saveFund", id: fund.id, name: "Laptop", group: "goal" };
+    expect((await call({ ...archive, archived: true })).status).toBe(200);
+    const before = repo.docs.size;
+
+    const del = await call({ action: "deleteTxn", id: spend.body.txn.id });
+    expect(del.status).toBe(409);
+    expect(del.body.error).toBe("Laptop is archived. Restore it first.");
+    const undo = await call({ action: "unreceiveExpected", id: exp.body.expected.id });
+    expect(undo.status).toBe(409);
+    expect(undo.body.error).toContain("Restore it first");
+    expect(repo.docs.size).toBe(before);
+  });
+
   it("only checks the funds a delete touches", async () => {
     const neg = {
       id: "neg",

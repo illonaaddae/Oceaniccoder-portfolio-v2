@@ -92,12 +92,13 @@ async function deleteTxn(repo, input) {
   const txnId = M.id(input.id, "Transaction");
   const { docs, version } = await repo.read();
   const txn = findOrThrow(docs, "txn", txnId);
-  const { txns, expected } = byKind(docs);
+  const { funds, txns, expected } = byKind(docs);
   if (expected.some((e) => e.receivedTxnIds?.includes(txnId)))
     throw new HttpError(
       409,
       "This came from a received payment. Use Undo on it under Expected instead.",
     );
+  M.checkDeleteTouchesNoArchivedFund([txn], funds);
   M.checkDeleteAgainstLedger([txn.id], txns);
   await repo.write({ remove: [txnId] }, version);
   return { deleted: txnId };
@@ -234,8 +235,12 @@ async function unreceiveExpected(repo, input, now) {
   const { docs, version } = await repo.read();
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (existing.status !== "received") throw new HttpError(409, "This hasn't been received.");
-  const { txns } = byKind(docs);
+  const { funds, txns } = byKind(docs);
   const ids = (existing.receivedTxnIds || []).filter((txnId) => txns.some((t) => t.id === txnId));
+  M.checkDeleteTouchesNoArchivedFund(
+    txns.filter((t) => ids.includes(t.id)),
+    funds,
+  );
   M.checkDeleteAgainstLedger(ids, txns);
   const updated = touch(
     existing,

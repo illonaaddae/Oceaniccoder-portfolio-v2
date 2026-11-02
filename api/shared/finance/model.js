@@ -234,6 +234,19 @@ function checkDeleteAgainstLedger(txnIds, txns) {
   }
 }
 
+/**
+ * Refuses deleting transactions that touch an archived fund. Archiving needs a
+ * zero balance, so taking a transaction away would leave the archived fund
+ * holding money (or owing it) where no card or projection shows it.
+ */
+function checkDeleteTouchesNoArchivedFund(deleted, funds) {
+  const byId = new Map(funds.map((f) => [f.id, f]));
+  for (const fundId of deleted.flatMap((t) => [t.fundId, t.toFundId].filter(Boolean))) {
+    const fund = byId.get(fundId);
+    if (fund?.archived) throw new HttpError(409, `${fund.name} is archived. Restore it first.`);
+  }
+}
+
 module.exports = {
   SCOPE,
   FUND_GROUPS,
@@ -251,4 +264,5 @@ module.exports = {
   fundBalances,
   checkTxnAgainstLedger,
   checkDeleteAgainstLedger,
+  checkDeleteTouchesNoArchivedFund,
 };
