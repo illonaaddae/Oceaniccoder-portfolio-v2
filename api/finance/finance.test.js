@@ -448,6 +448,23 @@ describe("/api/finance", () => {
     expect(repo.docs.size).toBe(before);
   });
 
+  it("only takes a starting balance for a fund with no history", async () => {
+    const { call } = setup();
+    const fund = await makeFund(call);
+    const opening = {
+      action: "addTxn",
+      type: "opening",
+      date: "2026-11-01",
+      amountMinor: 500,
+      fundId: fund.id,
+    };
+    expect((await call(opening)).status).toBe(200);
+    const again = await call(opening);
+    expect(again.status).toBe(409);
+    expect(again.body.error).toContain("already has history");
+    expect((await call({ action: "list" })).body.txns).toHaveLength(1);
+  });
+
   it("only checks the funds a delete touches", async () => {
     const neg = {
       id: "neg",

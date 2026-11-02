@@ -195,9 +195,10 @@ function fundBalances(txns) {
 }
 
 /**
- * Refuses a transaction that names a missing or archived fund, or that takes
- * more out of a fund than it holds. `others` are the existing transactions,
- * not including the one being checked.
+ * Refuses a transaction that names a missing or archived fund, that takes
+ * more out of a fund than it holds, or that sets a starting balance on a fund
+ * that already has history. `others` are the existing transactions, not
+ * including the one being checked.
  */
 function checkTxnAgainstLedger(txn, funds, others) {
   const byId = new Map(funds.map((f) => [f.id, f]));
@@ -206,6 +207,16 @@ function checkTxnAgainstLedger(txn, funds, others) {
     if (!fund) throw invalid("That fund doesn't exist.");
     if (fund.archived) throw invalid(`${fund.name} is archived. Restore it first.`);
   }
+  // A starting balance is what the fund held before tracking began, so it
+  // only makes sense before anything else was recorded against the fund.
+  if (
+    txn.type === "opening" &&
+    others.some((t) => t.fundId === txn.fundId || t.toFundId === txn.fundId)
+  )
+    throw new HttpError(
+      409,
+      `${byId.get(txn.fundId).name} already has history. Record a deposit instead.`,
+    );
   if (FUND_OUT_TYPES.has(txn.type)) {
     const balance = fundBalances(others).get(txn.fundId) ?? 0;
     if (txn.amountMinor > balance)

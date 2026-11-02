@@ -39,7 +39,9 @@ export const INCOME_CATEGORIES = [
   "Gift",
   "Other",
 ];
-const NEEDS_FUND = new Set<TxnType>(["deposit", "withdrawal", "transfer", "fund_spend", "opening"]);
+// A starting balance is set from Funds, only on a fund with no history yet.
+const FORM_TYPES = (Object.keys(TYPE_LABELS) as TxnType[]).filter((t) => t !== "opening");
+const NEEDS_FUND = new Set<TxnType>(["deposit", "withdrawal", "transfer", "fund_spend"]);
 // Money paid from a fund is not a living cost, so it takes no spending
 // category; it is filed under the fund's name, as the Funds view does.
 const HAS_CATEGORY = new Set<TxnType>(["income", "expense"]);
@@ -105,7 +107,7 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
         <Select
           label="What happened"
           value={type}
-          options={(Object.keys(TYPE_LABELS) as TxnType[]).map((t) => ({
+          options={FORM_TYPES.map((t) => ({
             value: t,
             label: TYPE_LABELS[t],
           }))}

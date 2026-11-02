@@ -219,6 +219,8 @@ describe("FinanceTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Record a transaction" }));
     const form = screen.getByRole("form", { name: "Record a transaction" });
     await userEvent.click(within(form).getByRole("combobox", { name: /^What happened/ }));
+    // A starting balance is only offered from Funds, on a fund with no history.
+    expect(screen.queryByRole("option", { name: "Starting balance" })).toBeNull();
     await userEvent.click(screen.getByRole("option", { name: "Paid from a fund" }));
     expect(within(form).queryByRole("combobox", { name: /^Category/ })).toBeNull();
     await userEvent.click(within(form).getByRole("combobox", { name: /^Fund/ }));
