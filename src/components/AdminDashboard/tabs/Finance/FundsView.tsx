@@ -38,27 +38,34 @@ import {
 type MoveType = "deposit" | "withdrawal" | "fund_spend" | "opening";
 
 /** One button per way money moves, so the form never asks "what happened". */
-const MOVES: Record<MoveType, { button: string; title: string; hint: string; submit: string }> = {
+const MOVES: Record<
+  MoveType,
+  { button: string; name: (fund: string) => string; title: string; hint: string; submit: string }
+> = {
   deposit: {
     button: "Add money",
+    name: (fund) => `Add money to ${fund}`,
     title: "Add money",
     hint: "Saved into this fund now, from your cash on hand.",
     submit: "Add",
   },
   withdrawal: {
     button: "Take out",
+    name: (fund) => `Take out of ${fund}`,
     title: "Take money out",
     hint: "Back to your cash on hand. It no longer counts as saved.",
     submit: "Take out",
   },
   fund_spend: {
     button: "Pay for something",
+    name: (fund) => `Pay for something from ${fund}`,
     title: "Pay for something",
     hint: "Spent on what this fund was for, such as the rent or the laptop.",
     submit: "Record payment",
   },
   opening: {
     button: "Set what it already holds",
+    name: (fund) => `Set what it already holds for ${fund}`,
     title: "Money it already held",
     hint: "Money that was in this fund before you started tracking. It isn't counted as this month's saving.",
     submit: "Save",
@@ -189,6 +196,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
   // A fund the plan only starts paying into later is waiting, not behind.
   const starts = firstPlannedMonth(state.data.budgets, fund.id);
   const notStarted = history.length === 0 && starts > month;
+  const historyId = `fund-${fund.id}-history`;
 
   async function setArchived(archived: boolean) {
     setBusy(true);
@@ -326,6 +334,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
       )}
       {mode === "history" && (
         <ul
+          id={historyId}
           className="mt-3 max-h-64 space-y-1 overflow-y-auto text-sm"
           aria-label={`${fund.name} history`}
         >
@@ -354,22 +363,38 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {!fund.archived && (
             <>
-              <Button variant="primary" onClick={() => startMove("deposit")}>
+              <Button
+                variant="primary"
+                label={MOVES.deposit.name(fund.name)}
+                onClick={() => startMove("deposit")}
+              >
                 {MOVES.deposit.button}
               </Button>
               {balance > 0 && (
                 <>
-                  <Button onClick={() => startMove("withdrawal")}>{MOVES.withdrawal.button}</Button>
+                  <Button
+                    label={MOVES.withdrawal.name(fund.name)}
+                    onClick={() => startMove("withdrawal")}
+                  >
+                    {MOVES.withdrawal.button}
+                  </Button>
                   {/* Wealth is never spent from directly; the server refuses it too. */}
                   {fund.group !== "wealth" && (
-                    <Button onClick={() => startMove("fund_spend")}>
+                    <Button
+                      label={MOVES.fund_spend.name(fund.name)}
+                      onClick={() => startMove("fund_spend")}
+                    >
                       {MOVES.fund_spend.button}
                     </Button>
                   )}
                 </>
               )}
               {history.length === 0 && (
-                <Button variant="quiet" onClick={() => startMove("opening")}>
+                <Button
+                  variant="quiet"
+                  label={MOVES.opening.name(fund.name)}
+                  onClick={() => startMove("opening")}
+                >
                   {MOVES.opening.button}
                 </Button>
               )}
@@ -378,22 +403,31 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
           <span className="ml-auto flex flex-wrap gap-1">
             <Button
               variant="quiet"
+              label={`${mode === "history" ? "Hide history" : "History"} of ${fund.name}`}
+              expanded={mode === "history"}
+              controls={historyId}
               onClick={() => setMode(mode === "history" ? "view" : "history")}
             >
               {mode === "history" ? "Hide history" : "History"}
             </Button>
-            <Button variant="quiet" onClick={() => setMode("edit")}>
+            <Button variant="quiet" label={`Edit ${fund.name}`} onClick={() => setMode("edit")}>
               Edit
             </Button>
             <Button
               variant="quiet"
+              label={`${fund.archived ? "Restore" : "Archive"} ${fund.name}`}
               onClick={() => void setArchived(!fund.archived)}
               disabled={busy}
             >
               {fund.archived ? "Restore" : "Archive"}
             </Button>
             {history.length === 0 && (
-              <Button variant="quiet" onClick={() => void remove()} disabled={busy}>
+              <Button
+                variant="quiet"
+                label={`Delete ${fund.name}`}
+                onClick={() => void remove()}
+                disabled={busy}
+              >
                 Delete
               </Button>
             )}

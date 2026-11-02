@@ -312,6 +312,8 @@ export function Button({
   variant = "secondary",
   disabled,
   label,
+  expanded,
+  controls,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
@@ -326,6 +328,9 @@ export function Button({
   disabled?: boolean;
   /** Accessible name when the visible text alone is ambiguous. */
   label?: string;
+  /** For a button that shows and hides a region: whether it is shown, and its id. */
+  expanded?: boolean;
+  controls?: string;
 }) {
   const theme = useTheme();
   // Offset in the card's colour, so the ring shows apart from a primary
@@ -355,6 +360,8 @@ export function Button({
       }}
       aria-disabled={disabled || undefined}
       aria-label={label}
+      aria-expanded={expanded}
+      aria-controls={controls}
       className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${ring} ${look}`}
       style={colours[variant]}
     >

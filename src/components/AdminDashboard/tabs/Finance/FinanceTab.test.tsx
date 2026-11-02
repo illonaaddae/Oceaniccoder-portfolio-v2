@@ -153,7 +153,7 @@ describe("FinanceTab", () => {
     addTxn.mockRejectedValueOnce(new Error("New laptop only holds GH₵ 300.00."));
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
-    await userEvent.click(screen.getAllByRole("button", { name: "Take out" })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Take out of New laptop" }));
     const form = screen.getByRole("form", { name: "Take money out: New laptop" });
     await userEvent.type(within(form).getByLabelText(/Amount/), "500");
     await userEvent.click(within(form).getByRole("button", { name: "Take out" }));
@@ -171,9 +171,11 @@ describe("FinanceTab", () => {
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
     // Only the fund with no history offers it; funds with money also offer Take out.
-    expect(screen.getAllByRole("button", { name: "Set what it already holds" })).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: "Take out" })).toHaveLength(2);
-    await userEvent.click(screen.getByRole("button", { name: "Set what it already holds" }));
+    expect(screen.getAllByRole("button", { name: /^Set what it already holds/ })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /^Take out/ })).toHaveLength(2);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set what it already holds for Rent" }),
+    );
     await userEvent.type(screen.getByLabelText(/Amount/), "2500");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(addTxn).toHaveBeenCalledWith(
@@ -185,10 +187,12 @@ describe("FinanceTab", () => {
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
     const wealth = screen.getByRole("listitem", { name: "House Fund" });
-    expect(within(wealth).getByRole("button", { name: "Take out" })).toBeInTheDocument();
-    expect(within(wealth).queryByRole("button", { name: "Pay for something" })).toBeNull();
+    expect(within(wealth).getByRole("button", { name: /^Take out/ })).toBeInTheDocument();
+    expect(within(wealth).queryByRole("button", { name: /^Pay for something/ })).toBeNull();
     const goal = screen.getByRole("listitem", { name: "New laptop" });
-    expect(within(goal).getByRole("button", { name: "Pay for something" })).toBeInTheDocument();
+    expect(
+      within(goal).getByRole("button", { name: "Pay for something from New laptop" }),
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Transactions" }));
     await userEvent.click(screen.getByRole("button", { name: "Record a transaction" }));
@@ -218,6 +222,31 @@ describe("FinanceTab", () => {
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
     expect(screen.getByText(/^Every fund is archived/)).toBeInTheDocument();
+  });
+
+  it("names each row's buttons after the row, and says whether a fund's history is open", async () => {
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    // Each name starts with the visible text, for speech input.
+    expect(screen.getByRole("button", { name: "Add money to House Fund" })).toHaveTextContent(
+      /^Add money$/,
+    );
+    expect(screen.getByRole("button", { name: "Edit House Fund" })).toHaveTextContent(/^Edit$/);
+    expect(screen.getByRole("button", { name: "Archive New laptop" })).toHaveTextContent(
+      /^Archive$/,
+    );
+    const toggle = screen.getByRole("button", { name: "History of New laptop" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAccessibleName("Hide history of New laptop");
+    expect(document.getElementById(toggle.getAttribute("aria-controls")!)).toHaveAccessibleName(
+      "New laptop history",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Expected" }));
+    const row = screen.getByRole("listitem", { name: "Client balance" });
+    expect(within(row).getByRole("button", { name: "Not coming: Client balance" })).toBeVisible();
   });
 
   it("marks a fund the plan only starts paying into later as not started", async () => {
@@ -349,12 +378,12 @@ describe("FinanceTab", () => {
     });
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
-    await userEvent.click(screen.getByRole("button", { name: "It arrived" }));
+    await userEvent.click(screen.getByRole("button", { name: "It arrived: Client balance" }));
     expect(screen.getByRole("combobox", { name: /^Put it/ })).toHaveAccessibleName(
       "Put it Keep as cash",
     );
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit Client balance" }));
     expect(screen.getByRole("combobox", { name: /^When it arrives/ })).toHaveAccessibleName(
       "When it arrives Keep as cash",
     );
@@ -378,11 +407,11 @@ describe("FinanceTab", () => {
     renderTab();
 
     await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
-    const notComing = screen.getByRole("button", { name: "Not coming" });
+    const notComing = screen.getByRole("button", { name: "Not coming: Client balance" });
     await userEvent.click(notComing);
     expect(notComing).toHaveAttribute("aria-disabled", "true");
     expect(notComing).toHaveFocus();
-    expect(screen.getByRole("button", { name: "It arrived" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "It arrived: Client balance" })).toHaveAttribute(
       "aria-disabled",
       "true",
     );
@@ -392,10 +421,7 @@ describe("FinanceTab", () => {
     expect(setExpectedStatus).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Funds" }));
-    const archive = within(screen.getByRole("listitem", { name: "House Fund" })).getByRole(
-      "button",
-      { name: "Archive" },
-    );
+    const archive = screen.getByRole("button", { name: "Archive House Fund" });
     await userEvent.click(archive);
     expect(archive).toHaveAttribute("aria-disabled", "true");
     await userEvent.keyboard("{Enter}");

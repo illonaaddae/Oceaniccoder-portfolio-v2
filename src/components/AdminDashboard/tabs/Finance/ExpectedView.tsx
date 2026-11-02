@@ -234,9 +234,9 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
     );
 
   return (
-    <li className="py-3 first:pt-0 last:pb-0">
+    <li className="py-3 first:pt-0 last:pb-0" aria-labelledby={`expected-${item.id}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="font-semibold" style={strong}>
+        <span id={`expected-${item.id}`} className="font-semibold" style={strong}>
           {item.source}
         </span>
         <span className="tabular-nums font-semibold" style={strong}>
@@ -264,27 +264,44 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
       )}
       {mode === "view" && item.status === "expected" && (
         <div className="mt-2 flex flex-wrap gap-2">
-          <Button variant="primary" onClick={() => setMode("receive")} disabled={busy}>
+          <Button
+            variant="primary"
+            label={`It arrived: ${item.source}`}
+            onClick={() => setMode("receive")}
+            disabled={busy}
+          >
             It arrived
           </Button>
-          <Button onClick={() => setMode("edit")} disabled={busy}>
+          <Button label={`Edit ${item.source}`} onClick={() => setMode("edit")} disabled={busy}>
             Edit
           </Button>
-          <Button onClick={() => void setStatus("cancelled")} disabled={busy}>
+          <Button
+            label={`Not coming: ${item.source}`}
+            onClick={() => void setStatus("cancelled")}
+            disabled={busy}
+          >
             Not coming
           </Button>
         </div>
       )}
       {item.status === "received" && (
         <div className="mt-2">
-          <Button onClick={() => void undoReceive()} disabled={busy}>
+          <Button
+            label={`Undo receiving ${item.source}`}
+            onClick={() => void undoReceive()}
+            disabled={busy}
+          >
             Undo
           </Button>
         </div>
       )}
       {item.status === "cancelled" && (
         <div className="mt-2">
-          <Button onClick={() => void setStatus("expected")} disabled={busy}>
+          <Button
+            label={`Expect it again: ${item.source}`}
+            onClick={() => void setStatus("expected")}
+            disabled={busy}
+          >
             Expect it again
           </Button>
         </div>
