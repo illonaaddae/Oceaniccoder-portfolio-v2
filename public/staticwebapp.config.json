@@ -18,7 +18,7 @@
       ]
     },
     {
-      "route": "/api/finance",
+      "route": "/api/finance*",
       "allowedRoles": [
         "admin"
       ]

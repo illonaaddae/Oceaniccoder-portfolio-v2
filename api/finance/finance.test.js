@@ -28,6 +28,25 @@ async function makeFund(call, fields = {}) {
   return res.body.fund;
 }
 
+describe("staticwebapp.config.json", () => {
+  // SWA matches a route exactly unless it ends in a wildcard, so a plain
+  // "/api/finance" left "/api/finance/" and "/api/finance/x" open to anyone.
+  it("keeps every /api/finance path behind the admin role", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const config = JSON.parse(
+      await readFile(new URL("../../public/staticwebapp.config.json", import.meta.url), "utf8"),
+    );
+    const adminOnly = (path) =>
+      config.routes.some(
+        (r) =>
+          r.allowedRoles?.includes("admin") &&
+          (r.route.endsWith("*") ? path.startsWith(r.route.slice(0, -1)) : path === r.route),
+      );
+    for (const path of ["/api/finance", "/api/finance/", "/api/finance/list"])
+      expect(adminOnly(path)).toBe(true);
+  });
+});
+
 describe("/api/finance", () => {
   it("refuses callers who aren't the admin and reads nothing", async () => {
     const { call, repo } = setup({ admin: false });
