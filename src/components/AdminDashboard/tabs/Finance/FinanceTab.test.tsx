@@ -280,6 +280,12 @@ describe("FinanceTab", () => {
     expect(within(fromFunds).getByText("New laptop")).toBeInTheDocument();
     expect(within(fromFunds).getByText("GH₵ 200.00")).toBeInTheDocument();
     expect(within(where).queryByText("New laptop")).toBeNull();
+    // A cost with a note leads with it; one without names its category once.
+    const biggest = within(screen.getByRole("region", { name: "Biggest costs" })).getAllByRole(
+      "listitem",
+    );
+    expect(biggest[0]).toHaveTextContent(`Market run · Food · ${month}-01`);
+    expect(biggest[1]).toHaveTextContent(new RegExp(`^Transport · ${month}-01GH₵`));
   });
 
   it("files a payment from a fund under the fund's name, not a spending category", async () => {

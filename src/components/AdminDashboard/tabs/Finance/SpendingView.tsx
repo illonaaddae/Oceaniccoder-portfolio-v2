@@ -238,7 +238,8 @@ export function SpendingView({ state }: { state: FinanceState }) {
                       {t.note || t.category}
                       <span style={muted}>
                         {" "}
-                        · {t.category} · {t.date}
+                        · {t.note ? `${t.category} · ` : ""}
+                        {t.date}
                       </span>
                     </span>
                     <span className="shrink-0 tabular-nums font-semibold" style={strong}>
