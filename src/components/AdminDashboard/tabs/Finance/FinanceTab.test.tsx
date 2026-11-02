@@ -179,6 +179,24 @@ describe("FinanceTab", () => {
     expect(screen.queryByRole("option", { name: "House Fund" })).toBeNull();
   });
 
+  it("says so when there are no funds to show", async () => {
+    list.mockReset().mockResolvedValue({ ...data, funds: [], txns: [], expected: [] });
+    const { unmount } = renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    expect(screen.getByText(/^No funds yet/)).toBeInTheDocument();
+    unmount();
+
+    list.mockReset().mockResolvedValue({
+      ...data,
+      funds: [{ ...fund("old", "Old phone", "goal"), archived: true }],
+      txns: [],
+      expected: [],
+    });
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    expect(screen.getByText(/^Every fund is archived/)).toBeInTheDocument();
+  });
+
   it("marks a fund the plan only starts paying into later as not started", async () => {
     const later = addMonths(currentMonth(), 2);
     list.mockReset().mockResolvedValue({

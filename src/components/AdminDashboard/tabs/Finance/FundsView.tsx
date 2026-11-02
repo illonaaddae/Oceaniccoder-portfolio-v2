@@ -496,6 +496,15 @@ export function FundsView({ state }: { state: FinanceState }) {
         </Card>
       )}
       <WealthProjection state={state} />
+      {shown.length === 0 && (
+        <Card>
+          <p className="text-sm" style={muted}>
+            {archived.length > 0
+              ? "Every fund is archived. Use Show archived to see them."
+              : "No funds yet. Use New fund to add one, such as rent, an emergency fund or savings."}
+          </p>
+        </Card>
+      )}
       {GROUP_OPTIONS.map((g) => {
         const funds = shown.filter((f) => f.group === g.value);
         if (funds.length === 0) return null;
