@@ -6,6 +6,7 @@ import {
   MoneyField,
   Select,
   TextField,
+  DateField,
   inputToMinor,
   minorToInput,
   muted,
@@ -133,7 +134,7 @@ export function FundForm({
           onChange={setTarget}
           hint={items.length ? "Leave empty to use the items' total" : "Leave empty for no target"}
         />
-        <TextField label="Target date" type="date" value={targetDate} onChange={setTargetDate} />
+        <DateField label="Target date" value={targetDate} onChange={setTargetDate} />
         <MoneyField label="Monthly contribution (GH₵)" value={monthly} onChange={setMonthly} />
         <TextField
           label="Held at"
@@ -180,9 +181,8 @@ export function FundForm({
               onChange={(v) => setItem(it.id, { bought: v })}
             />
             <div className="flex items-end gap-2">
-              <TextField
+              <DateField
                 label="Bought on"
-                type="date"
                 value={it.boughtOn}
                 onChange={(v) => setItem(it.id, { boughtOn: v })}
               />

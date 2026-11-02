@@ -11,6 +11,8 @@ import {
   MoneyField,
   Select,
   TextField,
+  MonthField,
+  DateField,
   cedis,
   inputToMinor,
   monthLabel,
@@ -104,7 +106,7 @@ function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => void })
           onChange={changeType}
         />
         <MoneyField label="Amount (GH₵)" value={amount} onChange={setAmount} required />
-        <TextField label="Date" type="date" value={date} onChange={setDate} required />
+        <DateField label="Date" value={date} onChange={setDate} required />
         {NEEDS_FUND.has(type) && (
           <Select
             label={type === "transfer" ? "From fund" : "Fund"}
@@ -183,8 +185,8 @@ export function TransactionsView({ state }: { state: FinanceState }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
-        <div className="w-44">
-          <TextField label="Month" type="month" value={month} onChange={(v) => v && setMonth(v)} />
+        <div className="w-60">
+          <MonthField label="Month" value={month} onChange={(v) => v && setMonth(v)} />
         </div>
         {!adding && (
           <Button variant="primary" onClick={() => setAdding(true)}>

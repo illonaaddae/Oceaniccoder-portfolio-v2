@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { Fund, TxnType } from "@/types/finance";
+import type { Budget, Fund } from "@/types/finance";
 import { financeApi } from "@/services/api/finance";
 import { addMonths, contributedInto, currentMonth, today } from "@/utils/finance/ledger";
 import {
@@ -26,8 +26,8 @@ import {
   FormError,
   MoneyField,
   ProgressBar,
-  Select,
   TextField,
+  DateField,
   cedis,
   inputToMinor,
   monthLabel,
@@ -35,23 +35,48 @@ import {
   strong,
 } from "./ui";
 
-const MOVE_OPTIONS: { value: TxnType; label: string }[] = [
-  { value: "deposit", label: "Put money in (from cash)" },
-  { value: "withdrawal", label: "Take money out (to cash)" },
-  { value: "fund_spend", label: "Pay for something from this fund" },
-  { value: "opening", label: "Balance I already had before tracking" },
-];
+type MoveType = "deposit" | "withdrawal" | "fund_spend" | "opening";
+
+/** One button per way money moves, so the form never asks "what happened". */
+const MOVES: Record<MoveType, { button: string; title: string; hint: string; submit: string }> = {
+  deposit: {
+    button: "Add money",
+    title: "Add money",
+    hint: "Saved into this fund now, from your cash on hand.",
+    submit: "Add",
+  },
+  withdrawal: {
+    button: "Take out",
+    title: "Take money out",
+    hint: "Back to your cash on hand. It no longer counts as saved.",
+    submit: "Take out",
+  },
+  fund_spend: {
+    button: "Pay for something",
+    title: "Pay for something",
+    hint: "Spent on what this fund was for, such as the rent or the laptop.",
+    submit: "Record payment",
+  },
+  opening: {
+    button: "Set what it already holds",
+    title: "Money it already held",
+    hint: "Money that was in this fund before you started tracking. It isn't counted as this month's saving.",
+    submit: "Save",
+  },
+};
 
 function MoveMoneyForm({
   fund,
   state,
+  type,
   onDone,
 }: {
   fund: Fund;
   state: FinanceState;
+  type: MoveType;
   onDone: () => void;
 }) {
-  const [type, setType] = useState<TxnType>("deposit");
+  const move = MOVES[type];
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today());
   const [note, setNote] = useState("");
@@ -85,17 +110,29 @@ function MoveMoneyForm({
   }
 
   return (
-    <form onSubmit={submit} className="mt-3 space-y-3" aria-label={`Move money for ${fund.name}`}>
+    <form
+      onSubmit={submit}
+      className="mt-4 space-y-3 rounded-lg border p-4"
+      style={{ borderColor: "var(--analytics-line)" }}
+      aria-label={`${move.title}: ${fund.name}`}
+    >
+      <div>
+        <h3 className="text-sm font-bold" style={strong}>
+          {move.title}
+        </h3>
+        <p className="mt-0.5 text-xs" style={muted}>
+          {move.hint}
+        </p>
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Select label="What happened" value={type} options={MOVE_OPTIONS} onChange={setType} />
         <MoneyField label="Amount (GH₵)" value={amount} onChange={setAmount} required />
-        <TextField label="Date" type="date" value={date} onChange={setDate} required />
+        <DateField label="Date" value={date} onChange={setDate} required />
         <TextField label="Note" value={note} onChange={setNote} maxLength={200} />
       </div>
       <FormError message={error} />
       <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={saving}>
-          {saving ? "Saving…" : "Record"}
+          {saving ? "Saving…" : move.submit}
         </Button>
         <Button onClick={onDone}>Cancel</Button>
       </div>
@@ -103,8 +140,36 @@ function MoveMoneyForm({
   );
 }
 
-function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
+/** The first month a budget plan saves into the fund, or "" if none does. */
+function firstPlannedMonth(budgets: Budget[], fundId: string): string {
+  return (
+    budgets
+      .filter((b) => b.lines.some((l) => l.fundId === fundId && l.amountMinor > 0))
+      .map((b) => b.month)
+      .sort()[0] ?? ""
+  );
+}
+
+function Figure({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide" style={muted}>
+        {label}
+      </p>
+      <p className="text-lg font-bold tabular-nums" style={strong}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
   const [mode, setMode] = useState<"view" | "move" | "edit" | "history">("view");
+  const [moveType, setMoveType] = useState<MoveType>("deposit");
+  const startMove = (type: MoveType) => {
+    setMoveType(type);
+    setMode("move");
+  };
   const [error, setError] = useState<string | null>(null);
   const confirm = useConfirm();
   const month = currentMonth();
@@ -115,6 +180,9 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
   const history = state.data.txns
     .filter((t) => t.fundId === fund.id || t.toFundId === fund.id)
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  // A fund the plan only starts paying into later is waiting, not behind.
+  const starts = firstPlannedMonth(state.data.budgets, fund.id);
+  const notStarted = history.length === 0 && starts > month;
 
   async function setArchived(archived: boolean) {
     try {
@@ -141,7 +209,10 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
 
   if (mode === "edit")
     return (
-      <Card title={`Edit ${fund.name}`}>
+      <li className="py-5 first:pt-0 last:pb-0">
+        <h3 className="mb-3 text-base font-bold" style={strong}>
+          Edit {fund.name}
+        </h3>
         <FundForm
           fund={fund}
           onCancel={() => setMode("view")}
@@ -150,33 +221,40 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
             setMode("view");
           }}
         />
-      </Card>
+      </li>
     );
 
   return (
-    <Card
-      title={GROUP_OPTIONS.find((g) => g.value === fund.group)?.label}
-      action={
-        fund.archived ? (
+    <li className="py-5 first:pt-0 last:pb-0" aria-labelledby={`fund-${fund.id}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 id={`fund-${fund.id}`} className="text-base font-bold" style={strong}>
+          {fund.name}
+        </h3>
+        {notStarted && (
+          <span
+            className="rounded-full px-2 py-0.5 text-xs font-semibold"
+            style={{ background: "var(--accent-teal-subtle)", color: "var(--text-primary)" }}
+          >
+            Starts {monthLabel(starts)}
+          </span>
+        )}
+        {fund.archived && (
           <span className="text-xs" style={muted}>
             Archived
           </span>
-        ) : undefined
-      }
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-lg font-bold" style={strong}>
-          {fund.name}
-        </h3>
-        <p className="text-lg font-bold tabular-nums" style={strong}>
-          {cedis(balance)}
-        </p>
+        )}
       </div>
       {fund.institution && (
         <p className="text-xs" style={muted}>
           Held at {fund.institution}
         </p>
       )}
+
+      <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <Figure label="Saved" value={cedis(balance)} />
+        {fund.targetMinor > 0 && <Figure label="Target" value={cedis(fund.targetMinor)} />}
+        <Figure label="Each month" value={cedis(fund.monthlyMinor)} />
+      </div>
       {fund.targetMinor > 0 && (
         <div className="mt-3 space-y-1">
           <ProgressBar
@@ -184,30 +262,22 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
             label={`${fund.name} progress`}
           />
           <p className="text-sm" style={muted}>
-            {cedis(Math.max(0, fund.targetMinor - balance))} to go of {cedis(fund.targetMinor)}
+            {balance >= fund.targetMinor
+              ? "Target reached"
+              : `${cedis(fund.targetMinor - balance)} still to save. ${
+                  reach
+                    ? `At this pace: ${monthLabel(reach)}.`
+                    : "Set a monthly amount to see when."
+                }`}
+            {fund.targetDate && needed !== null && balance < fund.targetMinor && (
+              <>
+                {" "}
+                To make {fund.targetDate}: {cedis(needed)} a month.
+              </>
+            )}
           </p>
         </div>
       )}
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <dt style={muted}>Monthly</dt>
-        <dd className="tabular-nums" style={strong}>
-          {cedis(fund.monthlyMinor)}
-        </dd>
-        {fund.targetMinor > 0 && (
-          <>
-            <dt style={muted}>At that pace</dt>
-            <dd style={strong}>{reach ? monthLabel(reach) : "Never, set a monthly amount"}</dd>
-          </>
-        )}
-        {fund.targetDate && needed !== null && (
-          <>
-            <dt style={muted}>Needed by {fund.targetDate}</dt>
-            <dd className="tabular-nums" style={strong}>
-              {cedis(needed)} a month
-            </dd>
-          </>
-        )}
-      </dl>
       {fund.items.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm">
           {fund.items.map((it) => (
@@ -228,13 +298,19 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
         </ul>
       )}
       {fund.notes && (
-        <p className="mt-3 text-sm" style={muted}>
+        <p className="mt-2 text-sm" style={muted}>
           {fund.notes}
         </p>
       )}
 
       {mode === "move" && (
-        <MoveMoneyForm fund={fund} state={state} onDone={() => setMode("view")} />
+        <MoveMoneyForm
+          key={moveType}
+          fund={fund}
+          state={state}
+          type={moveType}
+          onDone={() => setMode("view")}
+        />
       )}
       {mode === "history" && (
         <ul
@@ -263,27 +339,47 @@ function FundCard({ fund, state }: { fund: Fund; state: FinanceState }) {
       )}
       <FormError message={error} />
       {mode !== "move" && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {!fund.archived && (
-            <Button variant="primary" onClick={() => setMode("move")}>
-              Move money
-            </Button>
+            <>
+              <Button variant="primary" onClick={() => startMove("deposit")}>
+                {MOVES.deposit.button}
+              </Button>
+              {balance > 0 && (
+                <>
+                  <Button onClick={() => startMove("withdrawal")}>{MOVES.withdrawal.button}</Button>
+                  <Button onClick={() => startMove("fund_spend")}>{MOVES.fund_spend.button}</Button>
+                </>
+              )}
+              {history.length === 0 && (
+                <Button variant="quiet" onClick={() => startMove("opening")}>
+                  {MOVES.opening.button}
+                </Button>
+              )}
+            </>
           )}
-          <Button onClick={() => setMode(mode === "history" ? "view" : "history")}>
-            {mode === "history" ? "Hide history" : "History"}
-          </Button>
-          <Button onClick={() => setMode("edit")}>Edit</Button>
-          <Button onClick={() => setArchived(!fund.archived)}>
-            {fund.archived ? "Restore" : "Archive"}
-          </Button>
-          {history.length === 0 && (
-            <Button variant="danger" onClick={() => void remove()}>
-              Delete
+          <span className="ml-auto flex flex-wrap gap-1">
+            <Button
+              variant="quiet"
+              onClick={() => setMode(mode === "history" ? "view" : "history")}
+            >
+              {mode === "history" ? "Hide history" : "History"}
             </Button>
-          )}
+            <Button variant="quiet" onClick={() => setMode("edit")}>
+              Edit
+            </Button>
+            <Button variant="quiet" onClick={() => setArchived(!fund.archived)}>
+              {fund.archived ? "Restore" : "Archive"}
+            </Button>
+            {history.length === 0 && (
+              <Button variant="quiet" onClick={() => void remove()}>
+                Delete
+              </Button>
+            )}
+          </span>
         </div>
       )}
-    </Card>
+    </li>
   );
 }
 
@@ -380,11 +476,28 @@ export function FundsView({ state }: { state: FinanceState }) {
         </Card>
       )}
       <WealthProjection state={state} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {shown.map((f) => (
-          <FundCard key={f.id} fund={f} state={state} />
-        ))}
-      </div>
+      {GROUP_OPTIONS.map((g) => {
+        const funds = shown.filter((f) => f.group === g.value);
+        if (funds.length === 0) return null;
+        const total = funds.reduce((acc, f) => acc + (state.balances.get(f.id) ?? 0), 0);
+        return (
+          <Card
+            key={g.value}
+            title={g.label}
+            action={
+              <span className="text-sm font-bold tabular-nums" style={strong}>
+                {cedis(total)} saved
+              </span>
+            }
+          >
+            <ul className="divide-y divide-[var(--analytics-line)]">
+              {funds.map((f) => (
+                <FundRow key={f.id} fund={f} state={state} />
+              ))}
+            </ul>
+          </Card>
+        );
+      })}
     </div>
   );
 }

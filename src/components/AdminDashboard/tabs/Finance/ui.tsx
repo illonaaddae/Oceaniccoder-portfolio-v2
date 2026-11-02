@@ -1,8 +1,20 @@
 // Small building blocks shared by the Finance views: money formatting,
-// progress bars, labelled fields and buttons in the dashboard's tokens.
+// progress bars, labelled fields and buttons. Fields reuse the dashboard's
+// design-system controls (CustomSelect, DatePicker, MonthPicker) and the
+// input styling of the Analytics expense log, so Finance looks like the rest
+// of the admin.
 import type React from "react";
-import { useId } from "react";
+import { createContext, useContext, useId } from "react";
 import { formatMinor, toMinor } from "@/utils/quoteMath";
+import { CustomSelect } from "@/components/ui/CustomSelect";
+import { DatePicker } from "@/components/ui/DatePicker";
+import { MonthPicker } from "@/components/ui/MonthPicker";
+
+type Theme = "light" | "dark";
+
+/** The dashboard theme, provided once by FinanceTab for the themed controls. */
+export const FinanceThemeContext = createContext<Theme>("dark");
+const useTheme = () => useContext(FinanceThemeContext);
 
 export const muted: React.CSSProperties = { color: "var(--text-secondary)" };
 export const strong: React.CSSProperties = { color: "var(--text-primary)" };
@@ -81,28 +93,67 @@ export function ProgressBar({ value, label }: { value: number; label: string }) 
       aria-valuemax={100}
       aria-valuenow={pct}
       className="h-2 w-full overflow-hidden rounded-full"
-      style={{ background: "var(--bg-tertiary)" }}
+      style={{ background: "var(--analytics-line)" }}
     >
       <div
         className="h-full rounded-full"
-        style={{ width: `${pct}%`, background: "var(--accent-teal)" }}
+        style={{ width: `${pct}%`, background: "var(--analytics-accent)" }}
       />
     </div>
   );
 }
 
-const fieldClass = "w-full rounded-lg border bg-transparent px-3 py-2 text-sm";
-const fieldStyle: React.CSSProperties = {
-  borderColor: "var(--border-subtle)",
-  color: "var(--text-primary)",
-  background: "var(--bg-secondary)",
-};
+/** Matches CustomSelect and DatePicker at size "sm", as the Analytics expense log does. */
+const inputClass = (theme: Theme) =>
+  `block w-full rounded-lg border px-3 py-2 text-sm font-normal transition-all duration-200 focus:outline-none focus:ring-2 ${
+    theme === "dark"
+      ? "bg-gray-800/80 border-gray-700 text-white placeholder-gray-400 focus:border-oceanic-400 focus:ring-oceanic-400"
+      : "bg-white/50 border-oceanic-200/50 text-slate-900 placeholder-slate-500 focus:ring-oceanic-600"
+  }`;
+
+function FieldLabel({
+  id,
+  htmlFor,
+  label,
+  required,
+}: {
+  id?: string;
+  htmlFor?: string;
+  label: string;
+  required?: boolean;
+}) {
+  const content = (
+    <>
+      {label}
+      {required && <span aria-hidden="true"> *</span>}
+      {/* A button can't carry aria-required; the name says it instead. */}
+      {required && !htmlFor && <span className="sr-only"> (required)</span>}
+    </>
+  );
+  return htmlFor ? (
+    <label id={id} htmlFor={htmlFor} className="text-xs font-semibold" style={muted}>
+      {content}
+    </label>
+  ) : (
+    <span id={id} className="text-xs font-semibold" style={muted}>
+      {content}
+    </span>
+  );
+}
+
+function Hint({ id, hint }: { id: string; hint?: string }) {
+  if (!hint) return null;
+  return (
+    <p id={id} className="text-xs" style={muted}>
+      {hint}
+    </p>
+  );
+}
 
 export function TextField({
   label,
   value,
   onChange,
-  type = "text",
   required,
   maxLength,
   inputMode,
@@ -112,7 +163,6 @@ export function TextField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  type?: "text" | "date" | "month";
   required?: boolean;
   maxLength?: number;
   inputMode?: "decimal";
@@ -120,15 +170,13 @@ export function TextField({
   hint?: string;
 }) {
   const id = useId();
+  const theme = useTheme();
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-xs font-semibold" style={muted}>
-        {label}
-        {required && <span aria-hidden="true"> *</span>}
-      </label>
+      <FieldLabel htmlFor={id} label={label} required={required} />
       <input
         id={id}
-        type={type}
+        type="text"
         value={value}
         required={required}
         maxLength={maxLength}
@@ -136,14 +184,9 @@ export function TextField({
         placeholder={placeholder}
         aria-describedby={hint ? `${id}-hint` : undefined}
         onChange={(e) => onChange(e.target.value)}
-        className={fieldClass}
-        style={fieldStyle}
+        className={`${inputClass(theme)}${inputMode === "decimal" ? " tabular-nums" : ""}`}
       />
-      {hint && (
-        <p id={`${id}-hint`} className="text-xs" style={muted}>
-          {hint}
-        </p>
-      )}
+      <Hint id={`${id}-hint`} hint={hint} />
     </div>
   );
 }
@@ -157,6 +200,63 @@ export function MoneyField(props: {
   hint?: string;
 }) {
   return <TextField {...props} inputMode="decimal" placeholder="0.00" maxLength={16} />;
+}
+
+/** A day, "YYYY-MM-DD". A required date can't be cleared back to empty. */
+export function DateField({
+  label,
+  value,
+  onChange,
+  required,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  hint?: string;
+}) {
+  const id = useId();
+  const theme = useTheme();
+  return (
+    <div className="flex flex-col gap-1">
+      <FieldLabel id={id} label={label} required={required} />
+      <DatePicker
+        value={value}
+        onChange={(v) => {
+          if (v || !required) onChange(v);
+        }}
+        theme={theme}
+        labelId={id}
+        size="sm"
+        placeholder="Pick a date"
+      />
+      <Hint id={`${id}-hint`} hint={hint} />
+    </div>
+  );
+}
+
+/** A month, "YYYY-MM". */
+export function MonthField({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  hint?: string;
+}) {
+  const id = useId();
+  const theme = useTheme();
+  return (
+    <div className="flex flex-col gap-1">
+      <FieldLabel id={id} label={label} />
+      <MonthPicker value={value} onChange={onChange} theme={theme} labelId={id} size="sm" />
+      <Hint id={`${id}-hint`} hint={hint} />
+    </div>
+  );
 }
 
 export function Select<T extends string>({
@@ -173,26 +273,18 @@ export function Select<T extends string>({
   required?: boolean;
 }) {
   const id = useId();
+  const theme = useTheme();
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-xs font-semibold" style={muted}>
-        {label}
-        {required && <span aria-hidden="true"> *</span>}
-      </label>
-      <select
-        id={id}
+      <FieldLabel id={id} label={label} required={required} />
+      <CustomSelect
         value={value}
-        required={required}
-        onChange={(e) => onChange(e.target.value as T)}
-        className={fieldClass}
-        style={fieldStyle}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+        onChange={(v) => onChange(v as T)}
+        options={options}
+        theme={theme}
+        labelId={id}
+        size="sm"
+      />
     </div>
   );
 }
@@ -208,19 +300,26 @@ export function Button({
   children: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
-  variant?: "primary" | "secondary" | "danger";
+  /** "quiet" is a borderless text action for things done rarely. */
+  variant?: "primary" | "secondary" | "danger" | "quiet";
   disabled?: boolean;
   /** Accessible name when the visible text alone is ambiguous. */
   label?: string;
 }) {
-  const styles: Record<string, React.CSSProperties> = {
-    primary: {
-      background: "var(--accent-teal)",
-      color: "var(--bg-primary)",
-      borderColor: "var(--accent-teal)",
-    },
+  const theme = useTheme();
+  const ring =
+    theme === "dark" ? "focus-visible:ring-oceanic-400" : "focus-visible:ring-oceanic-600";
+  const look = {
+    primary: "border-oceanic-600 bg-oceanic-600 text-white hover:bg-oceanic-700",
+    secondary: "hover:bg-[var(--accent-teal-subtle)]",
+    danger: "hover:bg-[var(--status-failed-bg)]",
+    quiet: "border-transparent px-1.5 underline-offset-4 hover:underline",
+  }[variant];
+  const colours: Record<string, React.CSSProperties | undefined> = {
+    primary: undefined,
     secondary: { borderColor: "var(--border-subtle)", color: "var(--text-primary)" },
     danger: { borderColor: "var(--status-failed-border)", color: "var(--status-failed-text)" },
+    quiet: { color: "var(--text-secondary)" },
   };
   return (
     <button
@@ -228,8 +327,8 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="rounded-lg border px-3 py-1.5 text-sm font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-      style={styles[variant]}
+      className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${ring} ${look}`}
+      style={colours[variant]}
     >
       {children}
     </button>

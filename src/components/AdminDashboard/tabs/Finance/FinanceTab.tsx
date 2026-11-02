@@ -11,7 +11,7 @@ import { FundsView } from "./FundsView";
 import { BudgetView } from "./BudgetView";
 import { TransactionsView } from "./TransactionsView";
 import { ExpectedView } from "./ExpectedView";
-import { muted } from "./ui";
+import { FinanceThemeContext, muted } from "./ui";
 
 const VIEWS = [
   { key: "overview", label: "Overview" },
@@ -34,44 +34,46 @@ export default function FinanceTab({ theme }: { theme: "light" | "dark" }) {
   }
 
   return (
-    <div>
-      <TabHeader
-        theme={theme}
-        title="Finance"
-        subtitle="Your money, savings and goals. Only you can see this."
-        customAction={
-          <RefreshControl
-            updatedAt={updatedAt}
-            loading={state.loading}
-            onRefresh={() => void refresh()}
-          />
-        }
-      />
-      <FilterPills
-        tabs={VIEWS.map((v) => ({ key: v.key, label: v.label }))}
-        active={view}
-        onChange={(k) => setView(k as View)}
-        theme={theme}
-        className="mb-6"
-      />
-      {state.error && (
-        <div className="mb-4">
-          <ErrorBanner message={state.error} onDismiss={state.clearError} />
-        </div>
-      )}
-      {!state.loaded ? (
-        <p className="text-sm" style={muted} role="status">
-          {state.loading ? "Loading your finances…" : "Couldn't load your finances. Try Refresh."}
-        </p>
-      ) : (
-        <>
-          {view === "overview" && <OverviewView state={state} />}
-          {view === "funds" && <FundsView state={state} />}
-          {view === "budget" && <BudgetView state={state} />}
-          {view === "transactions" && <TransactionsView state={state} />}
-          {view === "expected" && <ExpectedView state={state} />}
-        </>
-      )}
-    </div>
+    <FinanceThemeContext.Provider value={theme}>
+      <div className="finance-dash">
+        <TabHeader
+          theme={theme}
+          title="Finance"
+          subtitle="Your money, savings and goals. Only you can see this."
+          customAction={
+            <RefreshControl
+              updatedAt={updatedAt}
+              loading={state.loading}
+              onRefresh={() => void refresh()}
+            />
+          }
+        />
+        <FilterPills
+          tabs={VIEWS.map((v) => ({ key: v.key, label: v.label }))}
+          active={view}
+          onChange={(k) => setView(k as View)}
+          theme={theme}
+          className="mb-6"
+        />
+        {state.error && (
+          <div className="mb-4">
+            <ErrorBanner message={state.error} onDismiss={state.clearError} />
+          </div>
+        )}
+        {!state.loaded ? (
+          <p className="text-sm" style={muted} role="status">
+            {state.loading ? "Loading your finances…" : "Couldn't load your finances. Try Refresh."}
+          </p>
+        ) : (
+          <>
+            {view === "overview" && <OverviewView state={state} />}
+            {view === "funds" && <FundsView state={state} />}
+            {view === "budget" && <BudgetView state={state} />}
+            {view === "transactions" && <TransactionsView state={state} />}
+            {view === "expected" && <ExpectedView state={state} />}
+          </>
+        )}
+      </div>
+    </FinanceThemeContext.Provider>
   );
 }

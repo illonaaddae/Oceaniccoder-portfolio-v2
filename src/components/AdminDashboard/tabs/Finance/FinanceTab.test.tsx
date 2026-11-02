@@ -3,7 +3,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FinanceData, Fund, Txn } from "@/types/finance";
 import { ConfirmProvider } from "../../ConfirmContext";
-import { currentMonth } from "@/utils/finance/ledger";
+import { addMonths, currentMonth } from "@/utils/finance/ledger";
+import { monthLabel } from "./ui";
 
 const list = vi.fn();
 const addTxn = vi.fn();
@@ -121,15 +122,57 @@ describe("FinanceTab", () => {
     addTxn.mockRejectedValueOnce(new Error("New laptop only holds GHS 300.00."));
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
-    const card = screen.getAllByRole("button", { name: "Move money" })[1];
-    await userEvent.click(card);
-    await userEvent.selectOptions(screen.getByLabelText("What happened"), "withdrawal");
-    await userEvent.type(screen.getByLabelText(/Amount/), "500");
-    await userEvent.click(screen.getByRole("button", { name: "Record" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Take out" })[1]);
+    const form = screen.getByRole("form", { name: "Take money out: New laptop" });
+    await userEvent.type(within(form).getByLabelText(/Amount/), "500");
+    await userEvent.click(within(form).getByRole("button", { name: "Take out" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("only holds GHS 300.00");
     expect(addTxn).toHaveBeenCalledWith(
       expect.objectContaining({ type: "withdrawal", amountMinor: 50000, fundId: "g" }),
     );
+  });
+
+  it("offers a fund with no history the money it already held, recorded as an opening balance", async () => {
+    list
+      .mockReset()
+      .mockResolvedValue({ ...data, funds: [...data.funds, fund("r", "Rent", "rent")] });
+    addTxn.mockResolvedValueOnce({ txn: txn("t9", "opening", 250000, "r") });
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    // Only the fund with no history offers it; funds with money also offer Take out.
+    expect(screen.getAllByRole("button", { name: "Set what it already holds" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Take out" })).toHaveLength(2);
+    await userEvent.click(screen.getByRole("button", { name: "Set what it already holds" }));
+    await userEvent.type(screen.getByLabelText(/Amount/), "2500");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(addTxn).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "opening", amountMinor: 250000, fundId: "r" }),
+    );
+  });
+
+  it("marks a fund the plan only starts paying into later as not started", async () => {
+    const later = addMonths(currentMonth(), 2);
+    list.mockReset().mockResolvedValue({
+      ...data,
+      funds: [...data.funds, fund("r", "Next year's rent", "rent", 1200000)],
+      budgets: [
+        {
+          ...stamp,
+          id: "b1",
+          kind: "budget",
+          month: later,
+          netIncomeMinor: 100000,
+          lines: [{ id: "l1", label: "Rent", amountMinor: 100000, fundId: "r" }],
+        },
+      ],
+    });
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    const row = screen.getByRole("listitem", { name: "Next year's rent" });
+    expect(within(row).getByText(`Starts ${monthLabel(later)}`)).toBeInTheDocument();
+    // Funds with money in them don't get the label.
+    const laptop = screen.getByRole("listitem", { name: "New laptop" });
+    expect(within(laptop).queryByText(/^Starts/)).toBeNull();
   });
 
   it("says so when the ledger can't load instead of showing zeros", async () => {

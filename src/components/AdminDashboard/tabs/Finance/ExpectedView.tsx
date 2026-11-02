@@ -12,6 +12,7 @@ import {
   MoneyField,
   Select,
   TextField,
+  DateField,
   cedis,
   inputToMinor,
   minorToInput,
@@ -84,12 +85,7 @@ function ExpectedForm({
           placeholder="Client balance, bonus, family"
         />
         <MoneyField label="Amount (GH₵)" value={amount} onChange={setAmount} required />
-        <TextField
-          label="Expected on"
-          type="date"
-          value={expectedDate}
-          onChange={setExpectedDate}
-        />
+        <DateField label="Expected on" value={expectedDate} onChange={setExpectedDate} />
         <Select
           label="When it arrives"
           value={depositFundId}
@@ -156,7 +152,7 @@ function ReceiveForm({
           onChange={setAmount}
           required
         />
-        <TextField label="Arrived on" type="date" value={date} onChange={setDate} required />
+        <DateField label="Arrived on" value={date} onChange={setDate} required />
         <Select
           label="What it was"
           value={category}

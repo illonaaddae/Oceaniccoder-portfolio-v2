@@ -126,6 +126,22 @@ function FundGroupCard({
   );
 }
 
+function HeroFigure({ label, value, note }: { label: string; value: string; note?: string }) {
+  return (
+    <div className="analytics-hero__fig">
+      <h3 className="text-sm font-semibold">{label}</h3>
+      <p className="text-2xl font-bold tabular-nums" style={strong}>
+        {value}
+      </p>
+      {note && (
+        <p className="text-xs" style={muted}>
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function OverviewView({ state }: { state: FinanceState }) {
   const month = currentMonth();
   const { funds, txns, budgets, expected } = state.data;
@@ -162,42 +178,48 @@ export function OverviewView({ state }: { state: FinanceState }) {
 
   return (
     <div className="space-y-6">
+      {/* The headline figures sit on the Analytics ocean band. */}
+      <div className="analytics-hero">
+        <div className="analytics-hero__grid">
+          <HeroFigure
+            label="Personal wealth"
+            value={cedis(view.wealthTotal)}
+            note={view.streak > 0 ? `${view.streak}-month saving streak` : "Saved, never spent"}
+          />
+          <HeroFigure
+            label={`Saved to wealth in ${monthLabel(month)}`}
+            value={cedis(summary.savedToWealth)}
+            note={
+              view.plannedWealth > 0
+                ? `Plan ${cedis(view.plannedWealth)}, about ${cedis(dailyEquivalent(view.plannedWealth))} a day`
+                : "Set a budget to see the plan"
+            }
+          />
+          <HeroFigure
+            label="Emergency fund"
+            value={cedis(view.emergency)}
+            note={
+              view.essentials > 0
+                ? `Covers ${(view.emergency / view.essentials).toFixed(1)} months of essentials`
+                : undefined
+            }
+          />
+          <HeroFigure
+            label="Cash on hand"
+            value={cedis(state.cash)}
+            note="Income recorded, minus spending and savings"
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat
-          label="Personal wealth"
-          value={cedis(view.wealthTotal)}
-          note={view.streak > 0 ? `${view.streak}-month saving streak` : "Saved, never spent"}
-        />
-        <Stat
-          label={`Saved to wealth in ${monthLabel(month)}`}
-          value={cedis(summary.savedToWealth)}
-          note={
-            view.plannedWealth > 0
-              ? `Plan ${cedis(view.plannedWealth)}, about ${cedis(dailyEquivalent(view.plannedWealth))} a day`
-              : "Set a budget to see the plan"
-          }
-        />
-        <Stat label="Wealth savings rate" value={rate} note="Wealth saved ÷ income this month" />
-        <Stat
-          label="Emergency fund"
-          value={cedis(view.emergency)}
-          note={
-            view.essentials > 0
-              ? `Covers ${(view.emergency / view.essentials).toFixed(1)} months of essentials`
-              : undefined
-          }
-        />
-        <Stat
-          label="Cash on hand"
-          value={cedis(state.cash)}
-          note="Recorded income minus spending and savings"
-        />
         <Stat
           label={`Income in ${monthLabel(month)}`}
           value={cedis(summary.income)}
           note="Received only"
         />
         <Stat label={`Spent in ${monthLabel(month)}`} value={cedis(summary.spent)} />
+        <Stat label="Wealth savings rate" value={rate} note="Wealth saved ÷ income this month" />
         <Stat
           label="Take-home in plan"
           value={view.budget ? cedis(view.budget.netIncomeMinor) : "No plan"}

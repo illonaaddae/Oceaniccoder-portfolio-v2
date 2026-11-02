@@ -11,6 +11,7 @@ import {
   MoneyField,
   Select,
   TextField,
+  MonthField,
   cedis,
   inputToMinor,
   minorToInput,
@@ -84,12 +85,10 @@ function BudgetEditor({
   return (
     <form onSubmit={submit} className="space-y-4" aria-label="Edit monthly plan">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <TextField
+        <MonthField
           label="Plan starts in"
-          type="month"
           value={month}
           onChange={setMonth}
-          required
           hint="It applies from this month until a later plan starts. Saving the same month replaces it."
         />
         <MoneyField label="Take-home pay (GH₵)" value={net} onChange={setNet} required />
@@ -202,8 +201,8 @@ export function BudgetView({ state }: { state: FinanceState }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
-        <div className="w-44">
-          <TextField label="Month" type="month" value={month} onChange={(v) => v && setMonth(v)} />
+        <div className="w-60">
+          <MonthField label="Month" value={month} onChange={(v) => v && setMonth(v)} />
         </div>
         <Button variant="primary" onClick={() => setEditing(budget ? "this" : "new")}>
           {budget ? "Edit this plan" : "Create a plan"}
