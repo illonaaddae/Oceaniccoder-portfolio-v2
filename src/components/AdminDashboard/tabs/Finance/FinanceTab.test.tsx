@@ -127,14 +127,14 @@ describe("FinanceTab", () => {
   });
 
   it("shows the server's refusal when a withdrawal is more than the fund holds", async () => {
-    addTxn.mockRejectedValueOnce(new Error("New laptop only holds GHS 300.00."));
+    addTxn.mockRejectedValueOnce(new Error("New laptop only holds GH₵ 300.00."));
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
     await userEvent.click(screen.getAllByRole("button", { name: "Take out" })[1]);
     const form = screen.getByRole("form", { name: "Take money out: New laptop" });
     await userEvent.type(within(form).getByLabelText(/Amount/), "500");
     await userEvent.click(within(form).getByRole("button", { name: "Take out" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("only holds GHS 300.00");
+    expect(await screen.findByRole("alert")).toHaveTextContent("only holds GH₵ 300.00");
     expect(addTxn).toHaveBeenCalledWith(
       expect.objectContaining({ type: "withdrawal", amountMinor: 50000, fundId: "g" }),
     );

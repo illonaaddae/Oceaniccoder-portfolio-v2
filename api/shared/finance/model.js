@@ -32,9 +32,10 @@ const NEEDS_FUND = new Set(["deposit", "withdrawal", "transfer", "fund_spend", "
 // GH₵ 100 million: far above any real amount, low enough to stay an exact integer.
 const MAX_MINOR = 10_000_000_000;
 
+/** "GH₵ 1,250.00", the format the Finance screens use (formatMinor in src/utils/quoteMath.ts). */
 function cedis(minorUnits) {
   const major = minorUnits / 100;
-  return `GHS ${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `GH₵ ${major.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function invalid(message) {

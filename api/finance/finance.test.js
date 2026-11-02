@@ -116,7 +116,7 @@ describe("/api/finance", () => {
       fundId: fund.id,
     });
     expect(res.status).toBe(409);
-    expect(res.body.error).toContain("GHS 10.00");
+    expect(res.body.error).toContain("GH₵ 10.00");
     const ok = await call({
       action: "addTxn",
       type: "withdrawal",
