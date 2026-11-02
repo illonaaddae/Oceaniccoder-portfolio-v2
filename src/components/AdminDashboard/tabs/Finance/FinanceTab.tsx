@@ -28,12 +28,6 @@ type View = (typeof VIEWS)[number]["key"];
 export default function FinanceTab({ theme }: { theme: "light" | "dark" }) {
   const state = useFinance();
   const [view, setView] = useState<View>("overview");
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
-
-  async function refresh() {
-    await state.reload();
-    setUpdatedAt(new Date());
-  }
 
   return (
     <FinanceThemeContext.Provider value={theme}>
@@ -44,9 +38,10 @@ export default function FinanceTab({ theme }: { theme: "light" | "dark" }) {
           subtitle="Your money, savings and goals. Only you can see this."
           customAction={
             <RefreshControl
-              updatedAt={updatedAt}
+              updatedAt={state.updatedAt}
+              stale={state.stale}
               loading={state.loading}
-              onRefresh={() => void refresh()}
+              onRefresh={() => void state.reload()}
             />
           }
         />

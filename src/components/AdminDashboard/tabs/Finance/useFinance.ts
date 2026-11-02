@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { financeApi } from "@/services/api/finance";
 import type { FinanceData } from "@/types/finance";
 import { cashBalance, fundBalances } from "@/utils/finance/ledger";
@@ -7,25 +7,38 @@ const EMPTY: FinanceData = { funds: [], txns: [], budgets: [], expected: [] };
 
 /**
  * The whole ledger, loaded once and reloaded after every change, so balances
- * on screen always come from what the server actually stored.
+ * on screen always come from what the server actually stored. Only the latest
+ * reload lands: an older one that answers late is dropped, so it can't put
+ * back a ledger from before a change.
  */
 export function useFinance() {
   const [data, setData] = useState<FinanceData>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  // Set only by a failed load, not by a failed change, so "Couldn't refresh"
+  // never shows for a refused delete.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const latest = useRef(0);
 
   const reload = useCallback(async () => {
+    const request = ++latest.current;
     setLoading(true);
     try {
       const next = await financeApi.list();
+      if (request !== latest.current) return;
       setData(next);
       setLoaded(true);
       setError(null);
+      setLoadFailed(false);
+      setUpdatedAt(new Date());
     } catch (err) {
+      if (request !== latest.current) return;
       setError(err instanceof Error ? err.message : "Couldn't load your finances.");
+      setLoadFailed(true);
     } finally {
-      setLoading(false);
+      if (request === latest.current) setLoading(false);
     }
   }, []);
 
@@ -73,6 +86,9 @@ export function useFinance() {
     loading,
     loaded,
     error,
+    updatedAt,
+    /** The last load failed, so what is on screen is from `updatedAt`. */
+    stale: loadFailed && updatedAt !== null,
     report,
     clearError: () => setError(null),
     reload,
