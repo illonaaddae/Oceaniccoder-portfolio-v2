@@ -195,9 +195,10 @@ function fundBalances(txns) {
 }
 
 /**
- * Refuses a transaction that names a missing or archived fund, that takes
- * more out of a fund than it holds, or that sets a starting balance on a fund
- * that already has history. `others` are the existing transactions, not
+ * Refuses a transaction that names a missing or archived fund, that pays for
+ * something straight from a wealth fund, that takes more out of a fund than
+ * it holds, or that sets a starting balance on a fund that already has
+ * history. `others` are the existing transactions, not
  * including the one being checked.
  */
 function checkTxnAgainstLedger(txn, funds, others) {
@@ -207,6 +208,13 @@ function checkTxnAgainstLedger(txn, funds, others) {
     if (!fund) throw invalid("That fund doesn't exist.");
     if (fund.archived) throw invalid(`${fund.name} is archived. Restore it first.`);
   }
+  // Wealth is never spent from directly: it comes out to cash first, so the
+  // totals show it as no longer saved before it is spent.
+  if (txn.type === "fund_spend" && byId.get(txn.fundId).group === "wealth")
+    throw new HttpError(
+      409,
+      `${byId.get(txn.fundId).name} is personal wealth, which isn't spent from directly. Take the money out to cash first.`,
+    );
   // A starting balance is what the fund held before tracking began, so it
   // only makes sense before anything else was recorded against the fund.
   if (

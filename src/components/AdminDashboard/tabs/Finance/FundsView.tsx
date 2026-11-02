@@ -359,7 +359,12 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
               {balance > 0 && (
                 <>
                   <Button onClick={() => startMove("withdrawal")}>{MOVES.withdrawal.button}</Button>
-                  <Button onClick={() => startMove("fund_spend")}>{MOVES.fund_spend.button}</Button>
+                  {/* Wealth is never spent from directly; the server refuses it too. */}
+                  {fund.group !== "wealth" && (
+                    <Button onClick={() => startMove("fund_spend")}>
+                      {MOVES.fund_spend.button}
+                    </Button>
+                  )}
                 </>
               )}
               {history.length === 0 && (

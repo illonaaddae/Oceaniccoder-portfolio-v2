@@ -63,11 +63,17 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
   const [saving, setSaving] = useState(false);
 
   const categories = type === "income" ? INCOME_CATEGORIES : spendCategories;
-  const fundOptions = funds.map((f) => ({ value: f.id, label: f.name }));
+  // Wealth is never spent from directly, so a payment can't come from it.
+  const spendable = funds.filter((f) => f.group !== "wealth");
+  const fromFunds = type === "fund_spend" ? spendable : funds;
+  const fundOptions = fromFunds.map((f) => ({ value: f.id, label: f.name }));
+  const toFundOptions = funds.map((f) => ({ value: f.id, label: f.name }));
 
   function changeType(next: TxnType) {
     setType(next);
     setCategory(next === "income" ? INCOME_CATEGORIES[0] : spendCategories[0]);
+    if (next === "fund_spend" && !spendable.some((f) => f.id === fundId))
+      setFundId(spendable[0]?.id ?? "");
   }
 
   async function submit(e: React.FormEvent) {
@@ -75,6 +81,10 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
     const amountMinor = inputToMinor(amount);
     if (amountMinor === null) return setError("Amounts must be numbers like 300 or 1,250.50.");
     if (!amountMinor) return setError("Enter an amount more than zero.");
+    if (type === "fund_spend" && !fundId)
+      return setError(
+        "Only rent, goal and emergency funds pay for things. Create one under Funds.",
+      );
     if (NEEDS_FUND.has(type) && !fundId) return setError("Create a fund first, under Funds.");
     setSaving(true);
     setError(null);
@@ -127,7 +137,7 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
           />
         )}
         {type === "transfer" && (
-          <Select label="To fund" value={toFundId} options={fundOptions} onChange={setToFundId} />
+          <Select label="To fund" value={toFundId} options={toFundOptions} onChange={setToFundId} />
         )}
         {HAS_CATEGORY.has(type) && (
           <Select

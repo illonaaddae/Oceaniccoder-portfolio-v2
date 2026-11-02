@@ -158,6 +158,27 @@ describe("FinanceTab", () => {
     );
   });
 
+  it("offers no way to pay for something straight from a wealth fund", async () => {
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    const wealth = screen.getByRole("listitem", { name: "House Fund" });
+    expect(within(wealth).getByRole("button", { name: "Take out" })).toBeInTheDocument();
+    expect(within(wealth).queryByRole("button", { name: "Pay for something" })).toBeNull();
+    const goal = screen.getByRole("listitem", { name: "New laptop" });
+    expect(within(goal).getByRole("button", { name: "Pay for something" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Transactions" }));
+    await userEvent.click(screen.getByRole("button", { name: "Record a transaction" }));
+    const form = screen.getByRole("form", { name: "Record a transaction" });
+    await userEvent.click(within(form).getByRole("combobox", { name: /^What happened/ }));
+    await userEvent.click(screen.getByRole("option", { name: "Paid from a fund" }));
+    expect(within(form).getByRole("combobox", { name: /^Fund/ })).toHaveAccessibleName(
+      "Fund New laptop",
+    );
+    await userEvent.click(within(form).getByRole("combobox", { name: /^Fund/ }));
+    expect(screen.queryByRole("option", { name: "House Fund" })).toBeNull();
+  });
+
   it("marks a fund the plan only starts paying into later as not started", async () => {
     const later = addMonths(currentMonth(), 2);
     list.mockReset().mockResolvedValue({

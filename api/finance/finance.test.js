@@ -507,6 +507,31 @@ describe("/api/finance", () => {
     expect(repo.docs.size).toBe(before);
   });
 
+  it("won't pay for something straight from a wealth fund, but lets money out to cash or another fund", async () => {
+    const { call, repo } = setup();
+    const wealth = await makeFund(call, { name: "House Fund" });
+    const goal = await makeFund(call, { name: "Laptop", group: "goal" });
+    const move = (type, fields = {}) =>
+      call({
+        action: "addTxn",
+        type,
+        date: "2026-11-05",
+        amountMinor: 100,
+        fundId: wealth.id,
+        ...fields,
+      });
+    expect((await move("deposit", { amountMinor: 1000 })).status).toBe(200);
+    const before = repo.docs.size;
+    const spend = await move("fund_spend");
+    expect(spend.status).toBe(409);
+    expect(spend.body.error).toBe(
+      "House Fund is personal wealth, which isn't spent from directly. Take the money out to cash first.",
+    );
+    expect(repo.docs.size).toBe(before);
+    expect((await move("withdrawal")).status).toBe(200);
+    expect((await move("transfer", { toFundId: goal.id })).status).toBe(200);
+  });
+
   it("only takes a starting balance for a fund with no history", async () => {
     const { call } = setup();
     const fund = await makeFund(call);
