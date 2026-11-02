@@ -115,7 +115,7 @@ export function idsOf(funds: Fund[], group?: FundGroup): Set<string> {
 
 export interface MonthSummary {
   income: number;
-  /** Spending from cash plus spending straight from funds. */
+  /** Living costs: expenses only. Money paid out of funds is in paidFromFunds. */
   spent: number;
   savedToWealth: number;
   /** Personal wealth saved as a share of income, 0 to 1; null with no income. */
@@ -130,7 +130,7 @@ export function monthSummary(txns: Txn[], funds: Fund[], month: string): MonthSu
   const savedToWealth = netSavedInto(txns, idsOf(funds, WEALTH_GROUP), month);
   return {
     income,
-    spent: sum((t) => t.type === "expense" || t.type === "fund_spend"),
+    spent: sum((t) => t.type === "expense"),
     savedToWealth,
     savingsRate: income > 0 ? savedToWealth / income : null,
   };
@@ -144,15 +144,19 @@ export function activeBudget(budgets: Budget[], month: string): Budget | null {
   );
 }
 
+/** The category an expense counts under; one without a category is "Other". */
+const categoryOf = (t: Txn) => t.category || "Other";
+
 /**
  * What actually happened against one budget line in a month. A saving line
- * counts net money into its fund; a spending line counts expenses filed under
- * the same category as the line's label.
+ * counts money put into its fund; a spending line counts expenses filed under
+ * the same category as the line's label, the same figure the Spending view
+ * shows. Money paid out of a fund is not a living cost, so it never counts.
  */
 export function lineActual(line: BudgetLine, txns: Txn[], month: string): number {
   if (line.fundId) return contributedInto(txns, new Set([line.fundId]), month);
   return inMonth(txns, month)
-    .filter((t) => (t.type === "expense" || t.type === "fund_spend") && t.category === line.label)
+    .filter((t) => t.type === "expense" && categoryOf(t) === line.label)
     .reduce((acc, t) => acc + t.amountMinor, 0);
 }
 
@@ -226,7 +230,7 @@ export function spendingByCategory(
     if (!line.fundId) row(line.label).plannedMinor += line.amountMinor;
   }
   for (const t of inMonth(txns, month)) {
-    if (t.type === "expense") row(t.category || "Other").spentMinor += t.amountMinor;
+    if (t.type === "expense") row(categoryOf(t)).spentMinor += t.amountMinor;
   }
   return [...rows.values()].sort(
     (a, b) => b.spentMinor - a.spentMinor || b.plannedMinor - a.plannedMinor,

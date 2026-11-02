@@ -218,7 +218,11 @@ export function OverviewView({ state }: { state: FinanceState }) {
           value={cedis(summary.income)}
           note="Received only"
         />
-        <Stat label={`Spent in ${monthLabel(month)}`} value={cedis(summary.spent)} />
+        <Stat
+          label={`Living costs in ${monthLabel(month)}`}
+          value={cedis(summary.spent)}
+          note="Spending only, not money paid from funds"
+        />
         <Stat label="Wealth savings rate" value={rate} note="Wealth saved ÷ income this month" />
         <Stat
           label="Take-home in plan"

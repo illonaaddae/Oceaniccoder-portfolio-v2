@@ -40,7 +40,9 @@ export const INCOME_CATEGORIES = [
   "Other",
 ];
 const NEEDS_FUND = new Set<TxnType>(["deposit", "withdrawal", "transfer", "fund_spend", "opening"]);
-const HAS_CATEGORY = new Set<TxnType>(["income", "expense", "fund_spend"]);
+// Money paid from a fund is not a living cost, so it takes no spending
+// category; it is filed under the fund's name, as the Funds view does.
+const HAS_CATEGORY = new Set<TxnType>(["income", "expense"]);
 
 export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => void }) {
   const funds = state.activeFunds;
@@ -82,7 +84,11 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
           amountMinor,
           fundId: NEEDS_FUND.has(type) ? fundId : "",
           toFundId: type === "transfer" ? toFundId : "",
-          category: HAS_CATEGORY.has(type) ? category : "",
+          category: HAS_CATEGORY.has(type)
+            ? category
+            : type === "fund_spend"
+              ? (funds.find((f) => f.id === fundId)?.name ?? "")
+              : "",
           note: note.trim(),
         }),
       );

@@ -212,6 +212,24 @@ describe("FinanceTab", () => {
     expect(within(where).queryByText("New laptop")).toBeNull();
   });
 
+  it("files a payment from a fund under the fund's name, not a spending category", async () => {
+    addTxn.mockResolvedValueOnce({ txn: txn("t9", "fund_spend", 10000, "g") });
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Transactions" }));
+    await userEvent.click(screen.getByRole("button", { name: "Record a transaction" }));
+    const form = screen.getByRole("form", { name: "Record a transaction" });
+    await userEvent.click(within(form).getByRole("combobox", { name: /^What happened/ }));
+    await userEvent.click(screen.getByRole("option", { name: "Paid from a fund" }));
+    expect(within(form).queryByRole("combobox", { name: /^Category/ })).toBeNull();
+    await userEvent.click(within(form).getByRole("combobox", { name: /^Fund/ }));
+    await userEvent.click(screen.getByRole("option", { name: "New laptop" }));
+    await userEvent.type(within(form).getByLabelText(/Amount/), "100");
+    await userEvent.click(within(form).getByRole("button", { name: "Record" }));
+    expect(addTxn).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "fund_spend", fundId: "g", category: "New laptop" }),
+    );
+  });
+
   it("says so when the ledger can't load instead of showing zeros", async () => {
     list.mockReset().mockRejectedValue(new Error("Sign in to the dashboard and try again."));
     renderTab();

@@ -181,6 +181,29 @@ describe("budgets", () => {
   });
 });
 
+describe("one definition of spent", () => {
+  it("gives a spending line the same figure in the Budget and Spending views", () => {
+    const plan = budget("2027-01", [
+      { id: "f", label: "Food", amountMinor: 500, fundId: "" },
+      { id: "o", label: "Other", amountMinor: 100, fundId: "" },
+    ]);
+    const txns = [
+      txn("expense", "2027-01-03", 30, { category: "Food" }),
+      txn("expense", "2027-01-04", 20, { category: "" }),
+      // Paid from a fund but filed under a spending category: not a living cost.
+      txn("fund_spend", "2027-01-05", 400, { fundId: "laptop", category: "Food" }),
+    ];
+    const spending = spendingByCategory(txns, plan, "2027-01");
+    for (const line of plan.lines)
+      expect(lineActual(line, txns, "2027-01")).toBe(
+        spending.find((r) => r.category === line.label)?.spentMinor,
+      );
+    expect(lineActual(plan.lines[0], txns, "2027-01")).toBe(30);
+    expect(lineActual(plan.lines[1], txns, "2027-01")).toBe(20);
+    expect(monthSummary(txns, funds, "2027-01").spent).toBe(50);
+  });
+});
+
 describe("projection", () => {
   it("counts the months to a target and the month it lands in", () => {
     expect(monthsToTarget(100, 50, 300)).toBe(4);

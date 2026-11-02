@@ -302,8 +302,8 @@ export function BudgetView({ state }: { state: FinanceState }) {
             </table>
           </div>
           <p className="mt-3 text-xs" style={muted}>
-            Spending lines count expenses recorded under the same category name. Saving lines count
-            money put into their fund.
+            Spending lines count expenses recorded under the same category name, as Spending does;
+            money paid from a fund is not counted. Saving lines count money put into their fund.
           </p>
         </Card>
       )}
