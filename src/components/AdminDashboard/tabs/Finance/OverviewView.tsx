@@ -129,7 +129,8 @@ function FundGroupCard({
 function HeroFigure({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="analytics-hero__fig">
-      <h3 className="text-sm font-semibold">{label}</h3>
+      {/* Not a heading: the hero sits between the h1 and the cards' h2s. */}
+      <p className="text-sm font-semibold">{label}</p>
       <p className="text-2xl font-bold tabular-nums" style={strong}>
         {value}
       </p>

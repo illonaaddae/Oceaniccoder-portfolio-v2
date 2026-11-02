@@ -122,6 +122,8 @@ describe("FinanceTab", () => {
       "30",
     );
 
+    // The hero labels aren't h3s under the h1, which would skip a level.
+    expect(screen.queryByRole("heading", { level: 3, name: "Cash on hand" })).toBeNull();
     const cash = screen.getByText("Cash on hand").parentElement!;
     expect(within(cash).getByText("GH₵ 160.00")).toBeInTheDocument();
   });
