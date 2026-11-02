@@ -31,7 +31,7 @@ async function makeFund(call, fields = {}) {
 describe("/api/finance", () => {
   it("refuses callers who aren't the admin and reads nothing", async () => {
     const { call, repo } = setup({ admin: false });
-    const spy = vi.spyOn(repo, "listAll");
+    const spy = vi.spyOn(repo, "read");
     const res = await call({ action: "list" });
     expect(res.status).toBe(401);
     expect(spy).not.toHaveBeenCalled();
@@ -364,6 +364,38 @@ describe("/api/finance", () => {
     expect(
       (await call({ action: "saveFund", id: fund.id, name: "Renamed", group: "wealth" })).status,
     ).toBe(200);
+  });
+
+  it("refuses a write when the ledger changed after it was read, and writes nothing", async () => {
+    const { call, repo } = setup();
+    const fund = await makeFund(call);
+    await call({
+      action: "addTxn",
+      type: "deposit",
+      date: "2026-11-05",
+      amountMinor: 1000,
+      fundId: fund.id,
+    });
+    const withdraw = {
+      action: "addTxn",
+      type: "withdrawal",
+      date: "2026-11-06",
+      amountMinor: 1000,
+      fundId: fund.id,
+    };
+    // Another withdrawal lands between this request's read and its write, so
+    // the balance it checked against is gone.
+    const read = repo.read.bind(repo);
+    vi.spyOn(repo, "read").mockImplementationOnce(async () => {
+      const snapshot = await read();
+      expect((await call(withdraw)).status).toBe(200);
+      return snapshot;
+    });
+    const res = await call(withdraw);
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain("Refresh");
+    const { txns } = (await call({ action: "list" })).body;
+    expect(txns.filter((t) => t.type === "withdrawal")).toHaveLength(1);
   });
 
   it("only checks the funds a delete touches", async () => {

@@ -1,7 +1,9 @@
 // The /api/finance actions. Each takes (repo, input, now) and returns the
 // response body. Validation lives in shared/finance/model.js; the ledger
 // checks need every record, so each write starts from one full read (the
-// whole personal ledger is a few thousand small documents at most).
+// whole personal ledger is a few thousand small documents at most) and hands
+// the version from that read to repo.write, which refuses the write if any
+// other write landed in between.
 
 const { HttpError } = require("../shared/http");
 const M = require("../shared/finance/model");
@@ -29,13 +31,17 @@ function touch(doc, fields, now) {
 }
 
 async function list(repo) {
-  return byKind(await repo.listAll());
+  return byKind((await repo.read()).docs);
 }
 
 async function saveFund(repo, input, now) {
   const fields = M.parseFund(input);
-  if (!input.id) return { fund: await repo.create(stamp({ kind: "fund", ...fields }, now)) };
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
+  if (!input.id) {
+    const fund = stamp({ kind: "fund", ...fields }, now);
+    await repo.write({ create: [fund] }, version);
+    return { fund };
+  }
   const existing = findOrThrow(docs, "fund", M.id(input.id, "Fund"));
   const { txns } = byKind(docs);
   const hasHistory = txns.some((t) => t.fundId === existing.id || t.toFundId === existing.id);
@@ -51,12 +57,14 @@ async function saveFund(repo, input, now) {
   const balance = M.fundBalances(txns).get(existing.id) ?? 0;
   if (fields.archived && !existing.archived && balance !== 0)
     throw new HttpError(409, "Move the money out of this fund before archiving it.");
-  return { fund: await repo.replace(touch(existing, fields, now)) };
+  const fund = touch(existing, fields, now);
+  await repo.write({ replace: [fund] }, version);
+  return { fund };
 }
 
 async function deleteFund(repo, input) {
   const fundId = M.id(input.id, "Fund");
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
   findOrThrow(docs, "fund", fundId);
   const used = docs.some(
     (d) =>
@@ -66,20 +74,23 @@ async function deleteFund(repo, input) {
   );
   if (used)
     throw new HttpError(409, "This fund has history or is used in a budget. Archive it instead.");
-  await repo.remove(fundId);
+  await repo.write({ remove: [fundId] }, version);
   return { deleted: fundId };
 }
 
 async function addTxn(repo, input, now) {
-  const txn = M.parseTxn(input);
-  const { funds, txns } = byKind(await repo.listAll());
-  M.checkTxnAgainstLedger(txn, funds, txns);
-  return { txn: await repo.create(stamp({ kind: "txn", ...txn }, now)) };
+  const parsed = M.parseTxn(input);
+  const { docs, version } = await repo.read();
+  const { funds, txns } = byKind(docs);
+  M.checkTxnAgainstLedger(parsed, funds, txns);
+  const txn = stamp({ kind: "txn", ...parsed }, now);
+  await repo.write({ create: [txn] }, version);
+  return { txn };
 }
 
 async function deleteTxn(repo, input) {
   const txnId = M.id(input.id, "Transaction");
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
   const txn = findOrThrow(docs, "txn", txnId);
   const { txns, expected } = byKind(docs);
   if (expected.some((e) => e.receivedTxnIds?.includes(txnId)))
@@ -88,57 +99,67 @@ async function deleteTxn(repo, input) {
       "This came from a received payment. Use Undo on it under Expected instead.",
     );
   M.checkDeleteAgainstLedger([txn.id], txns);
-  await repo.remove(txnId);
+  await repo.write({ remove: [txnId] }, version);
   return { deleted: txnId };
 }
 
 /** One budget per starting month; saving the same month again replaces it. */
 async function saveBudget(repo, input, now) {
   const fields = M.parseBudget(input);
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
   const { funds, budgets } = byKind(docs);
   const fundIds = new Set(funds.map((f) => f.id));
   if (fields.lines.some((l) => l.fundId && !fundIds.has(l.fundId)))
     throw new HttpError(400, "A budget line points at a fund that doesn't exist.");
   const existing = budgets.find((b) => b.month === fields.month);
-  if (existing) return { budget: await repo.replace(touch(existing, fields, now)) };
-  return { budget: await repo.create(stamp({ kind: "budget", ...fields }, now)) };
+  if (existing) {
+    const budget = touch(existing, fields, now);
+    await repo.write({ replace: [budget] }, version);
+    return { budget };
+  }
+  const budget = stamp({ kind: "budget", ...fields }, now);
+  await repo.write({ create: [budget] }, version);
+  return { budget };
 }
 
 async function deleteBudget(repo, input) {
   const budgetId = M.id(input.id, "Budget");
-  findOrThrow(await repo.listAll(), "budget", budgetId);
-  await repo.remove(budgetId);
+  const { docs, version } = await repo.read();
+  findOrThrow(docs, "budget", budgetId);
+  await repo.write({ remove: [budgetId] }, version);
   return { deleted: budgetId };
 }
 
 async function saveExpected(repo, input, now) {
   const fields = M.parseExpected(input);
   const depositFundId = input.depositFundId ? M.id(input.depositFundId, "Fund") : "";
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
   if (depositFundId) findOrThrow(docs, "fund", depositFundId);
-  if (!input.id)
-    return {
-      expected: await repo.create(
-        stamp(
-          { kind: "expected", ...fields, depositFundId, status: "expected", receivedTxnIds: [] },
-          now,
-        ),
-      ),
-    };
+  if (!input.id) {
+    const expected = stamp(
+      { kind: "expected", ...fields, depositFundId, status: "expected", receivedTxnIds: [] },
+      now,
+    );
+    await repo.write({ create: [expected] }, version);
+    return { expected };
+  }
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (existing.status !== "expected")
     throw new HttpError(409, "Only income that hasn't arrived yet can be edited.");
-  return { expected: await repo.replace(touch(existing, { ...fields, depositFundId }, now)) };
+  const expected = touch(existing, { ...fields, depositFundId }, now);
+  await repo.write({ replace: [expected] }, version);
+  return { expected };
 }
 
 async function setExpectedStatus(repo, input, now) {
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (input.status !== "cancelled" && input.status !== "expected")
     throw new HttpError(400, "Status must be cancelled or expected.");
   if (existing.status === "received") throw new HttpError(409, "This has already been received.");
-  return { expected: await repo.replace(touch(existing, { status: input.status }, now)) };
+  const expected = touch(existing, { status: input.status }, now);
+  await repo.write({ replace: [expected] }, version);
+  return { expected };
 }
 
 /**
@@ -147,7 +168,7 @@ async function setExpectedStatus(repo, input, now) {
  * fund. All in one batch, so the money is never half-recorded.
  */
 async function receiveExpected(repo, input, now) {
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (existing.status !== "expected")
     throw new HttpError(409, "Only income that hasn't arrived yet can be received.");
@@ -201,7 +222,7 @@ async function receiveExpected(repo, input, now) {
     },
     now,
   );
-  await repo.batch({ create, replace: [updated] });
+  await repo.write({ create, replace: [updated] }, version);
   return { expected: updated, txns: create };
 }
 
@@ -210,7 +231,7 @@ async function receiveExpected(repo, input, now) {
  * income and deposit and puts the item back to expected, in one batch.
  */
 async function unreceiveExpected(repo, input, now) {
-  const docs = await repo.listAll();
+  const { docs, version } = await repo.read();
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (existing.status !== "received") throw new HttpError(409, "This hasn't been received.");
   const { txns } = byKind(docs);
@@ -221,7 +242,7 @@ async function unreceiveExpected(repo, input, now) {
     { status: "expected", receivedOn: "", receivedMinor: null, receivedTxnIds: [] },
     now,
   );
-  await repo.batch({ replace: [updated], remove: ids });
+  await repo.write({ replace: [updated], remove: ids }, version);
   return { expected: updated };
 }
 

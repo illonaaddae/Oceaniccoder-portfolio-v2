@@ -30,7 +30,15 @@ function getContainer() {
   return containerPromise;
 }
 
+// One extra document whose etag stands for the whole ledger. Every write
+// replaces it with IfMatch on the etag read before the ledger, inside the same
+// transactional batch, so a write based on a ledger that changed meanwhile
+// fails as a whole instead of breaking a balance check made on stale data.
+const VERSION_ID = "ledger-version";
+
 const CONFLICT = new HttpError(409, "That was already recorded. Refresh to see the latest.");
+const STALE = new HttpError(409, "Something changed since this loaded. Refresh to see the latest.");
+const GONE = new HttpError(404, "That record no longer exists. Refresh and try again.");
 
 function strip(doc) {
   const { _rid, _self, _etag, _attachments, _ts, ...rest } = doc;
@@ -42,83 +50,95 @@ function stamp(fields, now = new Date()) {
   return { id: newId(), scope: SCOPE, createdAt: iso, updatedAt: iso, ...fields };
 }
 
-function createCosmosFinanceRepo() {
+function versionDoc() {
+  return { id: VERSION_ID, scope: SCOPE, kind: "version", bumpedAt: new Date().toISOString() };
+}
+
+/** `container` is for tests; by default it is the `finance` container. */
+function createCosmosFinanceRepo({ container: getFinanceContainer = getContainer } = {}) {
   return {
-    async listAll() {
-      const container = await getContainer();
+    /**
+     * The whole ledger plus the version etag to pass to write(). The version
+     * is read first: a write landing between the two reads then fails its
+     * IfMatch, never the other way round. `version` is null before the first
+     * write ever made.
+     */
+    async read() {
+      const container = await getFinanceContainer();
+      let version = null;
+      try {
+        const { resource } = await container.item(VERSION_ID, SCOPE).read();
+        version = resource?._etag ?? null;
+      } catch (err) {
+        if (err?.code !== 404) throw err;
+      }
       const { resources } = await container.items
         .query(
           {
-            query: "SELECT * FROM c WHERE c.scope = @scope",
-            parameters: [{ name: "@scope", value: SCOPE }],
+            query: "SELECT * FROM c WHERE c.scope = @scope AND c.id != @versionId",
+            parameters: [
+              { name: "@scope", value: SCOPE },
+              { name: "@versionId", value: VERSION_ID },
+            ],
           },
           { partitionKey: SCOPE },
         )
         .fetchAll();
-      return resources.map(strip);
-    },
-    async create(doc) {
-      const container = await getContainer();
-      const { resource } = await container.items.create(doc);
-      return strip(resource);
-    },
-    async replace(doc) {
-      const container = await getContainer();
-      const { resource } = await container.item(doc.id, SCOPE).replace(doc);
-      return strip(resource);
-    },
-    async remove(id) {
-      const container = await getContainer();
-      await container.item(id, SCOPE).delete();
+      return { docs: resources.map(strip), version };
     },
     /**
-     * Creates, replaces and deletes in one all-or-nothing batch. A create whose
-     * id already exists fails the whole batch with 409, which is what stops the
-     * same expected income being received twice by overlapping requests.
+     * Creates, replaces and deletes in one all-or-nothing batch, together with
+     * the version bump. A changed version fails the batch (409 "Refresh"), and
+     * so does a create whose id already exists, which is what stops the same
+     * expected income being received twice by overlapping requests.
      */
-    async batch({ create = [], replace = [], remove = [] }) {
-      const container = await getContainer();
+    async write({ create = [], replace = [], remove = [] }, version) {
+      const container = await getFinanceContainer();
+      const bump = version
+        ? { operationType: "Replace", id: VERSION_ID, resourceBody: versionDoc(), ifMatch: version }
+        : { operationType: "Create", resourceBody: versionDoc() };
       const operations = [
+        bump,
         ...create.map((doc) => ({ operationType: "Create", resourceBody: doc })),
         ...replace.map((doc) => ({ operationType: "Replace", id: doc.id, resourceBody: doc })),
         ...remove.map((id) => ({ operationType: "Delete", id })),
       ];
       const response = await container.items.batch(operations, SCOPE);
-      const failed = (response.result || []).find(
-        (r) => r.statusCode >= 400 && r.statusCode !== 424,
-      );
-      if (failed?.statusCode === 409) throw CONFLICT;
-      if (failed) throw new Error(`Finance batch failed with status ${failed.statusCode}`);
+      const results = response.result || [];
+      const failedAt = results.findIndex((r) => r.statusCode >= 400 && r.statusCode !== 424);
+      if (failedAt === -1) return;
+      const status = results[failedAt].statusCode;
+      if (failedAt === 0 && (status === 412 || status === 409)) throw STALE;
+      if (status === 409) throw CONFLICT;
+      if (status === 404) throw GONE;
+      throw new Error(`Finance batch failed with status ${status}`);
     },
   };
 }
 
-/** An in-memory repo with the same interface, for tests. */
+/**
+ * An in-memory repo with the same interface, for tests. Like Cosmos, it gives
+ * the version document a new etag on every write, fails a write whose version
+ * no longer matches, and fails a create of an existing id or a replace or
+ * delete of a missing one, all without applying any part of the write.
+ */
 function createFakeFinanceRepo(initial = []) {
   const docs = new Map(initial.map((d) => [d.id, structuredClone(d)]));
+  let version = null;
+  let writes = 0;
   return {
     docs,
-    async listAll() {
-      return [...docs.values()].map((d) => structuredClone(d));
+    async read() {
+      return { docs: [...docs.values()].map((d) => structuredClone(d)), version };
     },
-    async create(doc) {
-      if (docs.has(doc.id)) throw new Error("conflict");
-      docs.set(doc.id, structuredClone(doc));
-      return structuredClone(doc);
-    },
-    async replace(doc) {
-      if (!docs.has(doc.id)) throw new Error("not found");
-      docs.set(doc.id, structuredClone(doc));
-      return structuredClone(doc);
-    },
-    async remove(id) {
-      docs.delete(id);
-    },
-    async batch({ create = [], replace = [], remove = [] }) {
+    async write({ create = [], replace = [], remove = [] }, expected) {
+      if (expected !== version) throw STALE;
       if (create.some((d) => docs.has(d.id))) throw CONFLICT;
-      if (replace.some((d) => !docs.has(d.id))) throw new Error("batch failed");
+      if (replace.some((d) => !docs.has(d.id)) || remove.some((id) => !docs.has(id))) throw GONE;
       for (const d of [...create, ...replace]) docs.set(d.id, structuredClone(d));
       for (const id of remove) docs.delete(id);
+      writes += 1;
+      version = `"v${writes}"`;
     },
   };
 }
@@ -126,6 +146,7 @@ function createFakeFinanceRepo(initial = []) {
 module.exports = {
   DATABASE_ID,
   CONTAINER_ID,
+  VERSION_ID,
   stamp,
   createCosmosFinanceRepo,
   createFakeFinanceRepo,
