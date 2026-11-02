@@ -122,21 +122,24 @@ function FieldLabel({
   label: string;
   required?: boolean;
 }) {
-  const content = (
-    <>
-      {label}
-      {required && <span aria-hidden="true"> *</span>}
-      {/* A button can't carry aria-required; the name says it instead. */}
-      {required && !htmlFor && <span className="sr-only"> (required)</span>}
-    </>
-  );
-  return htmlFor ? (
-    <label id={id} htmlFor={htmlFor} className="text-xs font-semibold" style={muted}>
-      {content}
-    </label>
-  ) : (
-    <span id={id} className="text-xs font-semibold" style={muted}>
-      {content}
+  const asterisk = required && <span aria-hidden="true"> *</span>;
+  if (htmlFor)
+    return (
+      <label id={id} htmlFor={htmlFor} className="text-xs font-semibold" style={muted}>
+        {label}
+        {asterisk}
+      </label>
+    );
+  // The pickers are named through aria-labelledby, which reads hidden text
+  // too, so the id goes on the words alone and the asterisk sits outside.
+  return (
+    <span className="text-xs font-semibold" style={muted}>
+      <span id={id}>
+        {label}
+        {/* A button can't carry aria-required; the name says it instead. */}
+        {required && <span className="sr-only"> (required)</span>}
+      </span>
+      {asterisk}
     </span>
   );
 }

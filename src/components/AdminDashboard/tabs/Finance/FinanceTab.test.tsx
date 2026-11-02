@@ -419,6 +419,13 @@ describe("FinanceTab", () => {
     expect(list).toHaveBeenCalledTimes(2);
   });
 
+  it("names a required picker by its label, without the visual asterisk", () => {
+    render(<DateField label="Paid on" value="" onChange={() => {}} required />);
+    const name = screen.getByRole("button", { name: /^Paid on/ }).getAttribute("aria-labelledby")!;
+    const label = document.getElementById(name.split(" ")[0])!;
+    expect(label.textContent).toBe("Paid on (required)");
+  });
+
   it("reads a date or month field's hint out with the field", async () => {
     render(<DateField label="Paid on" value="" onChange={() => {}} hint="The day it left." />);
     expect(screen.getByRole("button", { name: /^Paid on/ })).toHaveAccessibleDescription(
