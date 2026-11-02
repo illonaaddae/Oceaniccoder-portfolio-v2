@@ -68,6 +68,7 @@ export function FundForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     const targetMinor = inputToMinor(target);
     const monthlyMinor = inputToMinor(monthly);
     if (targetMinor === null || monthlyMinor === null)

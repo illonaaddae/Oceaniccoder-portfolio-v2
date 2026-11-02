@@ -310,6 +310,11 @@ export function Button({
   type?: "button" | "submit";
   /** "quiet" is a borderless text action for things done rarely. */
   variant?: "primary" | "secondary" | "danger" | "quiet";
+  /**
+   * Its request is running. The button stays focusable and announced as
+   * unavailable (aria-disabled) and ignores presses; a disabled button would
+   * drop focus to the page for a keyboard user who just pressed it.
+   */
   disabled?: boolean;
   /** Accessible name when the visible text alone is ambiguous. */
   label?: string;
@@ -332,10 +337,14 @@ export function Button({
   return (
     <button
       type={type}
-      onClick={onClick}
-      disabled={disabled}
+      onClick={(e) => {
+        // Also stops a busy submit button sending its form again.
+        if (disabled) return e.preventDefault();
+        onClick?.();
+      }}
+      aria-disabled={disabled || undefined}
       aria-label={label}
-      className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${ring} ${look}`}
+      className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${ring} ${look}`}
       style={colours[variant]}
     >
       {children}

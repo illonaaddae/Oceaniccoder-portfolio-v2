@@ -366,7 +366,7 @@ describe("FinanceTab", () => {
     );
   });
 
-  it("disables an action's button while its request runs, so it can't be sent twice", async () => {
+  it("marks an action's button busy while its request runs, keeps focus on it and ignores presses", async () => {
     let finishStatus!: () => void;
     setExpectedStatus
       .mockReset()
@@ -380,10 +380,15 @@ describe("FinanceTab", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
     const notComing = screen.getByRole("button", { name: "Not coming" });
     await userEvent.click(notComing);
-    expect(notComing).toBeDisabled();
-    expect(screen.getByRole("button", { name: "It arrived" })).toBeDisabled();
+    expect(notComing).toHaveAttribute("aria-disabled", "true");
+    expect(notComing).toHaveFocus();
+    expect(screen.getByRole("button", { name: "It arrived" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await userEvent.click(notComing);
     finishStatus();
-    await waitFor(() => expect(notComing).toBeEnabled());
+    await waitFor(() => expect(notComing).not.toHaveAttribute("aria-disabled"));
     expect(setExpectedStatus).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Funds" }));
@@ -392,10 +397,26 @@ describe("FinanceTab", () => {
       { name: "Archive" },
     );
     await userEvent.click(archive);
-    expect(archive).toBeDisabled();
+    expect(archive).toHaveAttribute("aria-disabled", "true");
+    await userEvent.keyboard("{Enter}");
     finishArchive();
-    await waitFor(() => expect(archive).toBeEnabled());
+    await waitFor(() => expect(archive).not.toHaveAttribute("aria-disabled"));
     expect(saveFund).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps focus on Refresh while it reloads and ignores repeat presses", async () => {
+    renderTab();
+    await screen.findByRole("region", { name: "Wealth being built" });
+    let finish!: () => void;
+    list.mockReturnValueOnce(new Promise((resolve) => (finish = () => resolve(data))));
+    const refresh = screen.getByRole("button", { name: "Refresh" });
+    await userEvent.click(refresh);
+    expect(refresh).toHaveAttribute("aria-disabled", "true");
+    expect(refresh).toHaveFocus();
+    await userEvent.click(refresh);
+    finish();
+    await waitFor(() => expect(refresh).toHaveAttribute("aria-disabled", "false"));
+    expect(list).toHaveBeenCalledTimes(2);
   });
 
   it("reads a date or month field's hint out with the field", async () => {

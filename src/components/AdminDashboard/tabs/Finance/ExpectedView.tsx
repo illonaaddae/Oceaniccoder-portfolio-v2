@@ -48,6 +48,7 @@ function ExpectedForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     const amountMinor = inputToMinor(amount);
     if (amountMinor === null) return setError("Amounts must be numbers like 1200 or 1,200.50.");
     if (!amountMinor) return setError("Enter an amount more than zero.");
@@ -130,6 +131,7 @@ function ReceiveForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     const amountMinor = inputToMinor(amount);
     if (amountMinor === null) return setError("Amounts must be numbers like 1200 or 1,200.50.");
     if (!amountMinor) return setError("Enter the amount that arrived.");

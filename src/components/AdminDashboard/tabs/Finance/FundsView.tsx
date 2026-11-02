@@ -85,6 +85,7 @@ function MoveMoneyForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     const amountMinor = inputToMinor(amount);
     if (amountMinor === null) return setError("Amounts must be numbers like 300 or 1,250.50.");
     if (!amountMinor) return setError("Enter an amount more than zero.");

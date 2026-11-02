@@ -64,6 +64,7 @@ function BudgetEditor({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     if (netMinor === null || parsed.some((v) => v === null))
       return setError("Amounts must be numbers like 800 or 1,200.50.");
     if (lines.some((l) => !l.label.trim())) return setError("Every line needs a name.");
