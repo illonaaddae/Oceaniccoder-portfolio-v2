@@ -54,15 +54,18 @@ function ExpectedForm({
     setSaving(true);
     setError(null);
     try {
-      await state.mutate(() =>
-        financeApi.saveExpected({
-          id: item?.id,
-          source: source.trim(),
-          amountMinor,
-          expectedDate,
-          depositFundId,
-          note: note.trim(),
-        }),
+      await state.mutate((version) =>
+        financeApi.saveExpected(
+          {
+            id: item?.id,
+            source: source.trim(),
+            amountMinor,
+            expectedDate,
+            depositFundId,
+            note: note.trim(),
+          },
+          version,
+        ),
       );
       onDone();
     } catch (err) {
@@ -133,8 +136,11 @@ function ReceiveForm({
     setSaving(true);
     setError(null);
     try {
-      await state.mutate(() =>
-        financeApi.receiveExpected({ id: item.id, amountMinor, date, depositFundId, category }),
+      await state.mutate((version) =>
+        financeApi.receiveExpected(
+          { id: item.id, amountMinor, date, depositFundId, category },
+          version,
+        ),
       );
       onDone();
     } catch (err) {
@@ -191,7 +197,7 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
   async function setStatus(status: "expected" | "cancelled") {
     setBusy(true);
     try {
-      await state.mutate(() => financeApi.setExpectedStatus(item.id, status));
+      await state.mutate((version) => financeApi.setExpectedStatus(item.id, status, version));
     } catch (err) {
       state.report(err, "Couldn't update it.");
     } finally {
@@ -210,7 +216,7 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
     if (!ok) return;
     setBusy(true);
     try {
-      await state.mutate(() => financeApi.unreceiveExpected(item.id));
+      await state.mutate((version) => financeApi.unreceiveExpected(item.id, version));
     } catch (err) {
       state.report(err, "Couldn't undo it.");
     } finally {

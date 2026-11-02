@@ -7,7 +7,8 @@ vi.mock("@/services/api/finance", () => ({ financeApi: { list: () => list() } })
 
 const { useFinance } = await import("./useFinance");
 
-const ledger = (budgets: number): FinanceData => ({
+const ledger = (budgets: number, version: string | null = null): FinanceData => ({
+  version,
   funds: [],
   txns: [],
   expected: [],
@@ -59,6 +60,21 @@ describe("useFinance", () => {
     act(() => result.current.report(new Error("Restore it first."), "Couldn't delete it."));
     expect(result.current.error).toBe("Restore it first.");
     expect(result.current.stale).toBe(false);
+  });
+
+  it("sends each change the version on screen, and the next one the version after it", async () => {
+    list.mockResolvedValueOnce(ledger(0, '"v1"'));
+    const { result } = renderHook(() => useFinance());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    const change = vi.fn().mockResolvedValue({});
+    list.mockResolvedValueOnce(ledger(1, '"v2"'));
+    await act(() => result.current.mutate(change));
+    expect(change).toHaveBeenLastCalledWith('"v1"');
+
+    list.mockResolvedValueOnce(ledger(2, '"v3"'));
+    await act(() => result.current.mutate(change));
+    expect(change).toHaveBeenLastCalledWith('"v2"');
   });
 
   it("keeps the newest ledger when an older reload answers last", async () => {

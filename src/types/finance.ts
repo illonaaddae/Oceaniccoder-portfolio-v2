@@ -90,6 +90,12 @@ export interface FinanceData {
   txns: Txn[];
   budgets: Budget[];
   expected: ExpectedIncome[];
+  /**
+   * The ledger version this data was read at, sent back with every write so a
+   * write from a screen that is behind the ledger is refused. Null before the
+   * first write ever made.
+   */
+  version: string | null;
 }
 
 export type FundInput = Omit<Fund, keyof Stamped | "kind"> & { id?: string };

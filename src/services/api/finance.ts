@@ -43,25 +43,36 @@ async function call<T>(action: string, input: object = {}): Promise<T> {
   return body as T;
 }
 
+/** The `version` from the list the screen was loaded from; see FinanceData. */
+type Version = string | null;
+
 export const financeApi = {
   list: () => call<FinanceData>("list"),
-  saveFund: (fund: FundInput) => call<{ fund: Fund }>("saveFund", fund),
-  deleteFund: (id: string) => call<{ deleted: string }>("deleteFund", { id }),
-  addTxn: (txn: TxnInput) => call<{ txn: Txn }>("addTxn", txn),
-  deleteTxn: (id: string) => call<{ deleted: string }>("deleteTxn", { id }),
-  saveBudget: (budget: BudgetInput) => call<{ budget: Budget }>("saveBudget", budget),
-  deleteBudget: (id: string) => call<{ deleted: string }>("deleteBudget", { id }),
-  saveExpected: (expected: ExpectedInput) =>
-    call<{ expected: ExpectedIncome }>("saveExpected", expected),
-  setExpectedStatus: (id: string, status: "expected" | "cancelled") =>
-    call<{ expected: ExpectedIncome }>("setExpectedStatus", { id, status }),
-  receiveExpected: (input: {
-    id: string;
-    amountMinor: number;
-    date: string;
-    depositFundId: string;
-    category?: string;
-  }) => call<{ expected: ExpectedIncome; txns: Txn[] }>("receiveExpected", input),
-  unreceiveExpected: (id: string) =>
-    call<{ expected: ExpectedIncome }>("unreceiveExpected", { id }),
+  saveFund: (fund: FundInput, version: Version) =>
+    call<{ fund: Fund }>("saveFund", { ...fund, version }),
+  deleteFund: (id: string, version: Version) =>
+    call<{ deleted: string }>("deleteFund", { id, version }),
+  addTxn: (txn: TxnInput, version: Version) => call<{ txn: Txn }>("addTxn", { ...txn, version }),
+  deleteTxn: (id: string, version: Version) =>
+    call<{ deleted: string }>("deleteTxn", { id, version }),
+  saveBudget: (budget: BudgetInput, version: Version) =>
+    call<{ budget: Budget }>("saveBudget", { ...budget, version }),
+  deleteBudget: (id: string, version: Version) =>
+    call<{ deleted: string }>("deleteBudget", { id, version }),
+  saveExpected: (expected: ExpectedInput, version: Version) =>
+    call<{ expected: ExpectedIncome }>("saveExpected", { ...expected, version }),
+  setExpectedStatus: (id: string, status: "expected" | "cancelled", version: Version) =>
+    call<{ expected: ExpectedIncome }>("setExpectedStatus", { id, status, version }),
+  receiveExpected: (
+    input: {
+      id: string;
+      amountMinor: number;
+      date: string;
+      depositFundId: string;
+      category?: string;
+    },
+    version: Version,
+  ) => call<{ expected: ExpectedIncome; txns: Txn[] }>("receiveExpected", { ...input, version }),
+  unreceiveExpected: (id: string, version: Version) =>
+    call<{ expected: ExpectedIncome }>("unreceiveExpected", { id, version }),
 };

@@ -14,7 +14,11 @@ function setup({ admin = true, docs = [] } = {}) {
     repo: () => repo,
     now: () => NOW,
   });
+  // Like a client that has just loaded: a write without its own `version`
+  // carries the current one. Tests about stale screens pass theirs.
   const call = async (body) => {
+    if (body.action !== "list" && !("version" in body))
+      body = { ...body, version: (await repo.read()).version };
     const context = { log: { error: vi.fn(), warn: vi.fn() } };
     await handler(context, { method: "POST", body, headers: {} });
     return { status: context.res.status, body: JSON.parse(context.res.body) };
@@ -410,11 +414,66 @@ describe("/api/finance", () => {
       expect((await call(withdraw)).status).toBe(200);
       return snapshot;
     });
-    const res = await call(withdraw);
+    const { version } = (await call({ action: "list" })).body;
+    const res = await call({ ...withdraw, version });
     expect(res.status).toBe(409);
     expect(res.body.error).toContain("Refresh");
     const { txns } = (await call({ action: "list" })).body;
     expect(txns.filter((t) => t.type === "withdrawal")).toHaveLength(1);
+  });
+
+  it("refuses a write from a screen loaded before another write, and writes nothing", async () => {
+    const { call, repo } = setup();
+    const fund = await makeFund(call);
+    const first = (await call({ action: "list" })).body;
+    const second = (await call({ action: "list" })).body;
+    expect(second.version).toBe(first.version);
+    expect(typeof first.version).toBe("string");
+
+    const deposit = {
+      action: "addTxn",
+      type: "deposit",
+      date: "2026-11-05",
+      amountMinor: 1000,
+      fundId: fund.id,
+    };
+    expect((await call({ ...deposit, version: first.version })).status).toBe(200);
+    const before = repo.docs.size;
+    const stale = await call({ ...deposit, version: second.version });
+    expect(stale.status).toBe(409);
+    expect(stale.body.error).toBe(
+      "Something changed since this loaded. Refresh to see the latest.",
+    );
+    expect(repo.docs.size).toBe(before);
+
+    const fresh = (await call({ action: "list" })).body;
+    expect(fresh.version).not.toBe(first.version);
+    expect((await call({ ...deposit, version: fresh.version })).status).toBe(200);
+  });
+
+  it("won't let a fund edit from a stale screen put back an older field", async () => {
+    const { call } = setup();
+    const fund = await makeFund(call, { targetMinor: 50000 });
+    const stale = (await call({ action: "list" })).body;
+    // Another screen renames the fund.
+    expect((await call({ action: "saveFund", ...fund, name: "House deposit" })).status).toBe(200);
+    // The stale screen still holds the old name and sends it with a new target.
+    const res = await call({
+      action: "saveFund",
+      ...stale.funds[0],
+      targetMinor: 90000,
+      version: stale.version,
+    });
+    expect(res.status).toBe(409);
+    const [saved] = (await call({ action: "list" })).body.funds;
+    expect(saved).toMatchObject({ name: "House deposit", targetMinor: 50000 });
+  });
+
+  it("refuses a write whose ledger version is not valid", async () => {
+    const { call, repo } = setup();
+    const res = await call({ action: "saveFund", name: "Savings", group: "wealth", version: 7 });
+    expect(res.status).toBe(400);
+    expect(repo.docs.size).toBe(0);
   });
 
   it("won't delete a transaction or undo a receive that touches an archived fund", async () => {

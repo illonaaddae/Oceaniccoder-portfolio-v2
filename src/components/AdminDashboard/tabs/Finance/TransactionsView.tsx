@@ -79,20 +79,23 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
     setSaving(true);
     setError(null);
     try {
-      await state.mutate(() =>
-        financeApi.addTxn({
-          type,
-          date,
-          amountMinor,
-          fundId: NEEDS_FUND.has(type) ? fundId : "",
-          toFundId: type === "transfer" ? toFundId : "",
-          category: HAS_CATEGORY.has(type)
-            ? category
-            : type === "fund_spend"
-              ? (funds.find((f) => f.id === fundId)?.name ?? "")
-              : "",
-          note: note.trim(),
-        }),
+      await state.mutate((version) =>
+        financeApi.addTxn(
+          {
+            type,
+            date,
+            amountMinor,
+            fundId: NEEDS_FUND.has(type) ? fundId : "",
+            toFundId: type === "transfer" ? toFundId : "",
+            category: HAS_CATEGORY.has(type)
+              ? category
+              : type === "fund_spend"
+                ? (funds.find((f) => f.id === fundId)?.name ?? "")
+                : "",
+            note: note.trim(),
+          },
+          version,
+        ),
       );
       onDone();
     } catch (err) {
@@ -187,7 +190,7 @@ export function TransactionsView({ state }: { state: FinanceState }) {
     if (!ok) return;
     setDeletingId(t.id);
     try {
-      await state.mutate(() => financeApi.deleteTxn(t.id));
+      await state.mutate((version) => financeApi.deleteTxn(t.id, version));
     } catch (err) {
       state.report(err, "Couldn't delete it.");
     } finally {

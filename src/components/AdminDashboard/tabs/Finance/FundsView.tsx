@@ -91,16 +91,19 @@ function MoveMoneyForm({
     setSaving(true);
     setError(null);
     try {
-      await state.mutate(() =>
-        financeApi.addTxn({
-          type,
-          date,
-          amountMinor,
-          fundId: fund.id,
-          toFundId: "",
-          category: type === "fund_spend" ? fund.name : "",
-          note: note.trim(),
-        }),
+      await state.mutate((version) =>
+        financeApi.addTxn(
+          {
+            type,
+            date,
+            amountMinor,
+            fundId: fund.id,
+            toFundId: "",
+            category: type === "fund_spend" ? fund.name : "",
+            note: note.trim(),
+          },
+          version,
+        ),
       );
       onDone();
     } catch (err) {
@@ -189,7 +192,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
   async function setArchived(archived: boolean) {
     setBusy(true);
     try {
-      await state.mutate(() => financeApi.saveFund({ ...fund, archived }));
+      await state.mutate((version) => financeApi.saveFund({ ...fund, archived }, version));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update the fund.");
     } finally {
@@ -207,7 +210,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
     if (!ok) return;
     setBusy(true);
     try {
-      await state.mutate(() => financeApi.deleteFund(fund.id));
+      await state.mutate((version) => financeApi.deleteFund(fund.id, version));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't delete the fund.");
     } finally {
@@ -225,7 +228,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
           fund={fund}
           onCancel={() => setMode("view")}
           onSave={async (input) => {
-            await state.mutate(() => financeApi.saveFund(input));
+            await state.mutate((version) => financeApi.saveFund(input, version));
             setMode("view");
           }}
         />
@@ -481,7 +484,7 @@ export function FundsView({ state }: { state: FinanceState }) {
           <FundForm
             onCancel={() => setAdding(false)}
             onSave={async (input) => {
-              await state.mutate(() => financeApi.saveFund(input));
+              await state.mutate((version) => financeApi.saveFund(input, version));
               setAdding(false);
             }}
           />

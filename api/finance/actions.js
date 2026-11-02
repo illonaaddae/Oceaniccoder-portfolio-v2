@@ -4,10 +4,16 @@
 // whole personal ledger is a few thousand small documents at most) and hands
 // the version from that read to repo.write, which refuses the write if any
 // other write landed in between.
+//
+// Every write also carries `version`, the ledger version the client's screen
+// was loaded from (list returns it). A write from a screen that is behind the
+// ledger is refused before anything is checked: the client sends whole
+// records, such as a fund with every field, so a stale screen would otherwise
+// put old values back over newer ones.
 
 const { HttpError } = require("../shared/http");
 const M = require("../shared/finance/model");
-const { stamp } = require("../shared/finance/repo");
+const { STALE, stamp } = require("../shared/finance/repo");
 
 function byKind(docs) {
   const out = { funds: [], txns: [], budgets: [], expected: [] };
@@ -30,13 +36,24 @@ function touch(doc, fields, now) {
   return { ...doc, ...fields, updatedAt: now.toISOString() };
 }
 
+/** The ledger for a write, refused when it isn't the one the client loaded. */
+async function readForWrite(repo, input) {
+  const loaded = input.version;
+  if (loaded !== null && typeof loaded !== "string")
+    throw new HttpError(400, "The ledger version is missing. Refresh and try again.");
+  const current = await repo.read();
+  if (current.version !== loaded) throw STALE;
+  return current;
+}
+
 async function list(repo) {
-  return byKind((await repo.read()).docs);
+  const { docs, version } = await repo.read();
+  return { ...byKind(docs), version };
 }
 
 async function saveFund(repo, input, now) {
   const fields = M.parseFund(input);
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   if (!input.id) {
     const fund = stamp({ kind: "fund", ...fields }, now);
     await repo.write({ create: [fund] }, version);
@@ -64,7 +81,7 @@ async function saveFund(repo, input, now) {
 
 async function deleteFund(repo, input) {
   const fundId = M.id(input.id, "Fund");
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   findOrThrow(docs, "fund", fundId);
   const used = docs.some(
     (d) =>
@@ -80,7 +97,7 @@ async function deleteFund(repo, input) {
 
 async function addTxn(repo, input, now) {
   const parsed = M.parseTxn(input);
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   const { funds, txns } = byKind(docs);
   M.checkTxnAgainstLedger(parsed, funds, txns);
   const txn = stamp({ kind: "txn", ...parsed }, now);
@@ -90,7 +107,7 @@ async function addTxn(repo, input, now) {
 
 async function deleteTxn(repo, input) {
   const txnId = M.id(input.id, "Transaction");
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   const txn = findOrThrow(docs, "txn", txnId);
   const { funds, txns, expected } = byKind(docs);
   if (expected.some((e) => e.receivedTxnIds?.includes(txnId)))
@@ -107,7 +124,7 @@ async function deleteTxn(repo, input) {
 /** One budget per starting month; saving the same month again replaces it. */
 async function saveBudget(repo, input, now) {
   const fields = M.parseBudget(input);
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   const { funds, budgets } = byKind(docs);
   const fundIds = new Set(funds.map((f) => f.id));
   if (fields.lines.some((l) => l.fundId && !fundIds.has(l.fundId)))
@@ -125,7 +142,7 @@ async function saveBudget(repo, input, now) {
 
 async function deleteBudget(repo, input) {
   const budgetId = M.id(input.id, "Budget");
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   findOrThrow(docs, "budget", budgetId);
   await repo.write({ remove: [budgetId] }, version);
   return { deleted: budgetId };
@@ -134,7 +151,7 @@ async function deleteBudget(repo, input) {
 async function saveExpected(repo, input, now) {
   const fields = M.parseExpected(input);
   const depositFundId = input.depositFundId ? M.id(input.depositFundId, "Fund") : "";
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   if (depositFundId) findOrThrow(docs, "fund", depositFundId);
   if (!input.id) {
     const expected = stamp(
@@ -153,7 +170,7 @@ async function saveExpected(repo, input, now) {
 }
 
 async function setExpectedStatus(repo, input, now) {
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (input.status !== "cancelled" && input.status !== "expected")
     throw new HttpError(400, "Status must be cancelled or expected.");
@@ -169,7 +186,7 @@ async function setExpectedStatus(repo, input, now) {
  * fund. All in one batch, so the money is never half-recorded.
  */
 async function receiveExpected(repo, input, now) {
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (existing.status !== "expected")
     throw new HttpError(409, "Only income that hasn't arrived yet can be received.");
@@ -232,7 +249,7 @@ async function receiveExpected(repo, input, now) {
  * income and deposit and puts the item back to expected, in one batch.
  */
 async function unreceiveExpected(repo, input, now) {
-  const { docs, version } = await repo.read();
+  const { docs, version } = await readForWrite(repo, input);
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
   if (existing.status !== "received") throw new HttpError(409, "This hasn't been received.");
   const { funds, txns } = byKind(docs);

@@ -175,6 +175,7 @@ module.exports = {
   DATABASE_ID,
   CONTAINER_ID,
   VERSION_ID,
+  STALE,
   stamp,
   createCosmosFinanceRepo,
   createFakeFinanceRepo,

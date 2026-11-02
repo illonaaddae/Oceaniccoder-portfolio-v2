@@ -3,7 +3,7 @@ import { financeApi } from "@/services/api/finance";
 import type { FinanceData } from "@/types/finance";
 import { cashBalance, fundBalances } from "@/utils/finance/ledger";
 
-const EMPTY: FinanceData = { funds: [], txns: [], budgets: [], expected: [] };
+const EMPTY: FinanceData = { funds: [], txns: [], budgets: [], expected: [], version: null };
 
 /**
  * The whole ledger, loaded once and reloaded after every change, so balances
@@ -46,14 +46,20 @@ export function useFinance() {
     void reload();
   }, [reload]);
 
-  /** Runs a change, then reloads. Throws so the calling form can show the error. */
+  /**
+   * Runs a change, then reloads. `change` gets the version of the ledger on
+   * screen, for the server to refuse the write if the ledger has moved on;
+   * the reload brings the new version for the next change. Throws so the
+   * calling form can show the error.
+   */
+  const version = data.version;
   const mutate = useCallback(
-    async <T>(change: () => Promise<T>): Promise<T> => {
-      const result = await change();
+    async <T>(change: (version: string | null) => Promise<T>): Promise<T> => {
+      const result = await change(version);
       await reload();
       return result;
     },
-    [reload],
+    [reload, version],
   );
 
   const balances = useMemo(() => fundBalances(data.txns), [data.txns]);

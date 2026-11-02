@@ -78,6 +78,7 @@ const data: FinanceData = {
       receivedTxnIds: [],
     },
   ],
+  version: '"v1"',
 };
 
 function renderTab() {

@@ -76,8 +76,8 @@ function BudgetEditor({
     setSaving(true);
     setError(null);
     try {
-      await state.mutate(() =>
-        financeApi.saveBudget({ month, netIncomeMinor: netMinor, lines: out }),
+      await state.mutate((version) =>
+        financeApi.saveBudget({ month, netIncomeMinor: netMinor, lines: out }, version),
       );
       onDone();
     } catch (err) {
@@ -196,7 +196,7 @@ export function BudgetView({ state }: { state: FinanceState }) {
     });
     if (!ok) return;
     try {
-      await state.mutate(() => financeApi.deleteBudget(plan.id));
+      await state.mutate((version) => financeApi.deleteBudget(plan.id, version));
     } catch (err) {
       state.report(err, "Couldn't delete the plan.");
     }
