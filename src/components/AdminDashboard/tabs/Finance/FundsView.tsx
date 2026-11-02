@@ -171,6 +171,8 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
     setMode("move");
   };
   const [error, setError] = useState<string | null>(null);
+  // Archive or delete is running; both stay disabled so neither is sent twice.
+  const [busy, setBusy] = useState(false);
   const confirm = useConfirm();
   const month = currentMonth();
   const balance = state.balances.get(fund.id) ?? 0;
@@ -185,10 +187,13 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
   const notStarted = history.length === 0 && starts > month;
 
   async function setArchived(archived: boolean) {
+    setBusy(true);
     try {
       await state.mutate(() => financeApi.saveFund({ ...fund, archived }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update the fund.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -200,10 +205,13 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
       variant: "danger",
     });
     if (!ok) return;
+    setBusy(true);
     try {
       await state.mutate(() => financeApi.deleteFund(fund.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't delete the fund.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -368,11 +376,15 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
             <Button variant="quiet" onClick={() => setMode("edit")}>
               Edit
             </Button>
-            <Button variant="quiet" onClick={() => setArchived(!fund.archived)}>
+            <Button
+              variant="quiet"
+              onClick={() => void setArchived(!fund.archived)}
+              disabled={busy}
+            >
               {fund.archived ? "Restore" : "Archive"}
             </Button>
             {history.length === 0 && (
-              <Button variant="quiet" onClick={() => void remove()}>
+              <Button variant="quiet" onClick={() => void remove()} disabled={busy}>
                 Delete
               </Button>
             )}

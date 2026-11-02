@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FinanceData, Fund, Txn } from "@/types/finance";
 import { ConfirmProvider } from "../../ConfirmContext";
@@ -8,8 +8,15 @@ import { monthLabel } from "./ui";
 
 const list = vi.fn();
 const addTxn = vi.fn();
+const setExpectedStatus = vi.fn();
+const saveFund = vi.fn();
 vi.mock("@/services/api/finance", () => ({
-  financeApi: { list: () => list(), addTxn: (t: unknown) => addTxn(t) },
+  financeApi: {
+    list: () => list(),
+    addTxn: (t: unknown) => addTxn(t),
+    setExpectedStatus: (id: string, status: string) => setExpectedStatus(id, status),
+    saveFund: (f: unknown) => saveFund(f),
+  },
 }));
 
 const { default: FinanceTab } = await import("./FinanceTab");
@@ -266,6 +273,38 @@ describe("FinanceTab", () => {
     expect(screen.getByRole("combobox", { name: /^Type/ })).toHaveAccessibleName(
       "Type Spending (no fund)",
     );
+  });
+
+  it("disables an action's button while its request runs, so it can't be sent twice", async () => {
+    let finishStatus!: () => void;
+    setExpectedStatus
+      .mockReset()
+      .mockReturnValueOnce(new Promise((resolve) => (finishStatus = () => resolve({}))));
+    let finishArchive!: () => void;
+    saveFund
+      .mockReset()
+      .mockReturnValueOnce(new Promise((resolve) => (finishArchive = () => resolve({}))));
+    renderTab();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
+    const notComing = screen.getByRole("button", { name: "Not coming" });
+    await userEvent.click(notComing);
+    expect(notComing).toBeDisabled();
+    expect(screen.getByRole("button", { name: "It arrived" })).toBeDisabled();
+    finishStatus();
+    await waitFor(() => expect(notComing).toBeEnabled());
+    expect(setExpectedStatus).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Funds" }));
+    const archive = within(screen.getByRole("listitem", { name: "House Fund" })).getByRole(
+      "button",
+      { name: "Archive" },
+    );
+    await userEvent.click(archive);
+    expect(archive).toBeDisabled();
+    finishArchive();
+    await waitFor(() => expect(archive).toBeEnabled());
+    expect(saveFund).toHaveBeenCalledTimes(1);
   });
 
   it("says so when the ledger can't load instead of showing zeros", async () => {

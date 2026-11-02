@@ -185,12 +185,17 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
   const [mode, setMode] = useState<"view" | "edit" | "receive">("view");
   const fundName = state.data.funds.find((f) => f.id === item.depositFundId)?.name;
   const confirm = useConfirm();
+  // A change is running; its buttons stay disabled so it can't be sent twice.
+  const [busy, setBusy] = useState(false);
 
   async function setStatus(status: "expected" | "cancelled") {
+    setBusy(true);
     try {
       await state.mutate(() => financeApi.setExpectedStatus(item.id, status));
     } catch (err) {
       state.report(err, "Couldn't update it.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -203,10 +208,13 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
       variant: "danger",
     });
     if (!ok) return;
+    setBusy(true);
     try {
       await state.mutate(() => financeApi.unreceiveExpected(item.id));
     } catch (err) {
       state.report(err, "Couldn't undo it.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -248,21 +256,29 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
       )}
       {mode === "view" && item.status === "expected" && (
         <div className="mt-2 flex flex-wrap gap-2">
-          <Button variant="primary" onClick={() => setMode("receive")}>
+          <Button variant="primary" onClick={() => setMode("receive")} disabled={busy}>
             It arrived
           </Button>
-          <Button onClick={() => setMode("edit")}>Edit</Button>
-          <Button onClick={() => void setStatus("cancelled")}>Not coming</Button>
+          <Button onClick={() => setMode("edit")} disabled={busy}>
+            Edit
+          </Button>
+          <Button onClick={() => void setStatus("cancelled")} disabled={busy}>
+            Not coming
+          </Button>
         </div>
       )}
       {item.status === "received" && (
         <div className="mt-2">
-          <Button onClick={() => void undoReceive()}>Undo</Button>
+          <Button onClick={() => void undoReceive()} disabled={busy}>
+            Undo
+          </Button>
         </div>
       )}
       {item.status === "cancelled" && (
         <div className="mt-2">
-          <Button onClick={() => void setStatus("expected")}>Expect it again</Button>
+          <Button onClick={() => void setStatus("expected")} disabled={busy}>
+            Expect it again
+          </Button>
         </div>
       )}
     </li>

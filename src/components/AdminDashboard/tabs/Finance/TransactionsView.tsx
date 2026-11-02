@@ -163,6 +163,8 @@ const MONEY_IN = new Set<TxnType>(["income", "withdrawal", "opening"]);
 export function TransactionsView({ state }: { state: FinanceState }) {
   const [adding, setAdding] = useState(false);
   const [month, setMonth] = useState(currentMonth());
+  // The transaction whose delete is running, so its button can't send it twice.
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const confirm = useConfirm();
   const fundName = (id: string) =>
     state.data.funds.find((f) => f.id === id)?.name ?? "Deleted fund";
@@ -183,10 +185,13 @@ export function TransactionsView({ state }: { state: FinanceState }) {
       variant: "danger",
     });
     if (!ok) return;
+    setDeletingId(t.id);
     try {
       await state.mutate(() => financeApi.deleteTxn(t.id));
     } catch (err) {
       state.report(err, "Couldn't delete it.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -264,6 +269,7 @@ export function TransactionsView({ state }: { state: FinanceState }) {
                         variant="danger"
                         label={`Delete ${TYPE_LABELS[t.type]} of ${cedis(t.amountMinor)} on ${t.date}`}
                         onClick={() => void remove(t)}
+                        disabled={deletingId === t.id}
                       >
                         Delete
                       </Button>
