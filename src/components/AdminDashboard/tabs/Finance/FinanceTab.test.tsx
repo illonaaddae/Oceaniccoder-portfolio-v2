@@ -175,6 +175,43 @@ describe("FinanceTab", () => {
     expect(within(laptop).queryByText(/^Starts/)).toBeNull();
   });
 
+  it("shows spending by category against the plan, with fund payments kept apart", async () => {
+    const month = currentMonth();
+    list.mockReset().mockResolvedValue({
+      ...data,
+      txns: [
+        ...data.txns,
+        { ...txn("s1", "expense", 90000), category: "Food", note: "Market run" },
+        { ...txn("s2", "expense", 5000), category: "Transport" },
+        { ...txn("s3", "fund_spend", 20000, "g"), category: "New laptop" },
+      ],
+      budgets: [
+        {
+          ...stamp,
+          id: "b1",
+          kind: "budget",
+          month,
+          netIncomeMinor: 300000,
+          lines: [
+            { id: "l1", label: "Food", amountMinor: 80000, fundId: "" },
+            { id: "l2", label: "Transport", amountMinor: 50000, fundId: "" },
+          ],
+        },
+      ],
+    });
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Spending" }));
+    const where = screen.getByRole("region", { name: "Where it went" });
+    expect(within(where).getByText("GH₵ 100.00 over")).toBeInTheDocument();
+    expect(within(where).getByText("GH₵ 450.00 left")).toBeInTheDocument();
+    // Living costs are 950; the 200 paid from the laptop fund is listed on its own.
+    expect(screen.getAllByText("GH₵ 950.00").length).toBeGreaterThan(0);
+    const fromFunds = screen.getByRole("region", { name: "Paid from savings" });
+    expect(within(fromFunds).getByText("New laptop")).toBeInTheDocument();
+    expect(within(fromFunds).getByText("GH₵ 200.00")).toBeInTheDocument();
+    expect(within(where).queryByText("New laptop")).toBeNull();
+  });
+
   it("says so when the ledger can't load instead of showing zeros", async () => {
     list.mockReset().mockRejectedValue(new Error("Sign in to the dashboard and try again."));
     renderTab();

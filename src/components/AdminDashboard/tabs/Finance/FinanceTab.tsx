@@ -9,6 +9,7 @@ import { useFinance } from "./useFinance";
 import { OverviewView } from "./OverviewView";
 import { FundsView } from "./FundsView";
 import { BudgetView } from "./BudgetView";
+import { SpendingView } from "./SpendingView";
 import { TransactionsView } from "./TransactionsView";
 import { ExpectedView } from "./ExpectedView";
 import { FinanceThemeContext, muted } from "./ui";
@@ -17,6 +18,7 @@ const VIEWS = [
   { key: "overview", label: "Overview" },
   { key: "funds", label: "Funds" },
   { key: "budget", label: "Budget" },
+  { key: "spending", label: "Spending" },
   { key: "transactions", label: "Transactions" },
   { key: "expected", label: "Expected" },
 ] as const;
@@ -69,6 +71,7 @@ export default function FinanceTab({ theme }: { theme: "light" | "dark" }) {
             {view === "overview" && <OverviewView state={state} />}
             {view === "funds" && <FundsView state={state} />}
             {view === "budget" && <BudgetView state={state} />}
+            {view === "spending" && <SpendingView state={state} />}
             {view === "transactions" && <TransactionsView state={state} />}
             {view === "expected" && <ExpectedView state={state} />}
           </>

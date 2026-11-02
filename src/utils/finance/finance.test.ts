@@ -9,9 +9,12 @@ import {
   essentialsOf,
   fundBalances,
   lineActual,
+  livingCostsByMonth,
   monthSummary,
   monthsBetween,
   netSavedInto,
+  paidFromFunds,
+  spendingByCategory,
   wealthStreak,
 } from "./ledger";
 import {
@@ -239,5 +242,45 @@ describe("paying from a fund is not un-saving", () => {
     const line = { id: "r", label: "Rent", amountMinor: 1000, fundId: "rent" };
     expect(lineActual(line, txns, "2027-01")).toBe(1000);
     expect(contributedInto(txns, new Set(["rent"]), "2027-01")).toBe(1000);
+  });
+});
+
+describe("spending", () => {
+  const plan = budget("2026-11", [
+    { id: "l1", label: "Food", amountMinor: 800, fundId: "" },
+    { id: "l2", label: "Transport", amountMinor: 500, fundId: "" },
+    { id: "l3", label: "House", amountMinor: 250, fundId: "house" },
+  ]);
+  const txns = [
+    txn("expense", "2026-11-03", 300, { category: "Food" }),
+    txn("expense", "2026-11-09", 250, { category: "Food" }),
+    txn("expense", "2026-11-10", 90, { category: "Gifts" }),
+    txn("expense", "2026-10-30", 999, { category: "Food" }),
+    txn("fund_spend", "2026-11-05", 1000, { fundId: "laptop", category: "laptop" }),
+    txn("deposit", "2026-11-01", 250, { fundId: "house" }),
+  ];
+
+  it("lists living costs by category next to the plan, biggest first", () => {
+    expect(spendingByCategory(txns, plan, "2026-11")).toEqual([
+      { category: "Food", spentMinor: 550, plannedMinor: 800 },
+      { category: "Gifts", spentMinor: 90, plannedMinor: 0 },
+      { category: "Transport", spentMinor: 0, plannedMinor: 500 },
+    ]);
+  });
+
+  it("keeps money paid out of a fund apart from living costs", () => {
+    const rows = spendingByCategory(txns, plan, "2026-11");
+    expect(rows.reduce((a, r) => a + r.spentMinor, 0)).toBe(640);
+    expect(paidFromFunds(txns, funds, "2026-11")).toEqual([
+      { fundId: "laptop", name: "laptop", spentMinor: 1000 },
+    ]);
+  });
+
+  it("gives each month's living costs and plan, oldest first, before any plan existed too", () => {
+    expect(livingCostsByMonth(txns, [plan], "2026-11", 3)).toEqual([
+      { month: "2026-09", spentMinor: 0, plannedMinor: 0 },
+      { month: "2026-10", spentMinor: 999, plannedMinor: 0 },
+      { month: "2026-11", spentMinor: 640, plannedMinor: 1300 },
+    ]);
   });
 });

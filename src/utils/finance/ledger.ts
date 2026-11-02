@@ -195,3 +195,78 @@ export function wealthStreak(txns: Txn[], funds: Fund[], budgets: Budget[], mont
 export function dailyEquivalent(monthlyMinor: number): number {
   return Math.round((monthlyMinor * 12) / 365);
 }
+
+export interface CategorySpend {
+  category: string;
+  spentMinor: number;
+  /** What the month's plan allows for it; 0 when the plan has no such line. */
+  plannedMinor: number;
+}
+
+/**
+ * Living costs in a month by category, biggest first, next to the plan.
+ * Every spending line of the plan is listed, even with nothing spent, so an
+ * untouched budget still shows. Money paid out of a fund is left out: that is
+ * saving being used for what it was for, not overspending (see paidFromFunds).
+ */
+export function spendingByCategory(
+  txns: Txn[],
+  budget: Budget | null,
+  month: string,
+): CategorySpend[] {
+  const rows = new Map<string, CategorySpend>();
+  const row = (category: string) => {
+    const existing = rows.get(category);
+    if (existing) return existing;
+    const created = { category, spentMinor: 0, plannedMinor: 0 };
+    rows.set(category, created);
+    return created;
+  };
+  for (const line of budget?.lines ?? []) {
+    if (!line.fundId) row(line.label).plannedMinor += line.amountMinor;
+  }
+  for (const t of inMonth(txns, month)) {
+    if (t.type === "expense") row(t.category || "Other").spentMinor += t.amountMinor;
+  }
+  return [...rows.values()].sort(
+    (a, b) => b.spentMinor - a.spentMinor || b.plannedMinor - a.plannedMinor,
+  );
+}
+
+/** Money spent out of funds in a month (rent paid, the laptop bought), by fund, biggest first. */
+export function paidFromFunds(
+  txns: Txn[],
+  funds: Fund[],
+  month: string,
+): { fundId: string; name: string; spentMinor: number }[] {
+  const byFund = new Map<string, number>();
+  for (const t of inMonth(txns, month)) {
+    if (t.type === "fund_spend") byFund.set(t.fundId, (byFund.get(t.fundId) ?? 0) + t.amountMinor);
+  }
+  return [...byFund.entries()]
+    .map(([fundId, spentMinor]) => ({
+      fundId,
+      name: funds.find((f) => f.id === fundId)?.name ?? "A deleted fund",
+      spentMinor,
+    }))
+    .sort((a, b) => b.spentMinor - a.spentMinor);
+}
+
+/** Living costs (expenses only) for each of the `count` months ending at `month`, oldest first. */
+export function livingCostsByMonth(
+  txns: Txn[],
+  budgets: Budget[],
+  month: string,
+  count: number,
+): { month: string; spentMinor: number; plannedMinor: number }[] {
+  return Array.from({ length: count }, (_, i) => {
+    const m = addMonths(month, i - count + 1);
+    return {
+      month: m,
+      spentMinor: inMonth(txns, m)
+        .filter((t) => t.type === "expense")
+        .reduce((acc, t) => acc + t.amountMinor, 0),
+      plannedMinor: essentialsOf(activeBudget(budgets, m)),
+    };
+  });
+}

@@ -42,7 +42,7 @@ export const INCOME_CATEGORIES = [
 const NEEDS_FUND = new Set<TxnType>(["deposit", "withdrawal", "transfer", "fund_spend", "opening"]);
 const HAS_CATEGORY = new Set<TxnType>(["income", "expense", "fund_spend"]);
 
-function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => void }) {
+export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => void }) {
   const funds = state.activeFunds;
   const budget = activeBudget(state.data.budgets, currentMonth());
   const spendCategories = [
