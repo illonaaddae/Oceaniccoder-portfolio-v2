@@ -105,7 +105,14 @@ function createCosmosFinanceRepo({ container: getFinanceContainer = getContainer
         ...replace.map((doc) => ({ operationType: "Replace", id: doc.id, resourceBody: doc })),
         ...remove.map((id) => ({ operationType: "Delete", id })),
       ];
-      const response = await container.items.batch(operations, SCOPE);
+      let response;
+      try {
+        response = await container.items.batch(operations, SCOPE);
+      } catch (err) {
+        // A failed atomic batch can come back as a thrown "Batch request error"
+        // that has lost its status code, so work out the cause from the data.
+        throw await explainFailedBatch(container, err, version, create);
+      }
       const results = response.result || [];
       const failedAt = results.findIndex((r) => r.statusCode >= 400 && r.statusCode !== 424);
       if (failedAt === -1) return;
@@ -116,6 +123,25 @@ function createCosmosFinanceRepo({ container: getFinanceContainer = getContainer
       throw new Error(`Finance batch failed with status ${status}`);
     },
   };
+}
+
+async function readEtag(container, id) {
+  try {
+    const { resource } = await container.item(id, SCOPE).read();
+    return resource?._etag ?? null;
+  } catch (err) {
+    if (err?.code === 404) return null;
+    throw err;
+  }
+}
+
+/** The error to answer with when the batch call itself threw. */
+async function explainFailedBatch(container, err, version, create) {
+  if ((await readEtag(container, VERSION_ID)) !== version) return STALE;
+  for (const doc of create) {
+    if ((await readEtag(container, doc.id)) !== null) return CONFLICT;
+  }
+  return err;
 }
 
 /**

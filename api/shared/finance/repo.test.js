@@ -5,13 +5,27 @@ import { describe, it, expect, vi } from "vitest";
 
 const { createCosmosFinanceRepo, VERSION_ID } = await import("./repo.js");
 
-function stubContainer({ version, batchResult = [] } = {}) {
-  const batch = vi.fn(async (operations) => ({
-    result: batchResult.length ? batchResult : operations.map(() => ({ statusCode: 200 })),
-  }));
+function stubContainer({ version, batchResult = [], batchThrows, etagsAfter } = {}) {
+  let thrown = false;
+  const batch = vi.fn(async (operations) => {
+    if (batchThrows) {
+      thrown = true;
+      throw batchThrows;
+    }
+    return {
+      result: batchResult.length ? batchResult : operations.map(() => ({ statusCode: 200 })),
+    };
+  });
+  // Etags as Cosmos would report them, before and after the failed batch.
+  const etagOf = (id) =>
+    thrown && etagsAfter ? etagsAfter[id] : id === VERSION_ID ? version : undefined;
   const container = {
-    item: vi.fn(() => ({
-      read: async () => ({ resource: version ? { id: VERSION_ID, _etag: version } : undefined }),
+    item: vi.fn((id) => ({
+      read: async () => {
+        const etag = etagOf(id);
+        if (!etag) throw Object.assign(new Error("Not found"), { code: 404 });
+        return { resource: { id, _etag: etag } };
+      },
     })),
     items: {
       query: vi.fn(() => ({
@@ -80,5 +94,42 @@ describe("Cosmos finance repo", () => {
   it("fails loudly on any other batch failure", async () => {
     const { repo } = stubContainer({ batchResult: [{ statusCode: 424 }, { statusCode: 500 }] });
     await expect(repo.write({ create: [{ id: "t1" }] }, '"v7"')).rejects.toThrow(/status 500/);
+  });
+
+  describe("when the batch call throws and loses its status", () => {
+    const thrown = new Error("Batch request error: undefined");
+
+    it("answers Refresh when the version moved on", async () => {
+      const { repo } = stubContainer({
+        version: '"v7"',
+        batchThrows: thrown,
+        etagsAfter: { [VERSION_ID]: '"v8"' },
+      });
+      await expect(repo.write({ create: [{ id: "t1" }] }, '"v7"')).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining("Something changed"),
+      });
+    });
+
+    it("answers already recorded when a created id now exists", async () => {
+      const { repo } = stubContainer({
+        version: '"v7"',
+        batchThrows: thrown,
+        etagsAfter: { [VERSION_ID]: '"v7"', t1: '"t"' },
+      });
+      await expect(repo.write({ create: [{ id: "t1" }] }, '"v7"')).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining("already recorded"),
+      });
+    });
+
+    it("rethrows the original error when nothing explains it", async () => {
+      const { repo } = stubContainer({
+        version: '"v7"',
+        batchThrows: thrown,
+        etagsAfter: { [VERSION_ID]: '"v7"' },
+      });
+      await expect(repo.write({ create: [{ id: "t1" }] }, '"v7"')).rejects.toBe(thrown);
+    });
   });
 });
