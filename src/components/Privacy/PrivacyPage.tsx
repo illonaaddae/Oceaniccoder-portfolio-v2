@@ -11,7 +11,7 @@ import { Helmet } from "react-helmet-async";
  */
 
 const CONTACT_EMAIL = "hello@oceaniccoder.dev";
-const LAST_UPDATED = "27 October 2026";
+const LAST_UPDATED = "2 November 2026";
 const DESCRIPTION =
   "What oceaniccoder.dev collects, why, who processes it, how long it is kept and how to ask for a copy or deletion.";
 

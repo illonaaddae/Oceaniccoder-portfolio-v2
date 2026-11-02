@@ -66,7 +66,7 @@ describe("PrivacyPage", () => {
       expect(within(processors).getByText(name)).toBeInTheDocument();
     }
     expect(within(processors).queryByText("Appwrite")).not.toBeInTheDocument();
-    expect(screen.getByText("Last updated: 27 October 2026")).toBeInTheDocument();
+    expect(screen.getByText("Last updated: 2 November 2026")).toBeInTheDocument();
   });
 
   it("does not claim registration with the Data Protection Commission", () => {
