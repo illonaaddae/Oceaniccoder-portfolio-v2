@@ -6,13 +6,15 @@ const { createFakeFinanceRepo } = await import("../shared/finance/repo.js");
 
 const NOW = new Date("2026-11-05T09:00:00.000Z");
 
-function setup({ admin = true, docs = [] } = {}) {
+/** `ticking` moves the clock on a second per request, so updatedAt differs per write. */
+function setup({ admin = true, docs = [], ticking = false } = {}) {
   const repo = createFakeFinanceRepo(docs);
+  let requests = 0;
   const handler = createHandler({
     requireAdmin: async () =>
       admin ? { user: { email: "owner@example.com" } } : { status: 401, error: "Sign in" },
     repo: () => repo,
-    now: () => NOW,
+    now: () => (ticking ? new Date(NOW.getTime() + 1000 * requests++) : NOW),
   });
   // Like a client that has just loaded: a write without its own `version`
   // carries the current one. Tests about stale screens pass theirs.
@@ -576,5 +578,148 @@ describe("/api/finance", () => {
     };
     const { call } = setup({ docs: [neg, spend] });
     expect((await call({ action: "deleteTxn", id: "spend" })).status).toBe(200);
+  });
+  it("refuses an edit of a record that changed since its form opened, and keeps the newer value", async () => {
+    const { call } = setup({ ticking: true });
+    const fund = await makeFund(call, { targetMinor: 50000 });
+    // Tab B opens the edit form; tab A then renames the fund.
+    const opened = fund.updatedAt;
+    expect((await call({ action: "saveFund", ...fund, name: "House deposit" })).status).toBe(200);
+    // Tab B refreshed, so its version is current, but its form holds old values.
+    const res = await call({
+      action: "saveFund",
+      ...fund,
+      targetMinor: 90000,
+      expectedUpdatedAt: opened,
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe("This changed since you opened it. Cancel and open it again.");
+    const [saved] = (await call({ action: "list" })).body.funds;
+    expect(saved).toMatchObject({ name: "House deposit", targetMinor: 50000 });
+  });
+
+  it("lets an edit save after unrelated writes when its record hasn't changed", async () => {
+    const { call } = setup({ ticking: true });
+    const fund = await makeFund(call);
+    const other = await makeFund(call, { name: "Rent", group: "rent" });
+    const lines = [{ id: "food", label: "Food", amountMinor: 1000 }];
+    const plan = (
+      await call({ action: "saveBudget", month: "2026-11", netIncomeMinor: 5000, lines })
+    ).body.budget;
+    const income = (await call({ action: "saveExpected", source: "Client", amountMinor: 7000 }))
+      .body.expected;
+    // Something else in the ledger changes after every form opened.
+    expect((await call({ action: "saveFund", ...other, name: "Rent pot" })).status).toBe(200);
+
+    const edits = [
+      { action: "saveFund", ...fund, name: "Savings pot", expectedUpdatedAt: fund.updatedAt },
+      {
+        action: "saveBudget",
+        month: "2026-11",
+        netIncomeMinor: 6000,
+        lines,
+        expectedUpdatedAt: plan.updatedAt,
+      },
+      {
+        action: "saveExpected",
+        id: income.id,
+        source: "Client",
+        amountMinor: 8000,
+        expectedUpdatedAt: income.updatedAt,
+      },
+    ];
+    for (const edit of edits) expect((await call(edit)).status).toBe(200);
+  });
+
+  it("refuses expected-income and budget edits whose record changed or went", async () => {
+    const { call } = setup({ ticking: true });
+    const lines = [{ id: "food", label: "Food", amountMinor: 1000 }];
+    const budget = { action: "saveBudget", month: "2026-11", netIncomeMinor: 5000, lines };
+    const plan = (await call(budget)).body.budget;
+    expect((await call({ ...budget, netIncomeMinor: 5500 })).status).toBe(200);
+    const stalePlan = await call({
+      ...budget,
+      netIncomeMinor: 6000,
+      expectedUpdatedAt: plan.updatedAt,
+    });
+    expect(stalePlan.status).toBe(409);
+    const [kept] = (await call({ action: "list" })).body.budgets;
+    expect(kept.netIncomeMinor).toBe(5500);
+    // Deleted meanwhile: the save is refused rather than creating the plan again.
+    expect((await call({ action: "deleteBudget", id: plan.id })).status).toBe(200);
+    expect((await call({ ...budget, expectedUpdatedAt: kept.updatedAt })).status).toBe(409);
+    expect((await call({ action: "list" })).body.budgets).toHaveLength(0);
+
+    const item = { action: "saveExpected", source: "Client", amountMinor: 7000 };
+    const income = (await call(item)).body.expected;
+    expect(
+      (await call({ action: "setExpectedStatus", id: income.id, status: "cancelled" })).status,
+    ).toBe(200);
+    const staleIncome = await call({
+      ...item,
+      id: income.id,
+      amountMinor: 9000,
+      expectedUpdatedAt: income.updatedAt,
+    });
+    expect(staleIncome.status).toBe(409);
+    expect(staleIncome.body.error).toContain("changed since you opened it");
+  });
+
+  it("refuses a new plan for a month another screen has planned since, and keeps that plan", async () => {
+    const { call } = setup({ ticking: true });
+    const lines = [{ id: "food", label: "Food", amountMinor: 1000 }];
+    const december = { action: "saveBudget", month: "2026-12", netIncomeMinor: 5000, lines };
+    // The editor saw no December plan, so it says so and is created.
+    expect((await call({ ...december, expectNew: true })).status).toBe(200);
+    // A second editor that also saw none must not replace it.
+    const res = await call({ ...december, netIncomeMinor: 9000, expectNew: true });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain("changed since you opened it");
+    const [kept] = (await call({ action: "list" })).body.budgets;
+    expect(kept.netIncomeMinor).toBe(5000);
+    for (const expectNew of [false, "yes", 1]) {
+      expect((await call({ ...december, expectNew })).status).toBe(400);
+    }
+  });
+
+  it("moves a fund's updatedAt on archive and restore, so an open edit form is refused", async () => {
+    const { call } = setup({ ticking: true });
+    const fund = await makeFund(call);
+    const archived = (await call({ action: "saveFund", ...fund, archived: true })).body.fund;
+    expect(archived.updatedAt).not.toBe(fund.updatedAt);
+    const restored = (await call({ action: "saveFund", ...archived, archived: false })).body.fund;
+    expect(restored.updatedAt).not.toBe(archived.updatedAt);
+    const res = await call({ action: "saveFund", ...fund, expectedUpdatedAt: fund.updatedAt });
+    expect(res.status).toBe(409);
+  });
+
+  it("rejects an opened-on time that isn't short text, and writes nothing", async () => {
+    const { call, repo } = setup();
+    const fund = await makeFund(call);
+    const before = (await repo.read()).version;
+    for (const expectedUpdatedAt of [7, "", "x".repeat(41), {}]) {
+      const res = await call({ action: "saveFund", ...fund, name: "New", expectedUpdatedAt });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain("Cancel and open it again");
+    }
+    expect((await repo.read()).version).toBe(before);
+  });
+
+  it("never blocks a create because of writes elsewhere in the ledger", async () => {
+    const { call } = setup({ ticking: true });
+    await makeFund(call);
+    await call({
+      action: "saveFund",
+      ...(await makeFund(call, { name: "Rent" })),
+      name: "Rent pot",
+    });
+    expect((await call({ action: "saveFund", name: "Car", group: "goal" })).status).toBe(200);
+    expect((await call({ action: "saveExpected", source: "Bonus", amountMinor: 100 })).status).toBe(
+      200,
+    );
+    const lines = [{ id: "food", label: "Food", amountMinor: 1000 }];
+    expect(
+      (await call({ action: "saveBudget", month: "2026-12", netIncomeMinor: 5000, lines })).status,
+    ).toBe(200);
   });
 });

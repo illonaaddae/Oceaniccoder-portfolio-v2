@@ -46,8 +46,8 @@ function ExpectedForm({
     state.selectableFundId(item?.depositFundId ?? ""),
   );
   const [note, setNote] = useState(item?.note ?? "");
-  // The ledger version this form opened on; see `basedOn` in useFinance.
-  const [basedOn] = useState(() => state.data.version);
+  // The item as it was when the form opened; the server refuses the save if it changed since.
+  const [openedAt] = useState(item?.updatedAt);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const formRef = useFocusFirstField<HTMLFormElement>();
@@ -65,20 +65,19 @@ function ExpectedForm({
     setSaving(true);
     setError(null);
     try {
-      await state.mutate(
-        (version) =>
-          financeApi.saveExpected(
-            {
-              id: item?.id,
-              source: source.trim(),
-              amountMinor,
-              expectedDate,
-              depositFundId,
-              note: note.trim(),
-            },
-            version,
-          ),
-        { basedOn },
+      await state.mutate((version) =>
+        financeApi.saveExpected(
+          {
+            id: item?.id,
+            source: source.trim(),
+            amountMinor,
+            expectedDate,
+            depositFundId,
+            note: note.trim(),
+            expectedUpdatedAt: openedAt,
+          },
+          version,
+        ),
       );
       state.announce(`Saved ${source.trim()}`);
       onDone();

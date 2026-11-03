@@ -98,13 +98,25 @@ export interface FinanceData {
   version: string | null;
 }
 
-export type FundInput = Omit<Fund, keyof Stamped | "kind"> & { id?: string };
+/**
+ * Sent by an edit form that replaces a record: the record's `updatedAt` when
+ * the form opened. The server refuses the save if the record changed since.
+ */
+interface OpenedOn {
+  expectedUpdatedAt?: string;
+}
+
+export type FundInput = Omit<Fund, keyof Stamped | "kind"> & { id?: string } & OpenedOn;
 export type TxnInput = Pick<
   Txn,
   "type" | "date" | "amountMinor" | "fundId" | "toFundId" | "category" | "note"
 >;
-export type BudgetInput = Pick<Budget, "month" | "netIncomeMinor" | "lines">;
+export type BudgetInput = Pick<Budget, "month" | "netIncomeMinor" | "lines"> &
+  OpenedOn & {
+    /** The editor saw no plan for this month when it opened. */
+    expectNew?: true;
+  };
 export type ExpectedInput = Pick<
   ExpectedIncome,
   "source" | "amountMinor" | "expectedDate" | "note" | "depositFundId"
-> & { id?: string };
+> & { id?: string } & OpenedOn;

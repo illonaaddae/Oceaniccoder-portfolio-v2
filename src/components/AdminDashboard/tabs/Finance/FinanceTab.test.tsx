@@ -436,14 +436,41 @@ describe("FinanceTab", () => {
     expect(saveFund).toHaveBeenCalledTimes(1);
   });
 
-  it("saves an edit with the version the form opened on, even after a refresh", async () => {
-    // Another tab changed the ledger: the refresh brings v2, but the form still
-    // holds values from v1, so the server must be able to refuse them.
+  it("lets an edit form save after an unrelated change, with the version now on screen", async () => {
+    // Money goes into another fund while House Fund's edit form is open.
     list
       .mockReset()
       .mockResolvedValueOnce(data)
       .mockResolvedValue({ ...data, version: '"v2"' });
+    addTxn.mockResolvedValueOnce({ txn: txn("t9", "deposit", 1000, "g") });
     saveFund.mockReset().mockResolvedValue({});
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit House Fund" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add money to New laptop" }));
+    const move = screen.getByRole("form", { name: "Add money: New laptop" });
+    await userEvent.type(within(move).getByLabelText(/Amount/), "10");
+    await userEvent.click(within(move).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+
+    await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
+    await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
+    expect(saveFund).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "w", expectedUpdatedAt: stamp.updatedAt }),
+      '"v2"',
+    );
+    expect(screen.queryByRole("form", { name: /Edit House Fund/ })).toBeNull();
+  });
+
+  it("refuses a save from a form opened before another tab changed its record, even after Refresh", async () => {
+    // Another tab renamed House Fund after this form opened; Refresh brings it in.
+    const renamed = { ...data.funds[0], name: "Home", updatedAt: "2026-02-01" };
+    list
+      .mockReset()
+      .mockResolvedValueOnce(data)
+      .mockResolvedValue({ ...data, funds: [renamed, data.funds[1]], version: '"v2"' });
+    const message = "This changed since you opened it. Cancel and open it again.";
+    saveFund.mockReset().mockRejectedValue(new Error(message));
     renderTab();
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
     await userEvent.click(screen.getByRole("button", { name: "Edit House Fund" }));
@@ -451,10 +478,15 @@ describe("FinanceTab", () => {
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
     await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
-    expect(saveFund).toHaveBeenCalledWith(expect.objectContaining({ id: "w" }), '"v1"');
+    // The version is current, so only the opened-on time can catch it.
+    expect(saveFund).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "w", expectedUpdatedAt: stamp.updatedAt }),
+      '"v2"',
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
   });
 
-  it("saves expected-income and budget edits with the version their form opened on", async () => {
+  it("sends expected-income and budget edits the time their record had when the form opened", async () => {
     const plan = {
       ...stamp,
       id: "b1",
@@ -464,10 +496,14 @@ describe("FinanceTab", () => {
       lines: [{ id: "l1", label: "Food", amountMinor: 5000, fundId: "" }],
     };
     const v1 = { ...data, budgets: [plan] };
-    list
-      .mockReset()
-      .mockResolvedValueOnce(v1)
-      .mockResolvedValue({ ...v1, version: '"v2"' });
+    // Each refresh brings both records back changed by another tab.
+    const changed = (version: string, updatedAt: string) => ({
+      ...v1,
+      expected: [{ ...v1.expected[0], updatedAt }],
+      budgets: [{ ...plan, updatedAt }],
+      version,
+    });
+    list.mockReset().mockResolvedValueOnce(v1).mockResolvedValue(changed('"v2"', "2026-02-01"));
     saveExpected.mockReset().mockResolvedValue({});
     saveBudget.mockReset().mockResolvedValue({});
     renderTab();
@@ -478,18 +514,94 @@ describe("FinanceTab", () => {
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(saveExpected).toHaveBeenCalledTimes(1));
-    expect(saveExpected).toHaveBeenCalledWith(expect.objectContaining({ id: "e1" }), '"v1"');
+    expect(saveExpected).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "e1", expectedUpdatedAt: stamp.updatedAt }),
+      '"v2"',
+    );
 
-    // The budget editor opens after the refresh, so it starts on v2; another
-    // refresh that brings v3 must not change what it sends.
-    list.mockResolvedValue({ ...v1, version: '"v3"' });
+    // The budget editor opens after that refresh, so it starts on 2026-02-01.
+    list.mockResolvedValue(changed('"v3"', "2026-03-01"));
     await userEvent.click(screen.getByRole("button", { name: "Budget" }));
     await userEvent.click(screen.getByRole("button", { name: "Edit this plan" }));
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(list).toHaveBeenCalledTimes(4));
     await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
     await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
-    expect(saveBudget).toHaveBeenCalledWith(expect.objectContaining({ month }), '"v2"');
+    expect(saveBudget).toHaveBeenCalledWith(
+      expect.objectContaining({ month, expectedUpdatedAt: "2026-02-01" }),
+      '"v3"',
+    );
+  });
+
+  it("sends the stored plan's time when the editor moves its start onto a planned month", async () => {
+    const plan = (id: string, m: string, updatedAt: string) => ({
+      ...stamp,
+      updatedAt,
+      id,
+      kind: "budget" as const,
+      month: m,
+      netIncomeMinor: 100000,
+      lines: [{ id: "l1", label: "Food", amountMinor: 5000, fundId: "" }],
+    });
+    const next = addMonths(month, 1);
+    list.mockReset().mockResolvedValue({
+      ...data,
+      budgets: [plan("b1", month, "2026-02-01"), plan("b2", next, "2026-02-02")],
+    });
+    saveBudget.mockReset().mockResolvedValue({});
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Budget" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit this plan" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Plan starts in.*next month$/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
+    await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
+    const [sent] = saveBudget.mock.calls[0];
+    expect(sent).toMatchObject({ month: next, expectedUpdatedAt: "2026-02-02" });
+    expect(sent.expectNew).toBeUndefined();
+  });
+
+  it("sends no opened-on time when a form creates a record", async () => {
+    const plan = {
+      ...stamp,
+      id: "b1",
+      kind: "budget" as const,
+      month,
+      netIncomeMinor: 100000,
+      lines: [],
+    };
+    list.mockReset().mockResolvedValue({ ...data, budgets: [plan] });
+    saveFund.mockReset().mockResolvedValue({});
+    saveExpected.mockReset().mockResolvedValue({});
+    saveBudget.mockReset().mockResolvedValue({});
+    renderTab();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    await userEvent.click(screen.getByRole("button", { name: "New fund" }));
+    await userEvent.type(screen.getByLabelText(/^Name/), "Car");
+    await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
+    await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
+    expect(saveFund.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
+
+    await userEvent.click(screen.getByRole("button", { name: "Expected" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add expected income" }));
+    await userEvent.type(screen.getByLabelText(/^From/), "Bonus");
+    await userEvent.type(screen.getByLabelText(/^Amount/), "100");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(saveExpected).toHaveBeenCalledTimes(1));
+    expect(saveExpected.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
+
+    // A new plan starts as a copy of this one, a month later.
+    await userEvent.click(screen.getByRole("button", { name: "Budget" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Start a new plan from the month after" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
+    await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
+    expect(saveBudget.mock.calls[0][0]).toMatchObject({ month: addMonths(month, 1) });
+    expect(saveBudget.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
+    // It saw no plan for that month, and says so, so the server can refuse
+    // the save if another screen has planned that month since.
+    expect(saveBudget.mock.calls[0][0].expectNew).toBe(true);
   });
 
   it("moves focus into a form as it opens and back to its button when it closes", async () => {
