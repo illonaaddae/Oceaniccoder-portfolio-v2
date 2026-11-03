@@ -16,7 +16,8 @@ const domId = (id: string) => `cv-row-${id}`;
 
 function detailOf(row: SectionRow): string {
   const v = row.values;
-  return [v.org !== row.name ? v.org : "", v.subtitle, v.issuer, v.period || v.date]
+  const other = (value?: string) => (value !== row.name ? value : "");
+  return [other(v.title), other(v.org), v.subtitle, v.issuer, v.period || v.date]
     .filter(Boolean)
     .join(" · ");
 }

@@ -138,6 +138,11 @@ describe("CvTab sections", () => {
     expect(within(harbour).getByText("CV only")).toBeInTheDocument();
     expect(within(harbour).queryByText("Waiting for approval")).toBeNull();
 
+    const jobs = await region("Work experience");
+    expect(
+      within(row(jobs, "Brightpath Software")).getByText("Software Engineer · 2025 to now"),
+    ).toBeVisible();
+
     // A live site item can only be hidden; a CV-only one can be deleted.
     expect(within(clinic).queryByRole("button", { name: /Delete/ })).toBeNull();
     expect(within(harbour).getByRole("button", { name: "Delete Harbour Tracker" })).toBeVisible();
