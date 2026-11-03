@@ -31,6 +31,15 @@ describe("cvApi", () => {
     });
   });
 
+  it("asks for a preview with no input", async () => {
+    const fetchSpy = respond(200, { pdfBase64: "JVBERi0=", pages: 1, warnings: [] });
+
+    const preview = await cvApi.preview();
+
+    expect(JSON.parse(String(fetchSpy.mock.calls[0][1]?.body))).toEqual({ action: "preview" });
+    expect(preview.pages).toBe(1);
+  });
+
   it("throws the server's message and status on an error answer", async () => {
     respond(409, { error: "Something changed since this loaded. Refresh to see the latest." });
 

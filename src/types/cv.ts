@@ -133,7 +133,15 @@ export interface CvSources {
 }
 
 export interface CvWarning {
-  code: "no-profile" | "orphan" | "waiting-for-approval";
+  /** From the join (load and preview), or from the page layout (preview only). */
+  code:
+    | "no-profile"
+    | "orphan"
+    | "waiting-for-approval"
+    | "header-overflow"
+    | "link-scheme"
+    | "overflow"
+    | "pages";
   entryId: string | null;
   message: string;
 }
@@ -149,4 +157,11 @@ export interface CvData {
    * write from a screen that is behind is refused. Null before the first write.
    */
   version: string | null;
+}
+
+/** A CV built as it would publish now, not stored anywhere. */
+export interface CvPreview {
+  pdfBase64: string;
+  pages: number;
+  warnings: CvWarning[];
 }

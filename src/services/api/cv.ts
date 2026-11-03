@@ -4,6 +4,7 @@ import type {
   CvData,
   CvEntry,
   CvEntryInput,
+  CvPreview,
   CvProfile,
   CvProfileInput,
   CvSection,
@@ -57,4 +58,6 @@ export const cvApi = {
     call<{ entries: CvEntry[] }>("reorder", { section, ids, version }),
   deleteEntry: (id: string, version: Version) =>
     call<{ deleted: string }>("deleteEntry", { id, version }),
+  /** Renders the CV from what is stored now; writes nothing. */
+  preview: () => call<CvPreview>("preview"),
 };
