@@ -3,6 +3,9 @@
 // reads the site records entries link to. Validation lives in
 // shared/cv/model.js and the join with the site in shared/cv/resolve.js.
 //
+// `preview` also takes `render` (shared/cv/render.js renderCv), which turns
+// the resolved CV into PDF bytes.
+//
 // Every write carries `version`, the CV store version the client's screen
 // was loaded from (load returns it), and is refused when the store has moved
 // on since: the client sends whole records, so a stale screen would otherwise
@@ -253,4 +256,45 @@ async function deleteEntry({ repo, sites }, input) {
   return { deleted: id };
 }
 
-module.exports = { load, saveProfile, saveEntry, setShown, reorder, deleteEntry };
+// A 3-page CV with subset fonts is well under 200 KB. The cap keeps a runaway
+// render from sending megabytes of base64 through the SWA proxy.
+const MAX_PREVIEW_BYTES = 2 * 1024 * 1024;
+
+const CV_LISTS = [
+  "education",
+  "awards",
+  "experience",
+  "projects",
+  "certifications",
+  "coCurricular",
+  "skills",
+];
+
+function hasContent(cv) {
+  return Boolean(cv.header.name.trim()) || CV_LISTS.some((list) => cv[list].length > 0);
+}
+
+/**
+ * Builds the CV as it would publish now, without storing it: the store and
+ * the site joined by resolveCv, drawn by `render`. Warnings are the join's
+ * (waiting for approval, orphans) then the layout's (overflow, page count).
+ */
+async function preview({ repo, sites, render }, _input, now) {
+  const [{ docs }, sources] = await Promise.all([repo.read(), sites()]);
+  const { cv, warnings } = resolveCv(split(docs), sources);
+  if (!hasContent(cv))
+    throw new HttpError(422, "There is nothing to put on the CV yet. Add your profile first.");
+  const { pdf, pages, warnings: layoutWarnings } = await render(cv, { creationDate: now });
+  if (pdf.length > MAX_PREVIEW_BYTES)
+    throw new HttpError(500, "The preview came out too large to show. Try again later.");
+  return {
+    pdfBase64: pdf.toString("base64"),
+    pages,
+    warnings: [
+      ...warnings,
+      ...layoutWarnings.map(({ code, message }) => ({ code, entryId: null, message })),
+    ],
+  };
+}
+
+module.exports = { load, saveProfile, saveEntry, setShown, reorder, deleteEntry, preview };

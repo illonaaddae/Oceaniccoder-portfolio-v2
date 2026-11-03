@@ -1,9 +1,11 @@
 // @vitest-environment node
+/* global Buffer */
 // Made-up people and organisations only (see shared/cv/fixture.js).
 import { describe, it, expect, vi } from "vitest";
 
 const { createHandler } = await import("./index.js");
 const { createFakeCvRepo } = await import("../shared/cv/repo.js");
+const { renderCv } = await import("../shared/cv/render.js");
 
 const NOW = new Date("2026-11-05T09:00:00.000Z");
 const LATER = new Date("2026-11-06T09:00:00.000Z");
@@ -29,7 +31,7 @@ const PROFILE = {
   skills: [{ id: "s1", label: "Languages", items: "JavaScript, TypeScript" }],
 };
 
-function setup({ admin = true, docs = [], site = {} } = {}) {
+function setup({ admin = true, docs = [], site = {}, render = renderCv } = {}) {
   const repo = createFakeCvRepo(docs);
   const records = {
     education: [],
@@ -45,6 +47,7 @@ function setup({ admin = true, docs = [], site = {} } = {}) {
       admin ? { user: { email: "owner@example.com" } } : { status: 401, error: "Sign in" },
     repo: () => repo,
     sites,
+    render,
     now: () => now,
   });
   // Like a client that has just loaded: a write without its own `version`
@@ -474,5 +477,77 @@ describe("deleteEntry", () => {
   it("answers 404 for an entry that doesn't exist", async () => {
     const { call } = setup();
     expect((await call({ action: "deleteEntry", id: "entry.projects.cv-0" })).status).toBe(404);
+  });
+});
+
+describe("preview", () => {
+  it("renders the store and the site into a PDF without writing anything", async () => {
+    const { call, repo } = setup();
+    await call({ action: "saveProfile", profile: PROFILE });
+    const before = await repo.read();
+    const res = await call({ action: "preview" });
+    expect(res.status).toBe(200);
+    const pdf = Buffer.from(res.body.pdfBase64, "base64");
+    expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(res.body.pages).toBe(1);
+    // The project has no approved text, so it is left off and reported.
+    expect(res.body.warnings).toEqual([
+      expect.objectContaining({ code: "waiting-for-approval", entryId: "entry.projects.p1" }),
+    ]);
+    expect((await repo.read()).version).toBe(before.version);
+  });
+
+  it("passes the resolved CV to the renderer and adds its warnings after the join's", async () => {
+    const render = vi.fn(async () => ({
+      pdf: Buffer.from("%PDF-1.3 made up"),
+      pages: 4,
+      warnings: [{ code: "pages", message: "The CV runs to 4 pages; the current one is 3." }],
+    }));
+    const { call } = setup({ render });
+    await call({ action: "saveProfile", profile: PROFILE });
+    const res = await call({ action: "preview" });
+    expect(res.status).toBe(200);
+    const [cv, options] = render.mock.calls[0];
+    expect(cv.header.name).toBe("Ama Mensah");
+    expect(cv.experience).toEqual([
+      expect.objectContaining({ org: "Brightpath Software", title: "Software Engineer" }),
+    ]);
+    expect(cv.projects).toEqual([]);
+    expect(options).toEqual({ creationDate: NOW });
+    expect(res.body.pages).toBe(4);
+    expect(res.body.warnings.map((w) => [w.code, w.entryId])).toEqual([
+      ["waiting-for-approval", "entry.projects.p1"],
+      ["pages", null],
+    ]);
+  });
+
+  it("answers 422 when there is nothing to put on the CV", async () => {
+    const render = vi.fn();
+    const { call } = setup({ render, site: { journey: [], projects: [] } });
+    const res = await call({ action: "preview" });
+    expect(res.status).toBe(422);
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  it("refuses to send a PDF over the size cap", async () => {
+    const render = vi.fn(async () => ({
+      pdf: Buffer.alloc(2 * 1024 * 1024 + 1),
+      pages: 1,
+      warnings: [],
+    }));
+    const { call } = setup({ render });
+    const res = await call({ action: "preview" });
+    expect(res.status).toBe(500);
+    expect(res.body.pdfBase64).toBeUndefined();
+  });
+
+  it("answers 500 without details when the render fails", async () => {
+    const render = vi.fn(async () => {
+      throw new Error("font table broken: secret detail");
+    });
+    const { call } = setup({ render });
+    const res = await call({ action: "preview" });
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(res.body)).not.toContain("secret");
   });
 });
