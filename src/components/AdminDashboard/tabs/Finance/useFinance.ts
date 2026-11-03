@@ -125,8 +125,8 @@ export function useFinance() {
       const after = latest.current;
       if (pending) pending.after = after;
       // A reload that failed never shows this change's ledger, so nothing
-      // would settle the row. One that was overtaken is settled by the newer
-      // load, which started later and so shows the change too.
+      // would settle the row. One that was overtaken is settled by the next
+      // load that lands, which started later and so shows the change too.
       const shown = await reloading;
       const overtaken = latest.current !== after;
       if (!shown && !overtaken && leaving.current === pending) leaving.current = null;

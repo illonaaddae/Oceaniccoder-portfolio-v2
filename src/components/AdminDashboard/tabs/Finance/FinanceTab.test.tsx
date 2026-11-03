@@ -533,6 +533,33 @@ describe("FinanceTab", () => {
     );
   });
 
+  it("sends the stored plan's time when the editor moves its start onto a planned month", async () => {
+    const plan = (id: string, m: string, updatedAt: string) => ({
+      ...stamp,
+      updatedAt,
+      id,
+      kind: "budget" as const,
+      month: m,
+      netIncomeMinor: 100000,
+      lines: [{ id: "l1", label: "Food", amountMinor: 5000, fundId: "" }],
+    });
+    const next = addMonths(month, 1);
+    list.mockReset().mockResolvedValue({
+      ...data,
+      budgets: [plan("b1", month, "2026-02-01"), plan("b2", next, "2026-02-02")],
+    });
+    saveBudget.mockReset().mockResolvedValue({});
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Budget" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit this plan" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Plan starts in.*next month$/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
+    await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
+    const [sent] = saveBudget.mock.calls[0];
+    expect(sent).toMatchObject({ month: next, expectedUpdatedAt: "2026-02-02" });
+    expect(sent.expectNew).toBeUndefined();
+  });
+
   it("sends no opened-on time when a form creates a record", async () => {
     const plan = {
       ...stamp,

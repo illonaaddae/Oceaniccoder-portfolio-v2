@@ -90,8 +90,7 @@ function id(value, label) {
 /** True when an editor saw no record where it is saving; anything but true or absent is refused. */
 function expectsNew(value) {
   if (value === undefined || value === null) return false;
-  if (value !== true)
-    throw invalid("The time this form opened is not valid. Cancel and open it again.");
+  if (value !== true) throw invalid("This form's state is not valid. Cancel and open it again.");
   return true;
 }
 
