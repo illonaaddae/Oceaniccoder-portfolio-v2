@@ -10,12 +10,16 @@ const list = vi.fn();
 const addTxn = vi.fn();
 const setExpectedStatus = vi.fn();
 const saveFund = vi.fn();
+const saveExpected = vi.fn();
+const saveBudget = vi.fn();
 vi.mock("@/services/api/finance", () => ({
   financeApi: {
     list: () => list(),
     addTxn: (t: unknown) => addTxn(t),
     setExpectedStatus: (id: string, status: string) => setExpectedStatus(id, status),
     saveFund: (f: unknown, version: unknown) => saveFund(f, version),
+    saveExpected: (e: unknown, version: unknown) => saveExpected(e, version),
+    saveBudget: (b: unknown, version: unknown) => saveBudget(b, version),
   },
 }));
 
@@ -448,6 +452,44 @@ describe("FinanceTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
     await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
     expect(saveFund).toHaveBeenCalledWith(expect.objectContaining({ id: "w" }), '"v1"');
+  });
+
+  it("saves expected-income and budget edits with the version their form opened on", async () => {
+    const plan = {
+      ...stamp,
+      id: "b1",
+      kind: "budget" as const,
+      month,
+      netIncomeMinor: 100000,
+      lines: [{ id: "l1", label: "Food", amountMinor: 5000, fundId: "" }],
+    };
+    const v1 = { ...data, budgets: [plan] };
+    list
+      .mockReset()
+      .mockResolvedValueOnce(v1)
+      .mockResolvedValue({ ...v1, version: '"v2"' });
+    saveExpected.mockReset().mockResolvedValue({});
+    saveBudget.mockReset().mockResolvedValue({});
+    renderTab();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit Client balance" }));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(saveExpected).toHaveBeenCalledTimes(1));
+    expect(saveExpected).toHaveBeenCalledWith(expect.objectContaining({ id: "e1" }), '"v1"');
+
+    // The budget editor opens after the refresh, so it starts on v2; another
+    // refresh that brings v3 must not change what it sends.
+    list.mockResolvedValue({ ...v1, version: '"v3"' });
+    await userEvent.click(screen.getByRole("button", { name: "Budget" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit this plan" }));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(4));
+    await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
+    await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
+    expect(saveBudget).toHaveBeenCalledWith(expect.objectContaining({ month }), '"v2"');
   });
 
   it("moves focus into a form as it opens and back to its button when it closes", async () => {
