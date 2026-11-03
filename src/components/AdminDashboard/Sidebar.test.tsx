@@ -24,9 +24,15 @@ describe("Sidebar finance tab", () => {
     expect(screen.getAllByText("Finance").length).toBeGreaterThan(0);
   });
 
-  it("never shows Finance or its Personal group on the public read-only dashboard", () => {
+  it("shows the CV tab to the admin", () => {
+    render(<Sidebar {...props} />);
+    expect(screen.getAllByText("CV").length).toBeGreaterThan(0);
+  });
+
+  it("never shows Finance, CV or their Personal group on the public read-only dashboard", () => {
     render(<Sidebar {...props} isReadOnly />);
     expect(screen.queryByText("Finance")).toBeNull();
+    expect(screen.queryByText("CV")).toBeNull();
     expect(screen.queryByText("Personal")).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ import {
   FaFileSignature,
   FaEnvelopeOpenText,
   FaPiggyBank,
+  FaIdCard,
 } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import type { TabType } from "./types";
@@ -68,7 +69,10 @@ export const TAB_GROUPS: TabGroup[] = [
   {
     id: "personal",
     label: "Personal",
-    tabs: [{ id: "finance", label: "Finance", icon: FaPiggyBank }],
+    tabs: [
+      { id: "finance", label: "Finance", icon: FaPiggyBank },
+      { id: "cv", label: "CV", icon: FaIdCard },
+    ],
   },
   {
     id: "content",

@@ -34,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     "analytics",
     "storage",
     "finance",
+    "cv",
   ];
 
   const tabs = isReadOnly ? allTabs.filter((tab) => !PRIVATE_TABS.includes(tab.id)) : allTabs;
