@@ -863,3 +863,24 @@ Sources: [SWA managed function timeout (Microsoft Q&A)](https://learn.microsoft.
 - D5 / publish (changes the design): new site items go ON the CV by default. Projects: Claude drafts the CV lines, owner taps Approve once, then the PDF rebuilds and the public download updates automatically. Jobs and certificates with no AI text update straight away. No manual Publish step needed for normal updates (keep history and rollback).
 - Open, defaults taken: D4 show-on-CV switch in the CV tab and in each item's form; D6 daily AI cap 30, model via env; D7 stable URL cv/illona-addae-cv.pdf plus /cv redirect; D9 personal.cv container + Blob cv (public) / cv-archive (private): owner approves before creation; D10 keep manual resume upload as override; D11 warn (not block) past 3 pages.
 - Owner to confirm ANTHROPIC_API_KEY is set in Azure (no code uses it yet).
+
+## Built: CV store and admin API (PR "S")
+
+Where the code differs from sections 7.2 and 7.3, the code is current:
+
+- Partition `/scope` = `"me"`, as in `finance`. Records use `kind` (`profile`, `entry`,
+  `version`), not `type`. The store is `api/shared/personal.js`, shared with finance.
+- Concurrency follows finance: one `cv-version` document, and every write sends the `version`
+  that `load` returned (409 when stale), instead of a per-record etag.
+- Profile lists (awards, co-curricular, skills) keep CV order as array order, with no `order`
+  field. References store only `{ mode: "on-request", text }`; no referee rows (D1).
+- A site item with no entry is on the CV (D5). Those items come first in their section, in the
+  site's order, then entries by `order`. A new entry goes to the top of its section. The one
+  exception is an education row with `isVisible: false`, which stays off until shown.
+- `setShown` and `reorder` create the entry for a site item that has none. `reorder` answers 409
+  when the ids are not the section as loaded. `deleteEntry` removes CV-only entries and orphans;
+  for a live site item it answers 409 (hide it instead).
+- `saveEntry` takes `approved` text written by the owner, which counts as approved. It never
+  takes a draft. `load` returns `{ profile, entries, sources, warnings, version }`; publish and
+  AI fields come with their PRs.
+- The `cv` container is created by the first `/api/cv` call after deploy (D9).
