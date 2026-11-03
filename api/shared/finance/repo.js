@@ -135,11 +135,23 @@ async function readEtag(container, id) {
   }
 }
 
-/** The error to answer with when the batch call itself threw. */
+/**
+ * The error to answer with when the batch call itself threw.
+ *
+ * A batch that committed but whose answer was lost (a timeout) has bumped the
+ * version itself, so it is reported as STALE too. That is accepted: nothing
+ * is lost or half-written, and the Refresh it asks for shows the record.
+ */
 async function explainFailedBatch(container, err, version, create) {
-  if ((await readEtag(container, VERSION_ID)) !== version) return STALE;
-  for (const doc of create) {
-    if ((await readEtag(container, doc.id)) !== null) return CONFLICT;
+  try {
+    if ((await readEtag(container, VERSION_ID)) !== version) return STALE;
+    for (const doc of create) {
+      if ((await readEtag(container, doc.id)) !== null) return CONFLICT;
+    }
+  } catch {
+    // The repo has no logger. The batch error is the one worth seeing, so it
+    // goes on to the handler, which logs it; the failed read is dropped.
+    return err;
   }
   return err;
 }
