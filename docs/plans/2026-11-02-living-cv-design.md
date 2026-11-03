@@ -884,3 +884,21 @@ Where the code differs from sections 7.2 and 7.3, the code is current:
   takes a draft. `load` returns `{ profile, entries, sources, warnings, version }`; publish and
   AI fields come with their PRs.
 - The `cv` container is created by the first `/api/cv` call after deploy (D9).
+
+## Built: CV tab and preview (PR "T")
+
+Where the code differs from sections 7.3 and 5 (Q6), the code is current:
+
+- `load` also returns `sections`: per section, `{ id, show, orphan }` in CV order with orphans
+  last, built by `sectionItems` in `resolve.js`. The tab lists and reorders from it, so CV order
+  is decided in one place.
+- `preview` answers 422 only when the CV would be empty (no name and no item in any list). It
+  refuses a PDF over 2 MB with a 500. Its warnings are the join's (`no-profile`, `orphan`,
+  `waiting-for-approval`) then the layout's (`header-overflow`, `link-scheme`, `overflow`,
+  `pages`), each as `{ code, entryId, message }`.
+- The tab has three views: Sections, Profile and Preview. Awards, co-curricular activities and
+  skills lines are edited in Sections, where they sit in CV order beside the other sections, and
+  are saved with the profile. Profile holds the header, links and footnotes; references are shown
+  as the fixed "Available upon request".
+- There is no per-record check: every write sends the store version from `load`, as in finance.
+  The AI draft button (PR 4) goes beside the "Waiting for approval" badge on project rows.
