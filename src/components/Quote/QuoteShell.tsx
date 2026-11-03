@@ -187,20 +187,33 @@ export function QuoteError({
   onRetry,
   title = "Something went wrong",
   headingLevel = 1,
+  announce = false,
 }: {
   message: string;
   onRetry?: () => void;
   title?: string;
   /** 2 inside a dialog or page that already has its own h1. */
   headingLevel?: 1 | 2;
+  /** It replaced what the reader was using: announce the message and move focus to it. */
+  announce?: boolean;
 }) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
+  const messageRef = React.useRef<React.ComponentRef<"p">>(null);
+  React.useEffect(() => {
+    if (announce) messageRef.current?.focus();
+  }, [announce]);
   return (
     <QuoteCard className="text-center">
       <Heading className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
         {title}
       </Heading>
-      <p className="mb-4 [overflow-wrap:anywhere]" style={{ color: "var(--text-primary)" }}>
+      <p
+        ref={messageRef}
+        role={announce ? "alert" : undefined}
+        tabIndex={announce ? -1 : undefined}
+        className="mb-4 [overflow-wrap:anywhere] focus:outline-none"
+        style={{ color: "var(--text-primary)" }}
+      >
         {message}
       </p>
       {onRetry && (

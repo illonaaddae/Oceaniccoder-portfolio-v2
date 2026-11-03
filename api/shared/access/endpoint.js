@@ -303,4 +303,4 @@ function createAccessEndpoint(deps) {
   };
 }
 
-module.exports = { createAccessEndpoint, isAccessAction };
+module.exports = { createAccessEndpoint, isAccessAction, redact };

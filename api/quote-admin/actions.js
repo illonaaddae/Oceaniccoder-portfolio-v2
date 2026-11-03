@@ -15,6 +15,7 @@ const {
   mintLinkCode,
   normalEmail,
 } = require("../shared/quotes/access");
+const { invoiceAccess } = require("../shared/invoices/access");
 
 const MANUAL_METHODS = ["bank", "momo", "cash"];
 
@@ -433,6 +434,18 @@ const actions = {
     const secret = svc.receiptSecret ?? process.env.RECEIPT_SIGNING_SECRET;
     if (!secret) throw new HttpError(503, "Pay links need RECEIPT_SIGNING_SECRET to be set.");
     return { link: invoicePayPath(invoice.invoiceNumber, secret) };
+  },
+
+  // The leak response for a one-off invoice: the next access epoch signs
+  // every browser out and voids every link code not yet used, and resets the
+  // code quotas and the wrong-code block. The link is an HMAC of the number,
+  // so it stays the same; whoever opens it next is emailed a code at the
+  // client's address. Paid and archived invoices are behind the code too.
+  // Works with the gate off as well, so it still counts once it is on.
+  async resetInvoiceAccess(svc, input) {
+    const invoice = await loadInvoice(svc, input.id);
+    await invoiceAccess.bumpEpoch(svc.locks, invoice);
+    return { ok: true };
   },
 };
 
