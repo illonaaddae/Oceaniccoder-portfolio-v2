@@ -34,6 +34,7 @@ export const FilterPills: React.FC<FilterPillsProps> = ({
         <button
           key={t.key}
           type="button"
+          aria-pressed={isActive}
           onClick={() => onChange(t.key)}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition duration-200 ${
             isActive

@@ -11,6 +11,8 @@ interface DatePickerProps {
   ariaLabel?: string;
   /** Id of a visible label; the trigger is then named by it plus the shown date. */
   labelId?: string;
+  /** Id of a hint shown with the field; the trigger is then described by it. */
+  describedBy?: string;
   /** "sm" matches CustomSelect's compact size (py-2, rounded-lg). */
   size?: "md" | "sm";
   className?: string;
@@ -83,6 +85,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   placeholder = "Select date",
   ariaLabel,
   labelId,
+  describedBy,
   size = "md",
   className = "",
   min,
@@ -314,6 +317,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         aria-expanded={open}
         aria-label={labelId ? undefined : ariaLabel}
         aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
+        aria-describedby={describedBy}
       >
         <span id={valueId} className={display ? "" : dark ? "text-gray-400" : "text-slate-500"}>
           {display || placeholder}
@@ -329,6 +333,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <div
             ref={panelRef}
             role="dialog"
+            aria-modal="true"
             aria-label={labelId ? undefined : ariaLabel}
             aria-labelledby={labelId}
             onKeyDown={onPanelKeyDown}
