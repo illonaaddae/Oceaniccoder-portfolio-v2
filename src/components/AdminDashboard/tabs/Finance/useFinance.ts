@@ -79,12 +79,16 @@ export function useFinance() {
    * next row's name, else the previous row's, else the list, else the view,
    * instead of dropping to the page. Names carry data-row-name and lists
    * data-row-list, both with tabIndex={-1}.
+   *
+   * `basedOn` is the version an edit form opened on. A form that keeps its
+   * values across a reload must send it, or a save after Refresh would pass
+   * the new version with the old values and overwrite the newer edit.
    */
   const version = data.version;
   const mutate = useCallback(
     async <T>(
       change: (version: string | null) => Promise<T>,
-      { row }: { row?: HTMLElement | null } = {},
+      { row, basedOn }: { row?: HTMLElement | null; basedOn?: string | null } = {},
     ): Promise<T> => {
       const nameIn = (el: Element | null | undefined) =>
         el?.querySelector<HTMLElement>("[data-row-name]") ?? null;
@@ -101,7 +105,7 @@ export function useFinance() {
         : null;
       let result: T;
       try {
-        result = await change(version);
+        result = await change(basedOn === undefined ? version : basedOn);
       } catch (err) {
         leaving.current = null;
         throw err;

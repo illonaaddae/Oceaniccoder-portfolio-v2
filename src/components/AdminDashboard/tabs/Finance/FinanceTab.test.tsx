@@ -15,7 +15,7 @@ vi.mock("@/services/api/finance", () => ({
     list: () => list(),
     addTxn: (t: unknown) => addTxn(t),
     setExpectedStatus: (id: string, status: string) => setExpectedStatus(id, status),
-    saveFund: (f: unknown) => saveFund(f),
+    saveFund: (f: unknown, version: unknown) => saveFund(f, version),
   },
 }));
 
@@ -430,6 +430,24 @@ describe("FinanceTab", () => {
     finishArchive();
     await waitFor(() => expect(archive).not.toHaveAttribute("aria-disabled"));
     expect(saveFund).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves an edit with the version the form opened on, even after a refresh", async () => {
+    // Another tab changed the ledger: the refresh brings v2, but the form still
+    // holds values from v1, so the server must be able to refuse them.
+    list
+      .mockReset()
+      .mockResolvedValueOnce(data)
+      .mockResolvedValue({ ...data, version: '"v2"' });
+    saveFund.mockReset().mockResolvedValue({});
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit House Fund" }));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
+    await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
+    expect(saveFund).toHaveBeenCalledWith(expect.objectContaining({ id: "w" }), '"v1"');
   });
 
   it("moves focus into a form as it opens and back to its button when it closes", async () => {

@@ -50,6 +50,8 @@ function BudgetEditor({
       amount: minorToInput(l.amountMinor),
     })),
   );
+  // The ledger version this editor opened on; see `basedOn` in useFinance.
+  const [basedOn] = useState(() => state.data.version);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -111,8 +113,10 @@ function BudgetEditor({
     setSaving(true);
     setError(null);
     try {
-      await state.mutate((version) =>
-        financeApi.saveBudget({ month, netIncomeMinor: netMinor, lines: out }, version),
+      await state.mutate(
+        (version) =>
+          financeApi.saveBudget({ month, netIncomeMinor: netMinor, lines: out }, version),
+        { basedOn },
       );
       state.announce(`Saved the plan from ${monthLabel(month)}`);
       onDone();

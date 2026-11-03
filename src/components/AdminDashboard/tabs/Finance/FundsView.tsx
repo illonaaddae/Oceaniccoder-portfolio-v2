@@ -194,10 +194,13 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
   const [mode, setMode] = useState<"view" | "move" | "edit" | "history">("view");
   const [moveType, setMoveType] = useState<MoveType>("deposit");
   const startMove = (type: MoveType) => {
+    setError(null);
     setMoveType(type);
     setMode("move");
   };
   const rowRef = useRef<HTMLLIElement>(null);
+  // The ledger version the edit form opened on; see `basedOn` in useFinance.
+  const editBasedOn = useRef<string | null>(null);
   // The buttons that open this row's forms, which hide them while open.
   const openers = useRef<Partial<Record<MoveType | "edit", HTMLButtonElement | null>>>({});
   const opener = (key: MoveType | "edit") => (el: HTMLButtonElement | null) => {
@@ -233,6 +236,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
       await state.mutate((version) => financeApi.saveFund({ ...fund, archived }, version), {
         row: rowRef.current,
       });
+      setError(null);
       state.announce(`${archived ? "Archived" : "Restored"} ${fund.name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update the fund.");
@@ -275,6 +279,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
             // A new kind moves the fund to another group's list.
             await state.mutate((version) => financeApi.saveFund(input, version), {
               row: rowRef.current,
+              basedOn: editBasedOn.current,
             });
             state.announce(`Saved ${input.name}`);
             closeForm("edit");
@@ -463,7 +468,10 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
               ref={opener("edit")}
               variant="quiet"
               label={`Edit ${fund.name}`}
-              onClick={() => setMode("edit")}
+              onClick={() => {
+                editBasedOn.current = state.data.version;
+                setMode("edit");
+              }}
             >
               Edit
             </Button>
