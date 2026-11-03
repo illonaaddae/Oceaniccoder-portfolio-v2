@@ -654,7 +654,10 @@ textarea:focus {
     overflow-wrap: anywhere;
   }
 }
-.analytics-dash .glass-card {
+/* Finance and the CV tab use the same plain card surfaces. */
+.analytics-dash .glass-card,
+.finance-dash .glass-card,
+.cv-dash .glass-card {
   background: var(--analytics-card);
   border: 1px solid var(--analytics-line);
   border-radius: 14px;

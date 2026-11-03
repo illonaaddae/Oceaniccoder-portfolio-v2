@@ -3,6 +3,8 @@ import ClientWorkTab from "./tabs/ClientWorkTab";
 import InvoicesTab from "./tabs/InvoicesTab";
 import PaymentsTab from "./tabs/PaymentsTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
+import FinanceTab from "./tabs/Finance/FinanceTab";
+import CvTab from "./tabs/Cv/CvTab";
 import { BookingsTab } from "./tabs/BookingsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GalleryTab } from "./tabs/GalleryTab";
@@ -143,6 +145,8 @@ export const TabContentExtra: React.FC<TabContentProps> = (props) => {
         />
       )}
       {activeTab === "analytics" && !isReadOnly && <AnalyticsTab theme={theme} />}
+      {activeTab === "finance" && !isReadOnly && <FinanceTab theme={theme} />}
+      {activeTab === "cv" && !isReadOnly && <CvTab theme={theme} />}
       {activeTab === "settings" && !isReadOnly && <SettingsTab theme={theme} />}
       {activeTab === "storage" && !isReadOnly && <StorageCleanupTab theme={theme} />}
     </>

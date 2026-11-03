@@ -16,6 +16,18 @@
       "allowedRoles": [
         "admin"
       ]
+    },
+    {
+      "route": "/api/finance*",
+      "allowedRoles": [
+        "admin"
+      ]
+    },
+    {
+      "route": "/api/cv*",
+      "allowedRoles": [
+        "admin"
+      ]
     }
   ],
   "navigationFallback": {

@@ -218,7 +218,7 @@ describe("ConfirmProvider dialog", () => {
       const confirm = useConfirm();
       const [open, setOpen] = useState(true);
       return (
-        <main tabIndex={-1}>
+        <main id="main-content" tabIndex={-1}>
           {open && (
             <button
               type="button"
@@ -246,6 +246,70 @@ describe("ConfirmProvider dialog", () => {
     await act(async () => {});
 
     expect(screen.getByRole("main")).toHaveFocus();
+  });
+
+  it("falls back to #main-content, not the first <main> on the page", async () => {
+    const Page = () => {
+      const confirm = useConfirm();
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <main tabIndex={-1} aria-label="First" />
+          <div id="main-content" tabIndex={-1} data-testid="main-content">
+            {open && (
+              <button
+                type="button"
+                onClick={() => {
+                  void confirm("Delete project?");
+                  setOpen(false);
+                }}
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        </>
+      );
+    };
+    render(
+      <ConfirmProvider>
+        <Page />
+      </ConfirmProvider>,
+    );
+    const item = screen.getByRole("button", { name: "Delete" });
+    item.focus();
+    fireEvent.click(item);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await act(async () => {});
+    expect(screen.getByTestId("main-content")).toHaveFocus();
+  });
+
+  it("sends focus where the caller asked once confirmed, and to the trigger on cancel", async () => {
+    const { trigger, confirm } = setup();
+    const next = document.createElement("h3");
+    next.tabIndex = -1;
+    document.body.append(next);
+    const ask = () => {
+      trigger.focus();
+      let answer!: Promise<boolean | string>;
+      act(() => {
+        answer = confirm({ message: "Delete it?", focusAfterConfirm: () => next });
+      });
+      return answer;
+    };
+
+    const cancelled = ask();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await act(async () => {});
+    expect(await cancelled).toBe(false);
+    expect(trigger).toHaveFocus();
+
+    const confirmed = ask();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await act(async () => {});
+    expect(await confirmed).toBe(true);
+    expect(next).toHaveFocus();
+    next.remove();
   });
 
   it("settles an open dialog as cancelled when a second confirm replaces it", async () => {

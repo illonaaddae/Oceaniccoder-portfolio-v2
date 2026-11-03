@@ -20,6 +20,8 @@ import {
   FaCreditCard,
   FaFileSignature,
   FaEnvelopeOpenText,
+  FaPiggyBank,
+  FaIdCard,
 } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import type { TabType } from "./types";
@@ -37,7 +39,7 @@ export interface TabGroup {
 }
 
 /**
- * The sidebar's twenty-one destinations, grouped by what you are actually doing.
+ * The sidebar's twenty-two destinations, grouped by what you are actually doing.
  *
  * Grouping rather than nesting is deliberate: Client Work, Invoices and
  * Payments are one flow you move through constantly, so burying any of them a
@@ -62,6 +64,14 @@ export const TAB_GROUPS: TabGroup[] = [
       { id: "payments", label: "Payments", icon: FaCreditCard },
       { id: "analytics", label: "Analytics", icon: FaChartLine },
       { id: "emails", label: "Emails", icon: FaEnvelopeOpenText },
+    ],
+  },
+  {
+    id: "personal",
+    label: "Personal",
+    tabs: [
+      { id: "finance", label: "Finance", icon: FaPiggyBank },
+      { id: "cv", label: "CV", icon: FaIdCard },
     ],
   },
   {

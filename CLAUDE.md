@@ -149,6 +149,10 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 > visitor-hash salts would never expire. Production was created that way;
 > recheck it if the container is ever recreated by hand.
 
+> The Cosmos `personal` database (400 RU/s shared) must exist before
+> `/api/finance` or `/api/cv` is deployed. The code creates only their
+> `finance` and `cv` containers, on first use.
+
 **Required for payments to record correctly.** `/api/paystack-webhook` marks the
 invoice paid, writes the `payments` audit row and sends the confirmation emails.
 If any of these is missing, a real payment is charged by Paystack but nothing is
