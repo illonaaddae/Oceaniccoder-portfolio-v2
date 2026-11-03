@@ -1,5 +1,5 @@
 // Made-up people and organisations only.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { CvData, CvEntry, CvProfile } from "@/types/cv";
@@ -11,6 +11,7 @@ const reorder = vi.fn();
 const saveEntry = vi.fn();
 const saveProfile = vi.fn();
 const deleteEntry = vi.fn();
+const preview = vi.fn();
 vi.mock("@/services/api/cv", () => ({
   cvApi: {
     load: () => load(),
@@ -19,6 +20,7 @@ vi.mock("@/services/api/cv", () => ({
     saveEntry: (...args: unknown[]) => saveEntry(...args),
     saveProfile: (...args: unknown[]) => saveProfile(...args),
     deleteEntry: (...args: unknown[]) => deleteEntry(...args),
+    preview: () => preview(),
   },
 }));
 
@@ -115,7 +117,7 @@ const row = (list: HTMLElement, name: string) =>
   within(list).getByRole("listitem", { name: new RegExp(name) });
 
 beforeEach(() => {
-  for (const fn of [setShown, reorder, saveEntry, saveProfile, deleteEntry])
+  for (const fn of [setShown, reorder, saveEntry, saveProfile, deleteEntry, preview])
     fn.mockReset().mockResolvedValue({});
   load.mockReset().mockResolvedValue(DATA);
 });
@@ -355,6 +357,59 @@ describe("CvTab profile", () => {
     // The browser's own check stops the empty required name.
     expect(screen.getByRole("textbox", { name: /^Name/ })).toBeInvalid();
     expect(saveProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe("CvTab preview", () => {
+  const createObjectURL = vi.fn(() => "blob:cv-preview");
+  const revokeObjectURL = vi.fn();
+  beforeEach(() => {
+    createObjectURL.mockClear();
+    revokeObjectURL.mockClear();
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL, revokeObjectURL }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("shows the built PDF, its page count and warnings, and frees it on leaving", async () => {
+    preview.mockResolvedValue({
+      pdfBase64: window.btoa("%PDF-1.3 made up"),
+      pages: 4,
+      warnings: [
+        {
+          code: "waiting-for-approval",
+          entryId: "entry.projects.p1",
+          message: '"Clinic Scheduler" is waiting for approval, so it is left off the CV.',
+        },
+        { code: "pages", entryId: null, message: "The CV runs to 4 pages; the current one is 3." },
+      ],
+    });
+    const { unmount } = renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "Build preview" }));
+
+    const frame = await screen.findByTitle("CV preview");
+    expect(frame).toHaveAttribute("src", "blob:cv-preview");
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(screen.getByText(/^4 pages, built/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Download preview" })).toHaveAttribute(
+      "href",
+      "blob:cv-preview",
+    );
+    const warnings = screen.getByRole("region", { name: "Warnings" });
+    expect(within(warnings).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(warnings).getByText(/runs to 4 pages/)).toBeInTheDocument();
+
+    unmount();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:cv-preview");
+  });
+
+  it("shows why a preview couldn't be built", async () => {
+    preview.mockRejectedValue(new Error("There is nothing to put on the CV yet."));
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "Build preview" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("nothing to put on the CV");
+    expect(screen.queryByTitle("CV preview")).toBeNull();
   });
 });
 

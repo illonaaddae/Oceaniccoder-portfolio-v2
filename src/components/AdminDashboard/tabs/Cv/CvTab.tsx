@@ -10,10 +10,12 @@ import { FinanceThemeContext, muted } from "../Finance/ui";
 import { useCv } from "./useCv";
 import { SectionsView } from "./SectionsView";
 import { ProfileView } from "./ProfileView";
+import { PreviewView } from "./PreviewView";
 
 const VIEWS = [
   { key: "sections", label: "Sections" },
   { key: "profile", label: "Profile" },
+  { key: "preview", label: "Preview" },
 ] as const;
 
 type View = (typeof VIEWS)[number]["key"];
@@ -68,6 +70,7 @@ export default function CvTab({ theme }: { theme: "light" | "dark" }) {
           <div data-cv-view tabIndex={-1} className="outline-none">
             {view === "sections" && <SectionsView state={state} />}
             {view === "profile" && <ProfileView state={state} />}
+            {view === "preview" && <PreviewView state={state} />}
           </div>
         )}
       </div>
