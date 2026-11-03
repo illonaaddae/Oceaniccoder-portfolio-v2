@@ -87,15 +87,54 @@ describe("useFinance", () => {
       '<li><h3 data-row-name tabindex="-1" id="next">Rent</h3></li>';
     document.body.append(rows);
     const kept = rows.querySelector<HTMLElement>("#kept")!;
+    try {
+      // A change that leaves the row in its list, like an edit that keeps its kind.
+      await act(() => result.current.mutate(async () => ({}), { row: kept }));
+      expect(kept.isConnected).toBe(true);
+      // Later the row goes for another reason, and focus with it.
+      kept.remove();
+      await act(() => result.current.reload());
+      expect(document.activeElement).toBe(document.body);
+    } finally {
+      rows.remove();
+    }
+  });
 
-    // A change that leaves the row in its list, like an edit that keeps its kind.
-    await act(() => result.current.mutate(async () => ({}), { row: kept }));
-    expect(kept.isConnected).toBe(true);
-    // Later the row goes for another reason, and focus with it.
-    kept.remove();
-    await act(() => result.current.reload());
-    expect(document.activeElement).toBe(document.body);
-    rows.remove();
+  it("still moves focus off a removed row when a Refresh overtakes the change's reload", async () => {
+    list.mockResolvedValue(ledger(0));
+    const { result } = renderHook(() => useFinance());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    const rows = document.createElement("ul");
+    rows.innerHTML =
+      '<li id="gone"><h3 data-row-name tabindex="-1">Car</h3></li>' +
+      '<li><h3 data-row-name tabindex="-1" id="next">Rent</h3></li>';
+    document.body.append(rows);
+    const gone = rows.querySelector<HTMLElement>("#gone")!;
+    try {
+      let answerChange!: (d: FinanceData) => void;
+      let answerRefresh!: (d: FinanceData) => void;
+      list
+        .mockReturnValueOnce(new Promise<FinanceData>((r) => (answerChange = r)))
+        .mockReturnValueOnce(new Promise<FinanceData>((r) => (answerRefresh = r)));
+      let changing!: Promise<unknown>;
+      act(() => {
+        changing = result.current.mutate(async () => ({}), { row: gone });
+      });
+      // The first load, then the change's reload, then the Refresh.
+      await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+      act(() => void result.current.reload());
+      await waitFor(() => expect(list).toHaveBeenCalledTimes(3));
+      // The change's own reload answers first but was overtaken by the Refresh.
+      gone.remove();
+      await act(async () => {
+        answerChange(ledger(1, '"v2"'));
+        await changing;
+      });
+      await act(async () => answerRefresh(ledger(1, '"v2"')));
+      await waitFor(() => expect(document.activeElement?.id).toBe("next"));
+    } finally {
+      rows.remove();
+    }
   });
 
   it("keeps the newest ledger when an older reload answers last", async () => {

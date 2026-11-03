@@ -122,10 +122,14 @@ export function useFinance() {
         throw err;
       }
       const reloading = reload();
-      if (pending) pending.after = latest.current;
-      // A reload that failed or was overtaken never shows this change's
-      // ledger, so nothing would settle the row.
-      if (!(await reloading) && leaving.current === pending) leaving.current = null;
+      const after = latest.current;
+      if (pending) pending.after = after;
+      // A reload that failed never shows this change's ledger, so nothing
+      // would settle the row. One that was overtaken is settled by the newer
+      // load, which started later and so shows the change too.
+      const shown = await reloading;
+      const overtaken = latest.current !== after;
+      if (!shown && !overtaken && leaving.current === pending) leaving.current = null;
       return result;
     },
     [reload, version],
