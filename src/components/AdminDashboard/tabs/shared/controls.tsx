@@ -30,11 +30,15 @@ export function RefreshControl({
             : `Updated ${timeOf(updatedAt)}`}
         </p>
       )}
+      {/* aria-disabled, not disabled: disabling the focused button would
+          drop keyboard focus to <body> while the reload runs. */}
       <button
         type="button"
-        onClick={onRefresh}
-        disabled={loading}
-        className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--accent-teal-subtle)] disabled:opacity-60"
+        onClick={() => {
+          if (!loading) onRefresh();
+        }}
+        aria-disabled={loading}
+        className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--accent-teal-subtle)] aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
         style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
       >
         <FaSync aria-hidden="true" className={loading ? "animate-spin" : ""} /> Refresh

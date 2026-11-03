@@ -266,9 +266,11 @@ function restoreFocus(target: HTMLElement | null) {
     if (document.activeElement === target) return;
   }
   // The trigger is gone (its row menu closed as the dialog opened) or can no
-  // longer take focus. Land on the main region, which carries tabIndex={-1} for
-  // this, rather than leaving keyboard and screen reader users at the top of
-  // <body>. This runs as the dialog closes, before the caller acts on the
-  // answer, so it does not cover a row that a confirmed delete removes later.
-  document.querySelector<HTMLElement>("main")?.focus();
+  // longer take focus. Land on the page's main region (MainLayout's
+  // #main-content, which carries tabIndex={-1} for this; the dashboard nests
+  // its own <main> inside it), rather than leaving keyboard and screen reader
+  // users at the top of <body>. This runs as the dialog closes, before the
+  // caller acts on the answer, so it does not cover a row that a confirmed
+  // delete removes later.
+  document.getElementById("main-content")?.focus();
 }
