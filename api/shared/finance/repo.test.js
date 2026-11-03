@@ -88,7 +88,7 @@ describe("Cosmos finance repo", () => {
   it.each([
     [[{ statusCode: 412 }, { statusCode: 424 }], 409, "Something changed"],
     [[{ statusCode: 409 }, { statusCode: 424 }], 409, "Something changed"],
-    [[{ statusCode: 424 }, { statusCode: 409 }], 409, "already recorded"],
+    [[{ statusCode: 200 }, { statusCode: 409 }, { statusCode: 424 }], 409, "already recorded"],
     [[{ statusCode: 424 }, { statusCode: 404 }], 404, "no longer exists"],
   ])("maps failed batch %j to %i", async (batchResult, status, message) => {
     const { repo } = stubContainer({ batchResult });
