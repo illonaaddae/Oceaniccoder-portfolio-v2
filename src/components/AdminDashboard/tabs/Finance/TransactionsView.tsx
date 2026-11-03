@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Txn, TxnType } from "@/types/finance";
 import { financeApi } from "@/services/api/finance";
 import { activeBudget, currentMonth, monthOf, today } from "@/utils/finance/ledger";
@@ -14,10 +14,13 @@ import {
   MonthField,
   DateField,
   cedis,
+  focusField,
   inputToMinor,
   monthLabel,
   muted,
   strong,
+  useFocusAfterRender,
+  useFocusFirstField,
 } from "./ui";
 
 export const TYPE_LABELS: Record<TxnType, string> = {
@@ -61,6 +64,11 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const formRef = useFocusFirstField<HTMLFormElement>();
+  const refuseAmount = (message: string) => {
+    setError(message);
+    focusField(formRef.current, "amount");
+  };
 
   const categories = type === "income" ? INCOME_CATEGORIES : spendCategories;
   // Wealth is never spent from directly, so a payment can't come from it.
@@ -80,8 +88,8 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
     e.preventDefault();
     if (saving) return;
     const amountMinor = inputToMinor(amount);
-    if (amountMinor === null) return setError("Amounts must be numbers like 300 or 1,250.50.");
-    if (!amountMinor) return setError("Enter an amount more than zero.");
+    if (amountMinor === null) return refuseAmount("Amounts must be numbers like 300 or 1,250.50.");
+    if (!amountMinor) return refuseAmount("Enter an amount more than zero.");
     if (type === "fund_spend" && !fundId)
       return setError(
         "Only rent, goal and emergency funds pay for things. Create one under Funds.",
@@ -108,6 +116,7 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
           version,
         ),
       );
+      state.announce(`Recorded ${TYPE_LABELS[type].toLowerCase()} of ${cedis(amountMinor)}`);
       onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't record that.");
@@ -116,7 +125,7 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3" aria-label="Record a transaction">
+    <form ref={formRef} onSubmit={submit} className="space-y-3" aria-label="Record a transaction">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Select
           label="What happened"
@@ -127,7 +136,13 @@ export function TxnForm({ state, onDone }: { state: FinanceState; onDone: () => 
           }))}
           onChange={changeType}
         />
-        <MoneyField label="Amount (GH₵)" value={amount} onChange={setAmount} required />
+        <MoneyField
+          label="Amount (GH₵)"
+          name="amount"
+          value={amount}
+          onChange={setAmount}
+          required
+        />
         <DateField label="Date" value={date} onChange={setDate} required />
         {NEEDS_FUND.has(type) && (
           <Select
@@ -186,6 +201,12 @@ export function TransactionsView({ state }: { state: FinanceState }) {
   const confirm = useConfirm();
   const fundName = (id: string) =>
     state.data.funds.find((f) => f.id === id)?.name ?? "Deleted fund";
+  const addRef = useRef<HTMLButtonElement>(null);
+  const focusLater = useFocusAfterRender();
+  const closeAdd = () => {
+    setAdding(false);
+    focusLater(() => addRef.current);
+  };
 
   const rows = useMemo(
     () =>
@@ -205,7 +226,10 @@ export function TransactionsView({ state }: { state: FinanceState }) {
     if (!ok) return;
     setDeletingId(t.id);
     try {
-      await state.mutate((version) => financeApi.deleteTxn(t.id, version));
+      await state.mutate((version) => financeApi.deleteTxn(t.id, version), {
+        row: document.getElementById(`txn-${t.id}`),
+      });
+      state.announce("Deleted");
     } catch (err) {
       state.report(err, "Couldn't delete it.");
     } finally {
@@ -220,14 +244,14 @@ export function TransactionsView({ state }: { state: FinanceState }) {
           <MonthField label="Month" value={month} onChange={(v) => v && setMonth(v)} />
         </div>
         {!adding && (
-          <Button variant="primary" onClick={() => setAdding(true)}>
+          <Button ref={addRef} variant="primary" onClick={() => setAdding(true)}>
             Record a transaction
           </Button>
         )}
       </div>
       {adding && (
         <Card title="Record a transaction">
-          <TxnForm state={state} onDone={() => setAdding(false)} />
+          <TxnForm state={state} onDone={closeAdd} />
         </Card>
       )}
       <Card title={monthLabel(month)}>
@@ -237,7 +261,7 @@ export function TransactionsView({ state }: { state: FinanceState }) {
           </p>
         ) : (
           <div className="relative overflow-x-auto">
-            <table className="w-full text-sm">
+            <table data-row-list tabIndex={-1} className="w-full text-sm">
               <caption className="sr-only">Transactions in {monthLabel(month)}</caption>
               <thead>
                 <tr style={muted}>
@@ -274,10 +298,13 @@ export function TransactionsView({ state }: { state: FinanceState }) {
                 {rows.map((t) => (
                   <tr
                     key={t.id}
+                    id={`txn-${t.id}`}
                     className="border-t"
                     style={{ borderColor: "var(--border-subtle)" }}
                   >
                     <td
+                      data-row-name
+                      tabIndex={-1}
                       className="px-2 py-2 first:pl-0 last:pr-0 tabular-nums whitespace-nowrap"
                       style={muted}
                     >

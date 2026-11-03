@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ExpectedIncome } from "@/types/finance";
 import { financeApi } from "@/services/api/finance";
 import { today } from "@/utils/finance/ledger";
@@ -14,10 +14,13 @@ import {
   TextField,
   DateField,
   cedis,
+  focusField,
   inputToMinor,
   minorToInput,
   muted,
   strong,
+  useFocusAfterRender,
+  useFocusFirstField,
 } from "./ui";
 
 function fundChoices(state: FinanceState) {
@@ -45,13 +48,18 @@ function ExpectedForm({
   const [note, setNote] = useState(item?.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const formRef = useFocusFirstField<HTMLFormElement>();
+  const refuseAmount = (message: string) => {
+    setError(message);
+    focusField(formRef.current, "amount");
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
     const amountMinor = inputToMinor(amount);
-    if (amountMinor === null) return setError("Amounts must be numbers like 1200 or 1,200.50.");
-    if (!amountMinor) return setError("Enter an amount more than zero.");
+    if (amountMinor === null) return refuseAmount("Amounts must be numbers like 1200 or 1,200.50.");
+    if (!amountMinor) return refuseAmount("Enter an amount more than zero.");
     setSaving(true);
     setError(null);
     try {
@@ -68,6 +76,7 @@ function ExpectedForm({
           version,
         ),
       );
+      state.announce(`Saved ${source.trim()}`);
       onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save it.");
@@ -77,6 +86,7 @@ function ExpectedForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={submit}
       className="space-y-3"
       aria-label={item ? `Edit ${item.source}` : "Add expected income"}
@@ -90,7 +100,13 @@ function ExpectedForm({
           maxLength={80}
           placeholder="Client balance, bonus, family"
         />
-        <MoneyField label="Amount (GH₵)" value={amount} onChange={setAmount} required />
+        <MoneyField
+          label="Amount (GH₵)"
+          name="amount"
+          value={amount}
+          onChange={setAmount}
+          required
+        />
         <DateField label="Expected on" value={expectedDate} onChange={setExpectedDate} />
         <Select
           label="When it arrives"
@@ -114,10 +130,13 @@ function ExpectedForm({
 function ReceiveForm({
   item,
   state,
+  row,
   onDone,
 }: {
   item: ExpectedIncome;
   state: FinanceState;
+  /** The item's row, which moves to the other list once received. */
+  row: React.RefObject<HTMLLIElement | null>;
   onDone: () => void;
 }) {
   const [amount, setAmount] = useState(minorToInput(item.amountMinor));
@@ -128,22 +147,30 @@ function ReceiveForm({
   const [category, setCategory] = useState("Freelance");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const formRef = useFocusFirstField<HTMLFormElement>();
+  const refuseAmount = (message: string) => {
+    setError(message);
+    focusField(formRef.current, "amount");
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
     const amountMinor = inputToMinor(amount);
-    if (amountMinor === null) return setError("Amounts must be numbers like 1200 or 1,200.50.");
-    if (!amountMinor) return setError("Enter the amount that arrived.");
+    if (amountMinor === null) return refuseAmount("Amounts must be numbers like 1200 or 1,200.50.");
+    if (!amountMinor) return refuseAmount("Enter the amount that arrived.");
     setSaving(true);
     setError(null);
     try {
-      await state.mutate((version) =>
-        financeApi.receiveExpected(
-          { id: item.id, amountMinor, date, depositFundId, category },
-          version,
-        ),
+      await state.mutate(
+        (version) =>
+          financeApi.receiveExpected(
+            { id: item.id, amountMinor, date, depositFundId, category },
+            version,
+          ),
+        { row: row.current },
       );
+      state.announce(`Recorded ${item.source} as received`);
       onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't record it.");
@@ -153,6 +180,7 @@ function ReceiveForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={submit}
       className="mt-3 space-y-3"
       aria-label={`Mark ${item.source} as received`}
@@ -160,6 +188,7 @@ function ReceiveForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <MoneyField
           label="Amount that arrived (GH₵)"
+          name="amount"
           value={amount}
           onChange={setAmount}
           required
@@ -195,11 +224,29 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
   const confirm = useConfirm();
   // A change is running; its buttons stay disabled so it can't be sent twice.
   const [busy, setBusy] = useState(false);
+  const rowRef = useRef<HTMLLIElement>(null);
+  const openers = useRef<Partial<Record<"receive" | "edit", HTMLButtonElement | null>>>({});
+  const opener = (key: "receive" | "edit") => (el: HTMLButtonElement | null) => {
+    openers.current[key] = el;
+  };
+  const focusLater = useFocusAfterRender();
+  /** Closes a form and puts focus back on the button that opened it. */
+  const closeForm = (key: "receive" | "edit") => {
+    setMode("view");
+    focusLater(() => openers.current[key]);
+  };
 
   async function setStatus(status: "expected" | "cancelled") {
     setBusy(true);
     try {
-      await state.mutate((version) => financeApi.setExpectedStatus(item.id, status, version));
+      await state.mutate((version) => financeApi.setExpectedStatus(item.id, status, version), {
+        row: rowRef.current,
+      });
+      state.announce(
+        status === "cancelled"
+          ? `Marked ${item.source} as not coming`
+          : `${item.source} is expected again`,
+      );
     } catch (err) {
       state.report(err, "Couldn't update it.");
     } finally {
@@ -218,7 +265,10 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
     if (!ok) return;
     setBusy(true);
     try {
-      await state.mutate((version) => financeApi.unreceiveExpected(item.id, version));
+      await state.mutate((version) => financeApi.unreceiveExpected(item.id, version), {
+        row: rowRef.current,
+      });
+      state.announce(`Undid receiving ${item.source}`);
     } catch (err) {
       state.report(err, "Couldn't undo it.");
     } finally {
@@ -228,15 +278,21 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
 
   if (mode === "edit")
     return (
-      <li className="py-3">
-        <ExpectedForm item={item} state={state} onDone={() => setMode("view")} />
+      <li ref={rowRef} className="py-3">
+        <ExpectedForm item={item} state={state} onDone={() => closeForm("edit")} />
       </li>
     );
 
   return (
-    <li className="py-3 first:pt-0 last:pb-0" aria-labelledby={`expected-${item.id}`}>
+    <li ref={rowRef} className="py-3 first:pt-0 last:pb-0" aria-labelledby={`expected-${item.id}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span id={`expected-${item.id}`} className="font-semibold" style={strong}>
+        <span
+          id={`expected-${item.id}`}
+          data-row-name
+          tabIndex={-1}
+          className="font-semibold"
+          style={strong}
+        >
           {item.source}
         </span>
         <span className="tabular-nums font-semibold" style={strong}>
@@ -260,11 +316,12 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
         </p>
       )}
       {mode === "receive" && (
-        <ReceiveForm item={item} state={state} onDone={() => setMode("view")} />
+        <ReceiveForm item={item} state={state} row={rowRef} onDone={() => closeForm("receive")} />
       )}
       {mode === "view" && item.status === "expected" && (
         <div className="mt-2 flex flex-wrap gap-2">
           <Button
+            ref={opener("receive")}
             variant="primary"
             label={`It arrived: ${item.source}`}
             onClick={() => setMode("receive")}
@@ -272,7 +329,12 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
           >
             It arrived
           </Button>
-          <Button label={`Edit ${item.source}`} onClick={() => setMode("edit")} disabled={busy}>
+          <Button
+            ref={opener("edit")}
+            label={`Edit ${item.source}`}
+            onClick={() => setMode("edit")}
+            disabled={busy}
+          >
             Edit
           </Button>
           <Button
@@ -312,6 +374,12 @@ function ExpectedRow({ item, state }: { item: ExpectedIncome; state: FinanceStat
 
 export function ExpectedView({ state }: { state: FinanceState }) {
   const [adding, setAdding] = useState(false);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const focusLater = useFocusAfterRender();
+  const closeAdd = () => {
+    setAdding(false);
+    focusLater(() => addRef.current);
+  };
   const all = [...state.data.expected].sort((a, b) =>
     (a.expectedDate || "9").localeCompare(b.expectedDate || "9"),
   );
@@ -328,10 +396,10 @@ export function ExpectedView({ state }: { state: FinanceState }) {
       </p>
       {adding ? (
         <Card title="Add expected income">
-          <ExpectedForm state={state} onDone={() => setAdding(false)} />
+          <ExpectedForm state={state} onDone={closeAdd} />
         </Card>
       ) : (
-        <Button variant="primary" onClick={() => setAdding(true)}>
+        <Button ref={addRef} variant="primary" onClick={() => setAdding(true)}>
           Add expected income
         </Button>
       )}
@@ -348,7 +416,12 @@ export function ExpectedView({ state }: { state: FinanceState }) {
             Nothing expected.
           </p>
         ) : (
-          <ul className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
+          <ul
+            data-row-list
+            tabIndex={-1}
+            className="divide-y"
+            style={{ borderColor: "var(--border-subtle)" }}
+          >
             {pending.map((e) => (
               <ExpectedRow key={e.id} item={e} state={state} />
             ))}
@@ -357,7 +430,12 @@ export function ExpectedView({ state }: { state: FinanceState }) {
       </Card>
       {done.length > 0 && (
         <Card title="Arrived or not coming">
-          <ul className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
+          <ul
+            data-row-list
+            tabIndex={-1}
+            className="divide-y"
+            style={{ borderColor: "var(--border-subtle)" }}
+          >
             {done.map((e) => (
               <ExpectedRow key={e.id} item={e} state={state} />
             ))}

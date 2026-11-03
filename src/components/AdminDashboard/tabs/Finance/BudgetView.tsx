@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Budget, BudgetLine } from "@/types/finance";
 import { financeApi } from "@/services/api/finance";
 import { activeBudget, addMonths, currentMonth, lineActual } from "@/utils/finance/ledger";
@@ -13,11 +13,14 @@ import {
   TextField,
   MonthField,
   cedis,
+  focusField,
   inputToMinor,
   minorToInput,
   monthLabel,
   muted,
   strong,
+  useFocusAfterRender,
+  useFocusFirstField,
 } from "./ui";
 
 interface LineDraft {
@@ -59,15 +62,46 @@ function BudgetEditor({
   const allocated = parsed.reduce<number>((acc, v) => acc + (v ?? 0), 0);
   const left = (netMinor ?? 0) - allocated;
 
+  const formRef = useFocusFirstField<HTMLFormElement>();
+  const focusLater = useFocusAfterRender();
+  const addLineRef = useRef<HTMLButtonElement>(null);
+  const field = (name: string) => () => {
+    const el = formRef.current?.elements.namedItem(name);
+    return el instanceof HTMLElement ? el : null;
+  };
+  /** Shows a refusal and moves focus to the field it is about. */
+  const refuse = (message: string, name: string) => {
+    setError(message);
+    focusField(formRef.current, name);
+  };
+
   const setLine = (id: string, patch: Partial<LineDraft>) =>
     setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+
+  function addLine() {
+    const id = newLineId();
+    setLines((ls) => [...ls, { id, label: "", amount: "", fundId: "" }]);
+    focusLater(field(`line-${id}-label`));
+  }
+
+  /** Removes a line; focus goes to the next line, else the one before, else Add line. */
+  function removeLine(index: number) {
+    const next = lines[index + 1] ?? lines[index - 1];
+    setLines((ls) => ls.filter((_, i) => i !== index));
+    focusLater(next ? field(`line-${next.id}-label`) : () => addLineRef.current);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
-    if (netMinor === null || parsed.some((v) => v === null))
-      return setError("Amounts must be numbers like 800 or 1,200.50.");
-    if (lines.some((l) => !l.label.trim())) return setError("Every line needs a name.");
+    const badAmount = parsed.findIndex((v) => v === null);
+    if (netMinor === null || badAmount !== -1)
+      return refuse(
+        "Amounts must be numbers like 800 or 1,200.50.",
+        netMinor === null ? "net" : `line-${lines[badAmount].id}-amount`,
+      );
+    const unnamed = lines.find((l) => !l.label.trim());
+    if (unnamed) return refuse("Every line needs a name.", `line-${unnamed.id}-label`);
     const out: BudgetLine[] = lines.map((l, i) => ({
       id: l.id,
       label: l.label.trim(),
@@ -80,6 +114,7 @@ function BudgetEditor({
       await state.mutate((version) =>
         financeApi.saveBudget({ month, netIncomeMinor: netMinor, lines: out }, version),
       );
+      state.announce(`Saved the plan from ${monthLabel(month)}`);
       onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save the plan.");
@@ -88,7 +123,7 @@ function BudgetEditor({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4" aria-label="Edit monthly plan">
+    <form ref={formRef} onSubmit={submit} className="space-y-4" aria-label="Edit monthly plan">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <MonthField
           label="Plan starts in"
@@ -96,7 +131,7 @@ function BudgetEditor({
           onChange={setMonth}
           hint="It applies from this month until a later plan starts. Saving the same month replaces it."
         />
-        <MoneyField label="Take-home pay (GH₵)" value={net} onChange={setNet} required />
+        <MoneyField label="Take-home pay (GH₵)" name="net" value={net} onChange={setNet} required />
       </div>
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold" style={muted}>
@@ -109,12 +144,14 @@ function BudgetEditor({
           >
             <TextField
               label={`Line ${i + 1}`}
+              name={`line-${l.id}-label`}
               value={l.label}
               onChange={(v) => setLine(l.id, { label: v })}
               maxLength={60}
             />
             <MoneyField
               label="Amount"
+              name={`line-${l.id}-amount`}
               value={l.amount}
               onChange={(v) => setLine(l.id, { amount: v })}
             />
@@ -127,17 +164,13 @@ function BudgetEditor({
             <Button
               variant="danger"
               label={`Remove ${l.label || `line ${i + 1}`}`}
-              onClick={() => setLines((ls) => ls.filter((x) => x.id !== l.id))}
+              onClick={() => removeLine(i)}
             >
               ×
             </Button>
           </div>
         ))}
-        <Button
-          onClick={() =>
-            setLines((ls) => [...ls, { id: newLineId(), label: "", amount: "", fundId: "" }])
-          }
-        >
+        <Button ref={addLineRef} onClick={addLine}>
           Add line
         </Button>
       </fieldset>
@@ -167,6 +200,13 @@ export function BudgetView({ state }: { state: FinanceState }) {
   const [month, setMonth] = useState(currentMonth());
   const [editing, setEditing] = useState<"no" | "this" | "new">("no");
   const confirm = useConfirm();
+  const openers = useRef<Partial<Record<"this" | "new", HTMLButtonElement | null>>>({});
+  const focusLater = useFocusAfterRender();
+  /** Closes the editor and puts focus back on the button that opened it. */
+  const closeEditor = (opened: "this" | "new") => {
+    setEditing("no");
+    focusLater(() => openers.current[opened] ?? openers.current.this);
+  };
   const budget = activeBudget(state.data.budgets, month);
   const fundName = (id: string) => state.data.funds.find((f) => f.id === id)?.name ?? "fund";
 
@@ -176,7 +216,7 @@ export function BudgetView({ state }: { state: FinanceState }) {
         <BudgetEditor
           base={editing === "new" && budget ? { ...budget, month: addMonths(month, 1) } : budget}
           state={state}
-          onDone={() => setEditing("no")}
+          onDone={() => closeEditor(editing)}
         />
       </Card>
     );
@@ -197,7 +237,10 @@ export function BudgetView({ state }: { state: FinanceState }) {
     });
     if (!ok) return;
     try {
-      await state.mutate((version) => financeApi.deleteBudget(plan.id, version));
+      await state.mutate((version) => financeApi.deleteBudget(plan.id, version), {
+        row: document.getElementById(`plan-${plan.id}`),
+      });
+      state.announce(`Deleted the plan from ${monthLabel(plan.month)}`);
     } catch (err) {
       state.report(err, "Couldn't delete the plan.");
     }
@@ -209,11 +252,25 @@ export function BudgetView({ state }: { state: FinanceState }) {
         <div className="w-60">
           <MonthField label="Month" value={month} onChange={(v) => v && setMonth(v)} />
         </div>
-        <Button variant="primary" onClick={() => setEditing(budget ? "this" : "new")}>
+        {/* "this" is the main button whichever it says; "new" is the one after it. */}
+        <Button
+          ref={(el) => {
+            openers.current.this = el;
+          }}
+          variant="primary"
+          onClick={() => setEditing(budget ? "this" : "new")}
+        >
           {budget ? "Edit this plan" : "Create a plan"}
         </Button>
         {budget && (
-          <Button onClick={() => setEditing("new")}>Start a new plan from the month after</Button>
+          <Button
+            ref={(el) => {
+              openers.current.new = el;
+            }}
+            onClick={() => setEditing("new")}
+          >
+            Start a new plan from the month after
+          </Button>
         )}
       </div>
 
@@ -315,10 +372,16 @@ export function BudgetView({ state }: { state: FinanceState }) {
 
       {plans.length > 0 && (
         <Card title="All plans">
-          <ul className="space-y-1 text-sm">
+          <ul data-row-list tabIndex={-1} className="space-y-1 text-sm">
             {plans.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span style={strong}>From {monthLabel(p.month)}</span>
+              <li
+                key={p.id}
+                id={`plan-${p.id}`}
+                className="flex flex-wrap items-center justify-between gap-2"
+              >
+                <span data-row-name tabIndex={-1} style={strong}>
+                  From {monthLabel(p.month)}
+                </span>
                 <span className="flex items-center gap-2">
                   <span className="tabular-nums" style={muted}>
                     {cedis(p.netIncomeMinor)}

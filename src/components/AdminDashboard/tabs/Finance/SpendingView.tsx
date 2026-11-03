@@ -1,7 +1,7 @@
 // Where the money went in a month: living costs by category against the plan,
 // money paid out of funds kept apart, the last six months, and the biggest
 // single costs.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Bar,
   CartesianGrid,
@@ -24,7 +24,16 @@ import {
 } from "@/utils/finance/ledger";
 import type { FinanceState } from "./useFinance";
 import { TxnForm } from "./TransactionsView";
-import { Button, Card, MonthField, cedis, monthLabel, muted, strong } from "./ui";
+import {
+  Button,
+  Card,
+  MonthField,
+  cedis,
+  monthLabel,
+  muted,
+  strong,
+  useFocusAfterRender,
+} from "./ui";
 
 const OVER: React.CSSProperties = { color: "var(--status-failed-text)" };
 
@@ -116,6 +125,12 @@ export function SpendingView({ state }: { state: FinanceState }) {
   const [month, setMonth] = useState(currentMonth());
   const [adding, setAdding] = useState(false);
   const { txns, funds, budgets } = state.data;
+  const addRef = useRef<HTMLButtonElement>(null);
+  const focusLater = useFocusAfterRender();
+  const closeAdd = () => {
+    setAdding(false);
+    focusLater(() => addRef.current);
+  };
 
   const view = useMemo(() => {
     const budget = activeBudget(budgets, month);
@@ -153,14 +168,14 @@ export function SpendingView({ state }: { state: FinanceState }) {
           <MonthField label="Month" value={month} onChange={(v) => v && setMonth(v)} />
         </div>
         {!adding && (
-          <Button variant="primary" onClick={() => setAdding(true)}>
+          <Button ref={addRef} variant="primary" onClick={() => setAdding(true)}>
             Record spending
           </Button>
         )}
       </div>
       {adding && (
         <Card title="Record spending">
-          <TxnForm state={state} onDone={() => setAdding(false)} />
+          <TxnForm state={state} onDone={closeAdd} />
         </Card>
       )}
 

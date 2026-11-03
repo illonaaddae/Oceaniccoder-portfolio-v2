@@ -85,8 +85,8 @@ describe("useFinance", () => {
     const older = deferred<FinanceData>();
     const newer = deferred<FinanceData>();
     list.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
-    let first!: Promise<void>;
-    let second!: Promise<void>;
+    let first!: Promise<boolean>;
+    let second!: Promise<boolean>;
     act(() => {
       first = result.current.reload();
       second = result.current.reload();

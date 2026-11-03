@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -29,10 +29,13 @@ import {
   TextField,
   DateField,
   cedis,
+  focusField,
   inputToMinor,
   monthLabel,
   muted,
   strong,
+  useFocusAfterRender,
+  useFocusFirstField,
 } from "./ui";
 
 type MoveType = "deposit" | "withdrawal" | "fund_spend" | "opening";
@@ -89,13 +92,18 @@ function MoveMoneyForm({
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const formRef = useFocusFirstField<HTMLFormElement>();
+  const refuseAmount = (message: string) => {
+    setError(message);
+    focusField(formRef.current, "amount");
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
     const amountMinor = inputToMinor(amount);
-    if (amountMinor === null) return setError("Amounts must be numbers like 300 or 1,250.50.");
-    if (!amountMinor) return setError("Enter an amount more than zero.");
+    if (amountMinor === null) return refuseAmount("Amounts must be numbers like 300 or 1,250.50.");
+    if (!amountMinor) return refuseAmount("Enter an amount more than zero.");
     setSaving(true);
     setError(null);
     try {
@@ -113,6 +121,7 @@ function MoveMoneyForm({
           version,
         ),
       );
+      state.announce(`Recorded ${cedis(amountMinor)} for ${fund.name}`);
       onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't record that.");
@@ -122,6 +131,7 @@ function MoveMoneyForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={submit}
       className="mt-4 space-y-3 rounded-lg border p-4"
       style={{ borderColor: "var(--analytics-line)" }}
@@ -136,7 +146,13 @@ function MoveMoneyForm({
         </p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <MoneyField label="Amount (GH₵)" value={amount} onChange={setAmount} required />
+        <MoneyField
+          label="Amount (GH₵)"
+          name="amount"
+          value={amount}
+          onChange={setAmount}
+          required
+        />
         <DateField label="Date" value={date} onChange={setDate} required />
         <TextField label="Note" value={note} onChange={setNote} maxLength={200} />
       </div>
@@ -181,6 +197,19 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
     setMoveType(type);
     setMode("move");
   };
+  const rowRef = useRef<HTMLLIElement>(null);
+  // The buttons that open this row's forms, which hide them while open.
+  const openers = useRef<Partial<Record<MoveType | "edit", HTMLButtonElement | null>>>({});
+  const opener = (key: MoveType | "edit") => (el: HTMLButtonElement | null) => {
+    openers.current[key] = el;
+  };
+  const focusLater = useFocusAfterRender();
+  /** Closes a form and puts focus back on the button that opened it. */
+  const closeForm = (key: MoveType | "edit") => {
+    setMode("view");
+    // Take out and Pay go once the fund is empty; Add money is always there.
+    focusLater(() => openers.current[key] ?? openers.current.deposit ?? openers.current.edit);
+  };
   const [error, setError] = useState<string | null>(null);
   // Archive or delete is running; both stay disabled so neither is sent twice.
   const [busy, setBusy] = useState(false);
@@ -201,7 +230,10 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
   async function setArchived(archived: boolean) {
     setBusy(true);
     try {
-      await state.mutate((version) => financeApi.saveFund({ ...fund, archived }, version));
+      await state.mutate((version) => financeApi.saveFund({ ...fund, archived }, version), {
+        row: rowRef.current,
+      });
+      state.announce(`${archived ? "Archived" : "Restored"} ${fund.name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update the fund.");
     } finally {
@@ -219,7 +251,10 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
     if (!ok) return;
     setBusy(true);
     try {
-      await state.mutate((version) => financeApi.deleteFund(fund.id, version));
+      await state.mutate((version) => financeApi.deleteFund(fund.id, version), {
+        row: rowRef.current,
+      });
+      state.announce(`Deleted ${fund.name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't delete the fund.");
     } finally {
@@ -229,25 +264,35 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
 
   if (mode === "edit")
     return (
-      <li className="py-5 first:pt-0 last:pb-0">
+      <li ref={rowRef} className="py-5 first:pt-0 last:pb-0">
         <h3 className="mb-3 text-base font-bold" style={strong}>
           Edit {fund.name}
         </h3>
         <FundForm
           fund={fund}
-          onCancel={() => setMode("view")}
+          onCancel={() => closeForm("edit")}
           onSave={async (input) => {
-            await state.mutate((version) => financeApi.saveFund(input, version));
-            setMode("view");
+            // A new kind moves the fund to another group's list.
+            await state.mutate((version) => financeApi.saveFund(input, version), {
+              row: rowRef.current,
+            });
+            state.announce(`Saved ${input.name}`);
+            closeForm("edit");
           }}
         />
       </li>
     );
 
   return (
-    <li className="py-5 first:pt-0 last:pb-0" aria-labelledby={`fund-${fund.id}`}>
+    <li ref={rowRef} className="py-5 first:pt-0 last:pb-0" aria-labelledby={`fund-${fund.id}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <h3 id={`fund-${fund.id}`} className="text-base font-bold" style={strong}>
+        <h3
+          id={`fund-${fund.id}`}
+          data-row-name
+          tabIndex={-1}
+          className="text-base font-bold"
+          style={strong}
+        >
           {fund.name}
         </h3>
         {notStarted && (
@@ -329,7 +374,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
           fund={fund}
           state={state}
           type={moveType}
-          onDone={() => setMode("view")}
+          onDone={() => closeForm(moveType)}
         />
       )}
       {mode === "history" && (
@@ -364,6 +409,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
           {!fund.archived && (
             <>
               <Button
+                ref={opener("deposit")}
                 variant="primary"
                 label={MOVES.deposit.name(fund.name)}
                 onClick={() => startMove("deposit")}
@@ -373,6 +419,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
               {balance > 0 && (
                 <>
                   <Button
+                    ref={opener("withdrawal")}
                     label={MOVES.withdrawal.name(fund.name)}
                     onClick={() => startMove("withdrawal")}
                   >
@@ -381,6 +428,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
                   {/* Wealth is never spent from directly; the server refuses it too. */}
                   {fund.group !== "wealth" && (
                     <Button
+                      ref={opener("fund_spend")}
                       label={MOVES.fund_spend.name(fund.name)}
                       onClick={() => startMove("fund_spend")}
                     >
@@ -391,6 +439,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
               )}
               {history.length === 0 && (
                 <Button
+                  ref={opener("opening")}
                   variant="quiet"
                   label={MOVES.opening.name(fund.name)}
                   onClick={() => startMove("opening")}
@@ -410,7 +459,12 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
             >
               {mode === "history" ? "Hide history" : "History"}
             </Button>
-            <Button variant="quiet" label={`Edit ${fund.name}`} onClick={() => setMode("edit")}>
+            <Button
+              ref={opener("edit")}
+              variant="quiet"
+              label={`Edit ${fund.name}`}
+              onClick={() => setMode("edit")}
+            >
               Edit
             </Button>
             <Button
@@ -505,6 +559,12 @@ function WealthProjection({ state }: { state: FinanceState }) {
 export function FundsView({ state }: { state: FinanceState }) {
   const [adding, setAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const newFundRef = useRef<HTMLButtonElement>(null);
+  const focusLater = useFocusAfterRender();
+  const closeNewFund = () => {
+    setAdding(false);
+    focusLater(() => newFundRef.current);
+  };
   const archived = state.data.funds.filter((f) => f.archived);
   const shown = showArchived ? [...state.activeFunds, ...archived] : state.activeFunds;
 
@@ -512,7 +572,7 @@ export function FundsView({ state }: { state: FinanceState }) {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {!adding && (
-          <Button variant="primary" onClick={() => setAdding(true)}>
+          <Button ref={newFundRef} variant="primary" onClick={() => setAdding(true)}>
             New fund
           </Button>
         )}
@@ -525,10 +585,11 @@ export function FundsView({ state }: { state: FinanceState }) {
       {adding && (
         <Card title="New fund">
           <FundForm
-            onCancel={() => setAdding(false)}
+            onCancel={closeNewFund}
             onSave={async (input) => {
               await state.mutate((version) => financeApi.saveFund(input, version));
-              setAdding(false);
+              state.announce(`Saved ${input.name}`);
+              closeNewFund();
             }}
           />
         </Card>
@@ -557,7 +618,7 @@ export function FundsView({ state }: { state: FinanceState }) {
               </span>
             }
           >
-            <ul className="divide-y divide-[var(--analytics-line)]">
+            <ul data-row-list tabIndex={-1} className="divide-y divide-[var(--analytics-line)]">
               {funds.map((f) => (
                 <FundRow key={f.id} fund={f} state={state} />
               ))}

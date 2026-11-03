@@ -432,6 +432,49 @@ describe("FinanceTab", () => {
     expect(saveFund).toHaveBeenCalledTimes(1);
   });
 
+  it("moves focus into a form as it opens and back to its button when it closes", async () => {
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
+    await userEvent.click(screen.getByRole("button", { name: "Take out of New laptop" }));
+    const form = screen.getByRole("form", { name: "Take money out: New laptop" });
+    const amount = within(form).getByLabelText(/Amount/);
+    expect(amount).toHaveFocus();
+
+    // A refused amount puts focus back on the amount.
+    await userEvent.type(amount, "lots");
+    await userEvent.click(within(form).getByRole("button", { name: "Take out" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Amounts must be numbers");
+    expect(amount).toHaveFocus();
+
+    await userEvent.click(within(form).getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Take out of New laptop" })).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: "New fund" }));
+    expect(screen.getByLabelText(/^Name/)).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Add item" }));
+    expect(screen.getByLabelText("Item 1")).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Remove item 1" }));
+    expect(screen.getByRole("button", { name: "Add item" })).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "New fund" })).toHaveFocus();
+  });
+
+  it("moves focus to the next row and says what happened when a row leaves its list", async () => {
+    const second = { ...data.expected[0], id: "e2", source: "Bonus" };
+    list.mockReset().mockResolvedValue({ ...data, expected: [...data.expected, second] });
+    setExpectedStatus.mockReset().mockResolvedValue({});
+    renderTab();
+    await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
+    list.mockResolvedValue({
+      ...data,
+      expected: [{ ...data.expected[0], status: "cancelled" }, second],
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Not coming: Client balance" }));
+    const waiting = screen.getByRole("region", { name: "Waiting for" });
+    await waitFor(() => expect(within(waiting).getByText("Bonus")).toHaveFocus());
+    expect(screen.getByRole("status")).toHaveTextContent("Marked Client balance as not coming");
+  });
+
   it("keeps focus on Refresh while it reloads and ignores repeat presses", async () => {
     renderTab();
     await screen.findByRole("region", { name: "Wealth being built" });
@@ -445,6 +488,7 @@ describe("FinanceTab", () => {
     finish();
     await waitFor(() => expect(refresh).toHaveAttribute("aria-disabled", "false"));
     expect(list).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("status")).toHaveTextContent(/^Updated \d\d:\d\d$/);
   });
 
   it("names a required picker by its label, without the visual asterisk", () => {

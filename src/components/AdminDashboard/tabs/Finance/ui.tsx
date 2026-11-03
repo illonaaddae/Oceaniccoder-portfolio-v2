@@ -4,7 +4,7 @@
 // input styling of the Analytics expense log, so Finance looks like the rest
 // of the admin.
 import type React from "react";
-import { createContext, useContext, useId } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useRef } from "react";
 import { formatMinor, toMinor } from "@/utils/quoteMath";
 import { CustomSelect } from "@/components/ui/CustomSelect";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -160,6 +160,7 @@ function Hint({ id, hint }: { id: string; hint?: string }) {
 
 export function TextField({
   label,
+  name,
   value,
   onChange,
   required,
@@ -169,6 +170,8 @@ export function TextField({
   hint,
 }: {
   label: string;
+  /** The field's name in its form, so a refusal about it can focus it (focusField). */
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
@@ -184,6 +187,7 @@ export function TextField({
       <FieldLabel htmlFor={id} label={label} required={required} />
       <input
         id={id}
+        name={name}
         type="text"
         value={value}
         required={required}
@@ -202,6 +206,7 @@ export function TextField({
 /** A GH₵ amount typed as text ("1,250.50"); the parent parses it with inputToMinor. */
 export function MoneyField(props: {
   label: string;
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
@@ -314,6 +319,7 @@ export function Button({
   label,
   expanded,
   controls,
+  ref,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
@@ -331,6 +337,7 @@ export function Button({
   /** For a button that shows and hides a region: whether it is shown, and its id. */
   expanded?: boolean;
   controls?: string;
+  ref?: React.Ref<HTMLButtonElement>;
 }) {
   const theme = useTheme();
   // Offset in the card's colour, so the ring shows apart from a primary
@@ -352,6 +359,7 @@ export function Button({
   };
   return (
     <button
+      ref={ref}
       type={type}
       onClick={(e) => {
         // Also stops a busy submit button sending its form again.
@@ -378,4 +386,38 @@ export function FormError({ message }: { message: string | null }) {
       {message}
     </p>
   );
+}
+
+/** Moves focus to an inline form's first field as it opens. Put the ref on the form. */
+export function useFocusFirstField<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    // Text boxes and the picker buttons; not a month picker's step arrows.
+    ref.current?.querySelector<HTMLElement>("input, textarea, [aria-haspopup]")?.focus();
+  }, []);
+  return ref;
+}
+
+/** Focuses the form field with this name, for a refusal about that field. */
+export function focusField(form: HTMLFormElement | null, name: string) {
+  const field = form?.elements.namedItem(name);
+  if (field instanceof HTMLElement) field.focus();
+}
+
+/**
+ * Focuses what `find` returns after the next render: for focus that has to
+ * land on something the render brings back, such as the button an inline
+ * form hid while it was open.
+ */
+export function useFocusAfterRender() {
+  const pending = useRef<(() => HTMLElement | null | undefined) | null>(null);
+  useEffect(() => {
+    const find = pending.current;
+    if (!find) return;
+    pending.current = null;
+    find()?.focus();
+  });
+  return useCallback((find: () => HTMLElement | null | undefined) => {
+    pending.current = find;
+  }, []);
 }
