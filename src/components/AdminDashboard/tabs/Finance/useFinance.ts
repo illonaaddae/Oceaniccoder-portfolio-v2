@@ -21,6 +21,8 @@ export function useFinance() {
   // never shows for a refused delete.
   const [loadFailed, setLoadFailed] = useState(false);
   const latest = useRef(0);
+  // The load request whose ledger is on screen, set with the ledger itself.
+  const [shown, setShown] = useState(0);
   // What the tab's polite status region says; `n` makes a repeat read out again.
   const [announcement, setAnnouncement] = useState({ text: "", n: 0 });
   const announce = useCallback(
@@ -36,6 +38,7 @@ export function useFinance() {
       const next = await financeApi.list();
       if (request !== latest.current) return false;
       setData(next);
+      setShown(request);
       setLoaded(true);
       setError(null);
       setLoadFailed(false);
@@ -51,14 +54,19 @@ export function useFinance() {
     }
   }, []);
 
-  // A row a change may take off the screen, and where focus goes if it does.
-  const leaving = useRef<{ row: HTMLElement; next: (HTMLElement | null)[] } | null>(null);
-  // Runs after every render of the tab, which is after the reload that
-  // follows a change has reached the page, rows removed included.
+  // A row a change may take off the screen, where focus goes if it does, and
+  // the load request that brings the ledger after the change (`after`).
+  const leaving = useRef<{ row: HTMLElement; next: (HTMLElement | null)[]; after: number } | null>(
+    null,
+  );
+  // Runs after every render of the tab. Once the ledger from after the change
+  // is on the page, rows removed included, the row is settled either way, so
+  // a later removal it had nothing to do with can't move focus.
   useEffect(() => {
     const pending = leaving.current;
-    if (!pending || pending.row.isConnected) return;
+    if (!pending || shown < pending.after) return;
     leaving.current = null;
+    if (pending.row.isConnected) return;
     // Only when focus went with the row, not when it has moved on since.
     if (document.activeElement && document.activeElement !== document.body) return;
     pending.next.find((el) => el?.isConnected)?.focus();
@@ -93,7 +101,7 @@ export function useFinance() {
     ): Promise<T> => {
       const nameIn = (el: Element | null | undefined) =>
         el?.querySelector<HTMLElement>("[data-row-name]") ?? null;
-      leaving.current = row
+      const pending = row
         ? {
             row,
             next: [
@@ -102,8 +110,10 @@ export function useFinance() {
               row.closest<HTMLElement>("[data-row-list]"),
               row.closest<HTMLElement>("[data-finance-view]"),
             ],
+            after: Infinity,
           }
         : null;
+      leaving.current = pending;
       let result: T;
       try {
         result = await change(version);
@@ -111,7 +121,11 @@ export function useFinance() {
         leaving.current = null;
         throw err;
       }
-      await reload();
+      const reloading = reload();
+      if (pending) pending.after = latest.current;
+      // A reload that failed or was overtaken never shows this change's
+      // ledger, so nothing would settle the row.
+      if (!(await reloading) && leaving.current === pending) leaving.current = null;
       return result;
     },
     [reload, version],

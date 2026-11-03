@@ -77,6 +77,27 @@ describe("useFinance", () => {
     expect(change).toHaveBeenLastCalledWith('"v2"');
   });
 
+  it("forgets a row its change kept once the reload is on screen, so a later removal moves no focus", async () => {
+    list.mockResolvedValue(ledger(0));
+    const { result } = renderHook(() => useFinance());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    const rows = document.createElement("ul");
+    rows.innerHTML =
+      '<li id="kept"><h3 data-row-name tabindex="-1">Car</h3></li>' +
+      '<li><h3 data-row-name tabindex="-1" id="next">Rent</h3></li>';
+    document.body.append(rows);
+    const kept = rows.querySelector<HTMLElement>("#kept")!;
+
+    // A change that leaves the row in its list, like an edit that keeps its kind.
+    await act(() => result.current.mutate(async () => ({}), { row: kept }));
+    expect(kept.isConnected).toBe(true);
+    // Later the row goes for another reason, and focus with it.
+    kept.remove();
+    await act(() => result.current.reload());
+    expect(document.activeElement).toBe(document.body);
+    rows.remove();
+  });
+
   it("keeps the newest ledger when an older reload answers last", async () => {
     list.mockResolvedValueOnce(ledger(0));
     const { result } = renderHook(() => useFinance());
