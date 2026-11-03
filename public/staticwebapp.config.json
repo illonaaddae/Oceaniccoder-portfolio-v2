@@ -22,6 +22,12 @@
       "allowedRoles": [
         "admin"
       ]
+    },
+    {
+      "route": "/api/cv*",
+      "allowedRoles": [
+        "admin"
+      ]
     }
   ],
   "navigationFallback": {

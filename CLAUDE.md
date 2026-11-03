@@ -150,7 +150,8 @@ Azure Function runtime vars (set in **Azure Portal → Static Web App → Config
 > recheck it if the container is ever recreated by hand.
 
 > The Cosmos `personal` database (400 RU/s shared) must exist before
-> `/api/finance` is deployed. The code creates only its `finance` container.
+> `/api/finance` or `/api/cv` is deployed. The code creates only their
+> `finance` and `cv` containers, on first use.
 
 **Required for payments to record correctly.** `/api/paystack-webhook` marks the
 invoice paid, writes the `payments` audit row and sends the confirmation emails.
