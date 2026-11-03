@@ -88,6 +88,8 @@ describe("Cosmos finance repo", () => {
   it.each([
     [[{ statusCode: 412 }, { statusCode: 424 }], 409, "Something changed"],
     [[{ statusCode: 409 }, { statusCode: 424 }], 409, "Something changed"],
+    // Cosmos marks every operation but the failing one 424, before and after it.
+    [[{ statusCode: 424 }, { statusCode: 409 }, { statusCode: 424 }], 409, "already recorded"],
     [[{ statusCode: 200 }, { statusCode: 409 }, { statusCode: 424 }], 409, "already recorded"],
     [[{ statusCode: 424 }, { statusCode: 404 }], 404, "no longer exists"],
   ])("maps failed batch %j to %i", async (batchResult, status, message) => {
