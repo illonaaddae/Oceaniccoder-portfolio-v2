@@ -572,6 +572,9 @@ describe("FinanceTab", () => {
     await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
     expect(saveBudget.mock.calls[0][0]).toMatchObject({ month: addMonths(month, 1) });
     expect(saveBudget.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
+    // It saw no plan for that month, and says so, so the server can refuse
+    // the save if another screen has planned that month since.
+    expect(saveBudget.mock.calls[0][0].expectNew).toBe(true);
   });
 
   it("moves focus into a form as it opens and back to its button when it closes", async () => {

@@ -50,10 +50,12 @@ function BudgetEditor({
       amount: minorToInput(l.amountMinor),
     })),
   );
-  // The stored plan this editor opened on, if any: a new plan copied from one
-  // has another month, so it matches none.
-  const [opened] = useState(() =>
-    state.data.budgets.find((b) => b.id === base?.id && b.month === base?.month),
+  // Every stored plan as this editor opened, by month. Saving to any month
+  // (the one it opened on, a new one, or a changed "Plan starts in") then
+  // tells the server what it expects there, so a plan another screen saved
+  // for that month since is never overwritten.
+  const [openedPlans] = useState(
+    () => new Map(state.data.budgets.map((b) => [b.month, b.updatedAt])),
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -116,13 +118,12 @@ function BudgetEditor({
     setSaving(true);
     setError(null);
     try {
-      // Replacing the plan it opened on: the server refuses it if that plan changed since.
-      const expectedUpdatedAt = opened && month === opened.month ? opened.updatedAt : undefined;
+      const openedUpdatedAt = openedPlans.get(month);
+      const expect = openedUpdatedAt
+        ? { expectedUpdatedAt: openedUpdatedAt }
+        : { expectNew: true as const };
       await state.mutate((version) =>
-        financeApi.saveBudget(
-          { month, netIncomeMinor: netMinor, lines: out, expectedUpdatedAt },
-          version,
-        ),
+        financeApi.saveBudget({ month, netIncomeMinor: netMinor, lines: out, ...expect }, version),
       );
       state.announce(`Saved the plan from ${monthLabel(month)}`);
       onDone();

@@ -111,7 +111,11 @@ export type TxnInput = Pick<
   Txn,
   "type" | "date" | "amountMinor" | "fundId" | "toFundId" | "category" | "note"
 >;
-export type BudgetInput = Pick<Budget, "month" | "netIncomeMinor" | "lines"> & OpenedOn;
+export type BudgetInput = Pick<Budget, "month" | "netIncomeMinor" | "lines"> &
+  OpenedOn & {
+    /** The editor saw no plan for this month when it opened. */
+    expectNew?: true;
+  };
 export type ExpectedInput = Pick<
   ExpectedIncome,
   "source" | "amountMinor" | "expectedDate" | "note" | "depositFundId"

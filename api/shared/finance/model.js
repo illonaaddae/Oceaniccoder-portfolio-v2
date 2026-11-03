@@ -87,6 +87,14 @@ function id(value, label) {
   return value;
 }
 
+/** True when an editor saw no record where it is saving; anything but true or absent is refused. */
+function expectsNew(value) {
+  if (value === undefined || value === null) return false;
+  if (value !== true)
+    throw invalid("The time this form opened is not valid. Cancel and open it again.");
+  return true;
+}
+
 /**
  * The `updatedAt` of the record an edit form opened on, or null when the
  * write sent none (every create, and changes made from the current screen).
@@ -293,6 +301,7 @@ module.exports = {
   minor,
   text,
   openedAt,
+  expectsNew,
   parseFund,
   parseTxn,
   parseBudget,

@@ -665,6 +665,23 @@ describe("/api/finance", () => {
     expect(staleIncome.body.error).toContain("changed since you opened it");
   });
 
+  it("refuses a new plan for a month another screen has planned since, and keeps that plan", async () => {
+    const { call } = setup({ ticking: true });
+    const lines = [{ id: "food", label: "Food", amountMinor: 1000 }];
+    const december = { action: "saveBudget", month: "2026-12", netIncomeMinor: 5000, lines };
+    // The editor saw no December plan, so it says so and is created.
+    expect((await call({ ...december, expectNew: true })).status).toBe(200);
+    // A second editor that also saw none must not replace it.
+    const res = await call({ ...december, netIncomeMinor: 9000, expectNew: true });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain("changed since you opened it");
+    const [kept] = (await call({ action: "list" })).body.budgets;
+    expect(kept.netIncomeMinor).toBe(5000);
+    for (const expectNew of [false, "yes", 1]) {
+      expect((await call({ ...december, expectNew })).status).toBe(400);
+    }
+  });
+
   it("moves a fund's updatedAt on archive and restore, so an open edit form is refused", async () => {
     const { call } = setup({ ticking: true });
     const fund = await makeFund(call);

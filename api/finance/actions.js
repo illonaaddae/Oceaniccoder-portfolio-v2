@@ -140,14 +140,18 @@ async function deleteTxn(repo, input) {
 async function saveBudget(repo, input, now) {
   const fields = M.parseBudget(input);
   const opened = M.openedAt(input.expectedUpdatedAt);
+  const expectNew = M.expectsNew(input.expectNew);
   const { docs, version } = await readForWrite(repo, input);
   const { funds, budgets } = byKind(docs);
   const fundIds = new Set(funds.map((f) => f.id));
   if (fields.lines.some((l) => l.fundId && !fundIds.has(l.fundId)))
     throw new HttpError(400, "A budget line points at a fund that doesn't exist.");
   const existing = budgets.find((b) => b.month === fields.month);
-  // An editor opened on a plan that has since been deleted is refused too.
+  // An editor opened on a plan that has since been deleted is refused too, and
+  // so is one that saw no plan for this month when another screen has saved one.
   checkUnchanged(existing, opened);
+  if (expectNew && existing)
+    throw new HttpError(409, "This changed since you opened it. Cancel and open it again.");
   if (existing) {
     const budget = touch(existing, fields, now);
     await repo.write({ replace: [budget] }, version);
