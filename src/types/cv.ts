@@ -146,11 +146,23 @@ export interface CvWarning {
   message: string;
 }
 
+export interface CvSectionItem {
+  id: string;
+  show: boolean;
+  orphan: boolean;
+}
+
 export interface CvData {
   /** Null until the profile is first saved. */
   profile: CvProfile | null;
   entries: CvEntry[];
   sources: CvSources;
+  /**
+   * Each section in CV order, shown or not, then its orphans (entries whose
+   * site item is gone). `id` is an entry id, or for a site item with no entry
+   * yet the id its entry would get. `reorder` takes these ids.
+   */
+  sections: Record<CvSection, CvSectionItem[]>;
   warnings: CvWarning[];
   /**
    * The store version this data was read at, sent back with every write so a

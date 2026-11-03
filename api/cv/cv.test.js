@@ -116,6 +116,12 @@ describe("load", () => {
       profile: null,
       entries: [],
       sources: { education: [], journey: [JOB], projects: [PROJECT], certifications: [] },
+      sections: {
+        education: [],
+        experience: [{ id: "entry.experience.j1", show: true, orphan: false }],
+        projects: [{ id: "entry.projects.p1", show: true, orphan: false }],
+        certifications: [],
+      },
       warnings: [
         expect.objectContaining({ code: "no-profile" }),
         expect.objectContaining({ code: "waiting-for-approval", entryId: "entry.projects.p1" }),
@@ -410,6 +416,7 @@ describe("reorder", () => {
     ]);
     const loaded = await call({ action: "load" });
     expect(loaded.body.entries).toHaveLength(3);
+    expect(loaded.body.sections.experience.map((item) => item.id)).toEqual(ids);
   });
 
   it("keeps an education row hidden on the site hidden when it gets an entry", async () => {
@@ -469,6 +476,9 @@ describe("deleteEntry", () => {
     records.journey = [];
     const loaded = await call({ action: "load" });
     expect(loaded.body.warnings.map((w) => w.code)).toContain("orphan");
+    expect(loaded.body.sections.experience).toEqual([
+      { id: "entry.experience.j1", show: false, orphan: true },
+    ]);
     const res = await call({ action: "deleteEntry", id: "entry.experience.j1" });
     expect(res.status).toBe(200);
     expect(repo.docs.has("entry.experience.j1")).toBe(false);

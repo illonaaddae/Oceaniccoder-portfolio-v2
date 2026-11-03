@@ -66,11 +66,38 @@ function checkRoom(entries, section) {
     );
 }
 
+/**
+ * Each section's items in CV order, shown or not, then its orphans: the list
+ * the CV tab shows and sends back to `reorder`. Sorting stays here, in one
+ * place, so the tab can't drift from the CV.
+ */
+function sectionLists(entries, sources) {
+  return Object.fromEntries(
+    M.SECTIONS.map((section) => {
+      const { items, orphans } = sectionItems(section, entries, sources);
+      return [
+        section,
+        [
+          ...items.map(({ id, show }) => ({ id, show, orphan: false })),
+          ...orphans.map((entry) => ({ id: entry.id, show: entry.show !== false, orphan: true })),
+        ],
+      ];
+    }),
+  );
+}
+
 async function load({ repo, sites }) {
   const [{ docs, version }, sources] = await Promise.all([repo.read(), sites()]);
   const store = split(docs);
   const { warnings } = resolveCv(store, sources);
-  return { profile: store.profile, entries: store.entries, sources, warnings, version };
+  return {
+    profile: store.profile,
+    entries: store.entries,
+    sources,
+    sections: sectionLists(store.entries, sources),
+    warnings,
+    version,
+  };
 }
 
 async function saveProfile({ repo }, input, now) {
