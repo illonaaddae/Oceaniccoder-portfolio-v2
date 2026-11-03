@@ -10,6 +10,12 @@
 // ledger is refused before anything is checked: the client sends whole
 // records, such as a fund with every field, so a stale screen would otherwise
 // put old values back over newer ones.
+//
+// An edit form that replaces a record also sends `expectedUpdatedAt`, the
+// record's `updatedAt` when the form opened. The form keeps its values across
+// a reload, so after Refresh its `version` is current while its values may
+// not be; a record that changed since the form opened is refused. Only that
+// record is compared, so a write elsewhere in the ledger never blocks the save.
 
 const { HttpError } = require("../shared/http");
 const M = require("../shared/finance/model");
@@ -32,6 +38,13 @@ function findOrThrow(docs, kind, id) {
   return doc;
 }
 
+/** Refuses replacing a record that changed since the edit form opened on it. */
+function checkUnchanged(existing, opened) {
+  if (opened !== null && existing?.updatedAt !== opened)
+    throw new HttpError(409, "This changed since you opened it. Cancel and open it again.");
+}
+
+/** Every replace goes through here, so `updatedAt` moves on every change. */
 function touch(doc, fields, now) {
   return { ...doc, ...fields, updatedAt: now.toISOString() };
 }
@@ -53,6 +66,7 @@ async function list(repo) {
 
 async function saveFund(repo, input, now) {
   const fields = M.parseFund(input);
+  const opened = M.openedAt(input.expectedUpdatedAt);
   const { docs, version } = await readForWrite(repo, input);
   if (!input.id) {
     const fund = stamp({ kind: "fund", ...fields }, now);
@@ -60,6 +74,7 @@ async function saveFund(repo, input, now) {
     return { fund };
   }
   const existing = findOrThrow(docs, "fund", M.id(input.id, "Fund"));
+  checkUnchanged(existing, opened);
   const { txns } = byKind(docs);
   const hasHistory = txns.some((t) => t.fundId === existing.id || t.toFundId === existing.id);
   // A fund's group decides which totals its past counts in (saved to wealth,
@@ -124,12 +139,15 @@ async function deleteTxn(repo, input) {
 /** One budget per starting month; saving the same month again replaces it. */
 async function saveBudget(repo, input, now) {
   const fields = M.parseBudget(input);
+  const opened = M.openedAt(input.expectedUpdatedAt);
   const { docs, version } = await readForWrite(repo, input);
   const { funds, budgets } = byKind(docs);
   const fundIds = new Set(funds.map((f) => f.id));
   if (fields.lines.some((l) => l.fundId && !fundIds.has(l.fundId)))
     throw new HttpError(400, "A budget line points at a fund that doesn't exist.");
   const existing = budgets.find((b) => b.month === fields.month);
+  // An editor opened on a plan that has since been deleted is refused too.
+  checkUnchanged(existing, opened);
   if (existing) {
     const budget = touch(existing, fields, now);
     await repo.write({ replace: [budget] }, version);
@@ -151,6 +169,7 @@ async function deleteBudget(repo, input) {
 async function saveExpected(repo, input, now) {
   const fields = M.parseExpected(input);
   const depositFundId = input.depositFundId ? M.id(input.depositFundId, "Fund") : "";
+  const opened = M.openedAt(input.expectedUpdatedAt);
   const { docs, version } = await readForWrite(repo, input);
   if (depositFundId) findOrThrow(docs, "fund", depositFundId);
   if (!input.id) {
@@ -162,6 +181,7 @@ async function saveExpected(repo, input, now) {
     return { expected };
   }
   const existing = findOrThrow(docs, "expected", M.id(input.id, "Expected income"));
+  checkUnchanged(existing, opened);
   if (existing.status !== "expected")
     throw new HttpError(409, "Only income that hasn't arrived yet can be edited.");
   const expected = touch(existing, { ...fields, depositFundId }, now);

@@ -87,6 +87,17 @@ function id(value, label) {
   return value;
 }
 
+/**
+ * The `updatedAt` of the record an edit form opened on, or null when the
+ * write sent none (every create, and changes made from the current screen).
+ */
+function openedAt(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string" || !value || value.length > 40)
+    throw invalid("The time this form opened is not valid. Cancel and open it again.");
+  return value;
+}
+
 function list(value, label, max) {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) throw invalid(`${label} must be a list.`);
@@ -281,6 +292,7 @@ module.exports = {
   date,
   minor,
   text,
+  openedAt,
   parseFund,
   parseTxn,
   parseBudget,
