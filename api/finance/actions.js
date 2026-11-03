@@ -13,7 +13,8 @@
 
 const { HttpError } = require("../shared/http");
 const M = require("../shared/finance/model");
-const { STALE, stamp } = require("../shared/finance/repo");
+const { stamp } = require("../shared/finance/repo");
+const { readForWrite: readVersioned } = require("../shared/personal");
 
 function byKind(docs) {
   const out = { funds: [], txns: [], budgets: [], expected: [] };
@@ -37,13 +38,8 @@ function touch(doc, fields, now) {
 }
 
 /** The ledger for a write, refused when it isn't the one the client loaded. */
-async function readForWrite(repo, input) {
-  const loaded = input.version;
-  if (loaded !== null && typeof loaded !== "string")
-    throw new HttpError(400, "The ledger version is missing. Refresh and try again.");
-  const current = await repo.read();
-  if (current.version !== loaded) throw STALE;
-  return current;
+function readForWrite(repo, input) {
+  return readVersioned(repo, input, "ledger");
 }
 
 async function list(repo) {
