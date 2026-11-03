@@ -50,8 +50,11 @@ function BudgetEditor({
       amount: minorToInput(l.amountMinor),
     })),
   );
-  // The ledger version this editor opened on; see `basedOn` in useFinance.
-  const [basedOn] = useState(() => state.data.version);
+  // The stored plan this editor opened on, if any: a new plan copied from one
+  // has another month, so it matches none.
+  const [opened] = useState(() =>
+    state.data.budgets.find((b) => b.id === base?.id && b.month === base?.month),
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -113,10 +116,13 @@ function BudgetEditor({
     setSaving(true);
     setError(null);
     try {
-      await state.mutate(
-        (version) =>
-          financeApi.saveBudget({ month, netIncomeMinor: netMinor, lines: out }, version),
-        { basedOn },
+      // Replacing the plan it opened on: the server refuses it if that plan changed since.
+      const expectedUpdatedAt = opened && month === opened.month ? opened.updatedAt : undefined;
+      await state.mutate((version) =>
+        financeApi.saveBudget(
+          { month, netIncomeMinor: netMinor, lines: out, expectedUpdatedAt },
+          version,
+        ),
       );
       state.announce(`Saved the plan from ${monthLabel(month)}`);
       onDone();

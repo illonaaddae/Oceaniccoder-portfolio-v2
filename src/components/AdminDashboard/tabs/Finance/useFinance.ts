@@ -80,15 +80,16 @@ export function useFinance() {
    * instead of dropping to the page. Names carry data-row-name and lists
    * data-row-list, both with tabIndex={-1}.
    *
-   * `basedOn` is the version an edit form opened on. A form that keeps its
-   * values across a reload must send it, or a save after Refresh would pass
-   * the new version with the old values and overwrite the newer edit.
+   * An edit form keeps its values across a reload, so it also sends the
+   * record's `updatedAt` from when it opened (`expectedUpdatedAt`); that,
+   * not the version, is what stops a save after Refresh putting old values
+   * back over a newer edit.
    */
   const version = data.version;
   const mutate = useCallback(
     async <T>(
       change: (version: string | null) => Promise<T>,
-      { row, basedOn }: { row?: HTMLElement | null; basedOn?: string | null } = {},
+      { row }: { row?: HTMLElement | null } = {},
     ): Promise<T> => {
       const nameIn = (el: Element | null | undefined) =>
         el?.querySelector<HTMLElement>("[data-row-name]") ?? null;
@@ -105,7 +106,7 @@ export function useFinance() {
         : null;
       let result: T;
       try {
-        result = await change(basedOn === undefined ? version : basedOn);
+        result = await change(version);
       } catch (err) {
         leaving.current = null;
         throw err;

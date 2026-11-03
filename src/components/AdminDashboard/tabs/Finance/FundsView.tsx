@@ -199,8 +199,8 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
     setMode("move");
   };
   const rowRef = useRef<HTMLLIElement>(null);
-  // The ledger version the edit form opened on; see `basedOn` in useFinance.
-  const editBasedOn = useRef<string | null>(null);
+  // The fund's updatedAt when the edit form opened; the server refuses the save if it changed since.
+  const editOpenedAt = useRef<string | undefined>(undefined);
   // The buttons that open this row's forms, which hide them while open.
   const openers = useRef<Partial<Record<MoveType | "edit", HTMLButtonElement | null>>>({});
   const opener = (key: MoveType | "edit") => (el: HTMLButtonElement | null) => {
@@ -277,10 +277,11 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
           onCancel={() => closeForm("edit")}
           onSave={async (input) => {
             // A new kind moves the fund to another group's list.
-            await state.mutate((version) => financeApi.saveFund(input, version), {
-              row: rowRef.current,
-              basedOn: editBasedOn.current,
-            });
+            await state.mutate(
+              (version) =>
+                financeApi.saveFund({ ...input, expectedUpdatedAt: editOpenedAt.current }, version),
+              { row: rowRef.current },
+            );
             state.announce(`Saved ${input.name}`);
             closeForm("edit");
           }}
@@ -469,7 +470,7 @@ function FundRow({ fund, state }: { fund: Fund; state: FinanceState }) {
               variant="quiet"
               label={`Edit ${fund.name}`}
               onClick={() => {
-                editBasedOn.current = state.data.version;
+                editOpenedAt.current = fund.updatedAt;
                 setMode("edit");
               }}
             >
