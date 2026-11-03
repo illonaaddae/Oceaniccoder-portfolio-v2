@@ -333,6 +333,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <div
             ref={panelRef}
             role="dialog"
+            aria-modal="true"
             aria-label={labelId ? undefined : ariaLabel}
             aria-labelledby={labelId}
             onKeyDown={onPanelKeyDown}
