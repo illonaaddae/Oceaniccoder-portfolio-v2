@@ -32,6 +32,7 @@
 // A calendar with real events should come back with some slots false. If every
 // slot is true, the credentials are still not working.
 
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
 
 const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -41,6 +42,19 @@ const PORT = 53682;
 const REDIRECT_URI = `http://localhost:${PORT}`;
 // The booking flow reads freeBusy and creates events with a Meet conference.
 const SCOPE = "https://www.googleapis.com/auth/calendar";
+
+// Per-run secrets: `state` ties the redirect to this run (OAuth login CSRF),
+// and the PKCE verifier means a code minted outside this run cannot be redeemed.
+const state = randomBytes(32).toString("base64url");
+const codeVerifier = randomBytes(32).toString("base64url");
+const codeChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
+
+function stateMatches(received) {
+  if (typeof received !== "string") return false;
+  const a = Buffer.from(received);
+  const b = Buffer.from(state);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 if (!clientId || !clientSecret) {
   console.error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required");
@@ -55,6 +69,9 @@ const authUrl =
     redirect_uri: REDIRECT_URI,
     response_type: "code",
     scope: SCOPE,
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
     // Without both of these Google returns an access token and no refresh token.
     access_type: "offline",
     prompt: "consent",
@@ -67,6 +84,7 @@ async function exchangeCode(code) {
     client_secret: clientSecret,
     redirect_uri: REDIRECT_URI,
     grant_type: "authorization_code",
+    code_verifier: codeVerifier,
   }).toString();
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -89,18 +107,26 @@ const server = createServer(async (req, res) => {
   const code = url.searchParams.get("code");
   const error = url.searchParams.get("error");
 
+  if (!code && !error) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Waiting for the OAuth redirect.");
+    return;
+  }
+
+  // Anything without this run's state is not our redirect: refuse it and keep waiting.
+  if (!stateMatches(url.searchParams.get("state"))) {
+    res.writeHead(400, { "Content-Type": "text/plain" });
+    res.end("State mismatch. Ignoring this request.");
+    console.error("Ignored a redirect with a missing or wrong state; still waiting.");
+    return;
+  }
+
   if (error) {
     res.writeHead(400, { "Content-Type": "text/plain" });
     res.end(`Authorisation failed: ${error}`);
     console.error(`\nAuthorisation failed: ${error}`);
     server.close();
     process.exit(1);
-  }
-
-  if (!code) {
-    res.writeHead(404, { "Content-Type": "text/plain" });
-    res.end("Waiting for the OAuth redirect.");
-    return;
   }
 
   try {
@@ -128,7 +154,8 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT);
+// Loopback only: nothing else on the network can reach the redirect listener.
+server.listen(PORT, "127.0.0.1");
 
 // Never leave the loopback listener up if nobody completes the flow.
 setTimeout(
