@@ -8,10 +8,10 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { getProjects, getFeaturedProjects, getCertifications } from "@/services/api";
-import type { Project, Certification } from "@/types";
+import { getProjects } from "@/services/api";
+import type { Project } from "@/types";
 import { queryKeys } from "@/lib/queryKeys";
-import { getStaticProjects, getStaticCertifications } from "./fallbacks";
+import { getStaticProjects } from "./fallbacks";
 
 export function useProjects() {
   const { data, isPending, isError } = useQuery({
@@ -21,27 +21,4 @@ export function useProjects() {
 
   const projects: Project[] = isError ? getStaticProjects() : (data ?? []);
   return { projects, loading: isPending };
-}
-
-export function useFeaturedProjects() {
-  const { data, isPending, isError } = useQuery({
-    queryKey: queryKeys.featuredProjects,
-    queryFn: getFeaturedProjects,
-  });
-
-  // An empty result falls back too — the section looks broken without cards.
-  const projects: Project[] =
-    isError || !data || data.length === 0 ? getStaticProjects().filter((p) => p.featured) : data;
-
-  return { projects, loading: isPending };
-}
-
-export function useCertifications() {
-  const { data, isPending, isError } = useQuery({
-    queryKey: queryKeys.certifications,
-    queryFn: getCertifications,
-  });
-
-  const certifications: Certification[] = isError ? getStaticCertifications() : (data ?? []);
-  return { certifications, loading: isPending };
 }

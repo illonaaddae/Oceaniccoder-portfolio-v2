@@ -5,4 +5,4 @@
 
 export type { PortfolioData } from "./types";
 export { usePortfolioData } from "./usePortfolioData";
-export { useProjects, useFeaturedProjects, useCertifications } from "./individualHooks";
+export { useProjects } from "./individualHooks";
