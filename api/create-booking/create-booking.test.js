@@ -590,6 +590,25 @@ describe("create-booking abuse protection", () => {
     });
   });
 
+  it("keeps an admin decision made while the invite was going out", async () => {
+    setGoogleEnv();
+    stubMeetBooking();
+    bookings.hooks.beforeReplace = async (id) => {
+      bookings.hooks.beforeReplace = null;
+      const row = bookings.docs.get(id);
+      await bookings.item(id, id).replace({ ...row, status: "confirmed" });
+    };
+
+    const ctx = await post(validBody);
+
+    expect(ctx.res.status).toBe(200);
+    const [row] = [...bookings.docs.values()];
+    expect(row).toMatchObject({
+      status: "confirmed",
+      meetingLink: "https://meet.google.com/abc-defg-hij",
+    });
+  });
+
   it("keeps the message and phone number out of the invite Google sends", async () => {
     setGoogleEnv();
     stubMeetBooking();
@@ -624,15 +643,21 @@ describe("create-booking abuse protection", () => {
     expect(bookings.docs.size).toBe(0);
   });
 
-  it("limits one IP to 5 booking attempts an hour, before the token is spent", async () => {
+  it("limits one IP to 5 verified booking attempts an hour", async () => {
     const headers = { "x-forwarded-for": "203.0.113.9" };
+    // Failed spam checks don't count, so they can't lock out a shared network.
+    for (let i = 0; i < 10; i += 1) {
+      expect((await post({ ...validBody, turnstileToken: "forged" }, headers)).res.status).toBe(
+        403,
+      );
+    }
     const times = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM"];
     const statuses = [];
     for (const preferredTime of times) {
       statuses.push((await post({ ...validBody, preferredTime }, headers)).res.status);
     }
     expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
-    expect(turnstile.verifyTurnstile).toHaveBeenCalledTimes(5);
+    expect(bookings.docs.size).toBe(5);
     // Another IP is unaffected.
     const other = await post(
       { ...validBody, preferredTime: "03:00 PM" },

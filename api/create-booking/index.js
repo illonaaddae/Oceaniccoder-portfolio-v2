@@ -831,13 +831,24 @@ async function saveLinks(context, doc, { meetLink, zoomLink, calendarEventLink }
     ...(calendarEventLink ? { calendarEventLink } : {}),
   };
   if (Object.keys(links).length === 0) return doc;
+  // The admin can accept or decline as soon as the row exists, so merge onto
+  // the latest copy and retry when the etag moved, rather than overwriting
+  // their change with the copy saved before the invite went out.
+  const item = cosmos.getDatabase().container("bookings").item(doc.id, doc.id);
   try {
-    const { resource } = await cosmos
-      .getDatabase()
-      .container("bookings")
-      .item(doc.id, doc.id)
-      .replace({ ...doc, ...links, updatedAt: new Date().toISOString() });
-    return resource;
+    for (let attempt = 1; ; attempt += 1) {
+      const { resource: latest } = await item.read();
+      if (!latest) return doc;
+      try {
+        const { resource } = await item.replace(
+          { ...latest, ...links, updatedAt: new Date().toISOString() },
+          { accessCondition: { type: "IfMatch", condition: latest._etag } },
+        );
+        return resource;
+      } catch (err) {
+        if (err.code !== 412 || attempt >= 3) throw err;
+      }
+    }
   } catch (err) {
     context.log.error(`Saving meeting links on booking ${doc.id} failed:`, errorReason(err));
     return doc;
@@ -849,7 +860,7 @@ const reply = (context, status, body) => {
 };
 
 // The only place a booking is made. Order matters: fields are validated and
-// the per-IP limit checked before the single-use Turnstile token is spent,
+// the Turnstile token verified before the per-IP limit counts the request,
 // and the row is saved (holding the slot) before any calendar, Zoom or email
 // call. Turnstile can be solved by paid captcha farms and every booking sends
 // mail from the owner's accounts, so invites are also capped per instance:
@@ -878,18 +889,20 @@ function createHandler({ now = Date.now } = {}) {
       throw err;
     }
 
-    // Requests without a forwarded IP share one bucket rather than going unlimited.
     const ip = turnstile.clientIp(req);
+    const spam = await turnstile.verifyTurnstile(turnstileToken, ip);
+    if (!spam.ok) {
+      reply(context, spam.status, { error: spam.error });
+      return;
+    }
+
+    // Only verified requests count, so tokenless spam can't use up the quota
+    // of other visitors behind the same network. Requests without a forwarded
+    // IP share one bucket rather than going unlimited.
     if (!allowIp(ip || "unknown", 1, now())) {
       reply(context, 429, {
         error: "Too many bookings from your network. Please try again later.",
       });
-      return;
-    }
-
-    const spam = await turnstile.verifyTurnstile(turnstileToken, ip);
-    if (!spam.ok) {
-      reply(context, spam.status, { error: spam.error });
       return;
     }
 
@@ -931,6 +944,17 @@ function createHandler({ now = Date.now } = {}) {
         context.log.warn(
           `create-booking: invite cap of ${INVITES_PER_DAY} a day reached; saving bookings without invites or emails`,
         );
+        // At most one an hour, so a flood past the cap can't flood the owner.
+        await sendNotificationEmail(context, {
+          ...booking,
+          meetLink: null,
+          zoomLink: null,
+          calendarEventLink: null,
+          alert: {
+            subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} has no invite yet`,
+            notice: `The daily invite limit was reached\nMore than ${INVITES_PER_DAY} bookings came in today, so this one was saved without a calendar invite or confirmation email. Further bookings in the next hour are saved the same way without another alert.\nCheck Bookings in the dashboard and send these visitors their meeting links, or decline the ones that look like spam.`,
+          },
+        }).catch((e) => context.log.error("Notification error:", e.message));
       }
       links = { zoomLink: null, meetLink: null, calendarEventLink: null, _phase: "invite_cap" };
     }
