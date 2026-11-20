@@ -35,6 +35,7 @@ class ChatError extends Error {
     super(data.error || "Network error");
     this.status = status;
     this.code = data.code;
+    this.chatToken = data.chatToken;
   }
 }
 
@@ -119,6 +120,8 @@ export default function Chatbot() {
       setMessages((prev) => [...prev, makeMsg("assistant", data.reply)]);
     } catch (err) {
       if (err instanceof ChatError && err.code === "verify") setChatToken(null);
+      // The daily-limit 429 still carries the token if this request passed Turnstile.
+      if (err instanceof ChatError && err.chatToken) setChatToken(err.chatToken);
       const text = err instanceof ChatError && err.status === 429 ? err.message : CONNECTION_ERROR;
       setMessages((prev) => [...prev, makeMsg("assistant", text)]);
     } finally {
