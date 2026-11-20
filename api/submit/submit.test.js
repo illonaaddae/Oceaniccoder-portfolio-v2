@@ -17,6 +17,7 @@ require.cache[mediaPath] = {
 };
 const { createHandler } = require("./index.js");
 const { messageAlertEmail } = require("./messageAlert.js");
+const { SMS_FIELD_MAX } = require("./inquiryAlert.js");
 
 const MESSAGE = {
   name: "Ama Owusu",
@@ -49,6 +50,7 @@ function setup({
   sendEmail = vi.fn(async () => ({ ok: true, id: "e1" })),
   clock = { ms: Date.parse("2026-10-20T09:00:00Z") },
   storeVisitorImage = vi.fn(),
+  sendSms = vi.fn(async () => ({ ok: true })),
 } = {}) {
   const verifyTurnstile = vi.fn(async () => turnstile);
   const run = createHandler({
@@ -56,6 +58,7 @@ function setup({
     verifyTurnstile,
     storeVisitorImage,
     sendEmail,
+    sendSms,
     now: () => clock.ms,
   });
   const call = async (collection, body, headers = {}) => {
@@ -67,7 +70,7 @@ function setup({
     await run(context, { headers, body });
     return { status: context.res.status, body: JSON.parse(context.res.body), context };
   };
-  return { call, verifyTurnstile, database, sendEmail };
+  return { call, verifyTurnstile, database, sendEmail, sendSms };
 }
 
 describe("POST /api/submit/{collection}", () => {
@@ -367,7 +370,7 @@ describe("admin alert caps", () => {
     expect(database.created).toHaveLength(5);
     expect(sendEmail).toHaveBeenCalledTimes(3);
     expect(fourth.context.log.warn).toHaveBeenCalledWith(
-      "submit/messages: alert email cap of 3 an hour from one IP reached; saving without emailing",
+      "submit/messages: alert cap of 3 an hour from one IP reached; saving without alerting",
     );
     expect(fifth.context.log.warn).not.toHaveBeenCalled();
 
@@ -391,7 +394,151 @@ describe("admin alert caps", () => {
     expect(database.created).toHaveLength(51);
     expect(sendEmail).toHaveBeenCalledTimes(50);
     expect(over.context.log.warn).toHaveBeenCalledWith(
-      "submit/messages: alert email cap of 50 a day reached; saving without emailing",
+      "submit/messages: alert cap of 50 a day reached; saving without alerting",
     );
+  });
+});
+
+describe("admin alerts for a new project inquiry", () => {
+  const INQUIRY = {
+    name: "Ama Owusu",
+    email: "ama@example.com",
+    projectType: "Website",
+    description: "A site for my bakery.",
+  };
+  const from = (ip) => ({ "x-forwarded-for": ip });
+
+  beforeEach(() => {
+    process.env.RESEND_TO_EMAIL = "admin@example.com";
+    process.env.ADMIN_PHONE = "+233200000000";
+  });
+  afterEach(() => {
+    delete process.env.RESEND_TO_EMAIL;
+    delete process.env.ADMIN_PHONE;
+  });
+
+  it("emails and texts the admin once, after the row is saved, from the saved row", async () => {
+    const { call, database, sendEmail, sendSms } = setup();
+
+    const { status } = await call("project_inquiries", {
+      ...INQUIRY,
+      name: "<b>Ama</b>",
+      turnstileToken: "t",
+    });
+
+    expect(status).toBe(201);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendSms).toHaveBeenCalledTimes(1);
+    const saveOrder = database.container.items.create.mock.invocationCallOrder[0];
+    expect(saveOrder).toBeLessThan(sendEmail.mock.invocationCallOrder[0]);
+    expect(saveOrder).toBeLessThan(sendSms.mock.invocationCallOrder[0]);
+    const mail = sendEmail.mock.calls[0][0];
+    expect(mail.to).toBe("admin@example.com");
+    expect(mail.replyTo).toBe("ama@example.com");
+    expect(mail.subject).toBe("New project inquiry from <b>Ama</b>");
+    expect(mail.html).not.toContain("<b>Ama</b>");
+    expect(mail.html).toContain("&lt;b&gt;Ama&lt;/b&gt;");
+    expect(mail.html).toContain('href="https://oceaniccoder.dev/admin/dashboard"');
+    expect(sendSms).toHaveBeenCalledWith(
+      "+233200000000",
+      "New inquiry from <b>Ama</b> (Website). View: oceaniccoder.dev/admin/dashboard",
+    );
+  });
+
+  it("cuts long names and project types short in the SMS and subject", async () => {
+    const { call, sendEmail, sendSms } = setup();
+
+    await call("project_inquiries", {
+      ...INQUIRY,
+      name: "N".repeat(100),
+      projectType: "P".repeat(100),
+      turnstileToken: "t",
+    });
+
+    const sms = sendSms.mock.calls[0][1];
+    expect(sms).toContain(`${"N".repeat(SMS_FIELD_MAX - 3)}...`);
+    expect(sms).toMatch(/^[\x20-\x7e]*$/);
+    expect(sms).not.toContain("N".repeat(SMS_FIELD_MAX));
+    expect(sms).not.toContain("P".repeat(SMS_FIELD_MAX));
+    expect(sms.length).toBeLessThanOrEqual(160);
+    expect(sendEmail.mock.calls[0][0].subject.length).toBeLessThanOrEqual(90);
+  });
+
+  it("sends nothing without a valid Turnstile token", async () => {
+    const { call, sendEmail, sendSms, database } = setup({
+      turnstile: { ok: false, status: 403, error: "The spam check failed. Please try again." },
+    });
+
+    const { status } = await call("project_inquiries", INQUIRY);
+
+    expect(status).toBe(403);
+    expect(database.created).toHaveLength(0);
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendSms).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when the save fails", async () => {
+    const { call, sendEmail, sendSms } = setup({
+      database: fakeDatabase({ create: () => Promise.reject(new Error("Cosmos unavailable")) }),
+    });
+
+    await call("project_inquiries", { ...INQUIRY, turnstileToken: "t" });
+
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendSms).not.toHaveBeenCalled();
+  });
+
+  it("skips the SMS when ADMIN_PHONE is not set", async () => {
+    delete process.env.ADMIN_PHONE;
+    const { call, sendEmail, sendSms } = setup();
+
+    await call("project_inquiries", { ...INQUIRY, turnstileToken: "t" });
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendSms).not.toHaveBeenCalled();
+  });
+
+  it("still answers 201 and logs when the SMS fails", async () => {
+    const sendSms = vi.fn(async () => ({ ok: false, error: "Africa's Talking 500" }));
+    const { call } = setup({ sendSms });
+
+    const { status, body, context } = await call("project_inquiries", {
+      ...INQUIRY,
+      turnstileToken: "t",
+    });
+
+    expect(status).toBe(201);
+    expect(context.log.warn).toHaveBeenCalledWith(
+      `submit/project_inquiries: alert SMS for ${body.$id} failed:`,
+      "Africa's Talking 500",
+    );
+  });
+
+  it("sends nothing on the 4th inquiry from one IP in an hour but still saves it", async () => {
+    const { call, sendEmail, sendSms, database } = setup();
+    const send = () =>
+      call("project_inquiries", { ...INQUIRY, turnstileToken: "t" }, from("203.0.113.7"));
+
+    for (let i = 0; i < 3; i += 1) await send();
+    const fourth = await send();
+
+    expect(fourth.status).toBe(201);
+    expect(database.created).toHaveLength(4);
+    expect(sendEmail).toHaveBeenCalledTimes(3);
+    expect(sendSms).toHaveBeenCalledTimes(3);
+    expect(fourth.context.log.warn).toHaveBeenCalledWith(
+      "submit/project_inquiries: alert cap of 3 an hour from one IP reached; saving without alerting",
+    );
+  });
+
+  it("shares the per-IP cap with contact messages", async () => {
+    const { call, sendEmail, sendSms } = setup();
+    const ip = from("203.0.113.9");
+
+    for (let i = 0; i < 3; i += 1) await call("messages", { ...MESSAGE, turnstileToken: "t" }, ip);
+    await call("project_inquiries", { ...INQUIRY, turnstileToken: "t" }, ip);
+
+    expect(sendEmail).toHaveBeenCalledTimes(3);
+    expect(sendSms).not.toHaveBeenCalled();
   });
 });

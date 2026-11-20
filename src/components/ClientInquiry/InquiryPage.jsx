@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { FaBriefcase, FaCheckCircle, FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { createInquiry } from "../../services/api/inquiries";
-import { apiUrl } from "../../utils/apiUrl";
 import SelectDropdown from "./SelectDropdown";
 import { useToast } from "../AdminDashboard/useToastHook";
 import { ToastContainer } from "../AdminDashboard/Toast";
@@ -373,13 +372,8 @@ export default function InquiryPage() {
         ...(needsDomain && domainExtension && { domainExtension }),
         ...(needsHosting !== null && { needsHosting }),
       };
+      // /api/submit alerts the admin once the inquiry is saved.
       await createInquiry(inquiryData, turnstile.token);
-      // Notify admin via Azure Function (fire-and-forget)
-      fetch(apiUrl("/api/notify-inquiry"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, projectType: resolvedType }),
-      }).catch(() => {});
       // Submitted successfully — drop the draft so a later visit starts clean.
       clearDraft(DRAFT_KEY);
       setStatus("success");
