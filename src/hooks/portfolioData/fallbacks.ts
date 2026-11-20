@@ -10,45 +10,49 @@ import journey_static from "@/utils/data/journey";
 import gallery_static from "@/utils/data/gallery";
 import type { Project, Certification, Education, Journey, GalleryImage } from "@/types";
 
-export function getStaticProjects(): Project[] {
-  return PROJECTS_DATA.map((p, idx) => ({
-    ...p,
-    $id: `static-${idx}`,
-  })) as unknown as Project[];
+// Each fallback is built once, so callers get the same array on every render
+// and effects or memos keyed on it don't re-fire.
+function once<T>(build: () => T): () => T {
+  let value: T | undefined;
+  return () => (value ??= build());
 }
 
-export function getStaticCertifications(): Certification[] {
-  return (
+export const getStaticProjects = once(
+  (): Project[] =>
+    PROJECTS_DATA.map((p, idx) => ({
+      ...p,
+      $id: `static-${idx}`,
+    })) as unknown as Project[],
+);
+
+export const getStaticCertifications = once(
+  (): Certification[] =>
     (certifications_static?.map((c: Record<string, unknown>, idx: number) => ({
       ...c,
       $id: `static-cert-${idx}`,
-    })) as unknown as Certification[]) || []
-  );
-}
+    })) as unknown as Certification[]) || [],
+);
 
-export function getStaticEducation(): Education[] {
-  return (
+export const getStaticEducation = once(
+  (): Education[] =>
     (education_static?.map((e: Record<string, unknown>, idx: number) => ({
       ...e,
       $id: `static-edu-${idx}`,
-    })) as unknown as Education[]) || []
-  );
-}
+    })) as unknown as Education[]) || [],
+);
 
-export function getStaticJourney(): Journey[] {
-  return (
+export const getStaticJourney = once(
+  (): Journey[] =>
     (journey_static?.map((j: Record<string, unknown>, idx: number) => ({
       ...j,
       $id: `static-journey-${idx}`,
-    })) as unknown as Journey[]) || []
-  );
-}
+    })) as unknown as Journey[]) || [],
+);
 
-export function getStaticGallery(): GalleryImage[] {
-  return (
+export const getStaticGallery = once(
+  (): GalleryImage[] =>
     (gallery_static?.map((g: Record<string, unknown>, idx: number) => ({
       ...g,
       $id: `static-gallery-${idx}`,
-    })) as unknown as GalleryImage[]) || []
-  );
-}
+    })) as unknown as GalleryImage[]) || [],
+);

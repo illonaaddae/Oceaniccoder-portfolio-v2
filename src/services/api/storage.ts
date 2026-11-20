@@ -91,6 +91,8 @@ export async function getStorageStats(): Promise<StorageStats> {
       totalFiles: number;
       totalBytes: number;
     }>("");
+    // A 200 that isn't the media listing (e.g. the SPA's index.html) parses to {}.
+    if (!Number.isFinite(totalBytes) || !Number.isFinite(totalFiles)) return DEFAULT_STATS;
     const totalSizeMB = totalBytes / (1024 * 1024);
     return {
       totalFiles,
