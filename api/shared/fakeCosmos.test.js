@@ -68,6 +68,19 @@ describe("fake Cosmos container", () => {
     await expect(run("SELECT * FROM c WHERE c.status = @s")).rejects.toThrow(/no value/);
   });
 
+  it("keeps the same id apart in different partitions", async () => {
+    const c = createFakeCosmos({ views: "/postId" }).container("views");
+    await c.items.create({ id: "total", postId: "p1", reads: 1 });
+    await c.items.create({ id: "total", postId: "p2", reads: 2 });
+    await expect(c.items.create({ id: "total", postId: "p1" })).rejects.toMatchObject({
+      code: 409,
+    });
+    expect((await c.item("total", "p2").read()).resource.reads).toBe(2);
+    await c.item("total", "p1").delete();
+    expect((await c.item("total", "p1").read()).statusCode).toBe(404);
+    expect((await c.item("total", "p2").read()).statusCode).toBe(200);
+  });
+
   it("projects several fields, scopes a query to a partition and patches items", async () => {
     const c = createFakeCosmos({ views: "/postId" }).container("views");
     await c.items.create({ id: "a", postId: "p1", reads: 1, extra: "x" });

@@ -157,7 +157,7 @@ describe("blog view totals", () => {
     expect(last.body).toEqual({ readers: 2, reads: 3 });
 
     const views = db.container("blog_views");
-    expect(views.docs.get("total")).toMatchObject({ postId: "p1", readers: 2, reads: 3 });
+    expect(views.docs.get("p1/total")).toMatchObject({ postId: "p1", readers: 2, reads: 3 });
     expect((await call("GET", "blog-views", { query: { postId: "p1" } })).body).toEqual({
       readers: 2,
       reads: 3,
@@ -171,6 +171,18 @@ describe("blog view totals", () => {
     ]);
   });
 
+  it("keeps a separate total for each post", async () => {
+    db.container("blog_posts").seed({ id: "p2", title: "Second" });
+    const a = cookieFor("visitor_aaaaaa1");
+    await call("POST", "blog-view", { body: { postId: "p1" }, cookie: a });
+    await call("POST", "blog-view", { body: { postId: "p2" }, cookie: a });
+    await call("POST", "blog-view", { body: { postId: "p2" }, cookie: a });
+    expect((await call("GET", "blog-views")).body).toEqual({
+      p1: { readers: 1, reads: 1 },
+      p2: { readers: 1, reads: 2 },
+    });
+  });
+
   it("builds a missing total from rows written before totals existed", async () => {
     const views = db.container("blog_views");
     views.seed({ id: "v1", postId: "p1", visitorId: "visitor_old0001", reads: 4 });
@@ -180,10 +192,10 @@ describe("blog view totals", () => {
       readers: 2,
       reads: 5,
     });
-    expect(views.docs.has("total")).toBe(false);
+    expect(views.docs.has("p1/total")).toBe(false);
 
     expect((await call("GET", "blog-views")).body).toEqual({ p1: { readers: 2, reads: 5 } });
-    expect(views.docs.get("total")).toMatchObject({ readers: 2, reads: 5 });
+    expect(views.docs.get("p1/total")).toMatchObject({ readers: 2, reads: 5 });
 
     const next = await call("POST", "blog-view", {
       body: { postId: "p1" },

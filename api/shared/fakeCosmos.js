@@ -15,6 +15,9 @@
 // a literal value in the SQL text, so a test can't pass on an unparameterised
 // or unsupported query. A `partitionKey` query option scopes the query to that
 // partition, and item().patch() applies `set` and `incr` operations.
+//
+// Like Cosmos, an id is unique only within its partition. `docs` is keyed by
+// id in containers partitioned by /id, and by `${pk}/${id}` in the others.
 
 const clone = (v) => (v === undefined ? v : structuredClone(v));
 
@@ -87,6 +90,7 @@ function runQuery(docs, spec) {
 function createFakeContainer(name, { partitionKey = "/id" } = {}) {
   const pkField = partitionKey.slice(1);
   const docs = new Map();
+  const key = (id, pk) => (pkField === "id" ? id : `${pk}/${id}`);
   const queries = [];
   // Tests set these to simulate another writer or a failing request. Each
   // runs before the operation and may change `docs` or throw.
@@ -103,12 +107,12 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
       _attachments: "attachments/",
       _ts: Math.floor(Date.now() / 1000),
     };
-    docs.set(doc.id, saved);
+    docs.set(key(doc.id, doc[pkField]), saved);
     return clone(saved);
   }
 
   function find(id, pk) {
-    const doc = docs.get(id);
+    const doc = docs.get(key(id, pk));
     return doc && doc[pkField] === pk ? doc : undefined;
   }
 
@@ -125,7 +129,7 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
       async create(body) {
         if (hooks.beforeCreate) await hooks.beforeCreate(body);
         if (typeof body.id !== "string" || !body.id) throw cosmosError(400, "id is required");
-        if (docs.has(body.id))
+        if (docs.has(key(body.id, body[pkField])))
           throw cosmosError(409, "Entity with the specified id already exists");
         return { resource: store(body), statusCode: 201 };
       },
@@ -176,7 +180,7 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
         },
         async delete() {
           if (!find(id, pk)) throw cosmosError(404, "Entity with the specified id does not exist");
-          docs.delete(id);
+          docs.delete(key(id, pk));
           return { statusCode: 204 };
         },
       };
