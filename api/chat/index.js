@@ -265,7 +265,8 @@ function createHandler(deps = {}) {
         ceiling = createDailyCeiling(getContainer(), { limit, key: "chat" });
         ceilingLimit = limit;
       }
-      const day = new Date(nowMs).toISOString().slice(0, 10);
+      // Read the clock again: the Turnstile check may have run past midnight.
+      const day = new Date(now()).toISOString().slice(0, 10);
       if ((await ceiling(day, 1)) < 1) {
         return reply(429, {
           error: "The assistant has reached its limit for today. Please use the contact form.",

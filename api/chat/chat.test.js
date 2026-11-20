@@ -154,6 +154,18 @@ describe("chat visitor check", () => {
 });
 
 describe("chat daily budget", () => {
+  it("counts a call against the day it is made when the Turnstile check crosses midnight", async () => {
+    const { chat, verifyTurnstile, container, advance } = setup();
+    advance(Date.parse("2026-11-20T23:59:59.900Z") - NOW);
+    verifyTurnstile.mockImplementation(async () => {
+      advance(500);
+      return { ok: true };
+    });
+    expect((await chat()).status).toBe(200);
+    expect(container.meta.has(`chat:${DAY}`)).toBe(false);
+    expect(container.meta.get("chat:2026-11-21").n).toBe(1);
+  });
+
   it("answers 429 past the global daily cap even when every request has its own IP", async () => {
     const { chat, callOpenAI, container } = setup({ env: { CHAT_DAILY_LIMIT: "3" } });
     for (let i = 1; i <= 3; i += 1) expect((await chat({ ip: `192.0.2.${i}` })).status).toBe(200);
