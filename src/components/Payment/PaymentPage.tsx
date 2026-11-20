@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { apiUrl } from "@/utils/apiUrl";
-import { takeLinkCode } from "@/utils/linkCode";
 import { docAccessTarget } from "@/services/api/access";
 import { LockedDocument } from "@/components/Access/DocumentAccessGate";
+import { claimLinkOnce } from "@/components/Access/claimLinkOnce";
 import QuoteShell from "@/components/Quote/QuoteShell";
 import CardPayment from "./CardPayment";
 import MomoPayment from "./MomoPayment";
@@ -35,58 +35,6 @@ const invoiceLocator = (number: string, signature: string | null) =>
   signature
     ? { kind: "invoice" as const, number, s: signature }
     : { kind: "invoice" as const, number };
-
-// A link code works once, so a page load claims it once, even when the page
-// mounts twice (StrictMode) or loads the invoice again. A refused claim (used
-// already, an older email, another browser got there first) or a network
-// failure is not an error here: the lookup answers 401 and the code screen
-// asks for an emailed code instead. Resolves true when the claim signed the
-// browser in. Same rules as useClientQuote's for quotes.
-const claims = new Map<string, Promise<boolean>>();
-
-// Resolves once the page is in front of someone. A mail scanner that opens
-// the link (and even runs its script) without showing it never gets here, so
-// it can't spend the link code. Same rule as the code screen's auto-send.
-function whenVisible(): Promise<void> {
-  return new Promise((resolve) => {
-    const go = () => {
-      if (document.visibilityState !== "visible") return;
-      document.removeEventListener("visibilitychange", go);
-      resolve();
-    };
-    document.addEventListener("visibilitychange", go);
-    go();
-  });
-}
-
-// A claim that hasn't answered by then (a cold start, a hung function) is
-// given up: the lookup goes on, and the code screen asks for a code instead.
-const CLAIM_TIMEOUT_MS = 10000;
-
-function claimWithin(claim: Promise<unknown>, ms: number): Promise<boolean> {
-  let timer = 0;
-  const giveUp = new Promise<boolean>((resolve) => {
-    timer = window.setTimeout(() => resolve(false), ms);
-  });
-  const claimed = claim.then(
-    () => true,
-    () => false,
-  );
-  return Promise.race([claimed, giveUp]).finally(() => clearTimeout(timer));
-}
-
-function claimLinkOnce(number: string, signature: string | null): Promise<boolean> {
-  const code = takeLinkCode("invoice", number);
-  if (code) {
-    const target = docAccessTarget(invoiceLocator(number, signature));
-    // The time limit starts once the page is visible: waiting to be seen
-    // isn't the server being slow.
-    const claim = whenVisible().then(() => claimWithin(target.claim(code), CLAIM_TIMEOUT_MS));
-    claims.set(number, claim);
-    void claim.then(() => claims.delete(number));
-  }
-  return claims.get(number) ?? Promise.resolve(false);
-}
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GHS: "₵",
@@ -372,7 +320,13 @@ const PaymentPage: React.FC = () => {
     const slowTimer = window.setTimeout(() => setSlowWarning(true), 4000);
     // The preview never claims the client's link code. The claim waits for the
     // page to be visible and has its own time limit, so the lookup's starts after it.
-    if (!admin && (await claimLinkOnce(invoiceNumber, signature))) signedIn = true;
+    if (
+      !admin &&
+      (await claimLinkOnce("invoice", invoiceNumber, () =>
+        docAccessTarget(invoiceLocator(invoiceNumber, signature)),
+      ))
+    )
+      signedIn = true;
 
     const controller = new AbortController();
     const killTimer = window.setTimeout(() => controller.abort(), 15000);

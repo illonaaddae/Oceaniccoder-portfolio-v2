@@ -1,24 +1,74 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { FaCheckCircle } from "react-icons/fa";
 import { LOGO_PATHS } from "@/components/Navbar/navData";
+import { LockedDocument } from "@/components/Access/DocumentAccessGate";
+import { claimLinkOnce } from "@/components/Access/claimLinkOnce";
 import QuoteShell, { QuoteError, QuoteLoading } from "./QuoteShell";
-import { fetchReceipt } from "@/services/api/quotes";
+import { docAccessTarget } from "@/services/api/access";
+import { fetchReceipt, isLockedError } from "@/services/api/quotes";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ReceiptView } from "@/types/quote";
 
 export default function ReceiptPage() {
   const { reference = "" } = useParams();
   const [params] = useSearchParams();
+  const signature = params.get("s") || "";
+  // The dashboard's preview: the server checks the admin session instead of
+  // an unlock, and the page never claims the client's link code.
+  const admin = params.get("preview") === "admin";
   const [receipt, setReceipt] = useState<ReceiptView | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // No unlock for this receipt or its quote in this browser. cookieBlocked:
+  // it was just signed in and is still locked, so the browser dropped the cookie.
+  const [locked, setLocked] = useState<{ cookieBlocked: boolean } | null>(null);
+  // Set when the code screen has just signed this browser in.
+  const justUnlocked = useRef(false);
+  const target = useMemo(
+    () => docAccessTarget({ kind: "receipt", reference, s: signature }),
+    [reference, signature],
+  );
+
+  const load = useCallback(async () => {
+    setReceipt(null);
+    setError(null);
+    setLocked(null);
+    let signedIn = justUnlocked.current;
+    justUnlocked.current = false;
+    if (!admin && (await claimLinkOnce("receipt", reference, () => target))) signedIn = true;
+    try {
+      const r = await fetchReceipt(reference, signature, admin);
+      setReceipt(r.receipt);
+    } catch (err) {
+      if (isLockedError(err)) setLocked({ cookieBlocked: signedIn });
+      else setError(err instanceof Error ? err.message : "Receipt not found.");
+    }
+  }, [reference, signature, admin, target]);
 
   useEffect(() => {
-    fetchReceipt(reference, params.get("s") || "")
-      .then((r) => setReceipt(r.receipt))
-      .catch((err) => setError(err instanceof Error ? err.message : "Receipt not found."));
-  }, [reference, params]);
+    void load();
+  }, [load]);
 
+  /** The code screen signed the browser in: load the receipt. */
+  const unlocked = useCallback(() => {
+    justUnlocked.current = true;
+    void load();
+  }, [load]);
+
+  // Nothing about the receipt before an unlock, not even its reference.
+  if (locked)
+    return (
+      <QuoteShell title="Open your receipt" width="narrow">
+        <LockedDocument
+          key={`${reference}:${signature}`}
+          target={target}
+          onUnlocked={unlocked}
+          onRetry={() => void load()}
+          admin={admin}
+          cookieBlocked={locked.cookieBlocked}
+        />
+      </QuoteShell>
+    );
   if (error)
     return (
       <QuoteShell title="Receipt" width="narrow">
@@ -28,7 +78,7 @@ export default function ReceiptPage() {
   if (!receipt)
     return (
       <QuoteShell title="Receipt" width="narrow">
-        <QuoteLoading />
+        <QuoteLoading label="Loading your receipt…" />
       </QuoteShell>
     );
   const money = (m: number) => formatMinor(m, receipt.currency);

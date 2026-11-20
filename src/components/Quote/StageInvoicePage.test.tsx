@@ -102,4 +102,13 @@ describe("StageInvoicePage", () => {
     expect(await screen.findByText(/preview needs your dashboard session/i)).toBeInTheDocument();
     expect(fetchQuoteAccess).not.toHaveBeenCalled();
   });
+  it.each([
+    ["/q/tokR1/invoice/deposit", "/receipt/R1?s=x"],
+    ["/q/tokR2/invoice/deposit?preview=admin", "/receipt/R1?s=x&preview=admin"],
+  ])("links %s to the receipt at %s", async (path, href) => {
+    const paid = { ...quote.stages[0], state: "paid", receiptPath: "/receipt/R1?s=x" };
+    fetchClientQuote.mockResolvedValue({ quote: { ...quote, stages: [paid] } });
+    renderAt(path);
+    expect(await screen.findByRole("link", { name: "Receipt" })).toHaveAttribute("href", href);
+  });
 });

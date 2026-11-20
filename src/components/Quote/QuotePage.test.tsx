@@ -525,6 +525,27 @@ describe("QuotePage access gate", () => {
     );
   });
 
+  it("admin preview keeps its mode on the receipt link", async () => {
+    const paid = {
+      ...baseQuote.stages[0],
+      state: "paid" as const,
+      receiptPath: "/receipt/R1?s=x",
+    };
+    fetchClientQuote.mockResolvedValue({
+      quote: {
+        ...baseQuote,
+        status: "accepted",
+        acceptedName: "Kofi",
+        stages: [paid, baseQuote.stages[1]],
+      },
+    });
+    renderAt("/q/tokG4?preview=admin");
+    expect(await screen.findByRole("link", { name: "Receipt" })).toHaveAttribute(
+      "href",
+      "/receipt/R1?s=x&preview=admin",
+    );
+  });
+
   it("admin preview of a sent quote shows a note instead of the accept form", async () => {
     fetchClientQuote.mockResolvedValue({ quote: baseQuote });
     renderAt("/q/tokG3?preview=admin");

@@ -2,6 +2,7 @@ import type React from "react";
 import { Link } from "react-router-dom";
 import { FaCheck } from "react-icons/fa";
 import { QuoteCard, SectionLabel } from "./QuoteShell";
+import { receiptHref } from "./useClientQuote";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 import type { ClientQuote, ClientStage } from "@/types/quote";
 
@@ -172,7 +173,7 @@ export default function StagePlan({
                   )}
                   {s.receiptPath && (
                     <Link
-                      to={s.receiptPath}
+                      to={receiptHref(s.receiptPath, query)}
                       className="px-4 py-2 rounded-lg text-sm border"
                       style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
                     >

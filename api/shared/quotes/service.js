@@ -7,7 +7,7 @@ const { writeHold } = require("../backend");
 const { HttpError } = require("../http");
 const { createCosmosQuoteRepo } = require("./repo.cosmos");
 const { createCosmosLocks } = require("../locks");
-const { createNotifier } = require("./notify");
+const { createNotifier, receiptCodeMinter } = require("./notify");
 const { initializeTransaction, verifyTransaction } = require("../paystack");
 const { settleQuotePayment } = require("./settle");
 
@@ -25,11 +25,12 @@ function createStores() {
 // retries the same way.
 function createServices() {
   if (writeHold()) throw new HttpError(503, WRITE_HOLD_MESSAGE);
+  const stores = createStores();
   return {
-    ...createStores(),
+    ...stores,
     verify: verifyTransaction,
     initialize: initializeTransaction,
-    notify: createNotifier(),
+    notify: createNotifier({ mintReceiptCode: receiptCodeMinter({ locks: stores.locks }) }),
     now: () => new Date(),
   };
 }
