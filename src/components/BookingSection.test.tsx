@@ -277,6 +277,22 @@ describe("BookingSection — submit flow", () => {
     });
   });
 
+  test("says the booking may have gone through when the request times out", async () => {
+    global.fetch = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error("timed out"), { name: "TimeoutError" }));
+
+    render(<BookingSection />);
+    await advanceToStep2();
+    await advanceToStep3();
+
+    fireEvent.click(button(/confirm booking/i));
+
+    await waitFor(() => {
+      expect(screen.getByText(/may still have gone through/i)).toBeInTheDocument();
+    });
+  });
+
   test("shows the server's reason and no success screen when the spam check is refused", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,

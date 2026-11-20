@@ -100,6 +100,13 @@ const getTodayMin = () => {
   return d.toISOString().split("T")[0];
 };
 
+// /api/create-booking refuses dates more than a year out.
+const getMaxDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 365);
+  return d.toISOString().split("T")[0];
+};
+
 export default function BookingSection() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [step, setStep] = useState(1);
@@ -232,7 +239,12 @@ export default function BookingSection() {
       sectionTopRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     } catch (err) {
       console.error(err);
-      setError("Booking failed. Please try again or contact me directly.");
+      // The server may still save the booking after the browser stops waiting.
+      setError(
+        err?.name === "TimeoutError"
+          ? "This is taking longer than expected, so your booking may still have gone through. Check your email for a confirmation before trying again, or contact me directly."
+          : "Booking failed. Please try again or contact me directly.",
+      );
     } finally {
       setSubmitting(false);
       turnstile.reset(); // tokens are single-use
@@ -555,6 +567,7 @@ export default function BookingSection() {
                             onChange={(value) => handleChange("preferredDate", value)}
                             theme={isDark ? "dark" : "light"}
                             min={getTodayMin()}
+                            max={getMaxDate()}
                             placeholder="Select a date"
                             ariaLabel="Preferred date"
                           />
