@@ -15,6 +15,8 @@
 // a literal value in the SQL text, so a test can't pass on an unparameterised
 // or unsupported query. A `partitionKey` query option scopes the query to that
 // partition, and item().patch() applies `set` and `incr` operations.
+// items.batch() runs Create and Patch operations all-or-nothing and reports
+// the failing one's code, with 424 for the rest, as Cosmos does.
 //
 // Like Cosmos, an id is unique only within its partition. `docs` is keyed by
 // id in containers partitioned by /id, and by `${pk}/${id}` in the others.
@@ -116,7 +118,7 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
     return doc && doc[pkField] === pk ? doc : undefined;
   }
 
-  return {
+  const container = {
     id: name,
     docs,
     queries,
@@ -132,6 +134,36 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
         if (docs.has(key(body.id, body[pkField])))
           throw cosmosError(409, "Entity with the specified id already exists");
         return { resource: store(body), statusCode: 201 };
+      },
+      async batch(operations, pk) {
+        const saved = new Map(docs);
+        const result = [];
+        for (const operation of operations) {
+          try {
+            let response;
+            if (operation.operationType === "Create") {
+              if (operation.resourceBody[pkField] !== pk)
+                throw cosmosError(400, "partition key mismatch");
+              response = await container.items.create(operation.resourceBody);
+            } else if (operation.operationType === "Patch") {
+              response = await container
+                .item(operation.id, pk)
+                .patch(operation.resourceBody.operations);
+            } else {
+              throw new Error(`fakeCosmos: unsupported batch op: ${operation.operationType}`);
+            }
+            result.push({ statusCode: response.statusCode, resourceBody: response.resource });
+          } catch (err) {
+            if (typeof err.code !== "number") throw err;
+            docs.clear();
+            for (const [k, v] of saved) docs.set(k, v);
+            const failedAt = result.length;
+            return {
+              result: operations.map((_, i) => ({ statusCode: i === failedAt ? err.code : 424 })),
+            };
+          }
+        }
+        return { result };
       },
       query(spec, options = {}) {
         queries.push(clone(spec));
@@ -187,6 +219,7 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
       };
     },
   };
+  return container;
 }
 
 /** A fake database whose containers are created on first use. */

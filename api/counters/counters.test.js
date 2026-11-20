@@ -183,23 +183,24 @@ describe("blog view totals", () => {
     });
   });
 
-  it("rebuilds the total when updating it fails after the visitor row was written", async () => {
+  it("writes neither the visitor row nor the total when updating the total fails", async () => {
     const views = db.container("blog_views");
-    const cookie = cookieFor("visitor_aaaaaa1");
-    await call("POST", "blog-view", { body: { postId: "p1" }, cookie });
+    await call("POST", "blog-view", {
+      body: { postId: "p1" },
+      cookie: cookieFor("visitor_aaaaaa1"),
+    });
     views.hooks.beforePatch = (id) => {
       views.hooks.beforePatch = null;
       if (id === "total") throw Object.assign(new Error("throttled"), { code: 429 });
     };
-    const failed = await call("POST", "blog-view", {
-      body: { postId: "p1" },
-      cookie: cookieFor("visitor_bbbbbb2"),
-    });
-    expect(failed.status).toBe(500);
-    expect(views.docs.has("p1/total")).toBe(false);
+    const b = cookieFor("visitor_bbbbbb2");
+    expect((await call("POST", "blog-view", { body: { postId: "p1" }, cookie: b })).status).toBe(
+      500,
+    );
+    expect(views.docs.get("p1/total")).toMatchObject({ readers: 1, reads: 1 });
 
-    const next = await call("POST", "blog-view", { body: { postId: "p1" }, cookie });
-    expect(next.body).toEqual({ readers: 2, reads: 3 });
+    const retry = await call("POST", "blog-view", { body: { postId: "p1" }, cookie: b });
+    expect(retry.body).toEqual({ readers: 2, reads: 2 });
   });
 
   it("builds a missing total from rows written before totals existed", async () => {

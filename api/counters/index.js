@@ -17,7 +17,8 @@
 // Every POST is also capped per client IP (clientIp, as in /api/visit).
 //
 // Increments are Cosmos patch operations, so concurrent visitors can't
-// overwrite each other's counts. Only totals come back; visitor ids are never
+// overwrite each other's counts. A blog view patches its visitor row and the
+// post's total in one transactional batch. Only totals come back; visitor ids are never
 // listed. Blog rows are one per (post, visitor), enforced by the container's
 // unique key, so a race on the first visit ends in a 409 that's retried as an
 // increment.
@@ -157,14 +158,27 @@ async function allViewStats(db) {
   return Object.fromEntries(Object.entries(stats).filter(([, s]) => s.readers > 0));
 }
 
+/**
+ * Runs a transactional batch in one partition. Cosmos either applies every
+ * operation or none; a failed batch throws with the failing operation's code.
+ */
+async function batch(container, partitionKey, operations) {
+  const { result } = await container.items.batch(operations, partitionKey);
+  const failed = result.filter((r) => r.statusCode >= 400);
+  if (failed.length) {
+    const cause = failed.find((r) => r.statusCode !== 424) || failed[0];
+    throw Object.assign(new Error("Batch failed"), { code: cause.statusCode });
+  }
+  return result;
+}
+
+/**
+ * The visitor row and the post's total change in one batch, so a failure
+ * can't leave one counted without the other.
+ */
 async function recordBlogView(db, postId, visitorId) {
   const container = db.container("blog_views");
   const now = new Date().toISOString();
-  const increment = async (row) =>
-    container.item(row.id, postId).patch([
-      { op: "incr", path: "/reads", value: 1 },
-      { op: "set", path: "/lastReadAt", value: now },
-    ]);
   const find = async () =>
     (
       await query(
@@ -174,37 +188,53 @@ async function recordBlogView(db, postId, visitorId) {
         { partitionKey: postId },
       )
     )[0];
+  const write = async (visitorOp, newReader) => {
+    const [, total] = await batch(container, postId, [
+      visitorOp,
+      {
+        operationType: "Patch",
+        id: TOTAL_ID,
+        resourceBody: {
+          operations: [
+            { op: "incr", path: "/reads", value: 1 },
+            { op: "incr", path: "/readers", value: newReader ? 1 : 0 },
+            { op: "set", path: "/updatedAt", value: now },
+          ],
+        },
+      },
+    ]);
+    return statsOf(total.resourceBody || (await readTotal(db, postId)));
+  };
 
   await ensureTotal(db, postId);
-  let newReader = false;
-  const existing = await find();
-  if (existing) {
-    await increment(existing);
-  } else {
+  let row = await find();
+  if (!row) {
     try {
-      await container.items.create(newDocument({ postId, visitorId, reads: 1, lastReadAt: now }));
-      newReader = true;
+      return await write(
+        {
+          operationType: "Create",
+          resourceBody: newDocument({ postId, visitorId, reads: 1, lastReadAt: now }),
+        },
+        true,
+      );
     } catch (err) {
-      if (err.code !== 409) throw err;
-      await increment(await find()); // another tab created it first
+      row = await find(); // another tab created it first
+      if (!row) throw err;
     }
   }
-  try {
-    const { resource } = await container.item(TOTAL_ID, postId).patch([
-      { op: "incr", path: "/reads", value: 1 },
-      { op: "incr", path: "/readers", value: newReader ? 1 : 0 },
-      { op: "set", path: "/updatedAt", value: now },
-    ]);
-    return statsOf(resource);
-  } catch (err) {
-    // The visitor row is already written, so a retry can't add this view to
-    // the total. Dropping the total makes the next view rebuild it from rows.
-    await container
-      .item(TOTAL_ID, postId)
-      .delete()
-      .catch(() => {});
-    throw err;
-  }
+  return write(
+    {
+      operationType: "Patch",
+      id: row.id,
+      resourceBody: {
+        operations: [
+          { op: "incr", path: "/reads", value: 1 },
+          { op: "set", path: "/lastReadAt", value: now },
+        ],
+      },
+    },
+    false,
+  );
 }
 
 // ── reactions ─────────────────────────────────────────────────────────────

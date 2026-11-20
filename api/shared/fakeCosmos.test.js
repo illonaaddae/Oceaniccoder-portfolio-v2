@@ -68,6 +68,29 @@ describe("fake Cosmos container", () => {
     await expect(run("SELECT * FROM c WHERE c.status = @s")).rejects.toThrow(/no value/);
   });
 
+  it("runs a batch all-or-nothing", async () => {
+    const c = createFakeCosmos({ views: "/postId" }).container("views");
+    await c.items.create({ id: "total", postId: "p1", reads: 0 });
+    const incr = {
+      operationType: "Patch",
+      id: "total",
+      resourceBody: { operations: [{ op: "incr", path: "/reads", value: 1 }] },
+    };
+    const ok = await c.items.batch(
+      [{ operationType: "Create", resourceBody: { id: "a", postId: "p1" } }, incr],
+      "p1",
+    );
+    expect(ok.result.map((r) => r.statusCode)).toEqual([201, 200]);
+    expect(ok.result[1].resourceBody.reads).toBe(1);
+
+    const failed = await c.items.batch(
+      [incr, { operationType: "Create", resourceBody: { id: "a", postId: "p1" } }],
+      "p1",
+    );
+    expect(failed.result.map((r) => r.statusCode)).toEqual([424, 409]);
+    expect((await c.item("total", "p1").read()).resource.reads).toBe(1);
+  });
+
   it("keeps the same id apart in different partitions", async () => {
     const c = createFakeCosmos({ views: "/postId" }).container("views");
     await c.items.create({ id: "total", postId: "p1", reads: 1 });
