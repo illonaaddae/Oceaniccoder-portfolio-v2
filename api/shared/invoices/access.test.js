@@ -20,7 +20,8 @@ const { signInvoice } = await import("../tokens.js");
 const SECRET = "s".repeat(40);
 const LINK_SECRET = "link-signing-secret";
 const NOW = Date.parse("2026-10-26T09:00:00.000Z");
-const AFTER_GRACE = Date.parse("2026-11-21T00:00:00.000Z");
+// The old unsigned-link grace ran until 2026-11-21; it no longer applies.
+const BEFORE_OLD_CUTOFF = Date.parse("2026-11-20T23:59:59.999Z");
 
 const SIGNED = {
   id: "inv-row-1",
@@ -30,7 +31,8 @@ const SIGNED = {
   status: "sent",
   createdAt: "2026-10-26T08:00:00.000Z",
 };
-// Emailed before signed links shipped: old number format, unpaid.
+// Emailed before signed links shipped: old number format, unpaid. Its
+// unsigned link no longer opens; only a signed one does.
 const OLD = {
   id: "inv-row-2",
   invoiceNumber: "INV-512345",
@@ -102,16 +104,29 @@ describe("invoiceLocator", () => {
     );
   });
 
-  it("finds an unsigned invoice the grace covers, and calls that guessable", async () => {
-    const t = setup();
-    expect(await t.open({ number: OLD.invoiceNumber })).toEqual(
+  it.each([
+    ["no signature", {}],
+    ["an empty signature", { s: "" }],
+    ["a null signature", { s: null }],
+  ])(
+    "refuses an old unpaid invoice with %s before the old cutoff, before any lookup",
+    async (_name, over) => {
+      const t = setup({ nowMs: BEFORE_OLD_CUTOFF });
+      expect(await t.open({ number: OLD.invoiceNumber, ...over })).toEqual(NOT_FOUND);
+      expect(t.invoices.findInvoicesByNumber).not.toHaveBeenCalled();
+      await expect(
+        t.locator.find({ invoices: t.invoices }, { number: OLD.invoiceNumber, ...over }),
+      ).rejects.toMatchObject({ status: 404, message: INVOICE_NOT_FOUND });
+      expect(t.invoices.findInvoicesByNumber).not.toHaveBeenCalled();
+    },
+  );
+
+  it("still finds an old invoice through its signed link, and is never guessable", async () => {
+    const t = setup({ nowMs: BEFORE_OLD_CUTOFF });
+    expect(await t.open({ number: OLD.invoiceNumber, s: sig(OLD.invoiceNumber) })).toEqual(
       expect.objectContaining({ id: "inv-row-2" }),
     );
-    expect(t.locator.guessable({ number: OLD.invoiceNumber })).toBe(true);
-    expect(t.locator.guessable({ number: OLD.invoiceNumber, s: "" })).toBe(true);
-    expect(
-      t.locator.guessable({ number: SIGNED.invoiceNumber, s: sig(SIGNED.invoiceNumber) }),
-    ).toBe(false);
+    expect(t.locator.guessable).toBeUndefined();
   });
 
   it.each([
@@ -127,15 +142,12 @@ describe("invoiceLocator", () => {
     expect(t.invoices.findInvoicesByNumber).not.toHaveBeenCalled();
   });
 
-  it("refuses a wrong signature, and an unsigned link after the grace, before any lookup", async () => {
+  it("refuses a wrong signature before any lookup", async () => {
     const t = setup();
     expect(await t.open({ number: SIGNED.invoiceNumber, s: sig("INV-2026-0009") })).toEqual(
       NOT_FOUND,
     );
-    const late = setup({ nowMs: AFTER_GRACE });
-    expect(await late.open({ number: OLD.invoiceNumber })).toEqual(NOT_FOUND);
     expect(t.invoices.findInvoicesByNumber).not.toHaveBeenCalled();
-    expect(late.invoices.findInvoicesByNumber).not.toHaveBeenCalled();
   });
 
   it.each([

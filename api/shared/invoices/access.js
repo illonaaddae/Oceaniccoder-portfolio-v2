@@ -9,7 +9,7 @@
 
 const { HttpError } = require("../http");
 const { createAccess } = require("../access/core");
-const { canOpenInvoice, hasSignature, unsignedGraceCovers } = require("../invoiceLinks");
+const { canOpenInvoice } = require("../invoiceLinks");
 const T = require("../email/quoteEmails");
 const V = require("../quotes/views");
 
@@ -50,9 +50,8 @@ const invoiceAccess = createAccess(INVOICE_SCHEME);
 const notFound = () => new HttpError(404, INVOICE_NOT_FOUND, { inactive: true });
 
 /**
- * Finds an invoice from { number, s } with get-invoice's rules: a signature
- * that is present must be right; a missing one opens only an old unpaid
- * invoice until the grace ends (shared/invoiceLinks.js). Every failure is the
+ * Finds an invoice from { number, s } with get-invoice's rules: the signature
+ * must be present and right (shared/invoiceLinks.js). Every failure is the
  * same 404, and check() and the signature test run before any lookup.
  * env supplies RECEIPT_SIGNING_SECRET, which signs pay links; logWarn takes
  * the one line logged when two invoices share a number.
@@ -63,12 +62,10 @@ function invoiceLocator({ env = process.env, logWarn = console.warn } = {}) {
       const { number, s } = body;
       if (typeof number !== "string" || !number || number.length > MAX_NUMBER_LENGTH)
         throw notFound();
-      if (hasSignature(s) && (typeof s !== "string" || s.length !== SIGNATURE_LENGTH))
-        throw notFound();
+      if (typeof s !== "string" || s.length !== SIGNATURE_LENGTH) throw notFound();
     },
     async find(svc, body) {
-      const nowMs = svc.now().getTime();
-      if (!canOpenInvoice(body.number, body.s, env.RECEIPT_SIGNING_SECRET, nowMs)) throw notFound();
+      if (!canOpenInvoice(body.number, body.s, env.RECEIPT_SIGNING_SECRET)) throw notFound();
       const rows = await svc.invoices.findInvoicesByNumber(body.number);
       // Two rows with one number (old numbers could collide): the query has
       // no order, so either could answer, with its own client and counters.
@@ -79,12 +76,8 @@ function invoiceLocator({ env = process.env, logWarn = console.warn } = {}) {
       }
       const [invoice] = rows;
       if (!invoice) throw notFound();
-      if (!hasSignature(body.s) && !unsignedGraceCovers(invoice)) throw notFound();
       return invoice;
     },
-    // Old invoice numbers are a timestamp's last six digits, so an unsigned
-    // link can be guessed.
-    guessable: (body) => !hasSignature(body.s),
   };
 }
 

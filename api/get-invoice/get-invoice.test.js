@@ -5,7 +5,6 @@ import { createRequire } from "module";
 // Same module objects as index.js (vi.mock does not reach CommonJS require).
 const require = createRequire(import.meta.url);
 const { signInvoice } = require("../shared/tokens.js");
-const { UNSIGNED_LINKS_ACCEPTED_UNTIL } = require("../shared/invoiceLinks.js");
 const cosmos = require("../shared/cosmos.js");
 const { createFakeCosmos } = require("../shared/fakeCosmos.js");
 const handler = require("./index.js");
@@ -33,6 +32,9 @@ const call = async ({ number, s }, ip) => {
   });
   return { status: context.res.status, body: JSON.parse(context.res.body) };
 };
+// The old unsigned-link grace ran until 2026-11-21; unsigned links stay
+// refused on that date too.
+const BEFORE_OLD_CUTOFF = Date.parse("2026-11-20T23:59:59.999Z");
 const NOT_VALID = "This payment link is not valid. Ask us for a new one at hello@oceaniccoder.dev.";
 
 // Imported from Appwrite, so it carries $createdAt rather than createdAt.
@@ -118,11 +120,10 @@ describe("get-invoice", () => {
     beforeEach(() => {
       holding(invoice);
     });
-    const afterCutoff = () =>
-      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL });
+    const beforeOldCutoff = () => vi.useFakeTimers({ toFake: ["Date"], now: BEFORE_OLD_CUTOFF });
 
-    it("serves the invoice to a valid signature after the cutoff", async () => {
-      afterCutoff();
+    it("serves the invoice to a valid signature", async () => {
+      beforeOldCutoff();
       const r = await run("INV-948213");
       expect(r.status).toBe(200);
       expect(r.body).toMatchObject({ clientName: "Ama Owusu", clientEmail: "ama@example.com" });
@@ -133,8 +134,8 @@ describe("get-invoice", () => {
       ["an empty signature", ""],
       ["a wrong signature", "A".repeat(32)],
       ["a malformed signature", "short"],
-    ])("answers 404 with no client data to %s after the cutoff", async (_, s) => {
-      afterCutoff();
+    ])("answers 404 with no client data to %s before the old cutoff", async (_, s) => {
+      beforeOldCutoff();
       const r = await run("INV-948213", s);
       expect(r).toEqual(notFound);
       expect(invoices.queries).toEqual([]);
@@ -147,56 +148,38 @@ describe("get-invoice", () => {
     });
 
     it("answers a bad signature exactly like an invoice that does not exist", async () => {
-      afterCutoff();
+      beforeOldCutoff();
       const refused = await run("INV-948213", undefined);
       expect(await run("INV-948299")).toEqual(refused);
     });
 
     it("refuses every signature when the server has no signing secret", async () => {
-      afterCutoff();
+      beforeOldCutoff();
       delete process.env.RECEIPT_SIGNING_SECRET;
       expect(await run("INV-948213")).toEqual(notFound);
     });
 
-    // Invoice emails sent before signing shipped have no ?s=; an unpaid
-    // invoice from before the release keeps working until the cutoff.
-    it("still serves an unsigned link to an old unpaid invoice during the grace period", async () => {
-      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
-      const r = await run("INV-948213", undefined);
-      expect(r.status).toBe(200);
-      expect(r.body.invoiceNumber).toBe("INV-948213");
-    });
-
+    // Invoice emails sent before signing shipped have no ?s=; those links no
+    // longer open, even before the old 2026-11-21 cutoff.
     it.each([
-      ["created after the release", { $createdAt: "2026-10-28T00:00:00.000Z" }],
-      ["already paid", { status: "paid" }],
-      ["with no creation time", { $createdAt: undefined }],
+      ["an old unpaid invoice", {}],
       [
-        "created after the release, in Appwrite's offset format",
-        { $createdAt: "2026-10-28T00:00:00.000+00:00" },
+        "an old unpaid invoice with Appwrite's offset format",
+        { $createdAt: "2026-10-27T23:59:59.999+00:00" },
       ],
-    ])("refuses an unsigned link during the grace period to an invoice %s", async (_, over) => {
-      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
-      holding({ ...invoice, ...over });
-      expect(await run("INV-948213", undefined)).toEqual(notFound);
-      expect((await run("INV-948213")).status).toBe(200);
+      ["a server-numbered invoice", { invoiceNumber: "INV-2026-0001" }],
+      ["an invoice created after the release", { $createdAt: "2026-10-28T00:00:00.000Z" }],
+    ])("refuses an unsigned link to %s before any lookup", async (_, over) => {
+      beforeOldCutoff();
+      const row = { ...invoice, ...over };
+      holding(row);
+      expect(await run(row.invoiceNumber, undefined)).toEqual(notFound);
+      expect(invoices.queries).toEqual([]);
+      expect((await run(row.invoiceNumber)).status).toBe(200);
     });
 
-    it("refuses an unsigned link to a server-numbered invoice, even one made before the cutoff", async () => {
-      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
-      holding({ ...invoice, invoiceNumber: "INV-2026-0001" });
-      expect(await run("INV-2026-0001", undefined)).toEqual(notFound);
-      expect((await run("INV-2026-0001")).status).toBe(200);
-    });
-
-    it("opens an old unpaid invoice whose creation time uses Appwrite's offset format", async () => {
-      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
-      holding({ ...invoice, $createdAt: "2026-10-27T23:59:59.999+00:00" });
-      expect((await run("INV-948213", undefined)).status).toBe(200);
-    });
-
-    it("refuses a wrong signature even during the grace period", async () => {
-      vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
+    it("refuses a wrong signature before the old cutoff", async () => {
+      vi.useFakeTimers({ toFake: ["Date"], now: BEFORE_OLD_CUTOFF });
       expect(await run("INV-948213", "A".repeat(32))).toEqual(notFound);
     });
   });
@@ -266,7 +249,6 @@ describe("get-invoice on Cosmos", () => {
   });
 
   it("refuses a bad signature before reading Cosmos", async () => {
-    vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL });
     invoices.seed({ id: "inv1", invoiceNumber: "INV-948213", total: 500, status: "sent" });
     expect(await run("INV-948213", undefined)).toEqual({
       status: 404,
@@ -279,16 +261,10 @@ describe("get-invoice on Cosmos", () => {
     expect(invoices.queries).toEqual([]);
   });
 
-  // Rows written on Cosmos carry createdAt; rows imported from Appwrite carry
-  // $createdAt (the describe above).
-  it("applies the unsigned-link grace period to the Cosmos createdAt", async () => {
-    vi.useFakeTimers({ toFake: ["Date"], now: UNSIGNED_LINKS_ACCEPTED_UNTIL - 1 });
+  it("refuses an unsigned link to an old Cosmos row before the old cutoff", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: BEFORE_OLD_CUTOFF });
     const row = { invoiceNumber: "INV-948213", total: 500, status: "sent" };
     invoices.seed({ ...row, id: "old", createdAt: "2026-10-01T09:00:00.000Z" });
-    expect((await run("INV-948213", undefined)).status).toBe(200);
-
-    invoices.docs.clear();
-    invoices.seed({ ...row, id: "new", createdAt: "2026-10-28T00:00:00.000Z" });
     expect(await run("INV-948213", undefined)).toEqual({
       status: 404,
       body: { error: NOT_VALID },
