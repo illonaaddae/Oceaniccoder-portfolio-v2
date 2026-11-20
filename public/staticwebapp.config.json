@@ -16,6 +16,12 @@
       "allowedRoles": [
         "admin"
       ]
+    },
+    {
+      "route": "/api/finance*",
+      "allowedRoles": [
+        "admin"
+      ]
     }
   ],
   "navigationFallback": {

@@ -19,7 +19,8 @@ export type TabType =
   | "analytics"
   | "storage"
   | "quotes"
-  | "emails";
+  | "emails"
+  | "finance";
 
 export interface SidebarProps {
   activeTab: string;
