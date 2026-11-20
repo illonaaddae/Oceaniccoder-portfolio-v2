@@ -189,12 +189,22 @@ async function recordBlogView(db, postId, visitorId) {
       await increment(await find()); // another tab created it first
     }
   }
-  const { resource } = await container.item(TOTAL_ID, postId).patch([
-    { op: "incr", path: "/reads", value: 1 },
-    { op: "incr", path: "/readers", value: newReader ? 1 : 0 },
-    { op: "set", path: "/updatedAt", value: now },
-  ]);
-  return statsOf(resource);
+  try {
+    const { resource } = await container.item(TOTAL_ID, postId).patch([
+      { op: "incr", path: "/reads", value: 1 },
+      { op: "incr", path: "/readers", value: newReader ? 1 : 0 },
+      { op: "set", path: "/updatedAt", value: now },
+    ]);
+    return statsOf(resource);
+  } catch (err) {
+    // The visitor row is already written, so a retry can't add this view to
+    // the total. Dropping the total makes the next view rebuild it from rows.
+    await container
+      .item(TOTAL_ID, postId)
+      .delete()
+      .catch(() => {});
+    throw err;
+  }
 }
 
 // ── reactions ─────────────────────────────────────────────────────────────

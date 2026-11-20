@@ -94,7 +94,7 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
   const queries = [];
   // Tests set these to simulate another writer or a failing request. Each
   // runs before the operation and may change `docs` or throw.
-  const hooks = { beforeCreate: null, beforeReplace: null, beforeRead: null };
+  const hooks = { beforeCreate: null, beforeReplace: null, beforeRead: null, beforePatch: null };
   let version = 0;
 
   function store(doc) {
@@ -167,6 +167,7 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
           return { resource: store(fields), statusCode: 200 };
         },
         async patch(operations) {
+          if (hooks.beforePatch) await hooks.beforePatch(id, operations);
           const current = find(id, pk);
           if (!current) throw cosmosError(404, "Entity with the specified id does not exist");
           const { _rid, _self, _etag, _attachments, _ts, ...fields } = current;

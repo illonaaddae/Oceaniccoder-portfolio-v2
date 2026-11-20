@@ -183,6 +183,25 @@ describe("blog view totals", () => {
     });
   });
 
+  it("rebuilds the total when updating it fails after the visitor row was written", async () => {
+    const views = db.container("blog_views");
+    const cookie = cookieFor("visitor_aaaaaa1");
+    await call("POST", "blog-view", { body: { postId: "p1" }, cookie });
+    views.hooks.beforePatch = (id) => {
+      views.hooks.beforePatch = null;
+      if (id === "total") throw Object.assign(new Error("throttled"), { code: 429 });
+    };
+    const failed = await call("POST", "blog-view", {
+      body: { postId: "p1" },
+      cookie: cookieFor("visitor_bbbbbb2"),
+    });
+    expect(failed.status).toBe(500);
+    expect(views.docs.has("p1/total")).toBe(false);
+
+    const next = await call("POST", "blog-view", { body: { postId: "p1" }, cookie });
+    expect(next.body).toEqual({ readers: 2, reads: 3 });
+  });
+
   it("builds a missing total from rows written before totals existed", async () => {
     const views = db.container("blog_views");
     views.seed({ id: "v1", postId: "p1", visitorId: "visitor_old0001", reads: 4 });
