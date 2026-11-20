@@ -81,7 +81,7 @@ describe("PrivacyPage", () => {
     const forms = screen.getByRole("region", { name: "Forms you fill in" });
     expect(
       within(forms).getByText(
-        /contact, booking, inquiry, comment and testimonial forms use Cloudflare\s+Turnstile/,
+        /contact, booking, inquiry, comment, testimonial and newsletter forms use\s+Cloudflare Turnstile/,
       ),
     ).toBeInTheDocument();
     expect(
