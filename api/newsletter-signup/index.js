@@ -32,8 +32,13 @@ function httpsPost(hostname, path, headers, body) {
   });
 }
 
+// RFC 5321 caps an address at 254 characters. Checking the length first also
+// bounds the regex, which backtracks quadratically on long runs of dots.
+const MAX_EMAIL_LENGTH = 254;
+
 function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email));
+  if (typeof email !== "string" || email.length > MAX_EMAIL_LENGTH) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 const SUBSCRIBER_REASON =
