@@ -30,7 +30,8 @@ type PaymentTab = "card" | "momo" | "bank" | "applepay";
 
 type FetchError = "timeout" | "busy" | { title: string; message: string };
 
-// An unsigned link (grace period) sends no s, so doc-access hides the address.
+// An unsigned link (an email from before signed links) sends no s; doc-access
+// and get-invoice answer it with the usual 404.
 const invoiceLocator = (number: string, signature: string | null) =>
   signature
     ? { kind: "invoice" as const, number, s: signature }

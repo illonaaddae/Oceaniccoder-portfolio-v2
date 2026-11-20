@@ -2,8 +2,7 @@
 // POST /api/doc-access for invoices and receipts. The action matrix itself
 // (tries, quotas, blocks, link codes) runs against quotes in api/quote-access
 // and against a test kind in shared/access/endpoint.test.js; this covers what
-// the two kinds add: the contract, locators, switches, the guessable invoice
-// link, isolation between kinds, and receipts sharing their quote's counters.
+// the two kinds add: the contract, locators, switches, isolation between kinds, and receipts sharing their quote's counters.
 import { createRequire } from "module";
 import { describe, it, expect, vi } from "vitest";
 
@@ -40,7 +39,7 @@ const INVOICE = {
   status: "sent",
   createdAt: "2026-10-26T08:00:00.000Z",
 };
-// Emailed before signed links shipped, so its unsigned link still opens.
+// Emailed before signed links shipped; only its signed link opens now.
 const OLD_INVOICE = {
   id: "inv-row-2",
   invoiceNumber: "INV-512345",
@@ -75,8 +74,6 @@ const INVOICE_BODY = {
   number: INVOICE.invoiceNumber,
   s: signInvoice(INVOICE.invoiceNumber, LINK_SECRET),
 };
-// What PR 2's client sends for an unsigned link: s is undefined, so JSON drops it.
-const UNSIGNED_BODY = { kind: "invoice", number: OLD_INVOICE.invoiceNumber };
 const RECEIPT_BODY = { kind: "receipt", reference: REF, s: signReceipt(REF, LINK_SECRET) };
 
 // The Cookie header a browser would send back for these Set-Cookie headers.
@@ -190,7 +187,8 @@ describe("doc-access lookups per IP", () => {
     const t = setup();
     for (let i = 0; i < 30; i += 1) {
       const number = `INV-${500000 + i}`;
-      expect((await t.call({ kind: "invoice", number, action: "status" })).status).toBe(404);
+      const s = signInvoice(number, LINK_SECRET);
+      expect((await t.call({ kind: "invoice", number, s, action: "status" })).status).toBe(404);
     }
     expect(t.invoices.findInvoicesByNumber).toHaveBeenCalledTimes(30);
     const r = await t.call({ kind: "invoice", number: "INV-500030", action: "status" });
@@ -217,6 +215,7 @@ describe("doc-access locator failures", () => {
     ["an unknown number", { number: "INV-2026-0404", s: sig("INV-2026-0404") }],
     ["an unsigned server-numbered invoice", { number: INVOICE.invoiceNumber }],
     ["an unsigned unknown number", { number: "INV-500000" }],
+    ["an unsigned old unpaid invoice", { number: OLD_INVOICE.invoiceNumber }],
   ];
   const RECEIPT_CAUSES = [
     ["no signature", { reference: REF }],
@@ -372,170 +371,6 @@ describe("doc-access for an invoice", () => {
       status: 409,
       body: { noEmail: true },
     });
-  });
-});
-
-describe("doc-access for an unsigned invoice link", () => {
-  it("hides the address on status and on send, and still offers a code", async () => {
-    const t = setup();
-    expect((await t.call({ ...UNSIGNED_BODY, action: "status" })).body).toEqual({
-      locked: true,
-      canUnlock: true,
-      blocked: false,
-      maskedEmail: null,
-    });
-    const sent = await t.call({ ...UNSIGNED_BODY, action: "send" });
-    expect(sent.status).toBe(200);
-    expect(sent.body.maskedEmail).toBeNull();
-    expect(JSON.stringify(sent.body)).not.toContain("hotmail");
-    expect(t.mails[0].to).toBe("kofi.mensah@hotmail.com");
-  });
-
-  it("sends at most one code per 10 minutes and three a day", async () => {
-    const t = setup();
-    // A new IP each time, so the per-IP limit isn't what refuses.
-    let n = 0;
-    const send = async () =>
-      (await t.call({ ...UNSIGNED_BODY, action: "send" }, { ip: `198.51.100.${(n += 1)}` })).status;
-    expect(await send()).toBe(200);
-    t.clock.ms += 2 * MIN;
-    expect(await send()).toBe(429);
-    t.clock.ms += 13 * MIN;
-    expect(await send()).toBe(200);
-    t.clock.ms += 15 * MIN;
-    expect(await send()).toBe(200);
-    t.clock.ms += 15 * MIN;
-    const fourth = await t.call({ ...UNSIGNED_BODY, action: "send" }, { ip: "198.51.100.99" });
-    expect(fourth.status).toBe(429);
-    expect(fourth.body.retryAfterSeconds).toBe(14 * 3600 + 15 * 60);
-    expect(t.mails).toHaveLength(3);
-  });
-
-  it("verifies a code sent through the unsigned link", async () => {
-    const t = setup();
-    const sent = await t.call({ ...UNSIGNED_BODY, action: "send" });
-    const code = t.codeOf(t.mails[0]);
-    const r = await t.call({
-      ...UNSIGNED_BODY,
-      action: "verify",
-      challenge: sent.body.challenge,
-      code,
-    });
-    expect(r.status).toBe(200);
-    expect(r.cookie).toMatch(/^__Secure-oc_ia_/);
-  });
-});
-
-describe("doc-access wrong codes on an unsigned invoice link", () => {
-  const SIGNED_OLD = {
-    ...UNSIGNED_BODY,
-    s: signInvoice(OLD_INVOICE.invoiceNumber, LINK_SECRET),
-  };
-  const wrongCode = (code) => String((Number(code) + 1) % 1000000).padStart(6, "0");
-
-  const wrongVerifies = async (t, body, n, ip) => {
-    const sent = await t.call({ ...body, action: "send" }, { ip });
-    expect(sent.status).toBe(200);
-    const wrong = wrongCode(t.codeOf(t.mails[t.mails.length - 1]));
-    let last;
-    for (let i = 0; i < n; i += 1) {
-      last = await t.call(
-        { ...body, action: "verify", challenge: sent.body.challenge, code: wrong },
-        { ip },
-      );
-    }
-    return last;
-  };
-
-  // The reviewer's sequence: three unsigned sends, five wrong codes after
-  // each, which anyone who guesses an old invoice number can do.
-  async function guessFifteenTimes(t) {
-    const results = [];
-    for (let round = 0; round < 3; round += 1) {
-      const ip = `198.51.100.${10 + round}`;
-      const sent = await t.call({ ...UNSIGNED_BODY, action: "send" }, { ip });
-      results.push(sent.status);
-      if (sent.status === 200) {
-        const wrong = wrongCode(t.codeOf(t.mails[t.mails.length - 1]));
-        for (let i = 0; i < 5; i += 1) {
-          const r = await t.call(
-            { ...UNSIGNED_BODY, action: "verify", challenge: sent.body.challenge, code: wrong },
-            { ip },
-          );
-          results.push(r.status);
-        }
-      }
-      t.clock.ms += 16 * MIN;
-    }
-    return results;
-  }
-
-  it("blocks the unsigned link after five wrong codes, and alerts the owner once", async () => {
-    const t = setup();
-    expect(await guessFifteenTimes(t)).toEqual([200, 400, 400, 400, 400, 403, 403, 403]);
-    expect((await t.call({ ...UNSIGNED_BODY, action: "status" })).body).toMatchObject({
-      blocked: true,
-      canUnlock: false,
-    });
-    expect((await t.call({ ...UNSIGNED_BODY, action: "send" })).status).toBe(403);
-    const alerts = t.mails.filter((m) => m.to === "owner@oceaniccoder.dev");
-    expect(alerts.map((m) => m.subject)).toEqual([
-      "Codes blocked after 5 wrong tries on the unsigned link for INV-512345",
-    ]);
-    expect(alerts[0].text).toContain("The client's signed link still works.");
-  });
-
-  it("never blocks the signed link the client was emailed", async () => {
-    const t = setup();
-    await guessFifteenTimes(t);
-    const ip = "203.0.113.5";
-    expect((await t.call({ ...SIGNED_OLD, action: "status" }, { ip })).body).toEqual({
-      locked: true,
-      canUnlock: true,
-      blocked: false,
-      maskedEmail: "k•••••@hotmail.com",
-    });
-    const sent = await t.call({ ...SIGNED_OLD, action: "send" }, { ip });
-    expect(sent.status).toBe(200);
-    const code = t.codeOf(t.mails[t.mails.length - 1]);
-    const r = await t.call(
-      { ...SIGNED_OLD, action: "verify", challenge: sent.body.challenge, code },
-      { ip },
-    );
-    expect(r.status).toBe(200);
-    expect(r.cookie).toMatch(/^__Secure-oc_ia_/);
-  });
-
-  it("blocks the signed link at the fifteenth wrong code across both links", async () => {
-    const t = setup();
-    expect(await wrongVerifies(t, UNSIGNED_BODY, 5, "198.51.100.10")).toMatchObject({
-      status: 403,
-    });
-    t.clock.ms += 2 * MIN;
-    expect(await wrongVerifies(t, SIGNED_OLD, 5, "203.0.113.5")).toMatchObject({ status: 429 });
-    t.clock.ms += 2 * MIN;
-    expect(await wrongVerifies(t, SIGNED_OLD, 5, "203.0.113.5")).toMatchObject({
-      status: 403,
-      body: { blocked: true },
-    });
-    t.clock.ms += 2 * MIN;
-    expect((await t.call({ ...SIGNED_OLD, action: "send" }, { ip: "203.0.113.6" })).status).toBe(
-      403,
-    );
-    expect(t.locks.held.has("ia:miss:inv-row-2:0:0:15")).toBe(true);
-  });
-
-  it("still blocks both links after fifteen wrong codes on the signed one", async () => {
-    const t = setup();
-    let last;
-    for (let round = 0; round < 3; round += 1) {
-      last = await wrongVerifies(t, SIGNED_OLD, 5, `203.0.113.${round + 1}`);
-      t.clock.ms += 2 * MIN;
-    }
-    expect(last).toMatchObject({ status: 403, body: { blocked: true } });
-    expect((await t.call({ ...SIGNED_OLD, action: "send" })).status).toBe(403);
-    expect((await t.call({ ...UNSIGNED_BODY, action: "send" })).status).toBe(403);
-    expect((await t.call({ ...UNSIGNED_BODY, action: "status" })).body.blocked).toBe(true);
   });
 });
 

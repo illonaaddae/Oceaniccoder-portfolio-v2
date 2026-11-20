@@ -1,8 +1,7 @@
 /* global require, module */
 // GET /api/get-invoice?number=INV-123456&s=<signature>[&admin=1]
 // Fetches an invoice for its pay page. Needs the signature from the emailed or
-// admin pay link; until 2026-11-21 an unsigned link still opens an old unpaid
-// invoice (api/shared/invoiceLinks.js). Reads the invoice from Cosmos DB.
+// admin pay link (api/shared/invoiceLinks.js). Reads the invoice from Cosmos DB.
 //
 // Behind the invoice access gate (shared/invoices/access.js): once the link
 // finds the invoice, a browser with no unlock gets 401 locked and nothing
@@ -32,7 +31,7 @@ const CORS = {
   "Cache-Control": "no-store",
 };
 
-// One reply for a bad signature, an unsigned link out of grace, an unknown
+// One reply for a bad or missing signature, an unknown
 // number and a number two invoices share, so a guess learns nothing about
 // which invoices exist. The text is doc-access's too.
 const NOT_FOUND = { error: I.INVOICE_NOT_FOUND };
@@ -113,9 +112,9 @@ function createHandler(deps) {
     if (!number) return reply(context, 400, { error: "Missing invoice number" });
 
     // doc-access's rules and order for finding the invoice: the locator's
-    // shape, then the switch and the secret (503), then the signature (or the
-    // unsigned grace) before any lookup; two rows with the number fail
-    // closed. Every locator failure is the same 404.
+    // shape, then the switch and the secret (503), then the signature before
+    // any lookup; two rows with the number fail closed. Every locator failure
+    // is the same 404.
     const locator = I.invoiceLocator({ env, logWarn: (line) => context.log.warn(line) });
     const logError = (line) => context.log.error(line);
     const body = { number, s: query.s };
