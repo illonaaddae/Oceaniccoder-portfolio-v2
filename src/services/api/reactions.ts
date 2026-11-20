@@ -1,7 +1,8 @@
 import { COLLECTIONS } from "./collections";
 import { getJson, manageDelete, postJson } from "./dataApi";
+import { ensureVisitor } from "./visitor";
 
-/** /api/counters/reactions: totals plus this visitor's own reaction. */
+/** /api/counters/reactions: totals plus this visitor's own reaction (from its cookie). */
 interface ReactionState {
   likes: number;
   dislikes: number;
@@ -22,28 +23,22 @@ export async function getPostReactions(
   }
 }
 
-export async function getVisitorReaction(
-  postId: string,
-  visitorId: string,
-): Promise<BlogReaction | null> {
+/** This visitor's own reaction to the post, or null. */
+export async function getVisitorReaction(postId: string): Promise<BlogReaction["reaction"] | null> {
   try {
+    await ensureVisitor();
     const { mine } = await getJson<ReactionState>(
-      `/api/counters/reactions?postId=${encodeURIComponent(postId)}&visitorId=${encodeURIComponent(visitorId)}`,
+      `/api/counters/reactions?postId=${encodeURIComponent(postId)}`,
     );
-    // Only `reaction` is read by the UI; the row id stays on the server.
-    return mine ? { $id: "", postId, visitorId, reaction: mine } : null;
+    return mine;
   } catch {
     return null;
   }
 }
 
-export async function addReaction(
-  postId: string,
-  visitorId: string,
-  reaction: "like" | "dislike",
-): Promise<BlogReaction> {
-  await postJson<ReactionState>("/api/counters/reaction", { postId, visitorId, reaction });
-  return { $id: "", postId, visitorId, reaction };
+export async function addReaction(postId: string, reaction: "like" | "dislike"): Promise<void> {
+  await ensureVisitor();
+  await postJson<ReactionState>("/api/counters/reaction", { postId, reaction });
 }
 
 export async function removeReaction(reactionId: string): Promise<void> {

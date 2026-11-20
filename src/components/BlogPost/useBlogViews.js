@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { getPostViewStats, recordBlogView } from "../../services/api";
-import { getVisitorId } from "./utils";
 
 /** Guard so a refresh inside one browsing session isn't counted as a re-read. */
 const sessionKey = (postId) => `blog_view_recorded_${postId}`;
@@ -38,7 +37,7 @@ export const useBlogViews = (postId) => {
     }
 
     markCountedThisSession(postId);
-    const recorded = await recordBlogView(postId, getVisitorId());
+    const recorded = await recordBlogView(postId);
     setStats(recorded ?? (await getPostViewStats(postId)));
   }, [postId]);
 

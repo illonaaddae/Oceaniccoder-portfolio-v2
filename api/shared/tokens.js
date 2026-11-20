@@ -49,6 +49,11 @@ const signInvoice = (invoiceNumber, secret) => signLink("invoice", invoiceNumber
 const verifyInvoice = (invoiceNumber, sig, secret) =>
   verifyLink("invoice", invoiceNumber, sig, secret);
 
+// Blog visitor cookies (/api/counters): the server signs the visitor id it
+// hands out, so a caller can't invent new visitors to inflate the counters.
+const signVisitor = (visitorId, secret) => signLink("visitor", visitorId, secret);
+const verifyVisitor = (visitorId, sig, secret) => verifyLink("visitor", visitorId, sig, secret);
+
 // Appwrite document ids allow [a-zA-Z0-9._-] and at most 36 characters.
 function lockId(key) {
   return `s_${crypto.createHash("sha256").update(key).digest("hex").slice(0, 34)}`;
@@ -68,6 +73,8 @@ module.exports = {
   verifyReceipt,
   signInvoice,
   verifyInvoice,
+  signVisitor,
+  verifyVisitor,
   lockId,
   paymentIdFor,
 };

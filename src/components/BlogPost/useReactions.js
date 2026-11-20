@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { getPostReactions, getVisitorReaction, addReaction } from "../../services/api";
-import { getVisitorId } from "./utils";
 
 /**
  * Manages like / dislike reactions for a single blog post.
@@ -16,10 +15,10 @@ export const useReactions = (postId) => {
     try {
       const [reactionsData, visitorReaction] = await Promise.all([
         getPostReactions(postId),
-        getVisitorReaction(postId, getVisitorId()),
+        getVisitorReaction(postId),
       ]);
       setReactions(reactionsData);
-      setUserReaction(visitorReaction?.reaction || null);
+      setUserReaction(visitorReaction || null);
     } catch (error) {
       console.error("Error loading reactions:", error);
     }
@@ -33,7 +32,6 @@ export const useReactions = (postId) => {
     if (reactionLoading || !postId) return;
 
     setReactionLoading(true);
-    const visitorId = getVisitorId();
     const previousReaction = userReaction;
     const previousReactions = { ...reactions };
 
@@ -64,7 +62,7 @@ export const useReactions = (postId) => {
     }
 
     try {
-      await addReaction(postId, visitorId, reactionType);
+      await addReaction(postId, reactionType);
     } catch (error) {
       console.error("Error adding reaction:", error);
       setUserReaction(previousReaction);

@@ -8,12 +8,18 @@
 //   - every stored item gets _rid, _self, _etag, _attachments and _ts.
 //
 // Queries run through a small evaluator for the SQL the repo writes:
-//   SELECT [TOP n] * | c.field FROM c
+//   SELECT [TOP n] * | c.field[, c.field ...] FROM c
 //   [WHERE cond AND cond ...] [ORDER BY c.field ASC|DESC]
 // where cond is `c.f = @p`, `c.f < @p`, `STARTSWITH(c.f, @p)` or
 // `(NOT IS_DEFINED(c.f) OR IS_NULL(c.f))`. Anything else throws, and so does
 // a literal value in the SQL text, so a test can't pass on an unparameterised
-// or unsupported query.
+// or unsupported query. A `partitionKey` query option scopes the query to that
+// partition, and item().patch() applies `set` and `incr` operations.
+// items.batch() runs Create and Patch operations all-or-nothing and reports
+// the failing one's code, with 424 for the rest, as Cosmos does.
+//
+// Like Cosmos, an id is unique only within its partition. `docs` is keyed by
+// id in containers partitioned by /id, and by `${pk}/${id}` in the others.
 
 const clone = (v) => (v === undefined ? v : structuredClone(v));
 
@@ -42,7 +48,7 @@ const CONDITIONS = [
   },
 ];
 const SELECT = new RegExp(
-  String.raw`^SELECT (?:TOP (\d+) )?(\*|${FIELD}) FROM c` +
+  String.raw`^SELECT (?:TOP (\d+) )?(\*|${FIELD}(?:, ${FIELD})*) FROM c` +
     String.raw`(?: WHERE (.+?))?(?: ORDER BY ${FIELD} (ASC|DESC))?$`,
 );
 
@@ -63,7 +69,8 @@ function runQuery(docs, spec) {
   if (/['"]/.test(query)) throw new Error(`fakeCosmos: literal value in SQL: ${query}`);
   const m = SELECT.exec(query);
   if (!m) throw new Error(`fakeCosmos: unsupported query: ${query}`);
-  const [, top, projection, projected, where, orderField, orderDir] = m;
+  const [, top, projection, , , where, orderField, orderDir] = m;
+  const fields = projection === "*" ? null : projection.split(", ").map((f) => f.slice(2));
   const params = new Map(parameters.map((p) => [p.name, p.value]));
   const conditions = where ? where.split(" AND ").map((t) => compileCondition(t, params)) : [];
 
@@ -77,16 +84,19 @@ function runQuery(docs, spec) {
     );
   }
   if (top) rows = rows.slice(0, Number(top));
-  return rows.map((doc) => (projection === "*" ? clone(doc) : { [projected]: doc[projected] }));
+  return rows.map((doc) =>
+    fields ? Object.fromEntries(fields.map((f) => [f, doc[f]])) : clone(doc),
+  );
 }
 
 function createFakeContainer(name, { partitionKey = "/id" } = {}) {
   const pkField = partitionKey.slice(1);
   const docs = new Map();
+  const key = (id, pk) => (pkField === "id" ? id : `${pk}/${id}`);
   const queries = [];
   // Tests set these to simulate another writer or a failing request. Each
   // runs before the operation and may change `docs` or throw.
-  const hooks = { beforeCreate: null, beforeReplace: null, beforeRead: null };
+  const hooks = { beforeCreate: null, beforeReplace: null, beforeRead: null, beforePatch: null };
   let version = 0;
 
   function store(doc) {
@@ -99,16 +109,16 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
       _attachments: "attachments/",
       _ts: Math.floor(Date.now() / 1000),
     };
-    docs.set(doc.id, saved);
+    docs.set(key(doc.id, doc[pkField]), saved);
     return clone(saved);
   }
 
   function find(id, pk) {
-    const doc = docs.get(id);
+    const doc = docs.get(key(id, pk));
     return doc && doc[pkField] === pk ? doc : undefined;
   }
 
-  return {
+  const container = {
     id: name,
     docs,
     queries,
@@ -121,15 +131,47 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
       async create(body) {
         if (hooks.beforeCreate) await hooks.beforeCreate(body);
         if (typeof body.id !== "string" || !body.id) throw cosmosError(400, "id is required");
-        if (docs.has(body.id))
+        if (docs.has(key(body.id, body[pkField])))
           throw cosmosError(409, "Entity with the specified id already exists");
         return { resource: store(body), statusCode: 201 };
       },
-      query(spec) {
+      async batch(operations, pk) {
+        const saved = new Map(docs);
+        const result = [];
+        for (const operation of operations) {
+          try {
+            let response;
+            if (operation.operationType === "Create") {
+              if (operation.resourceBody[pkField] !== pk)
+                throw cosmosError(400, "partition key mismatch");
+              response = await container.items.create(operation.resourceBody);
+            } else if (operation.operationType === "Patch") {
+              response = await container
+                .item(operation.id, pk)
+                .patch(operation.resourceBody.operations);
+            } else {
+              throw new Error(`fakeCosmos: unsupported batch op: ${operation.operationType}`);
+            }
+            result.push({ statusCode: response.statusCode, resourceBody: response.resource });
+          } catch (err) {
+            if (typeof err.code !== "number") throw err;
+            docs.clear();
+            for (const [k, v] of saved) docs.set(k, v);
+            const failedAt = result.length;
+            return {
+              result: operations.map((_, i) => ({ statusCode: i === failedAt ? err.code : 424 })),
+            };
+          }
+        }
+        return { result };
+      },
+      query(spec, options = {}) {
         queries.push(clone(spec));
+        const inScope = (doc) =>
+          options.partitionKey === undefined || doc[pkField] === options.partitionKey;
         return {
           async fetchAll() {
-            return { resources: runQuery([...docs.values()], spec) };
+            return { resources: runQuery([...docs.values()].filter(inScope), spec) };
           },
         };
       },
@@ -156,14 +198,28 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
           const { _rid, _self, _etag, _attachments, _ts, ...fields } = body;
           return { resource: store(fields), statusCode: 200 };
         },
+        async patch(operations) {
+          if (hooks.beforePatch) await hooks.beforePatch(id, operations);
+          const current = find(id, pk);
+          if (!current) throw cosmosError(404, "Entity with the specified id does not exist");
+          const { _rid, _self, _etag, _attachments, _ts, ...fields } = current;
+          for (const { op, path, value } of operations) {
+            const field = path.slice(1);
+            if (op === "set") fields[field] = value;
+            else if (op === "incr") fields[field] = (fields[field] || 0) + value;
+            else throw new Error(`fakeCosmos: unsupported patch op: ${op}`);
+          }
+          return { resource: store(fields), statusCode: 200 };
+        },
         async delete() {
           if (!find(id, pk)) throw cosmosError(404, "Entity with the specified id does not exist");
-          docs.delete(id);
+          docs.delete(key(id, pk));
           return { statusCode: 204 };
         },
       };
     },
   };
+  return container;
 }
 
 /** A fake database whose containers are created on first use. */
