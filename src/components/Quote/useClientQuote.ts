@@ -44,6 +44,10 @@ function claimLinkOnce(token: string): Promise<boolean> {
 /** "?preview=admin" for links inside the dashboard's Preview, so it stays one. */
 export const previewQuery = (admin: boolean) => (admin ? "?preview=admin" : "");
 
+/** A receipt path ("/receipt/<ref>?s=") that keeps the Preview query. */
+export const receiptHref = (path: string, query: string) =>
+  query ? `${path}&${query.slice(1)}` : path;
+
 /**
  * preview: don't record the client's first view. admin: the dashboard's
  * Preview (?preview=admin), checked against the admin session; it never

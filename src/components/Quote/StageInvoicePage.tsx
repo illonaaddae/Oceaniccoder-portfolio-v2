@@ -2,7 +2,7 @@ import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import QuoteShell, { QuoteCard, QuoteError, QuoteLoading } from "./QuoteShell";
 import InactiveLink from "./InactiveLink";
 import { LockedQuote } from "./QuoteAccessGate";
-import { previewQuery, useClientQuote } from "./useClientQuote";
+import { previewQuery, receiptHref, useClientQuote } from "./useClientQuote";
 import { formatDate, formatMinor } from "@/utils/quoteMath";
 
 export default function StageInvoicePage() {
@@ -136,7 +136,7 @@ export default function StageInvoicePage() {
           )}
           {stage.receiptPath && (
             <Link
-              to={stage.receiptPath}
+              to={receiptHref(stage.receiptPath, query)}
               className="px-5 py-3 rounded-xl border"
               style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
             >
