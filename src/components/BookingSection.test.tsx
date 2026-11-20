@@ -42,7 +42,6 @@ vi.mock("react-icons/fa", () => {
 });
 
 vi.mock("../services/api/bookings", () => ({
-  createBooking: vi.fn(),
   getBookedTimesForDate: vi.fn(),
 }));
 
@@ -75,23 +74,33 @@ vi.mock("@/hooks/useTurnstile", async () => {
 });
 
 import BookingSection from "./BookingSection";
-import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
+import { getBookedTimesForDate } from "../services/api/bookings";
 
-const mockCreateBooking = createBooking as ReturnType<typeof vi.fn>;
 const mockGetBookedTimes = getBookedTimesForDate as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   // clearAllMocks preserves implementations; restoreAllMocks would reset vi.fn() to undefined.
   vi.clearAllMocks();
   turnstileMock.initialToken = "token-0";
-  mockCreateBooking.mockResolvedValue({ $id: "abcdef12345678" });
   mockGetBookedTimes.mockResolvedValue(new Set());
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
-    json: async () => ({ success: true, meetLink: null, calendarEventLink: null }),
+    json: async () => ({
+      success: true,
+      booking: { $id: "abcdef12345678" },
+      meetLink: null,
+      calendarEventLink: null,
+    }),
   });
 });
+
+/** The JSON bodies sent to /api/create-booking. */
+const bookingRequests = () =>
+  vi
+    .mocked(global.fetch)
+    .mock.calls.filter(([url]) => url === "/api/create-booking")
+    .map(([, init]) => JSON.parse(String((init as { body: string }).body)));
 
 // ── Navigation helpers ────────────────────────────────────────────────────────
 
@@ -173,7 +182,11 @@ describe("BookingSection — submit flow", () => {
     await waitFor(() => {
       expect(screen.getByText("Booking Received!")).toBeInTheDocument();
     });
-    expect(mockCreateBooking).toHaveBeenCalledOnce();
+    // One request makes the booking, carrying the spam-check token.
+    expect(bookingRequests()).toEqual([
+      expect.objectContaining({ email: "ada@example.com", turnstileToken: "token-0" }),
+    ]);
+    expect(screen.getByText(/12345678/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /join google meet/i })).not.toBeInTheDocument();
   });
 
@@ -183,6 +196,7 @@ describe("BookingSection — submit flow", () => {
       status: 200,
       json: async () => ({
         success: true,
+        booking: { $id: "abcdef12345678" },
         meetLink: "https://meet.google.com/abc-defg-hij",
         calendarEventLink: "https://calendar.google.com/event?eid=abc",
       }),
@@ -223,8 +237,7 @@ describe("BookingSection — submit flow", () => {
       expect(screen.getByText(/09:00 AM on 2099-06-15 is already booked/i)).toBeInTheDocument();
     });
     expect(screen.queryByText("Booking Received!")).not.toBeInTheDocument();
-    // createBooking must NOT be called — the 409 blocks execution before the save
-    expect(mockCreateBooking).not.toHaveBeenCalled();
+    expect(bookingRequests()).toHaveLength(1);
   });
 
   test("409 shows 'choose a different time' back-link that returns to step 2", async () => {
@@ -250,9 +263,8 @@ describe("BookingSection — submit flow", () => {
     expect(screen.getByLabelText(/preferred date/i)).toBeInTheDocument();
   });
 
-  test("shows generic error when the calendar and the save both fail", async () => {
+  test("shows generic error when the booking request fails", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
-    mockCreateBooking.mockRejectedValue(new Error("Save failed"));
 
     render(<BookingSection />);
     await advanceToStep2();
@@ -265,14 +277,32 @@ describe("BookingSection — submit flow", () => {
     });
   });
 
+  test("shows the server's reason and no success screen when the spam check is refused", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ error: "The spam check failed. Please try again." }),
+    });
+
+    render(<BookingSection />);
+    await advanceToStep2();
+    await advanceToStep3();
+
+    fireEvent.click(button(/confirm booking/i));
+
+    await waitFor(() => {
+      expect(screen.getByText("The spam check failed. Please try again.")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Booking Received!")).not.toBeInTheDocument();
+  });
+
   test("waits for the spam-check token before Confirm can create the calendar event", async () => {
     turnstileMock.initialToken = null;
     render(<BookingSection />);
     await advanceToStep2();
     await advanceToStep3();
 
-    // No token yet: a click here used to create the calendar event, then fail
-    // to save because /api/submit needs the token.
+    // No token yet: /api/create-booking would refuse the booking.
     expect(button(/confirm booking/i)).toBeDisabled();
     expect(button(/confirm booking/i)).toHaveAccessibleDescription(/running a quick spam check/i);
     await waitFor(() =>
@@ -289,7 +319,7 @@ describe("BookingSection — submit flow", () => {
     fireEvent.click(button(/confirm booking/i));
 
     await waitFor(() => expect(screen.getByText("Booking Received!")).toBeInTheDocument());
-    expect(mockCreateBooking).toHaveBeenCalledWith(expect.anything(), "token-1");
+    expect(bookingRequests()).toEqual([expect.objectContaining({ turnstileToken: "token-1" })]);
   });
 
   test("says what to do when the spam-check token is slow to arrive", async () => {
