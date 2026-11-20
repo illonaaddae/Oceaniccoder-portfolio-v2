@@ -1,4 +1,5 @@
 import { getJson, postJson } from "./dataApi";
+import { ensureVisitor } from "./visitor";
 import type { BlogViewStats } from "../../types";
 
 const EMPTY: BlogViewStats = { readers: 0, reads: 0 };
@@ -25,15 +26,13 @@ export async function getAllBlogViewStats(): Promise<Record<string, BlogViewStat
 
 /**
  * Record that this visitor opened the post: the server counts unique readers
- * and repeat reads. Returns the post's stats after the write so callers can
- * render without a second fetch.
+ * (by its signed visitor cookie) and repeat reads. Returns the post's stats
+ * after the write so callers can render without a second fetch.
  */
-export async function recordBlogView(
-  postId: string,
-  visitorId: string,
-): Promise<BlogViewStats | null> {
+export async function recordBlogView(postId: string): Promise<BlogViewStats | null> {
   try {
-    return await postJson<BlogViewStats>("/api/counters/blog-view", { postId, visitorId });
+    await ensureVisitor();
+    return await postJson<BlogViewStats>("/api/counters/blog-view", { postId });
   } catch {
     // A view that fails to record must never break the article.
     return null;

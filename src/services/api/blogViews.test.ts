@@ -46,20 +46,31 @@ describe("blog view stats", () => {
 });
 
 describe("recordBlogView", () => {
-  it("posts the view and returns the stats the server sends back", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(200, { readers: 1, reads: 3 }));
+  it("gets a signed visitor cookie first, then posts the view", async () => {
+    localStorage.setItem("blog_visitor_id", "visitor_abc123def");
+    fetchMock.mockImplementation(async (url) =>
+      String(url) === "/api/counters/visitor"
+        ? jsonResponse(200, { ok: true })
+        : jsonResponse(200, { readers: 1, reads: 3 }),
+    );
 
-    const stats = await recordBlogView("p1", "v1");
+    const stats = await recordBlogView("p1");
 
-    const [url, init] = fetchMock.mock.calls[0];
+    const [[visitorUrl, visitorInit], [url, init]] = fetchMock.mock.calls;
+    expect(visitorUrl).toBe("/api/counters/visitor");
+    expect(JSON.parse(visitorInit?.body as string)).toEqual({ visitorId: "visitor_abc123def" });
     expect(url).toBe("/api/counters/blog-view");
-    expect(JSON.parse(init?.body as string)).toEqual({ postId: "p1", visitorId: "v1" });
+    expect(JSON.parse(init?.body as string)).toEqual({ postId: "p1" });
     expect(stats).toEqual({ readers: 1, reads: 3 });
+
+    await recordBlogView("p2");
+    expect(fetchMock.mock.calls.filter(([u]) => u === "/api/counters/visitor")).toHaveLength(1);
+    localStorage.removeItem("blog_visitor_id");
   });
 
   it("swallows write failures so the article still renders", async () => {
     fetchMock.mockRejectedValue(new Error("offline"));
 
-    expect(await recordBlogView("p1", "v1")).toBeNull();
+    expect(await recordBlogView("p1")).toBeNull();
   });
 });

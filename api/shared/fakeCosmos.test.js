@@ -67,4 +67,24 @@ describe("fake Cosmos container", () => {
     await expect(run("SELECT * FROM c WHERE c.status != @s")).rejects.toThrow(/unsupported/);
     await expect(run("SELECT * FROM c WHERE c.status = @s")).rejects.toThrow(/no value/);
   });
+
+  it("projects several fields, scopes a query to a partition and patches items", async () => {
+    const c = createFakeCosmos({ views: "/postId" }).container("views");
+    await c.items.create({ id: "a", postId: "p1", reads: 1, extra: "x" });
+    await c.items.create({ id: "b", postId: "p2", reads: 2 });
+    const spec = { query: "SELECT c.postId, c.reads FROM c", parameters: [] };
+
+    expect((await c.items.query(spec).fetchAll()).resources).toHaveLength(2);
+    expect((await c.items.query(spec, { partitionKey: "p1" }).fetchAll()).resources).toEqual([
+      { postId: "p1", reads: 1 },
+    ]);
+
+    const { resource } = await c.item("a", "p1").patch([
+      { op: "incr", path: "/reads", value: 2 },
+      { op: "incr", path: "/readers", value: 1 },
+      { op: "set", path: "/extra", value: "y" },
+    ]);
+    expect(resource).toEqual(expect.objectContaining({ reads: 3, readers: 1, extra: "y" }));
+    await expect(c.item("a", "p2").patch([])).rejects.toMatchObject({ code: 404 });
+  });
 });

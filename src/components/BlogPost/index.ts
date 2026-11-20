@@ -2,7 +2,7 @@
 export { useThemeDetector } from "./useThemeDetector";
 export { useBlogPost } from "./useBlogPost";
 export { useReactions } from "./useReactions";
-export { formatDate, getVisitorId, normalizeContent } from "./utils";
+export { formatDate, normalizeContent } from "./utils";
 export { fallbackPosts } from "./fallbackPosts";
 export { CodeBlock } from "./CodeBlock";
 export { createCodeHandler } from "./CodeHandler";

@@ -8,12 +8,13 @@
 //   - every stored item gets _rid, _self, _etag, _attachments and _ts.
 //
 // Queries run through a small evaluator for the SQL the repo writes:
-//   SELECT [TOP n] * | c.field FROM c
+//   SELECT [TOP n] * | c.field[, c.field ...] FROM c
 //   [WHERE cond AND cond ...] [ORDER BY c.field ASC|DESC]
 // where cond is `c.f = @p`, `c.f < @p`, `STARTSWITH(c.f, @p)` or
 // `(NOT IS_DEFINED(c.f) OR IS_NULL(c.f))`. Anything else throws, and so does
 // a literal value in the SQL text, so a test can't pass on an unparameterised
-// or unsupported query.
+// or unsupported query. A `partitionKey` query option scopes the query to that
+// partition, and item().patch() applies `set` and `incr` operations.
 
 const clone = (v) => (v === undefined ? v : structuredClone(v));
 
@@ -42,7 +43,7 @@ const CONDITIONS = [
   },
 ];
 const SELECT = new RegExp(
-  String.raw`^SELECT (?:TOP (\d+) )?(\*|${FIELD}) FROM c` +
+  String.raw`^SELECT (?:TOP (\d+) )?(\*|${FIELD}(?:, ${FIELD})*) FROM c` +
     String.raw`(?: WHERE (.+?))?(?: ORDER BY ${FIELD} (ASC|DESC))?$`,
 );
 
@@ -63,7 +64,8 @@ function runQuery(docs, spec) {
   if (/['"]/.test(query)) throw new Error(`fakeCosmos: literal value in SQL: ${query}`);
   const m = SELECT.exec(query);
   if (!m) throw new Error(`fakeCosmos: unsupported query: ${query}`);
-  const [, top, projection, projected, where, orderField, orderDir] = m;
+  const [, top, projection, , , where, orderField, orderDir] = m;
+  const fields = projection === "*" ? null : projection.split(", ").map((f) => f.slice(2));
   const params = new Map(parameters.map((p) => [p.name, p.value]));
   const conditions = where ? where.split(" AND ").map((t) => compileCondition(t, params)) : [];
 
@@ -77,7 +79,9 @@ function runQuery(docs, spec) {
     );
   }
   if (top) rows = rows.slice(0, Number(top));
-  return rows.map((doc) => (projection === "*" ? clone(doc) : { [projected]: doc[projected] }));
+  return rows.map((doc) =>
+    fields ? Object.fromEntries(fields.map((f) => [f, doc[f]])) : clone(doc),
+  );
 }
 
 function createFakeContainer(name, { partitionKey = "/id" } = {}) {
@@ -125,11 +129,13 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
           throw cosmosError(409, "Entity with the specified id already exists");
         return { resource: store(body), statusCode: 201 };
       },
-      query(spec) {
+      query(spec, options = {}) {
         queries.push(clone(spec));
+        const inScope = (doc) =>
+          options.partitionKey === undefined || doc[pkField] === options.partitionKey;
         return {
           async fetchAll() {
-            return { resources: runQuery([...docs.values()], spec) };
+            return { resources: runQuery([...docs.values()].filter(inScope), spec) };
           },
         };
       },
@@ -154,6 +160,18 @@ function createFakeContainer(name, { partitionKey = "/id" } = {}) {
           if (body.id !== id || body[pkField] !== pk)
             throw cosmosError(400, "id or partition key changed");
           const { _rid, _self, _etag, _attachments, _ts, ...fields } = body;
+          return { resource: store(fields), statusCode: 200 };
+        },
+        async patch(operations) {
+          const current = find(id, pk);
+          if (!current) throw cosmosError(404, "Entity with the specified id does not exist");
+          const { _rid, _self, _etag, _attachments, _ts, ...fields } = current;
+          for (const { op, path, value } of operations) {
+            const field = path.slice(1);
+            if (op === "set") fields[field] = value;
+            else if (op === "incr") fields[field] = (fields[field] || 0) + value;
+            else throw new Error(`fakeCosmos: unsupported patch op: ${op}`);
+          }
           return { resource: store(fields), statusCode: 200 };
         },
         async delete() {

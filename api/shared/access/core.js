@@ -745,6 +745,7 @@ function adminCheck(requireAdmin, context, req, flag) {
 
 module.exports = {
   createAccess,
+  readCookie,
   pruneAcrossSchemes,
   adminCheck,
   maskEmail,
