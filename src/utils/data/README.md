@@ -104,9 +104,8 @@ When adding new data:
 
 1. Create a new file in this directory
 2. Export the data as default export
-3. Add the export to `index.js`
-4. Update this README with the new module details
-5. Use consistent data structures
+3. Update this README with the new module details
+4. Use consistent data structures
 
 ## Notes
 
