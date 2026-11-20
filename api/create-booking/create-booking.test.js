@@ -11,13 +11,19 @@ import { createRequire } from "module";
 const mockRequest = vi.spyOn(https, "request");
 vi.spyOn(querystring, "stringify").mockImplementation((o) => new URLSearchParams(o).toString());
 
-// Import handler once at module level (no resetModules — would break spies).
-const { default: handler } = await import("./index.js");
+// Import once at module level (no resetModules — would break spies). Each test
+// gets a fresh handler so the per-instance rate limits start empty.
+const { createHandler } = await import("./index.js");
+/** @type {(context: any, req: any) => Promise<void>} */
+let handler;
+// Inside the window validate.js accepts for the 2099 dates below.
+const NOW = Date.parse("2099-06-01T12:00:00Z");
 
 // The same CommonJS instances index.js requires, so a spy on getDatabase reaches it.
 const require = createRequire(import.meta.url);
 const cosmos = require("../shared/cosmos.js");
 const { createFakeCosmos } = require("../shared/fakeCosmos.js");
+const turnstile = require("../shared/turnstile.js");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -36,8 +42,10 @@ function stubHttps(statusCode, body) {
 
 const makeContext = () => ({
   res: null,
-  log: { error: vi.fn(), warn: vi.fn() },
+  log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 });
+
+const GOOD_TOKEN = "good-token";
 
 const validBody = {
   name: "Ada Lovelace",
@@ -48,17 +56,27 @@ const validBody = {
   timezone: "UTC",
   message: "",
   phone: "",
+  turnstileToken: GOOD_TOKEN,
 };
 
 /** @type {Record<string, string | undefined>} */
 let savedEnv;
 /** The fake Cosmos `bookings` container every test's slot check reads. */
 let bookings;
+/** The fake Cosmos `locks` container holding slot locks. */
+let locks;
 beforeEach(() => {
   mockRequest.mockReset();
+  handler = createHandler({ now: () => NOW });
   const db = createFakeCosmos();
   bookings = db.container("bookings");
+  locks = db.container("locks");
   vi.spyOn(cosmos, "getDatabase").mockReturnValue(db);
+  vi.spyOn(turnstile, "verifyTurnstile").mockImplementation(async (token) =>
+    token === GOOD_TOKEN
+      ? { ok: true }
+      : { ok: false, status: 403, error: "The spam check failed. Please try again." },
+  );
   savedEnv = {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
@@ -73,6 +91,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.mocked(cosmos.getDatabase).mockRestore();
+  vi.mocked(turnstile.verifyTurnstile).mockRestore?.();
   for (const [k, v] of Object.entries(savedEnv)) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
@@ -337,8 +356,8 @@ describe("create-booking slot check on Cosmos", () => {
   });
 
   // Fails closed: an invite and a confirmation email for a slot that may be
-  // taken are worse than a booking saved (by /api/submit) without them.
-  it("answers 503 and sends no invite or email when the check fails", async () => {
+  // taken are worse than asking the visitor to try again.
+  it("answers 503, saves nothing and sends no invite or email when the check fails", async () => {
     setGoogleEnv();
     vi.spyOn(bookings.items, "query").mockImplementation(() => {
       throw new Error("Request rate is large");
@@ -348,9 +367,12 @@ describe("create-booking slot check on Cosmos", () => {
     await handler(ctx, { method: "POST", body: validBody, query: {} });
 
     expect(ctx.res.status).toBe(503);
-    expect(JSON.parse(ctx.res.body).error).toBe("slot_check_failed");
+    expect(JSON.parse(ctx.res.body).error).toBe("booking_failed");
     expect(mockRequest).not.toHaveBeenCalled();
-    expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "Request rate is large");
+    expect(ctx.log.error).toHaveBeenCalledWith("Booking save failed:", "Request rate is large");
+    expect(bookings.docs.size).toBe(0);
+    // The slot lock is released, so a retry can book the slot.
+    expect(locks.docs.size).toBe(0);
   });
 
   describe("owner alert when the check fails", () => {
@@ -381,18 +403,18 @@ describe("create-booking slot check on Cosmos", () => {
       const ctx = await run();
 
       expect(ctx.res.status).toBe(503);
-      expect(JSON.parse(ctx.res.body)).toEqual({ error: "slot_check_failed" });
+      expect(JSON.parse(ctx.res.body)).toEqual({ error: "booking_failed" });
       // One request in all: the alert. No OAuth, no calendar insert, no booker email.
       expect(mockRequest).toHaveBeenCalledTimes(1);
       expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
       const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
       expect(sent.to).toEqual(["host@example.com"]);
       expect(sent.subject).toBe(
-        "Action needed: booking with Ada Lovelace on 2099-06-15 at 09:00 AM got no invite or confirmation",
+        "Action needed: booking with Ada Lovelace on 2099-06-15 at 09:00 AM couldn't be saved",
       );
-      expect(sent.html).toContain("No invite or confirmation was sent");
+      expect(sent.html).toContain("The booking wasn");
       expect(sent.html).toContain("09:00 AM on 2099-06-15");
-      expect(sent.html).toContain("send the invite and confirmation by hand");
+      expect(sent.html).toContain("contact them to rebook");
       expect(sent.html).not.toContain("Google credentials");
     });
 
@@ -406,9 +428,9 @@ describe("create-booking slot check on Cosmos", () => {
       const ctx = await run();
 
       expect(ctx.res.status).toBe(503);
-      expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "ECONNREFUSED");
+      expect(ctx.log.error).toHaveBeenCalledWith("Booking save failed:", "ECONNREFUSED");
       const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
-      expect(sent.html).toContain("was free (ECONNREFUSED)");
+      expect(sent.html).toContain("on 2099-06-15 (ECONNREFUSED)");
     });
 
     // QA repro: Cosmos accepted the connection and never answered, so the
@@ -429,14 +451,14 @@ describe("create-booking slot check on Cosmos", () => {
         await done;
 
         expect(ctx.res.status).toBe(503);
-        expect(JSON.parse(ctx.res.body)).toEqual({ error: "slot_check_failed" });
+        expect(JSON.parse(ctx.res.body)).toEqual({ error: "booking_failed" });
         const { abortSignal } = vi.mocked(bookings.items.query).mock.calls[0][1];
         expect(abortSignal.aborted).toBe(true);
-        expect(ctx.log.error).toHaveBeenCalledWith("Slot check failed:", "timed out");
+        expect(ctx.log.error).toHaveBeenCalledWith("Booking save failed:", "timed out");
         expect(mockRequest).toHaveBeenCalledTimes(1);
         expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
         const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
-        expect(sent.html).toContain("was free (timed out)");
+        expect(sent.html).toContain("on 2099-06-15 (timed out)");
       } finally {
         vi.useRealTimers();
       }
@@ -453,5 +475,237 @@ describe("create-booking slot check on Cosmos", () => {
       expect(mockRequest).toHaveBeenCalledTimes(1);
       expect(ctx.log.error).toHaveBeenCalledWith("Notification error:", "socket hang up");
     });
+  });
+});
+
+// /api/create-booking sends a calendar invite and emails from the owner's
+// accounts to the address in the request, so nothing may be sent before the
+// spam check passes and the booking row holds the slot.
+describe("create-booking abuse protection", () => {
+  const setGoogleEnv = () => {
+    process.env.GOOGLE_CLIENT_ID = "fake-client";
+    process.env.GOOGLE_CLIENT_SECRET = "fake-secret";
+    process.env.GOOGLE_REFRESH_TOKEN = "fake-token";
+    process.env.GOOGLE_CALENDAR_ID = "cal@example.com";
+  };
+  const post = async (body, headers = {}) => {
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body, headers, query: {} });
+    return ctx;
+  };
+  const stubMeetBooking = (id = "evt") => {
+    stubHttps(200, { access_token: "tok" }); // OAuth
+    stubHttps(200, {
+      id,
+      htmlLink: `https://calendar.google.com/event?eid=${id}`,
+      hangoutLink: "https://meet.google.com/abc-defg-hij",
+    }); // calendar insert
+  };
+
+  it("refuses a request without a Turnstile token before any Google, Zoom or Resend call", async () => {
+    vi.mocked(turnstile.verifyTurnstile).mockRestore();
+    const savedSecret = process.env.TURNSTILE_SECRET_KEY;
+    process.env.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+    setGoogleEnv();
+    process.env.RESEND_API_KEY = "resend-key";
+    process.env.ZOOM_ACCOUNT_ID = "z";
+    process.env.ZOOM_CLIENT_ID = "z";
+    process.env.ZOOM_CLIENT_SECRET = "z";
+    try {
+      const { turnstileToken: _omit, ...noToken } = validBody;
+      for (const body of [noToken, { ...noToken, preferredPlatform: "zoom" }]) {
+        const ctx = await post(body);
+        expect([400, 403]).toContain(ctx.res.status);
+        expect(JSON.parse(ctx.res.body).error).toMatch(/spam check/i);
+      }
+      expect(mockRequest).not.toHaveBeenCalled();
+      expect(bookings.docs.size).toBe(0);
+    } finally {
+      if (savedSecret === undefined) delete process.env.TURNSTILE_SECRET_KEY;
+      else process.env.TURNSTILE_SECRET_KEY = savedSecret;
+      for (const k of ["RESEND_API_KEY", "ZOOM_ACCOUNT_ID", "ZOOM_CLIENT_ID", "ZOOM_CLIENT_SECRET"])
+        delete process.env[k];
+    }
+  });
+
+  it("refuses a failed Turnstile token with 403 and sends nothing", async () => {
+    setGoogleEnv();
+    const ctx = await post({ ...validBody, turnstileToken: "forged" });
+    expect(ctx.res.status).toBe(403);
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(bookings.docs.size).toBe(0);
+  });
+
+  it("verifies the token with the visitor's IP, as Static Web Apps forwards it", async () => {
+    stubMeetBooking();
+    setGoogleEnv();
+    await post(validBody, { "x-forwarded-for": "203.0.113.7:51234, [fd00::1]:443" });
+    expect(turnstile.verifyTurnstile).toHaveBeenCalledWith(GOOD_TOKEN, "203.0.113.7");
+  });
+
+  it("lets only one of two simultaneous requests for a slot create an event", async () => {
+    setGoogleEnv();
+    stubMeetBooking("evt-race");
+
+    const [a, b] = await Promise.all([post(validBody), post({ ...validBody, name: "Grace" })]);
+
+    expect([a.res.status, b.res.status].sort()).toEqual([200, 409]);
+    const inserts = mockRequest.mock.calls.filter(
+      ([opts]) => opts.hostname === "www.googleapis.com" && opts.method === "POST",
+    );
+    expect(inserts).toHaveLength(1);
+    expect(bookings.docs.size).toBe(1);
+    expect(locks.docs.size).toBe(0);
+  });
+
+  it("saves the booking before the invite and stores the meeting links on it", async () => {
+    setGoogleEnv();
+    let rowsAtInsert = -1;
+    mockRequest.mockImplementationOnce((_opts, cb) => {
+      const res = { statusCode: 200, on: vi.fn() };
+      res.on.mockImplementation((event, fn) => {
+        if (event === "data") fn(JSON.stringify({ access_token: "tok" }));
+        if (event === "end") fn();
+      });
+      rowsAtInsert = bookings.docs.size;
+      cb(res);
+      return { on: vi.fn(), write: vi.fn(), end: vi.fn() };
+    });
+    stubHttps(200, {
+      id: "evt1",
+      htmlLink: "https://calendar.google.com/event?eid=evt1",
+      hangoutLink: "https://meet.google.com/abc-defg-hij",
+    });
+
+    const ctx = await post(validBody);
+
+    expect(rowsAtInsert).toBe(1);
+    const body = JSON.parse(ctx.res.body);
+    expect(body.booking).toMatchObject({ status: "pending", email: "ada@example.com" });
+    const [row] = [...bookings.docs.values()];
+    expect(body.booking.$id).toBe(row.id);
+    expect(row).toMatchObject({
+      meetingLink: "https://meet.google.com/abc-defg-hij",
+      calendarEventLink: "https://calendar.google.com/event?eid=evt1",
+    });
+  });
+
+  it("keeps an admin decision made while the invite was going out", async () => {
+    setGoogleEnv();
+    stubMeetBooking();
+    bookings.hooks.beforeReplace = async (id) => {
+      bookings.hooks.beforeReplace = null;
+      const row = bookings.docs.get(id);
+      await bookings.item(id, id).replace({ ...row, status: "confirmed" });
+    };
+
+    const ctx = await post(validBody);
+
+    expect(ctx.res.status).toBe(200);
+    const [row] = [...bookings.docs.values()];
+    expect(row).toMatchObject({
+      status: "confirmed",
+      meetingLink: "https://meet.google.com/abc-defg-hij",
+    });
+  });
+
+  it("keeps the message and phone number out of the invite Google sends", async () => {
+    setGoogleEnv();
+    stubMeetBooking();
+    await post({ ...validBody, phone: "+1 555 0100", message: "Pay your invoice now" });
+    const insert = mockRequest.mock.results[1].value.write.mock.calls[0][0];
+    expect(insert).not.toContain("Pay your invoice");
+    expect(insert).not.toContain("555 0100");
+  });
+
+  it.each([
+    ["a list of addresses", { email: "a@example.com, b@example.com" }],
+    ["a display name", { email: "Ada <ada@example.com>" }],
+    ["a link in the name", { name: "Pay at evil.example.com" }],
+    ["an address in the name", { name: "write to x@evil.test" }],
+    ["an unknown meeting type", { meetingType: "invoice" }],
+    ["a time the form never offers", { preferredTime: "09:30 AM" }],
+    ["an impossible date", { preferredDate: "2099-02-30" }],
+    ["a date in the past", { preferredDate: "2099-05-01" }],
+    ["a date years ahead", { preferredDate: "2101-06-15" }],
+    ["an unknown timezone", { timezone: "Mars/Olympus" }],
+    ["an unknown platform", { preferredPlatform: "teams" }],
+    ["an over-long message", { message: "x".repeat(2001) }],
+    ["an over-long name", { name: "x".repeat(101) }],
+    ["a meeting link from the browser", { meetingLink: "https://meet.google.com/abc" }],
+    ["an unknown field", { cc: "c@example.com" }],
+  ])("refuses %s with 400 before the spam check", async (_label, change) => {
+    setGoogleEnv();
+    const ctx = await post({ ...validBody, ...change });
+    expect(ctx.res.status).toBe(400);
+    expect(turnstile.verifyTurnstile).not.toHaveBeenCalled();
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(bookings.docs.size).toBe(0);
+  });
+
+  it("limits one IP to 5 verified booking attempts an hour", async () => {
+    const headers = { "x-forwarded-for": "203.0.113.9" };
+    // Failed spam checks don't count, so they can't lock out a shared network.
+    for (let i = 0; i < 10; i += 1) {
+      expect((await post({ ...validBody, turnstileToken: "forged" }, headers)).res.status).toBe(
+        403,
+      );
+    }
+    const times = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM"];
+    const statuses = [];
+    for (const preferredTime of times) {
+      statuses.push((await post({ ...validBody, preferredTime }, headers)).res.status);
+    }
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
+    expect(bookings.docs.size).toBe(5);
+    // Another IP is unaffected.
+    const other = await post(
+      { ...validBody, preferredTime: "03:00 PM" },
+      { "x-forwarded-for": "198.51.100.4" },
+    );
+    expect(other.res.status).toBe(200);
+  });
+
+  it("saves bookings past the daily cap of 20 without an invite or emails", async () => {
+    let clock = NOW;
+    handler = createHandler({ now: () => clock });
+    setGoogleEnv();
+    for (let i = 0; i < 20; i += 1) stubMeetBooking(`evt${i}`);
+    const results = [];
+    for (let i = 0; i < 21; i += 1) {
+      const day = String(10 + i).padStart(2, "0");
+      const ctx = await post(
+        { ...validBody, preferredDate: `2099-06-${day}` },
+        { "x-forwarded-for": `203.0.113.${i + 1}` },
+      );
+      results.push(JSON.parse(ctx.res.body));
+    }
+    const calls = mockRequest.mock.calls.length;
+    expect(calls).toBe(40); // OAuth + insert for each of the first 20
+    expect(results[20]).toMatchObject({ success: true, meetLink: null, _phase: "invite_cap" });
+    expect(bookings.docs.size).toBe(21);
+
+    // Past the cap the owner is told, at most once an hour. The 21st booking
+    // used this hour's alert, so move to the next hour.
+    clock = NOW + 60 * 60 * 1000;
+    process.env.RESEND_API_KEY = "resend-key";
+    try {
+      mockRequest.mockClear();
+      stubHttps(200, { id: "mail" });
+      for (const preferredDate of ["2099-07-01", "2099-07-02"]) {
+        const ctx = await post(
+          { ...validBody, preferredDate },
+          { "x-forwarded-for": "198.51.100.9" },
+        );
+        expect(JSON.parse(ctx.res.body)._phase).toBe("invite_cap");
+      }
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
+      const mail = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+      expect(mail.subject).toMatch(/has no invite yet/);
+      expect(mail.to).not.toContain("ada@example.com");
+    } finally {
+      delete process.env.RESEND_API_KEY;
+    }
   });
 });

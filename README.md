@@ -400,11 +400,11 @@ Step 4 — Confirmation →  Booking reference + Meet/Zoom join link
 
 ### Azure Functions
 
-| Function           | Endpoint                    | Purpose                                              |
-| ------------------ | --------------------------- | ---------------------------------------------------- |
-| `create-booking`   | `POST /api/create-booking`  | Double-booking check, Calendar event or Zoom meeting |
-| `get-availability` | `GET /api/get-availability` | Returns freebusy map for a given date                |
-| `chat`             | `POST /api/chat`            | AI chatbot — proxies to OpenAI, rate-limited         |
+| Function           | Endpoint                    | Purpose                                                                 |
+| ------------------ | --------------------------- | ----------------------------------------------------------------------- |
+| `create-booking`   | `POST /api/create-booking`  | Turnstile check, saves the booking, then Calendar event or Zoom meeting |
+| `get-availability` | `GET /api/get-availability` | Returns freebusy map for a given date                                   |
+| `chat`             | `POST /api/chat`            | AI chatbot — proxies to OpenAI, rate-limited                            |
 
 ---
 

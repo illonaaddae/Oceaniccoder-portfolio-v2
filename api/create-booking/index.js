@@ -18,6 +18,15 @@ const {
 const cosmos = require("../shared/cosmos");
 const { errorReason } = require("../shared/errors");
 const { withDeadline } = require("../shared/deadline");
+const turnstile = require("../shared/turnstile");
+const { createRateLimiter } = require("../shared/rateLimit");
+const { createCosmosLocks } = require("../shared/locks");
+const { validateBooking, Invalid } = require("./validate");
+
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+const BOOKINGS_PER_IP = 5;
+const INVITES_PER_DAY = 20;
 
 const MEETING_DURATIONS = { discovery: 30, project: 60, mentorship: 45, general: 30 };
 const MEETING_LABELS = {
@@ -186,7 +195,8 @@ async function createZoomMeeting(
 // time for the owner alert, which a hung query would never reach.
 const SLOT_CHECK_TIMEOUT_MS = 5000;
 
-// Same match as the bookings check in /api/submit, which guards the row write.
+// Same match as the bookings check in /api/submit. Rows saved there (or
+// before the slot lock existed) have random ids, so the lock alone can't see them.
 async function isSlotTaken(date, time) {
   const { resources } = await withDeadline(SLOT_CHECK_TIMEOUT_MS, (abortSignal) =>
     cosmos
@@ -506,16 +516,9 @@ async function sendBookerMeetEmail(
   }
 }
 
-const ok = (context, body) => {
-  context.res = { status: 200, headers: CORS, body: JSON.stringify(body) };
-};
-
-module.exports = async function (context, req) {
-  if (req.method === "OPTIONS") {
-    context.res = { status: 204, headers: CORS, body: "" };
-    return;
-  }
-
+// Creates the Zoom meeting or calendar event and sends the emails. Returns
+// the links, or nulls and a `_phase` naming what failed.
+async function sendInvites(context, booking) {
   const {
     name,
     email,
@@ -526,66 +529,7 @@ module.exports = async function (context, req) {
     message,
     phone,
     preferredPlatform,
-  } = req.body || {};
-
-  if (!name || !email || !meetingType || !preferredDate || !preferredTime) {
-    context.res = {
-      status: 400,
-      headers: CORS,
-      body: JSON.stringify({ error: "Missing required fields" }),
-    };
-    return;
-  }
-
-  // Server-side double-booking guard. It fails closed: this function sends
-  // the calendar invite and the confirmation emails before the browser saves
-  // the row, so carrying on after a failed read could confirm a slot someone
-  // else holds. On a 503 the browser still saves through /api/submit, which
-  // checks the slot again, so the booking is kept; only its invite and emails
-  // are skipped.
-  let taken;
-  try {
-    taken = await isSlotTaken(preferredDate, preferredTime);
-  } catch (err) {
-    const reason = errorReason(err);
-    context.log.error("Slot check failed:", reason);
-    // The booking may still save through /api/submit, but with no invite or
-    // confirmation, so tell the owner, who can send both by hand.
-    await sendNotificationEmail(context, {
-      name,
-      email,
-      phone,
-      meetingType,
-      preferredDate,
-      preferredTime,
-      timezone,
-      message,
-      meetLink: null,
-      zoomLink: null,
-      calendarEventLink: null,
-      alert: {
-        subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} got no invite or confirmation`,
-        notice: `No invite or confirmation was sent\nThe server couldn't check whether ${preferredTime} on ${preferredDate} was free (${reason}), so it sent no calendar invite and no confirmation email.\nIf the booking saved, it is under Bookings in the dashboard. Check the slot is still free, then send the invite and confirmation by hand.`,
-      },
-    }).catch((e) => context.log.error("Notification error:", e.message));
-    context.res = {
-      status: 503,
-      headers: CORS,
-      body: JSON.stringify({ error: "slot_check_failed" }),
-    };
-    return;
-  }
-  if (taken) {
-    context.res = {
-      status: 409,
-      headers: CORS,
-      body: JSON.stringify({
-        error: "slot_taken",
-        message: `${preferredTime} on ${preferredDate} is already booked. Please choose a different time.`,
-      }),
-    };
-    return;
-  }
+  } = booking;
 
   // ── Zoom path ────────────────────────────────────────────────────────────────
   if ((preferredPlatform || "google").toLowerCase() === "zoom") {
@@ -607,14 +551,12 @@ module.exports = async function (context, req) {
         failureReason:
           "Zoom is not configured: ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID or ZOOM_CLIENT_SECRET is missing in Azure configuration.",
       }).catch((e) => context.log.error("Notification error:", e.message));
-      ok(context, {
-        success: true,
+      return {
         zoomLink: null,
         meetLink: null,
         calendarEventLink: null,
         _phase: "zoom_unconfigured",
-      });
-      return;
+      };
     }
     try {
       const zoomToken = await getZoomToken();
@@ -652,12 +594,11 @@ module.exports = async function (context, req) {
           zoomLink: zoomJoinUrl,
         }).catch((e) => context.log.error("Booker Zoom email error:", e.message)),
       ]);
-      ok(context, {
-        success: true,
+      return {
         zoomLink: zoomJoinUrl,
         meetLink: null,
         calendarEventLink: null,
-      });
+      };
     } catch (err) {
       const msg = String(err);
       context.log.error("zoom meeting error:", msg);
@@ -674,15 +615,13 @@ module.exports = async function (context, req) {
         zoomLink: null,
         calendarEventLink: null,
       }).catch((e) => context.log.error("Notification error:", e.message));
-      ok(context, {
-        success: true,
+      return {
         zoomLink: null,
         meetLink: null,
         calendarEventLink: null,
         _phase: msg,
-      });
+      };
     }
-    return;
   }
 
   // ── Google Calendar path ──────────────────────────────────────────────────
@@ -704,14 +643,12 @@ module.exports = async function (context, req) {
       failureReason:
         "Google Calendar is not configured: GOOGLE_CLIENT_ID or GOOGLE_CALENDAR_ID is missing in Azure configuration.",
     }).catch((e) => context.log.error("Notification error:", e.message));
-    ok(context, {
-      success: true,
+    return {
       zoomLink: null,
       meetLink: null,
       calendarEventLink: null,
       _phase: "google_unconfigured",
-    });
-    return;
+    };
   }
 
   try {
@@ -722,14 +659,12 @@ module.exports = async function (context, req) {
     const end = addMinutes(hours, minutes, duration);
     const label = MEETING_LABELS[meetingType] ?? meetingType;
 
+    // Google sends the event to the attendee, so it carries no free text from
+    // the request. The phone number and message are in the owner's email.
     const description = [
       `Meeting Type: ${label} (${duration} min)`,
-      phone ? `Phone: ${phone}` : "",
-      message ? `\nMessage from ${name}:\n${message}` : "",
-      "\nBooked via OceanicCoder Portfolio · oceaniccoder.dev",
-    ]
-      .filter(Boolean)
-      .join("\n");
+      "Booked via OceanicCoder Portfolio · oceaniccoder.dev",
+    ].join("\n\n");
 
     const calEvent = {
       summary: `${label} with ${name}`,
@@ -786,14 +721,12 @@ module.exports = async function (context, req) {
         calendarEventLink: null,
         failureReason: `The Google Calendar API rejected the event (HTTP ${calRes.status}).`,
       }).catch((e) => context.log.error("Notification error:", e.message));
-      ok(context, {
-        success: true,
+      return {
         zoomLink: null,
         meetLink: null,
         calendarEventLink: null,
         _phase: `calendar_api_${calRes.status}`,
-      });
-      return;
+      };
     }
 
     const ev = JSON.parse(calRes.body);
@@ -834,7 +767,7 @@ module.exports = async function (context, req) {
         calendarEventLink,
       }).catch((e) => context.log.error("Booker Meet email error:", e.message)),
     ]);
-    ok(context, { success: true, zoomLink: null, meetLink, calendarEventLink });
+    return { zoomLink: null, meetLink, calendarEventLink };
   } catch (err) {
     const msg = String(err);
     context.log.error("create-booking error:", msg);
@@ -857,16 +790,180 @@ module.exports = async function (context, req) {
       calendarEventLink: null,
       failureReason,
     }).catch((e) => context.log.error("Notification error:", e.message));
-    ok(context, {
-      success: true,
+    return {
       zoomLink: null,
       meetLink: null,
       calendarEventLink: null,
       _phase: msg,
-    });
+    };
   }
+}
+
+// Reserves the slot and saves the booking row before anything is sent. The
+// lock makes the check-then-write atomic, so two requests for the same slot
+// can't both pass the check. Returns the saved document, or null when the
+// slot is taken or another request is booking it right now.
+//
+// A crash between take() and release() strands the lock and blocks that slot
+// until the row is deleted from the `locks` container (see shared/locks.js).
+async function reserveSlot(context, booking) {
+  const db = cosmos.getDatabase();
+  const locks = createCosmosLocks(db);
+  const key = `booking-slot:${booking.preferredDate}:${booking.preferredTime}`;
+  if (!(await locks.take(key))) return null;
+  try {
+    if (await isSlotTaken(booking.preferredDate, booking.preferredTime)) return null;
+    const { resource } = await db.container("bookings").items.create(cosmos.newDocument(booking));
+    return resource;
+  } finally {
+    await locks
+      .release(key)
+      .catch((e) => context.log.error("Slot lock release failed:", e.message));
+  }
+}
+
+// Stores the meeting links on the row so the admin can resend them. The
+// booking already stands, so a failure is logged and the row kept as it was.
+async function saveLinks(context, doc, { meetLink, zoomLink, calendarEventLink }) {
+  const links = {
+    ...(meetLink ? { meetingLink: meetLink } : {}),
+    ...(zoomLink ? { zoomLink } : {}),
+    ...(calendarEventLink ? { calendarEventLink } : {}),
+  };
+  if (Object.keys(links).length === 0) return doc;
+  // The admin can accept or decline as soon as the row exists, so merge onto
+  // the latest copy and retry when the etag moved, rather than overwriting
+  // their change with the copy saved before the invite went out.
+  const item = cosmos.getDatabase().container("bookings").item(doc.id, doc.id);
+  try {
+    for (let attempt = 1; ; attempt += 1) {
+      const { resource: latest } = await item.read();
+      if (!latest) return doc;
+      try {
+        const { resource } = await item.replace(
+          { ...latest, ...links, updatedAt: new Date().toISOString() },
+          { accessCondition: { type: "IfMatch", condition: latest._etag } },
+        );
+        return resource;
+      } catch (err) {
+        if (err.code !== 412 || attempt >= 3) throw err;
+      }
+    }
+  } catch (err) {
+    context.log.error(`Saving meeting links on booking ${doc.id} failed:`, errorReason(err));
+    return doc;
+  }
+}
+
+const reply = (context, status, body) => {
+  context.res = { status, headers: CORS, body: JSON.stringify(body) };
 };
 
+// The only place a booking is made. Order matters: fields are validated and
+// the Turnstile token verified before the per-IP limit counts the request,
+// and the row is saved (holding the slot) before any calendar, Zoom or email
+// call. Turnstile can be solved by paid captcha farms and every booking sends
+// mail from the owner's accounts, so invites are also capped per instance:
+// BOOKINGS_PER_IP an hour per client IP, then INVITES_PER_DAY in total. Over
+// the daily cap the booking is still saved, without an invite or emails.
+function createHandler({ now = Date.now } = {}) {
+  const allowIp = createRateLimiter({ limit: BOOKINGS_PER_IP, windowMs: HOUR_MS });
+  const allowInvite = createRateLimiter({ limit: INVITES_PER_DAY, windowMs: DAY_MS, maxKeys: 1 });
+  const allowCapLog = createRateLimiter({ limit: 1, windowMs: HOUR_MS, maxKeys: 1 });
+
+  return async function (context, req) {
+    if (req.method === "OPTIONS") {
+      context.res = { status: 204, headers: CORS, body: "" };
+      return;
+    }
+
+    const { turnstileToken, ...fields } = req.body || {};
+    let booking;
+    try {
+      booking = validateBooking(fields, now());
+    } catch (err) {
+      if (err instanceof Invalid) {
+        reply(context, 400, { error: err.message });
+        return;
+      }
+      throw err;
+    }
+
+    const ip = turnstile.clientIp(req);
+    const spam = await turnstile.verifyTurnstile(turnstileToken, ip);
+    if (!spam.ok) {
+      reply(context, spam.status, { error: spam.error });
+      return;
+    }
+
+    // Only verified requests count, so tokenless spam can't use up the quota
+    // of other visitors behind the same network. Requests without a forwarded
+    // IP share one bucket rather than going unlimited.
+    if (!allowIp(ip || "unknown", 1, now())) {
+      reply(context, 429, {
+        error: "Too many bookings from your network. Please try again later.",
+      });
+      return;
+    }
+
+    const { name, preferredDate, preferredTime } = booking;
+    let saved;
+    try {
+      saved = await reserveSlot(context, booking);
+    } catch (err) {
+      const reason = errorReason(err);
+      context.log.error("Booking save failed:", reason);
+      // Nothing was saved or sent. Tell the owner, who can follow up.
+      await sendNotificationEmail(context, {
+        ...booking,
+        meetLink: null,
+        zoomLink: null,
+        calendarEventLink: null,
+        alert: {
+          subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} couldn't be saved`,
+          notice: `The booking wasn't saved\nThe server couldn't reserve ${preferredTime} on ${preferredDate} (${reason}), so it saved nothing and sent no invite or confirmation. The visitor was asked to try again.\nIf no booking for this slot shows under Bookings in the dashboard, contact them to rebook.`,
+        },
+      }).catch((e) => context.log.error("Notification error:", e.message));
+      reply(context, 503, { error: "booking_failed" });
+      return;
+    }
+    if (!saved) {
+      reply(context, 409, {
+        error: "slot_taken",
+        message: `${preferredTime} on ${preferredDate} is already booked. Please choose a different time.`,
+      });
+      return;
+    }
+
+    let links;
+    if (allowInvite("all", 1, now())) {
+      links = await sendInvites(context, booking);
+      saved = await saveLinks(context, saved, links);
+    } else {
+      if (allowCapLog("cap", 1, now())) {
+        context.log.warn(
+          `create-booking: invite cap of ${INVITES_PER_DAY} a day reached; saving bookings without invites or emails`,
+        );
+        // At most one an hour, so a flood past the cap can't flood the owner.
+        await sendNotificationEmail(context, {
+          ...booking,
+          meetLink: null,
+          zoomLink: null,
+          calendarEventLink: null,
+          alert: {
+            subject: `Action needed: booking with ${name} on ${preferredDate} at ${preferredTime} has no invite yet`,
+            notice: `The daily invite limit was reached\nMore than ${INVITES_PER_DAY} bookings came in today, so this one was saved without a calendar invite or confirmation email. Further bookings in the next hour are saved the same way without another alert.\nCheck Bookings in the dashboard and send these visitors their meeting links, or decline the ones that look like spam.`,
+          },
+        }).catch((e) => context.log.error("Notification error:", e.message));
+      }
+      links = { zoomLink: null, meetLink: null, calendarEventLink: null, _phase: "invite_cap" };
+    }
+    reply(context, 200, { success: true, booking: cosmos.fromCosmos(saved), ...links });
+  };
+}
+
+module.exports = createHandler();
+module.exports.createHandler = createHandler;
 // Exported for the admin email previews (api/shared/email/catalog.js).
 module.exports.hostNotificationHtml = hostNotificationHtml;
 module.exports.bookerConfirmationHtml = bookerConfirmationHtml;

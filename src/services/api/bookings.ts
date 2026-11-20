@@ -1,12 +1,5 @@
 import { COLLECTIONS } from "./collections";
-import {
-  getJson,
-  manageDelete,
-  manageList,
-  manageUpdate,
-  readsAsAdmin,
-  submitRow,
-} from "./dataApi";
+import { getJson, manageDelete, manageList, manageUpdate, readsAsAdmin } from "./dataApi";
 
 export interface Booking {
   $id?: string;
@@ -24,13 +17,6 @@ export interface Booking {
   meetingLink?: string;
   zoomLink?: string;
   calendarEventLink?: string;
-}
-
-export async function createBooking(
-  booking: Omit<Booking, "$id" | "$createdAt">,
-  turnstileToken?: string | null,
-): Promise<Booking> {
-  return submitRow<Booking>(COLLECTIONS.BOOKINGS, booking, turnstileToken);
 }
 
 /** Every booking, newest first (the old 200-row limit dropped older ones). */

@@ -16,7 +16,7 @@ import {
   FaExternalLinkAlt,
 } from "react-icons/fa";
 import { DatePicker } from "./ui";
-import { createBooking, getBookedTimesForDate } from "../services/api/bookings";
+import { getBookedTimesForDate } from "../services/api/bookings";
 import { apiUrl } from "../utils/apiUrl";
 import { useTurnstile } from "@/hooks/useTurnstile";
 import TurnstileSlot from "./TurnstileSlot";
@@ -100,6 +100,13 @@ const getTodayMin = () => {
   return d.toISOString().split("T")[0];
 };
 
+// /api/create-booking refuses dates more than a year out.
+const getMaxDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 365);
+  return d.toISOString().split("T")[0];
+};
+
 export default function BookingSection() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [step, setStep] = useState(1);
@@ -107,8 +114,8 @@ export default function BookingSection() {
   const [error, setError] = useState("");
   const turnstile = useTurnstile();
   // The widget mounts with step 3 and its token arrives a few seconds later.
-  // Confirm stays off until then: /api/create-booking sends the calendar invite
-  // before the row is saved, and the save is refused without a token.
+  // Confirm stays off until then: /api/create-booking refuses a booking
+  // without a token.
   const waitingForSpamCheck = !turnstile.token;
   const [spamCheckSlow, setSpamCheckSlow] = useState(false);
   const sectionTopRef = useRef(null);
@@ -186,66 +193,58 @@ export default function BookingSection() {
 
   const handleSubmit = async () => {
     setError("");
+    if (!turnstile.token) {
+      setError("Please wait for the spam check to finish, then try again.");
+      return;
+    }
     setSubmitting(true);
     try {
-      // Double-booking is enforced server-side in the Azure Function, which
-      // returns 409 if the slot is taken.
+      // /api/create-booking checks the spam token, holds the slot by saving
+      // the booking, then sends the invite and emails. It answers 409 when
+      // the slot is taken.
+      const res = await fetch(apiUrl("/api/create-booking"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, turnstileToken: turnstile.token }),
+        // The server verifies the token, saves the row and waits for Google
+        // to create the Meet link before it answers.
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await res.json().catch(() => ({}));
 
-      // Try calendar event creation — best-effort, don't block booking if unavailable
-      let calMeetLink = null;
-      let calZoomLink = null;
-      let calEventLink = null;
-
-      try {
-        const bookingUrl = apiUrl("/api/create-booking");
-        const meetRes = await fetch(bookingUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-          signal: AbortSignal.timeout(10000),
-        });
-
-        if (meetRes.status === 409) {
-          const meetData = await meetRes.json();
-          setError(
-            meetData.message || "That time slot is already booked. Please choose a different time.",
-          );
-          return;
-        }
-
-        if (meetRes.ok) {
-          const meetData = await meetRes.json();
-          calMeetLink = meetData.meetLink ?? null;
-          calZoomLink = meetData.zoomLink ?? null;
-          calEventLink = meetData.calendarEventLink ?? null;
-        }
-      } catch {
-        // API unavailable locally (run `func start` for full local testing) — continue to save
+      if (res.status === 409) {
+        setError(
+          data.message || "That time slot is already booked. Please choose a different time.",
+        );
+        return;
+      }
+      if (!res.ok) {
+        setError(
+          res.status === 503 || !data.error || data.error === "booking_failed"
+            ? "Booking failed. Please try again or contact me directly."
+            : data.error,
+        );
+        return;
       }
 
-      // Save the booking (include meet/zoom link so admin can resend it on confirm)
-      const result = await createBooking(
-        {
-          ...form,
-          status: "pending",
-          meetingLink: calMeetLink ?? undefined,
-          zoomLink: calZoomLink ?? undefined,
-          calendarEventLink: calEventLink ?? undefined,
-        },
-        turnstile.token,
-      );
-      const ref = result.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
+      const ref =
+        data.booking?.$id?.slice(-8).toUpperCase() || "OC" + Date.now().toString().slice(-6);
       setBookingRef(ref);
 
-      if (calMeetLink) setMeetLink(calMeetLink);
-      if (calZoomLink) setZoomLink(calZoomLink);
-      if (calEventLink) setCalendarLink(calEventLink);
+      if (data.meetLink) setMeetLink(data.meetLink);
+      if (data.zoomLink) setZoomLink(data.zoomLink);
+      if (data.calendarEventLink) setCalendarLink(data.calendarEventLink);
 
       setStep(4);
       sectionTopRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     } catch (err) {
       console.error(err);
-      setError("Booking failed. Please try again or contact me directly.");
+      // The server may still save the booking after the browser stops waiting.
+      setError(
+        err?.name === "TimeoutError"
+          ? "This is taking longer than expected, so your booking may still have gone through. Check your email for a confirmation before trying again, or contact me directly."
+          : "Booking failed. Please try again or contact me directly.",
+      );
     } finally {
       setSubmitting(false);
       turnstile.reset(); // tokens are single-use
@@ -568,6 +567,7 @@ export default function BookingSection() {
                             onChange={(value) => handleChange("preferredDate", value)}
                             theme={isDark ? "dark" : "light"}
                             min={getTodayMin()}
+                            max={getMaxDate()}
                             placeholder="Select a date"
                             ariaLabel="Preferred date"
                           />
