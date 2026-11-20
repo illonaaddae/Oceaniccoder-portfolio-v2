@@ -228,3 +228,27 @@ and fails on a full page with neither. Paystack's own cursor parameters
 12. Once Appwrite is gone and nothing needs the backups, delete the local
     `backup/` folders (they hold personal data from bookings, invoices,
     payments and messages) or move them to encrypted storage.
+
+## Retiring the Appwrite project
+
+The site no longer reads or writes Appwrite, but project `6943431e00253c8f9883`
+still holds the old rights: `any` create, read and update on `blog_views` and
+`blog_reactions`, `any` create on `messages`, `users` on `payments` and
+`invoices`, and the "Contact Email Notification" function. `users` means any
+signed-in account, and anyone can sign up with the public project ID. The repo
+no longer carries the scripts or function source that set these up. On
+2026-11-20 the project answered `402 team_read_only`, which blocks writes but
+not reads. Close it in the Appwrite console:
+
+1. Functions → "Contact Email Notification" (`6945509a0010b1fd9d46`) → Settings
+   → Delete.
+2. Auth → Settings → turn off email and password sign-up, or set the user limit
+   to 1.
+3. Take a last `scripts/backup-appwrite.mjs` backup if one is still needed.
+4. Project settings → Delete project. If it must stay for now, remove every
+   `any` and `users` permission from each collection, and leave only the admin's
+   `user:<admin id>` rights.
+5. Check: the project must stop answering. If it still exists, signing up a new
+   account with the public project ID must fail, and an anonymous
+   `GET /v1/databases/<db>/collections/payments/documents` with
+   `X-Appwrite-Project: 6943431e00253c8f9883` must fail with 401 or 404.
