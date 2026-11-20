@@ -17,6 +17,7 @@ require.cache[mediaPath] = {
 };
 const { createHandler } = require("./index.js");
 const { messageAlertEmail } = require("./messageAlert.js");
+const { createFakeCosmos } = require("../shared/fakeCosmos.js");
 
 const MESSAGE = {
   name: "Ama Owusu",
@@ -179,6 +180,86 @@ describe("POST /api/submit/{collection}", () => {
     });
 
     expect(status).toBe(409);
+    expect(database.created).toHaveLength(0);
+  });
+});
+
+describe("booking slots", () => {
+  const BOOKING = {
+    name: "Ama",
+    email: "ama@example.com",
+    meetingType: "Discovery call",
+    preferredDate: "2026-10-22",
+    preferredTime: "10:00 AM",
+    timezone: "Africa/Accra",
+    turnstileToken: "t",
+  };
+  const withCosmos = () => {
+    const db = createFakeCosmos();
+    return { db, ...setup({ database: { db } }) };
+  };
+
+  it("lets exactly one of two concurrent bookings for a slot through", async () => {
+    const { db, call } = withCosmos();
+
+    const results = await Promise.all([call("bookings", BOOKING), call("bookings", BOOKING)]);
+
+    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(results.find((r) => r.status === 409).body.error).toBe(
+      "That time was just booked. Please choose a different time.",
+    );
+    const { resources } = await db
+      .container("bookings")
+      .items.query({ query: "SELECT * FROM c" })
+      .fetchAll();
+    expect(resources).toHaveLength(1);
+  });
+
+  it("treats 10:00 am and 10:00 AM as the same slot and stores the offered label", async () => {
+    const { call } = withCosmos();
+
+    const first = await call("bookings", { ...BOOKING, preferredTime: "10:00 am" });
+    const second = await call("bookings", BOOKING);
+
+    expect(first.status).toBe(201);
+    expect(first.body.preferredTime).toBe("10:00 AM");
+    expect(second.status).toBe(409);
+  });
+
+  it("refuses a slot held by an older row with a random id", async () => {
+    const { db, call } = withCosmos();
+    db.container("bookings").seed({
+      id: "legacy1",
+      preferredDate: "2026-10-22",
+      preferredTime: "10:00 AM",
+    });
+
+    const { status } = await call("bookings", { ...BOOKING, preferredTime: "10:00am" });
+
+    expect(status).toBe(409);
+  });
+
+  it("allows another time on the same day", async () => {
+    const { call } = withCosmos();
+
+    await call("bookings", BOOKING);
+    const { status } = await call("bookings", { ...BOOKING, preferredTime: "11:00 AM" });
+
+    expect(status).toBe(201);
+  });
+
+  it.each([
+    ["a time the form doesn't offer", { preferredTime: "10:30 AM" }, "preferredTime"],
+    ["a past date", { preferredDate: "2026-10-19" }, "preferredDate"],
+    ["a date past the booking window", { preferredDate: "2027-06-01" }, "preferredDate"],
+  ])("answers 400 for %s without spending the Turnstile token", async (_, change, field) => {
+    const { call, verifyTurnstile, database } = setup();
+
+    const { status, body } = await call("bookings", { ...BOOKING, ...change });
+
+    expect(status).toBe(400);
+    expect(body.error).toContain(field);
+    expect(verifyTurnstile).not.toHaveBeenCalled();
     expect(database.created).toHaveLength(0);
   });
 });

@@ -100,6 +100,13 @@ const getTodayMin = () => {
   return d.toISOString().split("T")[0];
 };
 
+// One day inside the server's 90-day booking window (api/shared/bookingSlots.js).
+const getBookingMax = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 89);
+  return d.toISOString().split("T")[0];
+};
+
 export default function BookingSection() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [step, setStep] = useState(1);
@@ -568,6 +575,7 @@ export default function BookingSection() {
                             onChange={(value) => handleChange("preferredDate", value)}
                             theme={isDark ? "dark" : "light"}
                             min={getTodayMin()}
+                            max={getBookingMax()}
                             placeholder="Select a date"
                             ariaLabel="Preferred date"
                           />
