@@ -463,6 +463,7 @@ describe("FinanceTab", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
     await waitFor(() => expect(screen.queryByRole("form", { name: "Edit House Fund" })).toBeNull());
+    expect(saveFund).toHaveBeenCalledTimes(1);
     expect(saveFund).toHaveBeenCalledWith(
       expect.objectContaining({ id: "w", expectedUpdatedAt: stamp.updatedAt }),
       '"v2"',
@@ -491,6 +492,7 @@ describe("FinanceTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
     // The version is current, so only the opened-on time can catch it.
+    expect(saveFund).toHaveBeenCalledTimes(1);
     expect(saveFund).toHaveBeenCalledWith(
       expect.objectContaining({ id: "w", expectedUpdatedAt: stamp.updatedAt }),
       '"v2"',
@@ -532,6 +534,7 @@ describe("FinanceTab", () => {
     await waitFor(() =>
       expect(screen.queryByRole("form", { name: "Edit Client balance" })).toBeNull(),
     );
+    expect(saveExpected).toHaveBeenCalledTimes(1);
     expect(saveExpected).toHaveBeenCalledWith(
       expect.objectContaining({ id: "e1", expectedUpdatedAt: stamp.updatedAt }),
       '"v2"',
@@ -552,6 +555,7 @@ describe("FinanceTab", () => {
     await waitFor(() =>
       expect(screen.queryByRole("form", { name: "Edit monthly plan" })).toBeNull(),
     );
+    expect(saveBudget).toHaveBeenCalledTimes(1);
     expect(saveBudget).toHaveBeenCalledWith(
       expect.objectContaining({ month, expectedUpdatedAt: "2026-02-01" }),
       '"v3"',
@@ -582,6 +586,7 @@ describe("FinanceTab", () => {
     await waitFor(() =>
       expect(screen.queryByRole("form", { name: "Edit monthly plan" })).toBeNull(),
     );
+    expect(saveBudget).toHaveBeenCalledTimes(1);
     const [sent] = saveBudget.mock.calls[0];
     expect(sent).toMatchObject({ month: next, expectedUpdatedAt: "2026-02-02" });
     expect(sent.expectNew).toBeUndefined();
@@ -607,6 +612,7 @@ describe("FinanceTab", () => {
     await userEvent.type(screen.getByLabelText(/^Name/), "Car");
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
     await waitFor(() => expect(screen.queryByRole("form", { name: "New fund" })).toBeNull());
+    expect(saveFund).toHaveBeenCalledTimes(1);
     expect(saveFund.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
 
     await userEvent.click(screen.getByRole("button", { name: "Expected" }));
@@ -617,6 +623,7 @@ describe("FinanceTab", () => {
     await waitFor(() =>
       expect(screen.queryByRole("form", { name: "Add expected income" })).toBeNull(),
     );
+    expect(saveExpected).toHaveBeenCalledTimes(1);
     expect(saveExpected.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
 
     // A new plan starts as a copy of this one, a month later.
@@ -628,6 +635,7 @@ describe("FinanceTab", () => {
     await waitFor(() =>
       expect(screen.queryByRole("form", { name: "Edit monthly plan" })).toBeNull(),
     );
+    expect(saveBudget).toHaveBeenCalledTimes(1);
     expect(saveBudget.mock.calls[0][0]).toMatchObject({ month: addMonths(month, 1) });
     expect(saveBudget.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
     // It saw no plan for that month, and says so, so the server can refuse
