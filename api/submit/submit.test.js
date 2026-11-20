@@ -456,7 +456,8 @@ describe("admin alerts for a new project inquiry", () => {
     });
 
     const sms = sendSms.mock.calls[0][1];
-    expect(sms).toContain(`${"N".repeat(SMS_FIELD_MAX - 1)}…`);
+    expect(sms).toContain(`${"N".repeat(SMS_FIELD_MAX - 3)}...`);
+    expect(sms).toMatch(/^[\x20-\x7e]*$/);
     expect(sms).not.toContain("N".repeat(SMS_FIELD_MAX));
     expect(sms).not.toContain("P".repeat(SMS_FIELD_MAX));
     expect(sms.length).toBeLessThanOrEqual(160);

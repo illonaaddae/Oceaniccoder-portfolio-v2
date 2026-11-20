@@ -10,12 +10,12 @@ const DASHBOARD_URL = "https://oceaniccoder.dev/admin/dashboard";
 const SMS_FIELD_MAX = 40;
 const SUBJECT_NAME_MAX = 60;
 
-/** One line, at most `max` characters, with an ellipsis when cut. */
-function clip(value, max) {
+/** One line, at most `max` characters, ending in `more` when cut. */
+function clip(value, max, more = "…") {
   const line = String(value ?? "")
     .replace(/\s+/g, " ")
     .trim();
-  return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
+  return line.length > max ? `${line.slice(0, max - more.length).trimEnd()}${more}` : line;
 }
 
 /** Returns { subject, html, text }. Inputs are raw visitor text; the email kit escapes them. */
@@ -42,10 +42,14 @@ function inquiryAlertEmail({ name, email, projectType }) {
   return { subject: `New project inquiry from ${who}`, html, text };
 }
 
-/** One SMS segment's worth: the visitor's fields are cut short so they can't run up the cost. */
+/**
+ * One SMS segment's worth: the visitor's fields are cut short so they can't run
+ * up the cost. Cut with "..." rather than "…", which would force UCS-2 and
+ * shrink a segment from 160 characters to 70.
+ */
 function inquiryAlertSms({ name, projectType }) {
-  const who = clip(name, SMS_FIELD_MAX) || "someone";
-  const what = clip(projectType, SMS_FIELD_MAX) || "unknown";
+  const who = clip(name, SMS_FIELD_MAX, "...") || "someone";
+  const what = clip(projectType, SMS_FIELD_MAX, "...") || "unknown";
   return `New inquiry from ${who} (${what}). View: oceaniccoder.dev/admin/dashboard`;
 }
 
