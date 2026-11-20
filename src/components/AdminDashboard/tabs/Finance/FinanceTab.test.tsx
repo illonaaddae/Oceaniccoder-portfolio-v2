@@ -184,6 +184,9 @@ describe("FinanceTab", () => {
     );
     await userEvent.type(screen.getByLabelText(/Amount/), "2500");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Money it already held: Rent" })).toBeNull(),
+    );
     expect(addTxn).toHaveBeenCalledWith(
       expect.objectContaining({ type: "opening", amountMinor: 250000, fundId: "r" }),
     );
@@ -338,6 +341,9 @@ describe("FinanceTab", () => {
     await userEvent.click(screen.getByRole("option", { name: "New laptop" }));
     await userEvent.type(within(form).getByLabelText(/Amount/), "100");
     await userEvent.click(within(form).getByRole("button", { name: "Record" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Record a transaction" })).toBeNull(),
+    );
     expect(addTxn).toHaveBeenCalledWith(
       expect.objectContaining({ type: "fund_spend", fundId: "g", category: "New laptop" }),
     );
@@ -451,15 +457,17 @@ describe("FinanceTab", () => {
     const move = screen.getByRole("form", { name: "Add money: New laptop" });
     await userEvent.type(within(move).getByLabelText(/Amount/), "10");
     await userEvent.click(within(move).getByRole("button", { name: "Add" }));
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Add money: New laptop" })).toBeNull(),
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
-    await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByRole("form", { name: "Edit House Fund" })).toBeNull());
+    expect(saveFund).toHaveBeenCalledTimes(1);
     expect(saveFund).toHaveBeenCalledWith(
       expect.objectContaining({ id: "w", expectedUpdatedAt: stamp.updatedAt }),
       '"v2"',
     );
-    expect(screen.queryByRole("form", { name: /Edit House Fund/ })).toBeNull();
   });
 
   it("refuses a save from a form opened before another tab changed its record, even after Refresh", async () => {
@@ -475,15 +483,20 @@ describe("FinanceTab", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Funds" }));
     await userEvent.click(screen.getByRole("button", { name: "Edit House Fund" }));
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Refresh" })).toHaveAttribute(
+        "aria-disabled",
+        "false",
+      ),
+    );
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
-    await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
     // The version is current, so only the opened-on time can catch it.
+    expect(saveFund).toHaveBeenCalledTimes(1);
     expect(saveFund).toHaveBeenCalledWith(
       expect.objectContaining({ id: "w", expectedUpdatedAt: stamp.updatedAt }),
       '"v2"',
     );
-    expect(await screen.findByRole("alert")).toHaveTextContent(message);
   });
 
   it("sends expected-income and budget edits the time their record had when the form opened", async () => {
@@ -511,9 +524,17 @@ describe("FinanceTab", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Expected" }));
     await userEvent.click(screen.getByRole("button", { name: "Edit Client balance" }));
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Refresh" })).toHaveAttribute(
+        "aria-disabled",
+        "false",
+      ),
+    );
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(saveExpected).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Edit Client balance" })).toBeNull(),
+    );
+    expect(saveExpected).toHaveBeenCalledTimes(1);
     expect(saveExpected).toHaveBeenCalledWith(
       expect.objectContaining({ id: "e1", expectedUpdatedAt: stamp.updatedAt }),
       '"v2"',
@@ -524,9 +545,17 @@ describe("FinanceTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Budget" }));
     await userEvent.click(screen.getByRole("button", { name: "Edit this plan" }));
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(4));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Refresh" })).toHaveAttribute(
+        "aria-disabled",
+        "false",
+      ),
+    );
     await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
-    await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Edit monthly plan" })).toBeNull(),
+    );
+    expect(saveBudget).toHaveBeenCalledTimes(1);
     expect(saveBudget).toHaveBeenCalledWith(
       expect.objectContaining({ month, expectedUpdatedAt: "2026-02-01" }),
       '"v3"',
@@ -554,7 +583,10 @@ describe("FinanceTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Edit this plan" }));
     await userEvent.click(screen.getByRole("button", { name: /^Plan starts in.*next month$/i }));
     await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
-    await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Edit monthly plan" })).toBeNull(),
+    );
+    expect(saveBudget).toHaveBeenCalledTimes(1);
     const [sent] = saveBudget.mock.calls[0];
     expect(sent).toMatchObject({ month: next, expectedUpdatedAt: "2026-02-02" });
     expect(sent.expectNew).toBeUndefined();
@@ -579,7 +611,8 @@ describe("FinanceTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "New fund" }));
     await userEvent.type(screen.getByLabelText(/^Name/), "Car");
     await userEvent.click(screen.getByRole("button", { name: "Save fund" }));
-    await waitFor(() => expect(saveFund).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByRole("form", { name: "New fund" })).toBeNull());
+    expect(saveFund).toHaveBeenCalledTimes(1);
     expect(saveFund.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
 
     await userEvent.click(screen.getByRole("button", { name: "Expected" }));
@@ -587,7 +620,10 @@ describe("FinanceTab", () => {
     await userEvent.type(screen.getByLabelText(/^From/), "Bonus");
     await userEvent.type(screen.getByLabelText(/^Amount/), "100");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(saveExpected).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Add expected income" })).toBeNull(),
+    );
+    expect(saveExpected).toHaveBeenCalledTimes(1);
     expect(saveExpected.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
 
     // A new plan starts as a copy of this one, a month later.
@@ -596,7 +632,10 @@ describe("FinanceTab", () => {
       screen.getByRole("button", { name: "Start a new plan from the month after" }),
     );
     await userEvent.click(screen.getByRole("button", { name: "Save plan" }));
-    await waitFor(() => expect(saveBudget).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Edit monthly plan" })).toBeNull(),
+    );
+    expect(saveBudget).toHaveBeenCalledTimes(1);
     expect(saveBudget.mock.calls[0][0]).toMatchObject({ month: addMonths(month, 1) });
     expect(saveBudget.mock.calls[0][0].expectedUpdatedAt).toBeUndefined();
     // It saw no plan for that month, and says so, so the server can refuse
