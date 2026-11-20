@@ -667,6 +667,8 @@ describe("create-booking abuse protection", () => {
   });
 
   it("saves bookings past the daily cap of 20 without an invite or emails", async () => {
+    let clock = NOW;
+    handler = createHandler({ now: () => clock });
     setGoogleEnv();
     for (let i = 0; i < 20; i += 1) stubMeetBooking(`evt${i}`);
     const results = [];
@@ -682,5 +684,28 @@ describe("create-booking abuse protection", () => {
     expect(calls).toBe(40); // OAuth + insert for each of the first 20
     expect(results[20]).toMatchObject({ success: true, meetLink: null, _phase: "invite_cap" });
     expect(bookings.docs.size).toBe(21);
+
+    // Past the cap the owner is told, at most once an hour. The 21st booking
+    // used this hour's alert, so move to the next hour.
+    clock = NOW + 60 * 60 * 1000;
+    process.env.RESEND_API_KEY = "resend-key";
+    try {
+      mockRequest.mockClear();
+      stubHttps(200, { id: "mail" });
+      for (const preferredDate of ["2099-07-01", "2099-07-02"]) {
+        const ctx = await post(
+          { ...validBody, preferredDate },
+          { "x-forwarded-for": "198.51.100.9" },
+        );
+        expect(JSON.parse(ctx.res.body)._phase).toBe("invite_cap");
+      }
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      expect(mockRequest.mock.calls[0][0].hostname).toBe("api.resend.com");
+      const mail = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
+      expect(mail.subject).toMatch(/has no invite yet/);
+      expect(mail.to).not.toContain("ada@example.com");
+    } finally {
+      delete process.env.RESEND_API_KEY;
+    }
   });
 });
