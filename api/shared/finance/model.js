@@ -14,8 +14,7 @@
 //   opening     outside → fund        (a balance that existed before tracking began)
 
 const { HttpError } = require("../http");
-
-const SCOPE = "me";
+const { SCOPE } = require("../personal");
 const FUND_GROUPS = ["wealth", "emergency", "rent", "goal"];
 const TXN_TYPES = [
   "income",
