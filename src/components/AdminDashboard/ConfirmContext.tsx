@@ -27,13 +27,6 @@ interface ConfirmOptions {
   choices?: ConfirmChoice[];
   choiceLabel?: string;
   defaultChoice?: string;
-  /**
-   * Where focus goes once the dialog is confirmed, for a caller whose trigger
-   * goes away with the answer. Read as the dialog closes; null or an element
-   * no longer on the page falls back to the trigger. Cancel always returns
-   * focus to the trigger.
-   */
-  focusAfterConfirm?: () => HTMLElement | null;
 }
 
 // Resolves false on cancel. On confirm, resolves the selected choice when
@@ -68,8 +61,6 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [choice, setChoice] = useState<string>("");
   const resolveRef = useRef<((v: boolean | string) => void) | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const focusAfterConfirmRef = useRef<ConfirmOptions["focusAfterConfirm"]>(undefined);
-  const confirmedFocusRef = useRef<HTMLElement | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -79,8 +70,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   // Stable across renders: the whole dashboard reads this context, so a new
   // function each time would re-render it whenever the dialog opens or closes.
   const confirm = useCallback<ConfirmFn>((opts) => {
-    const { focusAfterConfirm, ...normalised }: ConfirmOptions =
-      typeof opts === "string" ? { message: opts } : opts;
+    const normalised: State = typeof opts === "string" ? { message: opts } : opts;
     if (resolveRef.current) {
       // One dialog at a time: a second request replaces the open one, which
       // settles as cancelled. Overwriting the resolver left the first caller
@@ -96,7 +86,6 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         returnFocusRef.current = active instanceof HTMLElement ? active : null;
       }
     }
-    focusAfterConfirmRef.current = focusAfterConfirm;
     return new Promise<boolean | string>((resolve) => {
       resolveRef.current = resolve;
       setChoice(normalised.defaultChoice ?? normalised.choices?.[0]?.value ?? "");
@@ -105,7 +94,6 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const close = useCallback((value: boolean | string) => {
-    confirmedFocusRef.current = value === false ? null : (focusAfterConfirmRef.current?.() ?? null);
     resolveRef.current?.(value);
     resolveRef.current = null;
     setState(null);
@@ -155,9 +143,8 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("keydown", onKeyDown, true);
       background.forEach((el) => el.removeAttribute("inert"));
       document.documentElement.classList.remove("confirm-open");
-      restoreFocus(confirmedFocusRef.current, returnFocusRef.current);
+      restoreFocus(returnFocusRef.current);
       returnFocusRef.current = null;
-      confirmedFocusRef.current = null;
     };
   }, [isOpen, close]);
 
@@ -273,9 +260,8 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function restoreFocus(...targets: (HTMLElement | null)[]) {
-  for (const target of targets) {
-    if (!target?.isConnected) continue;
+function restoreFocus(target: HTMLElement | null) {
+  if (target?.isConnected) {
     target.focus();
     if (document.activeElement === target) return;
   }
@@ -285,6 +271,6 @@ function restoreFocus(...targets: (HTMLElement | null)[]) {
   // its own <main> inside it), rather than leaving keyboard and screen reader
   // users at the top of <body>. This runs as the dialog closes, before the
   // caller acts on the answer, so it does not cover a row that a confirmed
-  // delete removes later; focusAfterConfirm is for that.
+  // delete removes later.
   document.getElementById("main-content")?.focus();
 }

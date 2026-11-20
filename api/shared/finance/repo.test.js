@@ -5,7 +5,13 @@ import { describe, it, expect, vi } from "vitest";
 
 const { createCosmosFinanceRepo, VERSION_ID } = await import("./repo.js");
 
-function stubContainer({ version, batchResult = [], batchThrows, etagsAfter } = {}) {
+function stubContainer({
+  version,
+  batchResult = [],
+  batchThrows,
+  etagsAfter,
+  readsFailAfter,
+} = {}) {
   let thrown = false;
   const batch = vi.fn(async (operations) => {
     if (batchThrows) {
@@ -22,6 +28,7 @@ function stubContainer({ version, batchResult = [], batchThrows, etagsAfter } = 
   const container = {
     item: vi.fn((id) => ({
       read: async () => {
+        if (thrown && readsFailAfter) throw readsFailAfter;
         const etag = etagOf(id);
         if (!etag) throw Object.assign(new Error("Not found"), { code: 404 });
         return { resource: { id, _etag: etag } };
@@ -81,7 +88,9 @@ describe("Cosmos finance repo", () => {
   it.each([
     [[{ statusCode: 412 }, { statusCode: 424 }], 409, "Something changed"],
     [[{ statusCode: 409 }, { statusCode: 424 }], 409, "Something changed"],
-    [[{ statusCode: 424 }, { statusCode: 409 }], 409, "already recorded"],
+    // Cosmos marks every operation but the failing one 424, before and after it.
+    [[{ statusCode: 424 }, { statusCode: 409 }, { statusCode: 424 }], 409, "already recorded"],
+    [[{ statusCode: 200 }, { statusCode: 409 }, { statusCode: 424 }], 409, "already recorded"],
     [[{ statusCode: 424 }, { statusCode: 404 }], 404, "no longer exists"],
   ])("maps failed batch %j to %i", async (batchResult, status, message) => {
     const { repo } = stubContainer({ batchResult });
@@ -128,6 +137,15 @@ describe("Cosmos finance repo", () => {
         version: '"v7"',
         batchThrows: thrown,
         etagsAfter: { [VERSION_ID]: '"v7"' },
+      });
+      await expect(repo.write({ create: [{ id: "t1" }] }, '"v7"')).rejects.toBe(thrown);
+    });
+
+    it("rethrows the original error, not the read's, when the reads that explain it fail", async () => {
+      const { repo } = stubContainer({
+        version: '"v7"',
+        batchThrows: thrown,
+        readsFailAfter: Object.assign(new Error("Request timed out"), { code: 408 }),
       });
       await expect(repo.write({ create: [{ id: "t1" }] }, '"v7"')).rejects.toBe(thrown);
     });

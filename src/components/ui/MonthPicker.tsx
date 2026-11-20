@@ -88,7 +88,9 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
   const [focusMonth, setFocusMonth] = useState(value);
   const pendingFocus = useRef(false);
   // Set once an arrow has stepped the month, so the live region below reads
-  // the new month out then and not when the field first renders.
+  // the new month out then and not when the field first renders. Cleared as
+  // the dialog opens: a month picked there is read out once, by the trigger
+  // that focus returns to, not again by the live region.
   const [stepped, setStepped] = useState(false);
 
   const close = (refocus: boolean) => {
@@ -116,6 +118,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
       setCoords(null);
       return;
     }
+    setStepped(false);
     const start = parsed ? value : thisMonth();
     setYear(parseMonth(start)!.y);
     setFocusMonth(start);

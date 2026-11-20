@@ -65,6 +65,22 @@ describe("MonthPicker", () => {
     expect(live).toHaveTextContent("January 2027");
   });
 
+  it("doesn't read a month picked in the dialog out a second time after an arrow step", async () => {
+    function Field() {
+      const [value, setValue] = useState("2026-12");
+      return <MonthPicker value={value} onChange={setValue} theme="light" ariaLabel="Month" />;
+    }
+    const { container } = render(<Field />);
+    const live = container.querySelector("[aria-live='polite']")!;
+    await userEvent.click(screen.getByRole("button", { name: "Next month, Month" }));
+    await userEvent.click(screen.getByRole("button", { name: "Month" }));
+    await userEvent.click(screen.getByRole("button", { name: "March 2027" }));
+    // Focus back on the trigger reads "March 2027" with its name.
+    expect(screen.getByRole("button", { name: "Month" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Month" })).toHaveTextContent("March 2027");
+    expect(live).toHaveTextContent(/^$/);
+  });
+
   it("opens as a modal dialog", async () => {
     setup();
     await userEvent.click(screen.getByRole("button", { name: "Month" }));
