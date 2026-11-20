@@ -13,8 +13,7 @@ export function useDashboardCore() {
   const { toasts, removeToast, success: showSuccess, error: showError } = useToast();
   const { theme: rawTheme, toggleTheme } = useTheme();
   const theme = (rawTheme === "light" || rawTheme === "dark" ? rawTheme : "dark") as
-    | "light"
-    | "dark";
+    "light" | "dark";
 
   const adminData = useAdminData();
   const { messages, projects, certifications, gallery, loading } = adminData;

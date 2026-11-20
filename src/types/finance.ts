@@ -4,13 +4,7 @@
 export type FundGroup = "wealth" | "emergency" | "rent" | "goal";
 
 export type TxnType =
-  | "income"
-  | "expense"
-  | "deposit"
-  | "withdrawal"
-  | "transfer"
-  | "fund_spend"
-  | "opening";
+  "income" | "expense" | "deposit" | "withdrawal" | "transfer" | "fund_spend" | "opening";
 
 interface Stamped {
   id: string;

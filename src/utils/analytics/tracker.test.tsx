@@ -18,9 +18,8 @@ interface SentPayload {
 
 const makeBeacon = () => vi.fn((_url: string, _data: Blob): boolean => true);
 const makeFetch = () =>
-  vi.fn(
-    (_url: string, _init?: Parameters<typeof fetch>[1]): Promise<Response> =>
-      Promise.resolve(new Response(null, { status: 204 })),
+  vi.fn((_url: string, _init?: Parameters<typeof fetch>[1]): Promise<Response> =>
+    Promise.resolve(new Response(null, { status: 204 })),
   );
 let beacon = makeBeacon();
 let fetchMock = makeFetch();

@@ -103,41 +103,37 @@ export function toInvoiceRows(
   now: Date,
 ): InvoiceRow[] {
   const rows: InvoiceRow[] = [
-    ...invoices.map(
-      (inv): InvoiceRow => ({
-        kind: "oneoff",
-        key: inv.$id,
-        number: inv.invoiceNumber,
-        clientName: inv.clientName,
-        clientEmail: inv.clientEmail,
-        currency: inv.currency,
-        amount: Number(inv.total) || 0,
-        issuedAt: inv.$createdAt || null,
-        dueAt: inv.dueDate || null,
-        paidAt: null,
-        status: oneOffStatus(inv, now),
-        archived: isArchivedInvoice(inv),
-        invoice: inv,
-      }),
-    ),
-    ...stages.map(
-      (s): InvoiceRow => ({
-        kind: "quote",
-        key: `${s.quoteId}:${s.stageId}`,
-        number: s.invoiceNumber,
-        clientName: s.clientName,
-        clientEmail: s.clientEmail,
-        currency: s.currency,
-        amount: s.amountMinor / 100,
-        issuedAt: s.issuedAt ?? null,
-        dueAt: s.dueBy,
-        paidAt: s.paidAt,
-        status: stageStatus(s),
-        // Quote stage invoices are derived from the quote; nothing to archive.
-        archived: false,
-        stage: s,
-      }),
-    ),
+    ...invoices.map((inv): InvoiceRow => ({
+      kind: "oneoff",
+      key: inv.$id,
+      number: inv.invoiceNumber,
+      clientName: inv.clientName,
+      clientEmail: inv.clientEmail,
+      currency: inv.currency,
+      amount: Number(inv.total) || 0,
+      issuedAt: inv.$createdAt || null,
+      dueAt: inv.dueDate || null,
+      paidAt: null,
+      status: oneOffStatus(inv, now),
+      archived: isArchivedInvoice(inv),
+      invoice: inv,
+    })),
+    ...stages.map((s): InvoiceRow => ({
+      kind: "quote",
+      key: `${s.quoteId}:${s.stageId}`,
+      number: s.invoiceNumber,
+      clientName: s.clientName,
+      clientEmail: s.clientEmail,
+      currency: s.currency,
+      amount: s.amountMinor / 100,
+      issuedAt: s.issuedAt ?? null,
+      dueAt: s.dueBy,
+      paidAt: s.paidAt,
+      status: stageStatus(s),
+      // Quote stage invoices are derived from the quote; nothing to archive.
+      archived: false,
+      stage: s,
+    })),
   ];
   return rows.sort((a, b) => (sortKey(b) > sortKey(a) ? 1 : sortKey(b) < sortKey(a) ? -1 : 0));
 }
