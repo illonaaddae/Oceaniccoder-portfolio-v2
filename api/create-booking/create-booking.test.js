@@ -39,11 +39,16 @@ const makeContext = () => ({
   log: { error: vi.fn(), warn: vi.fn() },
 });
 
+// Inside the booking window (today to 90 days ahead, UTC).
+const isoDaysAhead = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const DAY = isoDaysAhead(30);
+const NEXT_DAY = isoDaysAhead(31);
+
 const validBody = {
   name: "Ada Lovelace",
   email: "ada@example.com",
   meetingType: "discovery",
-  preferredDate: "2099-06-15",
+  preferredDate: DAY,
   preferredTime: "09:00 AM",
   timezone: "UTC",
   message: "",
@@ -257,17 +262,17 @@ describe("create-booking Azure Function", () => {
 
     expect(host.from).toMatch(/^OceanicCoder Bookings </);
     expect(host.subject).toBe(
-      "New Booking: Discovery Call with Ada <b>Lovelace</b> on 2099-06-15 at 09:00 AM",
+      `New Booking: Discovery Call with Ada <b>Lovelace</b> on ${DAY} at 09:00 AM`,
     );
     expect(booker.from).toMatch(/^Illona Addae \(OceanicCoder\) </);
-    expect(booker.subject).toBe("Your Google Meet is Confirmed for 2099-06-15 at 09:00 AM");
+    expect(booker.subject).toBe(`Your Google Meet is Confirmed for ${DAY} at 09:00 AM`);
 
     for (const html of [host.html, booker.html]) {
       expect(html).toContain("Ysabeau Office");
       expect(html).toContain("Oceaniccoder-logo@3x.png");
       expect(html).toContain('href="https://meet.google.com/abc-defg-hij"');
       expect(html).toContain('href="https://calendar.google.com/event?eid=evt9"');
-      expect(html).toContain("2099-06-15 at 09:00 AM");
+      expect(html).toContain(`${DAY} at 09:00 AM`);
       expect(html).toContain("Africa/Accra");
       expect(html).toContain("Discovery Call (30 min)");
       expect(html).toContain("Ada &lt;b&gt;Lovelace&lt;/b&gt;");
@@ -299,7 +304,7 @@ describe("create-booking slot check on Cosmos", () => {
 
   it("returns 409 before any invite or email when the slot is booked", async () => {
     setGoogleEnv();
-    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "09:00 AM" });
+    bookings.seed({ id: "b1", preferredDate: DAY, preferredTime: "09:00 AM" });
 
     const ctx = makeContext();
     await handler(ctx, { method: "POST", body: validBody, query: {} });
@@ -310,7 +315,7 @@ describe("create-booking slot check on Cosmos", () => {
   });
 
   it("matches the booked slot whatever the spelling of the time", async () => {
-    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "09:00 AM" });
+    bookings.seed({ id: "b1", preferredDate: DAY, preferredTime: "09:00 AM" });
 
     const ctx = makeContext();
     await handler(ctx, {
@@ -336,9 +341,22 @@ describe("create-booking slot check on Cosmos", () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["a past date", isoDaysAhead(-1)],
+    ["a date past the booking window", isoDaysAhead(120)],
+  ])("answers 400 for %s before any check, invite or email", async (_, preferredDate) => {
+    setGoogleEnv();
+    const ctx = makeContext();
+    await handler(ctx, { method: "POST", body: { ...validBody, preferredDate }, query: {} });
+
+    expect(ctx.res.status).toBe(400);
+    expect(bookings.queries).toEqual([]);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
   it("proceeds when only other times or dates are booked", async () => {
-    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "10:00 AM" });
-    bookings.seed({ id: "b2", preferredDate: "2099-06-16", preferredTime: "09:00 AM" });
+    bookings.seed({ id: "b1", preferredDate: DAY, preferredTime: "10:00 AM" });
+    bookings.seed({ id: "b2", preferredDate: NEXT_DAY, preferredTime: "09:00 AM" });
 
     const ctx = makeContext();
     await handler(ctx, { method: "POST", body: validBody, query: {} });
@@ -356,7 +374,7 @@ describe("create-booking slot check on Cosmos", () => {
       {
         query: "SELECT TOP 1 c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
         parameters: [
-          { name: "@date", value: "2099-06-15" },
+          { name: "@date", value: DAY },
           { name: "@time", value: "09:00 AM" },
         ],
       },
@@ -415,10 +433,10 @@ describe("create-booking slot check on Cosmos", () => {
       const sent = JSON.parse(mockRequest.mock.results[0].value.write.mock.calls[0][0]);
       expect(sent.to).toEqual(["host@example.com"]);
       expect(sent.subject).toBe(
-        "Action needed: booking with Ada Lovelace on 2099-06-15 at 09:00 AM got no invite or confirmation",
+        `Action needed: booking with Ada Lovelace on ${DAY} at 09:00 AM got no invite or confirmation`,
       );
       expect(sent.html).toContain("No invite or confirmation was sent");
-      expect(sent.html).toContain("09:00 AM on 2099-06-15");
+      expect(sent.html).toContain(`09:00 AM on ${DAY}`);
       expect(sent.html).toContain("send the invite and confirmation by hand");
       expect(sent.html).not.toContain("Google credentials");
     });

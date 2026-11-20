@@ -18,7 +18,7 @@ const {
 const cosmos = require("../shared/cosmos");
 const { errorReason } = require("../shared/errors");
 const { withDeadline } = require("../shared/deadline");
-const { canonicalTime } = require("../shared/bookingSlots");
+const { canonicalTime, isBookableDate } = require("../shared/bookingSlots");
 
 const MEETING_DURATIONS = { discovery: 30, project: 60, mentorship: 45, general: 30 };
 const MEETING_LABELS = {
@@ -544,6 +544,15 @@ module.exports = async function (context, req) {
       status: 400,
       headers: CORS,
       body: JSON.stringify({ error: "Invalid preferredTime" }),
+    };
+    return;
+  }
+  // Same window /api/submit enforces, so no invite goes out for a booking it would refuse.
+  if (!isBookableDate(preferredDate, Date.now())) {
+    context.res = {
+      status: 400,
+      headers: CORS,
+      body: JSON.stringify({ error: "Invalid preferredDate" }),
     };
     return;
   }
