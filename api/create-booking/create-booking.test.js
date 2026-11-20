@@ -309,6 +309,33 @@ describe("create-booking slot check on Cosmos", () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
+  it("matches the booked slot whatever the spelling of the time", async () => {
+    bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "09:00 AM" });
+
+    const ctx = makeContext();
+    await handler(ctx, {
+      method: "POST",
+      body: { ...validBody, preferredTime: "9:00 am" },
+      query: {},
+    });
+
+    expect(ctx.res.status).toBe(409);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it("answers 400 for a time the form doesn't offer", async () => {
+    const ctx = makeContext();
+    await handler(ctx, {
+      method: "POST",
+      body: { ...validBody, preferredTime: "09:30 AM" },
+      query: {},
+    });
+
+    expect(ctx.res.status).toBe(400);
+    expect(bookings.queries).toEqual([]);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
   it("proceeds when only other times or dates are booked", async () => {
     bookings.seed({ id: "b1", preferredDate: "2099-06-15", preferredTime: "10:00 AM" });
     bookings.seed({ id: "b2", preferredDate: "2099-06-16", preferredTime: "09:00 AM" });

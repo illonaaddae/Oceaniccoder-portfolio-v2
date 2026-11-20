@@ -9,6 +9,11 @@
 // each form may send, and what the server sets itself, is in
 // api/shared/submissions.js.
 //
+// A booking's id is derived from its slot (api/shared/bookingSlots.js), so a
+// second booking for the same date and time gets 409 from Cosmos even when two
+// requests race. The time must be one the form offers (any spelling is stored
+// as the offered label) and the date must be inside the booking window.
+//
 // A saved contact message also emails the admin (RESEND_TO_EMAIL). The email
 // goes only after the row is saved, and a failed send is logged, never
 // returned: the visitor's message is already stored.
@@ -26,11 +31,19 @@ const { storeVisitorImage } = require("../shared/media");
 const { sendEmail } = require("../shared/email/send");
 const { createRateLimiter } = require("../shared/rateLimit");
 const { messageAlertEmail, isSafeReplyTo } = require("./messageAlert");
+const {
+  BOOKING_WINDOW_DAYS,
+  canonicalTime,
+  isBookableDate,
+  bookingIdFor,
+} = require("../shared/bookingSlots");
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const ALERTS_PER_IP = 3;
 const ALERTS_PER_DAY = 50;
+
+const SLOT_TAKEN = "That time was just booked. Please choose a different time.";
 
 const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-store" };
 
@@ -65,6 +78,8 @@ async function checkAgainstData(db, collection, doc) {
     }
   }
   if (collection === "bookings") {
+    // Rows saved before booking ids came from the slot have random ids, so
+    // only this query sees them.
     const taken = await exists(
       db.container("bookings"),
       "SELECT c.id FROM c WHERE c.preferredDate = @date AND c.preferredTime = @time",
@@ -73,8 +88,22 @@ async function checkAgainstData(db, collection, doc) {
         { name: "@time", value: doc.preferredTime },
       ],
     );
-    if (taken) return [409, "That time was just booked. Please choose a different time."];
+    if (taken) return [409, SLOT_TAKEN];
   }
+  return null;
+}
+
+/**
+ * Puts a booking's time in its offered spelling and checks the date. Returns
+ * an error message for the visitor, or null.
+ */
+function checkBookingSlot(doc, nowMs) {
+  const time = canonicalTime(doc.preferredTime);
+  if (!time) return "preferredTime isn't one of the offered times";
+  if (!isBookableDate(doc.preferredDate, nowMs)) {
+    return `preferredDate must be from today up to ${BOOKING_WINDOW_DAYS} days ahead`;
+  }
+  doc.preferredTime = time;
   return null;
 }
 
@@ -141,6 +170,13 @@ function createHandler({
       }
       throw err;
     }
+    if (collection === "bookings") {
+      const invalid = checkBookingSlot(doc, now());
+      if (invalid) {
+        reply(context, 400, { error: invalid });
+        return;
+      }
+    }
     if (imageData !== undefined && collection !== "testimonials") {
       reply(context, 400, { error: "Unexpected field: imageData" });
       return;
@@ -176,9 +212,17 @@ function createHandler({
         }
       }
 
-      const { resource } = await db.container(collection).items.create(newDocument(doc));
+      const row =
+        collection === "bookings"
+          ? newDocument({ ...doc, id: bookingIdFor(doc.preferredDate, doc.preferredTime) })
+          : newDocument(doc);
+      const { resource } = await db.container(collection).items.create(row);
       saved = fromCosmos(resource);
     } catch (err) {
+      if (collection === "bookings" && err && err.code === 409) {
+        reply(context, 409, { error: SLOT_TAKEN });
+        return;
+      }
       context.log.error(`submit/${collection} failed:`, err.message);
       reply(context, 500, { error: "Couldn't save that. Please try again." });
       return;
