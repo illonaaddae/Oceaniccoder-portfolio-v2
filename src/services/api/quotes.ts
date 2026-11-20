@@ -182,9 +182,10 @@ export function checkStagePayment(token: string, reference: string) {
   );
 }
 
-export function fetchReceipt(reference: string, sig: string) {
+/** Behind the receipt access gate: a browser with no unlock gets a locked QuoteApiError (isLockedError). */
+export function fetchReceipt(reference: string, sig: string, admin = false) {
   return call<{ receipt: ReceiptView }>(
-    `/api/quote-receipt?reference=${encodeURIComponent(reference)}&s=${encodeURIComponent(sig)}`,
+    `/api/quote-receipt?reference=${encodeURIComponent(reference)}&s=${encodeURIComponent(sig)}${admin ? "&admin=1" : ""}`,
   );
 }
 

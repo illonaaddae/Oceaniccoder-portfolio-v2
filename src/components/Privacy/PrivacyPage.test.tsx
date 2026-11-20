@@ -192,14 +192,16 @@ describe("PrivacyPage", () => {
   it("describes the invoice sign-in cookie, the code emails and the IP use", () => {
     renderPage();
     expect(document.body.textContent).toMatch(
-      /we set a sign-in cookie for each quote or\s+invoice you open/,
+      /we set a sign-in cookie for each quote,\s+invoice or receipt you open/,
     );
     const visiting = screen.getByRole("region", { name: "When you visit the site" });
     expect(
-      within(visiting).getByText(/The only cookies we set are the quote and invoice sign-in/),
+      within(visiting).getByText(
+        /The only cookies we set are the quote, invoice and receipt sign-in/,
+      ),
     ).toBeInTheDocument();
     expect(
-      within(visiting).getByText(/code to open a quote or an invoice, the page keeps/),
+      within(visiting).getByText(/code to open a quote, an invoice or a receipt, the page keeps/),
     ).toBeInTheDocument();
     const quotes = screen.getByRole("region", { name: "Quotes and payments" });
     const invoices = within(quotes).getByText(/Invoice payment pages work the same way/);
@@ -216,15 +218,31 @@ describe("PrivacyPage", () => {
       expect(invoices.textContent).toMatch(claim);
   });
 
+  it("describes the receipt sign-in cookie and that a quote sign-in opens its receipts", () => {
+    renderPage();
+    const quotes = screen.getByRole("region", { name: "Quotes and payments" });
+    const receipts = within(quotes).getByText(/Receipt pages work the same way too/);
+    for (const claim of [
+      /signed in to the quote opens its\s+receipts straight away/,
+      /6-digit code to the email address on the\s+quote/,
+      /signed in to that receipt for 30 days/,
+      /quote is revised, its link is replaced or its email address changes/,
+    ])
+      expect(receipts.textContent).toMatch(claim);
+  });
+
   it("says the sign-in cookies are needed for the pages to work, so no consent is asked", () => {
     renderPage();
     const quotes = screen.getByRole("region", { name: "Quotes and payments" });
     const needed = /is needed for the page to work, so we don't ask for consent to set it/g;
-    expect(quotes.textContent?.match(needed)).toHaveLength(2);
+    expect(quotes.textContent?.match(needed)).toHaveLength(3);
     expect(within(quotes).getByText(/signed in to that quote for 30 days/).textContent).toMatch(
       needed,
     );
     expect(within(quotes).getByText(/signed in to that invoice for 30 days/).textContent).toMatch(
+      needed,
+    );
+    expect(within(quotes).getByText(/signed in to that receipt for 30 days/).textContent).toMatch(
       needed,
     );
   });

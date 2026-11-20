@@ -617,7 +617,8 @@ export default function QuoteSidebar({
               if (
                 await confirm({
                   message: "Make a new link?",
-                  description: "The link the client has now will stop working.",
+                  description:
+                    "The link the client has now will stop working, and browsers opened to this quote's receipts are signed out.",
                   confirmLabel: "New link",
                 })
               )
