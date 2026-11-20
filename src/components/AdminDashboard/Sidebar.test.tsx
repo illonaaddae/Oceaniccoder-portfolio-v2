@@ -17,3 +17,16 @@ describe("Sidebar quote tabs", () => {
     expect(screen.queryByText("Emails")).toBeNull();
   });
 });
+
+describe("Sidebar finance tab", () => {
+  it("shows Finance to the admin", () => {
+    render(<Sidebar {...props} />);
+    expect(screen.getAllByText("Finance").length).toBeGreaterThan(0);
+  });
+
+  it("never shows Finance or its Personal group on the public read-only dashboard", () => {
+    render(<Sidebar {...props} isReadOnly />);
+    expect(screen.queryByText("Finance")).toBeNull();
+    expect(screen.queryByText("Personal")).toBeNull();
+  });
+});
