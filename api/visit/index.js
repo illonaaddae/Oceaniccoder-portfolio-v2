@@ -16,7 +16,7 @@
 //      left-most entry a client can forge per request;
 //   2. 300 events a minute in total, per instance;
 //   3. 50,000 events per UTC day across all instances, reserved up front with
-//      one atomic counter patch per request (see createDailyCeiling).
+//      one atomic counter patch per request (see shared/dailyCeiling.js).
 // The container handle never retries a 429, so throttling drops events
 // instead of queueing them (getAnalyticsContainer in shared/cosmos.js).
 //
@@ -35,6 +35,7 @@
 const { getAnalyticsContainer, newId } = require("../shared/cosmos");
 const { clientIp } = require("../shared/turnstile");
 const { createRateLimiter } = require("../shared/rateLimit");
+const { createDailyCeiling: createSharedCeiling } = require("../shared/dailyCeiling");
 const {
   MAX_BODY_BYTES,
   allowedHosts,
@@ -62,62 +63,12 @@ function rawTtlSeconds(env) {
   return (valid ? days : DEFAULT_RAW_TTL_DAYS) * DAY_SECONDS;
 }
 
-/**
- * Caps raw writes at `limit` events per UTC day across all instances. Each
- * request reserves its events first with one atomic `incr` patch on the
- * `count:<day>` doc (2-day ttl, created on the first request of the day, with
- * a 409 race falling back to the patch) and writes only what the returned
- * total leaves room for. One patch per request, never per event; the
- * per-IP and per-instance caps in front keep it from being hammered, and
- * once the day is full this instance stops patching until the next day.
- *
- * Reserved events whose write then fails still count, so the day can end a
- * little under the limit; never over it. Rejects when the counter can't be
- * reached; the caller then writes anyway, since the per-minute caps still hold.
- */
+/** Logs a message once per key (a minute, a day), so a flood can't spam the logs. */
+/** The page-view ceiling: DAILY_LIMIT events a day on the `count:<day>` doc. */
 function createDailyCeiling(container, { limit = DAILY_LIMIT } = {}) {
-  let fullDay = null;
-
-  const incr = (id, forDay, delta) =>
-    container.item(id, forDay).patch([{ op: "incr", path: "/n", value: delta }]);
-
-  async function addToCounter(forDay, delta) {
-    const id = `count:${forDay}`;
-    try {
-      return (await incr(id, forDay, delta)).resource.n;
-    } catch (err) {
-      if (err.code !== 404) throw err;
-    }
-    try {
-      await container.items.create({
-        id,
-        type: "count",
-        day: forDay,
-        n: delta,
-        ttl: 2 * DAY_SECONDS,
-      });
-      return delta;
-    } catch (err) {
-      if (err.code !== 409) throw err;
-      return (await incr(id, forDay, delta)).resource.n;
-    }
-  }
-
-  /**
-   * Reserves room for `count` events and returns how many of them may be
-   * written (0..count). The patch is atomic, so the returned total is this
-   * request's own position in the day: concurrent requests at the boundary
-   * can't all slip under the limit.
-   */
-  return async function reserve(forDay, count) {
-    if (fullDay === forDay) return 0;
-    const total = await addToCounter(forDay, count);
-    if (total >= limit) fullDay = forDay;
-    return Math.max(0, Math.min(count, count - (total - limit)));
-  };
+  return createSharedCeiling(container, { limit, key: "count" });
 }
 
-/** Logs a message once per key (a minute, a day), so a flood can't spam the logs. */
 function createAlerter() {
   const seen = new Set();
   return function alertOnce(log, key, message) {
