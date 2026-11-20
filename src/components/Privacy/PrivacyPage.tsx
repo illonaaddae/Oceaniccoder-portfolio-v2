@@ -166,12 +166,13 @@ const PrivacyPage: React.FC = () => (
           the reason given.
         </p>
         <p>
-          To block spam, the contact, booking, inquiry, comment and testimonial forms use Cloudflare
-          Turnstile. Before you send one of these forms, your browser loads Turnstile from
-          Cloudflare, which sees your IP address and checks details about your browser and device to
-          tell people from bots. When you send a form, our server sends the result and your IP
-          address to Cloudflare to confirm it. Our server also uses your IP address in memory to
-          limit how many contact-message alerts one address can trigger, and never saves it.
+          To block spam, the contact, booking, inquiry, comment, testimonial and newsletter forms
+          use Cloudflare Turnstile. Before you send one of these forms, your browser loads Turnstile
+          from Cloudflare, which sees your IP address and checks details about your browser and
+          device to tell people from bots. When you send a form, our server sends the result and
+          your IP address to Cloudflare to confirm it. Our server also uses your IP address in
+          memory to limit how many contact-message alerts and newsletter sign-ups one address can
+          trigger, and never saves it.
         </p>
         <List>
           <li>

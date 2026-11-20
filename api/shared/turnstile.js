@@ -1,5 +1,5 @@
 // Cloudflare Turnstile check for visitor submissions (comments, messages,
-// bookings, inquiries, testimonials). The browser gets a token from the widget;
+// bookings, inquiries, testimonials, newsletter sign-ups). The browser gets a token from the widget;
 // this confirms it with Cloudflare once. Tokens are single-use and expire after
 // five minutes.
 //
@@ -77,7 +77,8 @@ const PRIVATE_IP =
  * through from the client, so neither is used. Private hops and entries that
  * aren't IP addresses ("unknown") are skipped. Used by /api/visit (rate
  * limit, visitor hash), /api/chat (rate limit), /api/get-invoice (rate
- * limit), /api/submit (Turnstile's `remoteip`) and /api/quote-respond
+ * limit), /api/submit (Turnstile's `remoteip`), /api/newsletter-signup (rate
+ * limit, Turnstile's `remoteip`) and /api/quote-respond
  * (hashed acceptance record).
  */
 function clientIp(req) {

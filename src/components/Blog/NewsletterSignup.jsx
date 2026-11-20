@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { FaEnvelope, FaPaperPlane, FaCheckCircle } from "react-icons/fa";
 import { apiUrl } from "../../utils/apiUrl";
+import { useTurnstile } from "@/hooks/useTurnstile";
+import TurnstileSlot from "../TurnstileSlot";
 
 const NewsletterSignup = () => {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState("");
+  const turnstile = useTurnstile();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +22,7 @@ const NewsletterSignup = () => {
       const res = await fetch(apiUrl("/api/newsletter-signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed }),
+        body: JSON.stringify({ email: trimmed, turnstileToken: turnstile.token }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to subscribe");
@@ -28,6 +31,8 @@ const NewsletterSignup = () => {
     } catch (err) {
       setErrorMsg(err.message || "Something went wrong. Try again.");
       setStatus("error");
+    } finally {
+      turnstile.reset(); // tokens are single-use
     }
   };
 
@@ -89,6 +94,7 @@ const NewsletterSignup = () => {
           {status === "loading" ? "Subscribing..." : "Subscribe"}
         </button>
       </form>
+      <TurnstileSlot turnstile={turnstile} />
       {status === "error" && <p className="mt-3 text-sm text-red-400">{errorMsg}</p>}
       <p className="mt-3 text-xs text-[var(--text-secondary)]">No spam. Unsubscribe anytime.</p>
     </div>
