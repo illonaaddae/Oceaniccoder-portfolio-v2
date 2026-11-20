@@ -109,7 +109,7 @@ export function ProgressBar({ value, label }: { value: number; label: string }) 
  * from the card at 3:1 or more (gray-500 on the dark card is 3.7:1, slate-500
  * on white 4.8:1).
  */
-const inputClass = (theme: Theme) =>
+export const inputClass = (theme: Theme) =>
   `block w-full rounded-lg border px-3 py-2 text-sm font-normal transition-all duration-200 focus:outline-none focus:ring-2 ${
     theme === "dark"
       ? "bg-gray-800/80 border-gray-500 text-white placeholder-gray-400 focus:border-oceanic-400 focus:ring-oceanic-400"

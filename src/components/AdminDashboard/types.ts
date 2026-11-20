@@ -20,7 +20,8 @@ export type TabType =
   | "storage"
   | "quotes"
   | "emails"
-  | "finance";
+  | "finance"
+  | "cv";
 
 export interface AdminDashboardProps {
   onLogout?: () => void;
