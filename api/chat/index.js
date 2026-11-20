@@ -253,7 +253,8 @@ function createHandler(deps = {}) {
       }
       const check = await verify(turnstileToken, ip);
       if (!check.ok) {
-        const status = check.status === 400 ? 403 : check.status;
+        // A missing TURNSTILE_SECRET_KEY (500 from verifyTurnstile) is a setup gap.
+        const status = check.status === 400 ? 403 : check.status === 500 ? 503 : check.status;
         return reply(status, { error: check.error, code: "verify" });
       }
       issued = issueChatToken(clientKey, nowMs, secret);

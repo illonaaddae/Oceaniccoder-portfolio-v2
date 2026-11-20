@@ -153,6 +153,16 @@ describe("chat visitor check", () => {
   });
 });
 
+describe("chat setup", () => {
+  it("answers 503 when Turnstile is not configured", async () => {
+    const { chat, callOpenAI } = setup({
+      turnstile: { ok: false, status: 500, error: "Spam protection isn't configured." },
+    });
+    expect((await chat()).status).toBe(503);
+    expect(callOpenAI).not.toHaveBeenCalled();
+  });
+});
+
 describe("chat daily budget", () => {
   it("counts a call against the day it is made when the Turnstile check crosses midnight", async () => {
     const { chat, verifyTurnstile, container, advance } = setup();
