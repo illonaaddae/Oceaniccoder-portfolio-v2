@@ -9,15 +9,17 @@
 // each form may send, and what the server sets itself, is in
 // api/shared/submissions.js.
 //
-// A saved contact message also emails the admin (RESEND_TO_EMAIL). The email
-// goes only after the row is saved, and a failed send is logged, never
-// returned: the visitor's message is already stored.
+// A saved contact message emails the admin (RESEND_TO_EMAIL); a saved project
+// inquiry emails the admin and texts ADMIN_PHONE. Alerts go only after the row
+// is saved, are built from the saved row, and a failed send is logged, never
+// returned: the visitor's row is already stored.
 //
-// Turnstile can be solved by paid captcha farms, and the alert shares its
-// Resend key and quota with the payment emails, so alerts are capped per
-// instance: ALERTS_PER_IP an hour per client IP, then ALERTS_PER_DAY in total.
-// Over a cap the row is still saved (201) and only the email is skipped,
-// logged once an hour per cap so a flood can't fill the logs either.
+// Turnstile can be solved by paid captcha farms, SMS costs money, and the email
+// shares its Resend key and quota with the payment emails, so alerts from both
+// forms share caps per instance: ALERTS_PER_IP an hour per client IP, then
+// ALERTS_PER_DAY in total. Over a cap the row is still saved (201) and only the
+// alerts are skipped, logged once an hour per cap so a flood can't fill the
+// logs either.
 
 const { getDatabase, newDocument, fromCosmos } = require("../shared/cosmos");
 const { Invalid, validateSubmission } = require("../shared/submissions");
@@ -26,6 +28,11 @@ const { storeVisitorImage } = require("../shared/media");
 const { sendEmail } = require("../shared/email/send");
 const { createRateLimiter } = require("../shared/rateLimit");
 const { messageAlertEmail, isSafeReplyTo } = require("./messageAlert");
+const {
+  inquiryAlertEmail,
+  inquiryAlertSms,
+  sendSms: sendAfricasTalkingSms,
+} = require("./inquiryAlert");
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -78,30 +85,55 @@ async function checkAgainstData(db, collection, doc) {
   return null;
 }
 
-/** Emails the admin about a saved message. Logs a failure; never throws. */
-async function alertAdmin(context, row, sendEmail) {
+/** Emails the admin about a saved row. Logs a failure; never throws. */
+async function emailAdmin(context, collection, row, mail, sendEmail) {
   let error;
   try {
     const result = await sendEmail({
       to: process.env.RESEND_TO_EMAIL,
       // Left out when unsafe, so sendEmail falls back to its own address.
       ...(isSafeReplyTo(row.email) ? { replyTo: row.email } : {}),
-      ...messageAlertEmail(row),
+      ...mail,
     });
     if (!result.ok) error = result.error;
   } catch (err) {
     error = err.message;
   }
-  if (error) context.log.error(`submit/messages: alert email for ${row.$id} failed:`, error);
+  if (error) context.log.error(`submit/${collection}: alert email for ${row.$id} failed:`, error);
 }
 
-/** Decides whether a saved message may email the admin, and logs the first skip per cap. */
+/** Texts the admin about a saved row, when ADMIN_PHONE is set. Logs a failure; never throws. */
+async function textAdmin(context, collection, row, message, sendSms) {
+  const to = process.env.ADMIN_PHONE;
+  if (!to) return;
+  let error;
+  try {
+    const result = await sendSms(to, message);
+    if (!result.ok) error = result.error;
+  } catch (err) {
+    error = err.message;
+  }
+  if (error) context.log.warn(`submit/${collection}: alert SMS for ${row.$id} failed:`, error);
+}
+
+/** The admin alerts for each form that sends any. */
+const ALERTS = {
+  messages: (context, row, deps) =>
+    emailAdmin(context, "messages", row, messageAlertEmail(row), deps.sendEmail),
+  project_inquiries: (context, row, deps) =>
+    Promise.all([
+      emailAdmin(context, "project_inquiries", row, inquiryAlertEmail(row), deps.sendEmail),
+      textAdmin(context, "project_inquiries", row, inquiryAlertSms(row), deps.sendSms),
+    ]),
+};
+
+/** Decides whether a saved row may alert the admin, and logs the first skip per cap. */
 function createAlertBudget(now) {
   const allowIp = createRateLimiter({ limit: ALERTS_PER_IP, windowMs: HOUR_MS });
   const allowDay = createRateLimiter({ limit: ALERTS_PER_DAY, windowMs: DAY_MS, maxKeys: 1 });
   const allowSkipLog = createRateLimiter({ limit: 1, windowMs: HOUR_MS, maxKeys: 2 });
 
-  return function mayAlert(context, ip) {
+  return function mayAlert(context, collection, ip) {
     const nowMs = now();
     // Per-IP first, so one source can't use up the daily budget on its own.
     // Requests without a forwarded IP share one bucket rather than going unlimited.
@@ -111,7 +143,7 @@ function createAlertBudget(now) {
     if (!cap) return true;
     if (allowSkipLog(cap, 1, nowMs)) {
       context.log.warn(
-        `submit/messages: alert email cap of ${cap} reached; saving without emailing`,
+        `submit/${collection}: alert cap of ${cap} reached; saving without alerting`,
       );
     }
     return false;
@@ -123,6 +155,7 @@ function createHandler({
   verifyTurnstile,
   storeVisitorImage,
   sendEmail,
+  sendSms = sendAfricasTalkingSms,
   now = Date.now,
 }) {
   const mayAlert = createAlertBudget(now);
@@ -185,8 +218,9 @@ function createHandler({
     }
 
     reply(context, 201, saved);
-    if (collection === "messages" && mayAlert(context, ip)) {
-      await alertAdmin(context, saved, sendEmail);
+    const alert = ALERTS[collection];
+    if (alert && mayAlert(context, collection, ip)) {
+      await alert(context, saved, { sendEmail, sendSms });
     }
   };
 }

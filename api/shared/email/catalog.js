@@ -6,7 +6,7 @@ const { SAMPLES, SAMPLE_VIEWS } = require("./samples");
 const quoteEmails = require("./quoteEmails");
 const booking = require("../../create-booking/index.js");
 const { welcomeEmailHtml } = require("../../newsletter-signup/index.js");
-const { inquiryEmail } = require("../../notify-inquiry/index.js");
+const { inquiryAlertEmail } = require("../../submit/inquiryAlert.js");
 const { messageAlertEmail } = require("../../submit/messageAlert.js");
 const webhook = require("../../paystack-webhook/emails.js");
 const { buildStatusEmail } = require("../../send-inquiry-status/index.js");
@@ -273,14 +273,11 @@ const CATALOG = [
     name: "New inquiry",
     when: "Someone sends the project form",
     render: () =>
-      htmlOnly(
-        "New project inquiry from Kofi Mensah",
-        inquiryEmail({
-          name: "Kofi Mensah",
-          email: "kofi@example.com",
-          projectType: "E-commerce Website",
-        }),
-      ),
+      inquiryAlertEmail({
+        name: "Kofi Mensah",
+        email: "kofi@example.com",
+        projectType: "E-commerce Website",
+      }),
   },
   {
     id: "messageReceivedAlert",
