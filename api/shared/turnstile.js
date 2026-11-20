@@ -76,7 +76,7 @@ const PRIVATE_IP =
  * other headers, `client-ip` holds the internal hop and `x-real-ip` is passed
  * through from the client, so neither is used. Private hops and entries that
  * aren't IP addresses ("unknown") are skipped. Used by /api/visit (rate
- * limit, visitor hash), /api/chat (rate limit), /api/get-invoice (rate
+ * limit, visitor hash), /api/chat (rate limit, Turnstile's `remoteip`), /api/get-invoice (rate
  * limit), /api/submit (Turnstile's `remoteip`) and /api/quote-respond
  * (hashed acceptance record).
  */

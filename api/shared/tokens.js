@@ -64,6 +64,8 @@ module.exports = {
   hashToken,
   isTokenShape,
   hashIp,
+  signLink,
+  verifyLink,
   signReceipt,
   verifyReceipt,
   signInvoice,

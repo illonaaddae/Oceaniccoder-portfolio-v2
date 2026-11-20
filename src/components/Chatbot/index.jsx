@@ -11,6 +11,8 @@ import {
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { apiUrl } from "../../utils/apiUrl";
+import { useTurnstile } from "@/hooks/useTurnstile";
+import TurnstileSlot from "../TurnstileSlot";
 
 const QUICK_REPLIES = [
   "What are your main skills?",
@@ -25,15 +27,27 @@ const WELCOME_CONTENT =
 let _msgId = 0;
 const makeMsg = (role, content) => ({ role, content, id: ++_msgId });
 
-async function fetchReply(messages) {
+const CONNECTION_ERROR =
+  "Sorry, I'm having trouble connecting right now. Please use the [contact form](/contact) or [book a meeting](/booking).";
+
+class ChatError extends Error {
+  constructor(status, data) {
+    super(data.error || "Network error");
+    this.status = status;
+    this.code = data.code;
+  }
+}
+
+// `auth` is { chatToken } once the server has issued one, else { turnstileToken }.
+async function fetchReply(messages, auth) {
   const res = await fetch(apiUrl("/api/chat"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, ...auth }),
   });
-  if (!res.ok) throw new Error("Network error");
-  const data = await res.json();
-  return data.reply;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ChatError(res.status, data);
+  return data;
 }
 
 export default function Chatbot() {
@@ -44,6 +58,10 @@ export default function Chatbot() {
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const turnstile = useTurnstile();
+  // Issued by /api/chat after the first Turnstile check; sent with later messages.
+  const [chatToken, setChatToken] = useState(null);
+  const verified = Boolean(chatToken || turnstile.token);
 
   useEffect(() => {
     if (open) {
@@ -63,7 +81,7 @@ export default function Chatbot() {
 
   const sendMessage = async (text) => {
     const trimmed = (text ?? input).trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading || !verified) return;
 
     setInput("");
     setShowQuickReplies(false);
@@ -73,17 +91,36 @@ export default function Chatbot() {
     setMessages(newMessages);
     setLoading(true);
 
+    const history = newMessages
+      .filter((m) => m.role !== "system")
+      .map(({ role, content }) => ({ role, content }));
+    // Turnstile tokens are single-use: reset after sending one so a fresh one
+    // is ready if the chat token later expires.
+    const withTurnstile = () => {
+      const auth = { turnstileToken: turnstile.token };
+      turnstile.reset();
+      return fetchReply(history, auth);
+    };
+
     try {
-      const reply = await fetchReply(newMessages.filter((m) => m.role !== "system"));
-      setMessages((prev) => [...prev, makeMsg("assistant", reply)]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        makeMsg(
-          "assistant",
-          "Sorry, I'm having trouble connecting right now. Please use the [contact form](/contact) or [book a meeting](/booking).",
-        ),
-      ]);
+      let data;
+      if (chatToken) {
+        try {
+          data = await fetchReply(history, { chatToken });
+        } catch (err) {
+          if (err.code !== "verify" || !turnstile.token) throw err;
+          setChatToken(null);
+          data = await withTurnstile();
+        }
+      } else {
+        data = await withTurnstile();
+      }
+      if (data.chatToken) setChatToken(data.chatToken);
+      setMessages((prev) => [...prev, makeMsg("assistant", data.reply)]);
+    } catch (err) {
+      if (err instanceof ChatError && err.code === "verify") setChatToken(null);
+      const text = err instanceof ChatError && err.status === 429 ? err.message : CONNECTION_ERROR;
+      setMessages((prev) => [...prev, makeMsg("assistant", text)]);
     } finally {
       setLoading(false);
     }
@@ -161,7 +198,8 @@ export default function Chatbot() {
                     <button
                       key={qr}
                       onClick={() => sendMessage(qr)}
-                      className="text-xs px-3 py-1.5 rounded-full border transition-all hover:opacity-80"
+                      disabled={!verified || loading}
+                      className="text-xs px-3 py-1.5 rounded-full border transition-all hover:opacity-80 disabled:opacity-40"
                       style={{
                         borderColor: "var(--accent-teal)",
                         color: "var(--accent-teal)",
@@ -198,6 +236,7 @@ export default function Chatbot() {
               className="px-3 py-3 border-t shrink-0"
               style={{ borderColor: "var(--border-subtle)" }}
             >
+              <TurnstileSlot turnstile={turnstile} />
               <div
                 className="flex items-center gap-2 rounded-xl border px-3 py-2"
                 style={{
@@ -225,7 +264,7 @@ export default function Chatbot() {
                 />
                 <button
                   onClick={() => sendMessage()}
-                  disabled={!input.trim() || loading}
+                  disabled={!input.trim() || loading || !verified}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-40"
                   style={{ background: "var(--accent-teal)", touchAction: "manipulation" }}
                   aria-label="Send"
