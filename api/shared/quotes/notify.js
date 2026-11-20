@@ -2,17 +2,50 @@
 // logged by the caller from the returned { ok, error }. linkCode is the
 // one-time "#k=" code for the client's own copy (see quote-admin actions);
 // null leaves the links bare, so the page asks for an emailed code.
+// mintReceiptCode(q, p) gives the receipt email's link code (receiptCodeMinter).
 
 const T = require("../email/quoteEmails");
 const M = require("./model");
 const V = require("./views");
 const { sendEmail } = require("../email/send");
+const { receiptAccess } = require("../receipts/access");
+
+/**
+ * Mints the "#k=" code for a receipt email: the receipt binding at the
+ * quote's current epoch. Never throws, since it runs inside settlement: gate
+ * off, a missing secret or a failed epoch read give null (a bare link) and a
+ * log line.
+ */
+function receiptCodeMinter({
+  locks,
+  env = process.env,
+  nowMs = () => Date.now(),
+  log = console.error,
+}) {
+  return async (q, p) => {
+    const skip = (reason) => {
+      log(`notify receipt link code skipped quote=${q.quoteNumber} reason=${reason}`);
+      return null;
+    };
+    try {
+      if (!locks) return skip("no lock store");
+      if (!receiptAccess.gateEnabled(env, log)) return skip("gate off");
+      const secret = receiptAccess.accessSecret(env, log);
+      const record = { quote: q, payment: p };
+      const epoch = await receiptAccess.currentEpoch(locks, record);
+      return receiptAccess.mintLinkCode(secret, record, epoch, nowMs());
+    } catch (err) {
+      return skip(err.message);
+    }
+  };
+}
 
 function createNotifier({
   send = sendEmail,
   adminEmail = process.env.RESEND_TO_EMAIL,
   base = V.siteBase(),
   receiptSecret = process.env.RECEIPT_SIGNING_SECRET,
+  mintReceiptCode = async () => null,
 } = {}) {
   const safe = async (fn) => {
     try {
@@ -59,10 +92,11 @@ function createNotifier({
       ),
     paymentReceived: (q, p, stages) =>
       safe(async () => {
+        const linkCode = await mintReceiptCode(q, p).catch(() => null);
         const [client, admin] = await Promise.all([
           to(
             p.clientEmail || q.clientEmail,
-            T.paymentReceipt(V.receiptEmailView(q, p, stages, base, receiptSecret)),
+            T.paymentReceipt(V.receiptEmailView(q, p, stages, base, receiptSecret, linkCode)),
           ),
           to(adminEmail, T.paymentAlert(V.alertView(q, p, stages, "paid", null, base))),
         ]);
@@ -77,4 +111,4 @@ function createNotifier({
   };
 }
 
-module.exports = { createNotifier };
+module.exports = { createNotifier, receiptCodeMinter };

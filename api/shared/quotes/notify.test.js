@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createRequire } from "module";
 import { describe, it, expect, vi } from "vitest";
 
 const M = await import("./model.js");
@@ -150,5 +151,96 @@ describe("one-time link codes", () => {
       expect(body).not.toContain("usually opens straight away");
       expect(body).not.toContain("kofi@example.com");
     }
+  });
+});
+
+describe("notify.paymentReceived receipt link code", () => {
+  const BASE = "https://oceaniccoder.dev";
+  const require = createRequire(import.meta.url);
+  const { receiptCodeMinter, createNotifier: notifier } = require("./notify.js");
+  const { receiptAccess } = require("../receipts/access.js");
+  const { createFakeLocks } = require("./fakes.js");
+  const NOW = Date.parse("2026-10-12T09:00:00.000Z");
+  const ENV = { QUOTE_ACCESS_SECRET: "s".repeat(40), RECEIPT_SIGNING_SECRET: "r".repeat(40) };
+  const q = { ...quote("accepted"), respondedAt: "2026-10-11T09:00:00.000Z" };
+  const p = {
+    stageId: "deposit",
+    paystackReference: "R-100",
+    amountMinor: 50000,
+    currency: "GHS",
+    method: "card",
+    paidAt: "2026-10-12T09:00:00.000Z",
+    clientEmail: "payer@example.com",
+  };
+  const stages = M.stageStates(q, [{ ...p, status: "success", kind: "quote" }], NOW);
+  const receiptCode = (text) => /\/receipt\/R-100\?s=[^#\s]+#k=(\S+)/.exec(text)?.[1];
+
+  it("puts a receipt link code the receipt gate accepts on the payer's email", async () => {
+    const locks = createFakeLocks({ now: () => NOW });
+    const send = vi.fn().mockResolvedValue({ ok: true });
+    const mintReceiptCode = receiptCodeMinter({ locks, env: ENV, nowMs: () => NOW });
+    const n = notifier({
+      send,
+      base: BASE,
+      receiptSecret: ENV.RECEIPT_SIGNING_SECRET,
+      adminEmail: "admin@example.com",
+      mintReceiptCode,
+    });
+    expect((await n.paymentReceived(q, p, stages)).ok).toBe(true);
+    const mail = send.mock.calls.find(([m]) => m.to === "payer@example.com")[0];
+    const code = receiptCode(mail.text);
+    expect(code).toBeTruthy();
+    expect(mail.html).toContain(`#k=${code}`);
+    const check = await receiptAccess.checkLinkCode({
+      secret: ENV.QUOTE_ACCESS_SECRET,
+      locks,
+      record: { quote: q, payment: p },
+      linkCode: code,
+      nowMs: NOW,
+    });
+    expect(check.ok).toBe(true);
+  });
+
+  it.each([
+    ["the gate is off", { ...ENV, RECEIPT_ACCESS_GATE: "off" }, "gate off"],
+    ["the access secret is missing", { RECEIPT_SIGNING_SECRET: ENV.RECEIPT_SIGNING_SECRET }, ""],
+  ])("sends a bare receipt link and logs when %s", async (_, env, reason) => {
+    const log = vi.fn();
+    const send = vi.fn().mockResolvedValue({ ok: true });
+    const mintReceiptCode = receiptCodeMinter({ locks: createFakeLocks(), env, log });
+    const r = await notifier({
+      send,
+      base: BASE,
+      receiptSecret: ENV.RECEIPT_SIGNING_SECRET,
+      adminEmail: "admin@example.com",
+      mintReceiptCode,
+    }).paymentReceived(q, p, stages);
+    expect(r.ok).toBe(true);
+    const mail = send.mock.calls.find(([m]) => m.to === "payer@example.com")[0];
+    expect(mail.text).toMatch(/\/receipt\/R-100\?s=/);
+    expect(mail.text).not.toContain("#k=");
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `notify receipt link code skipped quote=Q-2026-0001 reason=${reason}`,
+      ),
+    );
+  });
+
+  it("still sends the receipt when reading the epoch fails", async () => {
+    const log = vi.fn();
+    const send = vi.fn().mockResolvedValue({ ok: true });
+    const locks = { has: vi.fn().mockRejectedValue(new Error("cosmos down")) };
+    const mintReceiptCode = receiptCodeMinter({ locks, env: ENV, log });
+    const r = await notifier({
+      send,
+      base: BASE,
+      receiptSecret: ENV.RECEIPT_SIGNING_SECRET,
+      adminEmail: "admin@example.com",
+      mintReceiptCode,
+    }).paymentReceived(q, p, stages);
+    expect(r.ok).toBe(true);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[0][0].text).not.toContain("#k=");
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("reason=cosmos down"));
   });
 });

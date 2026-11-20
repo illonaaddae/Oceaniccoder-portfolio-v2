@@ -417,6 +417,7 @@ function receiptEmailView(
   stages,
   base = siteBase(),
   secret = process.env.RECEIPT_SIGNING_SECRET,
+  linkCode = null,
 ) {
   const s = M.paymentSummary(stages);
   const stage = stages.find((x) => x.id === p.stageId);
@@ -430,7 +431,7 @@ function receiptEmailView(
     method: methodLabel(p),
     reference: p.paystackReference,
     paidAt: formatDate(p.paidAt),
-    receiptLink: path ? `${base}${path}` : "",
+    receiptLink: path ? `${base}${path}${linkCode ? `#k=${linkCode}` : ""}` : "",
     balance: formatMoney(s.balanceMinor, q.currency),
     complete: s.complete,
   };
