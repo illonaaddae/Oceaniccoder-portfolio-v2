@@ -6,7 +6,6 @@ This directory contains all static data used throughout the portfolio applicatio
 
 ```
 src/utils/data/
-├── index.js              # Central export point for all data modules
 ├── education.js          # Education history and academic achievements
 ├── journey.js            # Career journey and work experience
 ├── certifications.js     # Professional certifications and credentials
@@ -82,10 +81,13 @@ import education from "../utils/data/education";
 import journey from "../utils/data/journey";
 ```
 
-### Import Multiple Modules (Recommended)
+### Import Multiple Modules Directly
 
 ```javascript
-import { education, journey, certifications, galleryImages } from "../utils/data";
+import education from "../utils/data/education";
+import journey from "../utils/data/journey";
+import certifications from "../utils/data/certifications";
+import galleryImages from "../utils/data/gallery";
 ```
 
 ## Best Practices
