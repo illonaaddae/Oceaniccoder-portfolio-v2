@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": ">=22"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
