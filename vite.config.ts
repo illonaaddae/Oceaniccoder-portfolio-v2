@@ -110,5 +110,9 @@ export default defineConfig({
     // thread, so tests must not run in the "threads" pool. "forks" is the
     // Vitest 4 default; it is set here so that requirement stays visible.
     pool: "forks",
+    // Node 25+ ships its own global localStorage, which shadows jsdom's and
+    // is unusable without --localstorage-file. Turn it off so tests get the
+    // jsdom implementation on every Node version.
+    execArgv: ["--no-experimental-webstorage"],
   },
 });

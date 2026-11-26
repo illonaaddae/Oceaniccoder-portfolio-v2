@@ -262,7 +262,7 @@ oceanicoder-portfolio-v2/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+ (26 recommended, see .nvmrc)
 - npm
 - Appwrite account (free tier works)
 - Azure Functions Core Tools v4 (`npm i -g azure-functions-core-tools@4`) — for local function testing
@@ -460,7 +460,7 @@ on:
 **Pipeline steps:**
 
 1. Checkout code
-2. Setup Node.js 20
+2. Setup Node.js 26
 3. Install dependencies (`npm ci`)
 4. Build (`npm run build`)
 5. Deploy frontend + Azure Functions to Azure Static Web Apps
