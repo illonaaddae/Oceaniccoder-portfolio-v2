@@ -53,7 +53,13 @@ describe("groupTabs", () => {
 
   it("preserves the declared order", () => {
     const groups = groupTabs(allTabs);
-    expect(groups.map((g) => g.id)).toEqual(["business", "content", "profile", "system"]);
+    expect(groups.map((g) => g.id)).toEqual([
+      "business",
+      "personal",
+      "content",
+      "profile",
+      "system",
+    ]);
   });
 });
 

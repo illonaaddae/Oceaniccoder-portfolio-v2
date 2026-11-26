@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { usePortfolioData } from "../../hooks/usePortfolioData";
 import type { Project } from "../../types";
@@ -11,16 +11,16 @@ export const getProjectSlug = (p: Project): string =>
 export function useCaseStudy() {
   const { slug } = useParams<{ slug: string }>();
   const { projects, loading } = usePortfolioData();
-  const [project, setProject] = useState<Project | null>(null);
-
-  useEffect(() => {
-    if (projects.length > 0 && slug) {
-      const found = projects.find(
+  // Derived rather than set from an effect: if `projects` is a new array each
+  // render, a setState-in-effect loops forever and stalls route transitions.
+  const project = useMemo<Project | null>(() => {
+    if (!slug) return null;
+    return (
+      projects.find(
         (p) =>
           p.slug === slug || p.$id === slug || p.title.toLowerCase().replace(/\s+/g, "-") === slug,
-      );
-      setProject(found || null);
-    }
+      ) ?? null
+    );
   }, [projects, slug]);
 
   const relatedProjects = projects
